@@ -43,8 +43,8 @@ app = FastAPI(
     "Address lookup, bulk search, geo search, and filtering by permit type, date, status, and more.",
     version=settings.VERSION,
     lifespan=lifespan,
-    docs_url="/docs" if settings.DEBUG or not settings.is_production else None,
-    redoc_url="/redoc" if settings.DEBUG or not settings.is_production else None,
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
 # CORS
