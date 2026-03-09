@@ -71,7 +71,7 @@ async def search_permits(
         )
 
     if city:
-        conditions.append(Permit.city.ilike(city))
+        conditions.append(func.lower(Permit.city) == city.lower())
     if state:
         conditions.append(func.upper(Permit.state) == state.upper())
     if zip_code:
@@ -99,12 +99,7 @@ async def search_permits(
 
     where_clause = and_(*conditions)
 
-    # Count total
-    count_q = select(func.count()).select_from(Permit).where(where_clause)
-    total_result = await db.execute(count_q)
-    total = total_result.scalar()
-
-    # Fetch page
+    # Fetch page first (fast with LIMIT), then estimate total
     query = (
         select(Permit)
         .where(where_clause)
@@ -129,6 +124,15 @@ async def search_permits(
 
     result = await db.execute(query)
     permits = result.scalars().all()
+
+    # Only run COUNT if first page and results exist (avoid slow count on huge datasets)
+    total = 0
+    if permits:
+        if len(permits) < page_size:
+            total = (page - 1) * page_size + len(permits)
+        else:
+            count_q = select(func.count()).select_from(Permit).where(where_clause)
+            total = (await db.execute(count_q)).scalar()
 
     return {
         "results": [permit_to_dict(p) for p in permits],
