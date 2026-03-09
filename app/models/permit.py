@@ -24,11 +24,11 @@ class Permit(Base):
     zip = Column(String(10), index=True)
     lat = Column(Float)
     lng = Column(Float)
-    parcel_id = Column(String(100), index=True)
+    parcel_id = Column(String(200), index=True)
 
     # Permit details
     permit_type = Column(String(100), index=True)  # building, electrical, plumbing, mechanical, demolition
-    work_type = Column(String(100))
+    work_type = Column(String(255))
     trade = Column(String(50), index=True)
     status = Column(String(50), index=True)
     description = Column(Text)
