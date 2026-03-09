@@ -71,22 +71,22 @@ async def search_permits(
         )
 
     if city:
-        conditions.append(func.upper(Permit.city) == city.upper())
+        conditions.append(Permit.city.ilike(city))
     if state:
         conditions.append(func.upper(Permit.state) == state.upper())
     if zip_code:
         conditions.append(Permit.zip == zip_code)
     if permit_type:
-        conditions.append(func.upper(Permit.permit_type) == permit_type.upper())
+        conditions.append(Permit.permit_type.ilike(permit_type))
     if status:
-        conditions.append(func.upper(Permit.status) == status.upper())
+        conditions.append(Permit.status.ilike(status))
     if jurisdiction:
-        conditions.append(func.upper(Permit.jurisdiction).contains(jurisdiction.upper()))
+        conditions.append(Permit.jurisdiction.ilike(f"%{jurisdiction}%"))
     if contractor:
         conditions.append(
             or_(
-                func.upper(Permit.contractor_name).contains(contractor.upper()),
-                func.upper(Permit.contractor_company).contains(contractor.upper()),
+                Permit.contractor_name.ilike(f"%{contractor}%"),
+                Permit.contractor_company.ilike(f"%{contractor}%"),
             )
         )
     if date_from:
