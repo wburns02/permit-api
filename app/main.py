@@ -26,15 +26,20 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
     logger.info("Starting PermitLookup API v%s", settings.VERSION)
-    await init_db()
-    logger.info("Database initialized")
+    try:
+        await init_db()
+        logger.info("Database initialized")
+    except Exception as e:
+        logger.warning("Database not available at startup: %s", e)
+        logger.warning("API will start but database endpoints will fail until DB is connected")
     yield
     logger.info("Shutting down PermitLookup API")
 
 
 app = FastAPI(
     title="PermitLookup API",
-    description="Search ~1B building permit records from 180+ jurisdictions across 17+ states. "
+    description="Search 1B+ property and permit records from 180+ jurisdictions across 17+ states. "
+    "Includes building permits, EPA records, septic/OWTS, property/parcel data, and construction permits. "
     "Address lookup, bulk search, geo search, and filtering by permit type, date, status, and more.",
     version=settings.VERSION,
     lifespan=lifespan,

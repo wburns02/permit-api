@@ -18,10 +18,22 @@ Monetized via Stripe subscription tiers (Free/Starter/Pro/Enterprise).
 - `app/middleware/` — Auth + rate limiting
 - `scripts/` — ETL and data migration tools
 
-## Data Source
-- SQLite DB at `/mnt/win11/fedora-moved/Data/crm_permits.db` (3.58M local copy)
-- Full dataset on T430: `/dataPool/data/databases/crm_permits.db` (~1B records)
+## Data Sources (~1B+ total records)
+| Dataset | Records | Server | Path |
+|---------|---------|--------|------|
+| Property Intelligence DB | 717.6M | T430 | PostgreSQL |
+| Staged CSVs (67 phases) | 280M+ lines | R730 | `/mnt/data/staging/` (209GB) |
+| crm_permits.db | 56M+ | T430 | `/dataPool/data/databases/crm_permits.db` |
+| EPA (SDWA, NPDES, FRS) | 70M+ | R730 | staging |
+| Septic/OWTS all states | 25M+ | R730 | staging |
+| Property/parcel records | 70M+ | R730 | staging |
+| Construction permits | 15M+ | R730 | staging |
+| Local partial copy | 3.58M | 5080 | `/mnt/win11/fedora-moved/Data/crm_permits.db` |
+| Crown leads + Socrata | — | 5080 | `/mnt/win11/Fedora/crown_scrapers/data/` (7.1GB) |
+| Septic PDFs (OCR) | — | 5080 | `/mnt/win11/Fedora/ocr_pdfs/` (244GB) |
+
 - ETL: `scripts/etl_sqlite_to_pg.py` handles batch loading with address normalization
+- Additional ETL scripts needed for EPA, parcel, and property data formats
 
 ## API Endpoints
 - `POST /v1/signup` — Create free account, get API key
