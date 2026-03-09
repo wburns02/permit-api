@@ -1,0 +1,80 @@
+"""PermitLookup API Configuration."""
+
+from pydantic_settings import BaseSettings
+from pydantic import field_validator, model_validator
+from functools import lru_cache
+import logging
+
+logger = logging.getLogger(__name__)
+
+
+class Settings(BaseSettings):
+    """Application settings loaded from environment variables."""
+
+    # Database
+    DATABASE_URL: str = "postgresql+asyncpg://localhost:5432/permit_api"
+
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def convert_database_url(cls, v: str) -> str:
+        if v and v.startswith("postgresql://"):
+            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return v
+
+    # Auth
+    SECRET_KEY: str = "development-secret-key-change-in-production"
+    ALGORITHM: str = "HS256"
+
+    # CORS
+    FRONTEND_URL: str = "http://localhost:5173"
+
+    # Stripe
+    STRIPE_SECRET_KEY: str | None = None
+    STRIPE_PUBLISHABLE_KEY: str | None = None
+    STRIPE_WEBHOOK_SECRET: str | None = None
+    STRIPE_PRICE_STARTER: str | None = None  # Stripe Price ID for $49/mo
+    STRIPE_PRICE_PRO: str | None = None  # Stripe Price ID for $149/mo
+    STRIPE_PRICE_ENTERPRISE: str | None = None  # Stripe Price ID for $499/mo
+
+    # Redis (rate limiting + caching)
+    REDIS_URL: str | None = None
+
+    # Rate limits (lookups per day)
+    RATE_LIMIT_FREE: int = 100
+    RATE_LIMIT_STARTER: int = 1000
+    RATE_LIMIT_PRO: int = 10000
+    RATE_LIMIT_ENTERPRISE: int = 1000000  # effectively unlimited
+    OVERAGE_COST_CENTS: int = 5  # $0.05 per lookup over limit
+
+    # Environment
+    ENVIRONMENT: str = "development"
+    DEBUG: bool = True
+    VERSION: str = "0.1.0"
+
+    # Sentry
+    SENTRY_DSN: str | None = None
+
+    @model_validator(mode="after")
+    def validate_production(self) -> "Settings":
+        if self.ENVIRONMENT.lower() in ("production", "prod"):
+            if len(self.SECRET_KEY) < 32 or self.SECRET_KEY.startswith("development"):
+                raise ValueError("Set a strong SECRET_KEY for production")
+            if self.DEBUG:
+                object.__setattr__(self, "DEBUG", False)
+        return self
+
+    @property
+    def is_production(self) -> bool:
+        return self.ENVIRONMENT.lower() in ("production", "prod")
+
+    class Config:
+        env_file = ".env"
+        case_sensitive = True
+
+
+@lru_cache()
+def get_settings() -> Settings:
+    return Settings()
+
+
+settings = get_settings()
