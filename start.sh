@@ -3,7 +3,7 @@ set -e
 
 if [ -n "$TAILSCALE_AUTHKEY" ]; then
     echo "Starting Tailscale..."
-    tailscaled --tun=userspace-networking --state=/tmp/tailscale-state --socket=/tmp/tailscale.sock &
+    tailscaled --tun=userspace-networking --socks5-server=localhost:1055 --state=/tmp/tailscale-state --socket=/tmp/tailscale.sock &
     sleep 3
 
     tailscale --socket=/tmp/tailscale.sock up --authkey="$TAILSCALE_AUTHKEY" --hostname=permit-api-railway
