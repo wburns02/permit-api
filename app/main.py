@@ -1,10 +1,13 @@
 """PermitLookup API — Building permit data for contractors, investors, and insurers."""
 
 import logging
+from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.config import settings
 from app.database import init_db
@@ -52,6 +55,7 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         settings.FRONTEND_URL,
+        "https://permits.ecbtx.com",
         "http://localhost:5173",
         "http://localhost:3000",
     ],
@@ -95,8 +99,17 @@ async def health_db():
         return {"status": "error", "error": str(e), "latency_ms": round((time.time() - t0) * 1000)}
 
 
+STATIC_DIR = Path(__file__).parent / "static"
+app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+
+
 @app.get("/")
 async def root():
+    return FileResponse(STATIC_DIR / "index.html")
+
+
+@app.get("/api")
+async def api_info():
     return {
         "name": "PermitLookup API",
         "version": settings.VERSION,

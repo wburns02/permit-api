@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PermitLookup — Building Permit Data API</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0a0f;--surface:#12121a;--surface2:#1a1a25;--surface3:#22222f;
+  --border:#2a2a3a;--border2:#3a3a4f;
+  --text:#e8e8f0;--text2:#a0a0b8;--text3:#6a6a80;
+  --accent:#6366f1;--accent2:#818cf8;--accent-glow:rgba(99,102,241,.15);
+  --green:#22c55e;--green-glow:rgba(34,197,94,.15);
+  --orange:#f59e0b;--red:#ef4444;
+  --radius:12px;--radius-sm:8px;
+  --font:-apple-system,BlinkMacSystemFont,'Inter','Segoe UI',sans-serif;
+  --mono:'SF Mono','Fira Code','JetBrains Mono',monospace;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);line-height:1.6;overflow-x:hidden}
+a{color:var(--accent2);text-decoration:none}
+a:hover{text-decoration:underline}
+button{cursor:pointer;font-family:var(--font)}
+
+/* Layout */
+.container{max-width:1200px;margin:0 auto;padding:0 24px}
+
+/* Navigation */
+nav{position:sticky;top:0;z-index:100;background:rgba(10,10,15,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px}
+nav .inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px}
+nav .logo{font-size:20px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:10px}
+nav .logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),#a855f7);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
+nav .links{display:flex;gap:8px;align-items:center}
+nav .links a, nav .links button{padding:8px 16px;border-radius:var(--radius-sm);color:var(--text2);font-size:14px;font-weight:500;transition:all .2s;border:none;background:none}
+nav .links a:hover, nav .links button:hover{color:var(--text);background:var(--surface2);text-decoration:none}
+nav .links .btn-primary{background:var(--accent);color:#fff;padding:8px 20px}
+nav .links .btn-primary:hover{background:var(--accent2)}
+
+/* Hero */
+.hero{padding:80px 0 60px;text-align:center;position:relative}
+.hero::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:600px;height:400px;background:radial-gradient(ellipse,var(--accent-glow) 0%,transparent 70%);pointer-events:none}
+.hero h1{font-size:clamp(36px,5vw,56px);font-weight:800;line-height:1.1;margin-bottom:20px;background:linear-gradient(135deg,#fff 30%,var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero p{font-size:clamp(16px,2vw,20px);color:var(--text2);max-width:640px;margin:0 auto 40px}
+
+/* Stats row */
+.stats-row{display:flex;justify-content:center;gap:48px;flex-wrap:wrap;margin-bottom:48px}
+.stat{text-align:center}
+.stat .number{font-size:36px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums}
+.stat .number.loading{background:var(--surface2);border-radius:8px;width:120px;height:44px;display:inline-block;animation:pulse 1.5s ease-in-out infinite}
+.stat .label{font-size:14px;color:var(--text3);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+@keyframes pulse{0%,100%{opacity:.5}50%{opacity:1}}
+
+/* Search box */
+.search-section{max-width:720px;margin:0 auto 80px;position:relative}
+.search-box{display:flex;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:border-color .2s,box-shadow .2s}
+.search-box:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-glow)}
+.search-box input{flex:1;padding:16px 20px;background:none;border:none;color:var(--text);font-size:16px;outline:none}
+.search-box input::placeholder{color:var(--text3)}
+.search-box button{padding:16px 28px;background:var(--accent);color:#fff;border:none;font-size:15px;font-weight:600;transition:background .2s}
+.search-box button:hover{background:var(--accent2)}
+.search-box button:disabled{opacity:.5;cursor:not-allowed}
+
+/* Results */
+.results-area{max-width:900px;margin:0 auto 80px;display:none}
+.results-area.visible{display:block}
+.results-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.results-header h3{font-size:18px;font-weight:600}
+.results-header .count{color:var(--text3);font-size:14px}
+.result-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:12px;transition:border-color .2s,transform .15s}
+.result-card:hover{border-color:var(--border2);transform:translateY(-1px)}
+.result-card .address{font-size:16px;font-weight:600;margin-bottom:8px}
+.result-card .meta{display:flex;flex-wrap:wrap;gap:12px;font-size:13px;color:var(--text2)}
+.result-card .meta span{display:flex;align-items:center;gap:4px}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:600;text-transform:uppercase}
+.badge-green{background:var(--green-glow);color:var(--green)}
+.badge-orange{background:rgba(245,158,11,.15);color:var(--orange)}
+.badge-blue{background:var(--accent-glow);color:var(--accent2)}
+.badge-red{background:rgba(239,68,68,.15);color:var(--red)}
+
+/* Sections */
+section{padding:60px 0}
+section h2{font-size:32px;font-weight:700;margin-bottom:12px}
+section .subtitle{color:var(--text2);font-size:16px;margin-bottom:40px}
+
+/* Coverage Map */
+.coverage-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.state-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;transition:border-color .2s}
+.state-card:hover{border-color:var(--accent)}
+.state-card .state-name{font-weight:600;font-size:15px;margin-bottom:4px}
+.state-card .state-count{font-size:24px;font-weight:700;color:var(--accent2);font-variant-numeric:tabular-nums}
+.state-card .state-label{font-size:12px;color:var(--text3)}
+
+/* Pricing */
+.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px}
+.price-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:32px 24px;text-align:center;transition:border-color .2s,transform .2s}
+.price-card:hover{transform:translateY(-2px)}
+.price-card.featured{border-color:var(--accent);position:relative}
+.price-card.featured::before{content:'POPULAR';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:4px 16px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.5px}
+.price-card .plan-name{font-size:18px;font-weight:700;margin-bottom:8px}
+.price-card .price{font-size:42px;font-weight:800;margin-bottom:4px}
+.price-card .price span{font-size:16px;font-weight:400;color:var(--text2)}
+.price-card .limits{color:var(--text2);font-size:14px;margin-bottom:24px}
+.price-card ul{list-style:none;text-align:left;margin-bottom:28px}
+.price-card ul li{padding:6px 0;font-size:14px;color:var(--text2);display:flex;align-items:center;gap:8px}
+.price-card ul li::before{content:'✓';color:var(--green);font-weight:700}
+.price-card .btn{display:block;padding:12px;border-radius:var(--radius-sm);font-size:15px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text);transition:all .2s;text-align:center}
+.price-card .btn:hover{border-color:var(--accent);text-decoration:none}
+.price-card.featured .btn{background:var(--accent);border-color:var(--accent);color:#fff}
+.price-card.featured .btn:hover{background:var(--accent2)}
+
+/* Code Example */
+.code-section{max-width:720px;margin:0 auto}
+.code-block{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
+.code-header{display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid var(--border);background:var(--surface2)}
+.code-tab{padding:6px 14px;border-radius:6px;font-size:13px;color:var(--text3);cursor:pointer;transition:all .2s;border:none;background:none}
+.code-tab.active{background:var(--accent-glow);color:var(--accent2)}
+.code-body{padding:20px;font-family:var(--mono);font-size:13px;line-height:1.7;overflow-x:auto;white-space:pre}
+.code-body .kw{color:var(--accent2)}
+.code-body .str{color:var(--green)}
+.code-body .comment{color:var(--text3)}
+
+/* Dashboard */
+.dashboard-section{display:none}
+.dashboard-section.visible{display:block}
+.dash-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin-bottom:32px}
+.dash-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px}
+.dash-card .dash-label{font-size:13px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.dash-card .dash-value{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}
+.usage-bar{height:8px;background:var(--surface3);border-radius:4px;margin-top:12px;overflow:hidden}
+.usage-bar .fill{height:100%;border-radius:4px;transition:width .6s ease;background:var(--accent)}
+.usage-bar .fill.warning{background:var(--orange)}
+.usage-bar .fill.danger{background:var(--red)}
+.key-list{list-style:none}
+.key-list li{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px}
+.key-list .key-prefix{font-family:var(--mono);font-size:14px}
+.key-list .key-actions button{padding:6px 12px;border-radius:6px;font-size:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);transition:all .2s}
+.key-list .key-actions button:hover{border-color:var(--red);color:var(--red)}
+
+/* Signup Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.visible{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:40px;max-width:440px;width:90%;position:relative;animation:modalIn .25s ease}
+@keyframes modalIn{from{opacity:0;transform:scale(.95) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal h3{font-size:22px;font-weight:700;margin-bottom:8px}
+.modal p{color:var(--text2);font-size:14px;margin-bottom:24px}
+.modal .close{position:absolute;top:16px;right:16px;background:none;border:none;color:var(--text3);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:6px}
+.modal .close:hover{background:var(--surface2);color:var(--text)}
+.form-group{margin-bottom:16px}
+.form-group label{display:block;font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px}
+.form-group input{width:100%;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;transition:border-color .2s}
+.form-group input:focus{border-color:var(--accent)}
+.btn-full{width:100%;padding:12px;border-radius:var(--radius-sm);font-size:15px;font-weight:600;border:none;background:var(--accent);color:#fff;transition:background .2s}
+.btn-full:hover{background:var(--accent2)}
+.btn-full:disabled{opacity:.5;cursor:not-allowed}
+.api-key-display{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;font-family:var(--mono);font-size:13px;word-break:break-all;margin:12px 0;position:relative;cursor:pointer}
+.api-key-display:hover::after{content:'Click to copy';position:absolute;top:-28px;right:0;background:var(--surface3);padding:4px 8px;border-radius:4px;font-size:11px;font-family:var(--font);color:var(--text2)}
+.success-msg{color:var(--green);font-size:14px;margin-top:8px}
+.error-msg{color:var(--red);font-size:14px;margin-top:8px}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 20px;font-size:14px;z-index:300;transform:translateY(100px);opacity:0;transition:all .3s ease}
+.toast.visible{transform:translateY(0);opacity:1}
+.toast.success{border-color:var(--green)}
+.toast.error{border-color:var(--red)}
+
+/* Footer */
+footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color:var(--text3);font-size:13px}
+
+/* Responsive */
+@media(max-width:768px){
+  nav .links a:not(.btn-primary){display:none}
+  .stats-row{gap:24px}
+  .stat .number{font-size:28px}
+  .pricing-grid{grid-template-columns:1fr}
+  .hero{padding:48px 0 40px}
+  .hero h1{font-size:32px}
+}
+
+/* Page transitions */
+.page{display:none;animation:fadeIn .3s ease}
+.page.visible{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="inner">
+    <div class="logo">
+      <div class="logo-icon">P</div>
+      PermitLookup
+    </div>
+    <div class="links">
+      <a href="#" onclick="showPage('home')">Search</a>
+      <a href="#" onclick="showPage('coverage')">Coverage</a>
+      <a href="#" onclick="showPage('pricing')">Pricing</a>
+      <a href="/docs" target="_blank">API Docs</a>
+      <button onclick="showPage('dashboard')" id="nav-dashboard" style="display:none">Dashboard</button>
+      <button class="btn-primary" onclick="openSignup()" id="nav-signup">Get API Key</button>
+    </div>
+  </div>
+</nav>
+
+<!-- HOME PAGE -->
+<div class="page visible" id="page-home">
+  <section class="hero">
+    <div class="container">
+      <h1>Search 1B+ Building Permits<br>via API</h1>
+      <p>The most comprehensive building permit database. 180+ jurisdictions across 17+ states. Real-time data for contractors, investors, insurers, and analysts.</p>
+
+      <div class="stats-row">
+        <div class="stat">
+          <div class="number loading" id="stat-permits"></div>
+          <div class="label">Permit Records</div>
+        </div>
+        <div class="stat">
+          <div class="number loading" id="stat-jurisdictions"></div>
+          <div class="label">Jurisdictions</div>
+        </div>
+        <div class="stat">
+          <div class="number loading" id="stat-states"></div>
+          <div class="label">States</div>
+        </div>
+      </div>
+
+      <div class="search-section">
+        <div class="search-box">
+          <input type="text" id="search-input" placeholder="Search by address... e.g. 123 Main St, Austin TX" autocomplete="off">
+          <button onclick="doSearch()" id="search-btn">Search</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="results-area container" id="results-area">
+    <div class="results-header">
+      <h3>Results</h3>
+      <span class="count" id="results-count"></span>
+    </div>
+    <div id="results-list"></div>
+  </div>
+
+  <!-- Code Example -->
+  <section>
+    <div class="code-section">
+      <h2 style="text-align:center;margin-bottom:8px">Developer First</h2>
+      <p class="subtitle" style="text-align:center">Integrate permit data in minutes with our simple REST API</p>
+      <div class="code-block">
+        <div class="code-header">
+          <button class="code-tab active" onclick="showCodeTab(this,'python')">Python</button>
+          <button class="code-tab" onclick="showCodeTab(this,'curl')">cURL</button>
+          <button class="code-tab" onclick="showCodeTab(this,'javascript')">JavaScript</button>
+        </div>
+        <div class="code-body" id="code-python"><span class="kw">import</span> requests
+
+response = requests.get(
+    <span class="str">"https://permits.ecbtx.com/v1/permits/search"</span>,
+    headers={<span class="str">"X-API-Key"</span>: <span class="str">"pl_live_your_key_here"</span>},
+    params={<span class="str">"address"</span>: <span class="str">"123 Main St"</span>, <span class="str">"state"</span>: <span class="str">"TX"</span>}
+)
+
+permits = response.json()[<span class="str">"results"</span>]
+<span class="kw">for</span> p <span class="kw">in</span> permits:
+    <span class="kw">print</span>(f<span class="str">"{p['address']} — {p['permit_type']} — {p['status']}"</span>)</div>
+        <div class="code-body" id="code-curl" style="display:none"><span class="comment"># Search permits by address</span>
+curl -H <span class="str">"X-API-Key: pl_live_your_key_here"</span> \
+  <span class="str">"https://permits.ecbtx.com/v1/permits/search?address=123+Main+St&state=TX"</span>
+
+<span class="comment"># Check your usage</span>
+curl -H <span class="str">"X-API-Key: pl_live_your_key_here"</span> \
+  <span class="str">"https://permits.ecbtx.com/v1/usage"</span></div>
+        <div class="code-body" id="code-javascript" style="display:none"><span class="kw">const</span> response = <span class="kw">await</span> fetch(
+  <span class="str">"https://permits.ecbtx.com/v1/permits/search?address=123+Main+St&state=TX"</span>,
+  { headers: { <span class="str">"X-API-Key"</span>: <span class="str">"pl_live_your_key_here"</span> } }
+);
+
+<span class="kw">const</span> { results, total } = <span class="kw">await</span> response.json();
+console.log(<span class="str">`Found ${total} permits`</span>);
+results.forEach(p =>
+  console.log(<span class="str">`${p.address} — ${p.permit_type} — ${p.status}`</span>)
+);</div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- COVERAGE PAGE -->
+<div class="page" id="page-coverage">
+  <section>
+    <div class="container">
+      <h2>Coverage</h2>
+      <p class="subtitle">Permit data from <span id="cov-states">17+</span> states and <span id="cov-jurisdictions">180+</span> jurisdictions</p>
+      <div class="coverage-grid" id="coverage-grid"></div>
+    </div>
+  </section>
+</div>
+
+<!-- PRICING PAGE -->
+<div class="page" id="page-pricing">
+  <section>
+    <div class="container">
+      <h2 style="text-align:center">Simple, Transparent Pricing</h2>
+      <p class="subtitle" style="text-align:center">Start free. Scale as you grow. No long-term contracts.</p>
+      <div class="pricing-grid">
+        <div class="price-card">
+          <div class="plan-name">Free</div>
+          <div class="price">$0</div>
+          <div class="limits">100 lookups / day</div>
+          <ul>
+            <li>Address search</li>
+            <li>Filter by type, status, date</li>
+            <li>1 API key</li>
+            <li>Swagger documentation</li>
+          </ul>
+          <a class="btn" href="#" onclick="openSignup();return false">Get Started</a>
+        </div>
+        <div class="price-card">
+          <div class="plan-name">Starter</div>
+          <div class="price">$49<span>/mo</span></div>
+          <div class="limits">1,000 lookups / day</div>
+          <ul>
+            <li>Everything in Free</li>
+            <li>Bulk CSV search (500/req)</li>
+            <li>5 API keys</li>
+            <li>Priority support</li>
+          </ul>
+          <a class="btn" href="#" onclick="subscribe('starter');return false">Subscribe</a>
+        </div>
+        <div class="price-card featured">
+          <div class="plan-name">Pro</div>
+          <div class="price">$149<span>/mo</span></div>
+          <div class="limits">10,000 lookups / day</div>
+          <ul>
+            <li>Everything in Starter</li>
+            <li>Geo radius search</li>
+            <li>Contractor lookup</li>
+            <li>Webhook alerts</li>
+          </ul>
+          <a class="btn" href="#" onclick="subscribe('pro');return false">Subscribe</a>
+        </div>
+        <div class="price-card">
+          <div class="plan-name">Enterprise</div>
+          <div class="price">$499<span>/mo</span></div>
+          <div class="limits">Unlimited lookups</div>
+          <ul>
+            <li>Everything in Pro</li>
+            <li>Dedicated support</li>
+            <li>Custom data exports</li>
+            <li>SLA guarantee</li>
+          </ul>
+          <a class="btn" href="#" onclick="subscribe('enterprise');return false">Contact Sales</a>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- DASHBOARD PAGE -->
+<div class="page" id="page-dashboard">
+  <section>
+    <div class="container">
+      <h2>Dashboard</h2>
+      <p class="subtitle">Manage your API keys and monitor usage</p>
+
+      <div class="dash-grid">
+        <div class="dash-card">
+          <div class="dash-label">Plan</div>
+          <div class="dash-value" id="dash-plan">—</div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-label">Today's Usage</div>
+          <div class="dash-value"><span id="dash-used">0</span> / <span id="dash-limit">100</span></div>
+          <div class="usage-bar"><div class="fill" id="dash-bar" style="width:0%"></div></div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-label">Monthly Total</div>
+          <div class="dash-value" id="dash-monthly">0</div>
+        </div>
+        <div class="dash-card">
+          <div class="dash-label">Remaining Today</div>
+          <div class="dash-value" id="dash-remaining">100</div>
+        </div>
+      </div>
+
+      <h3 style="margin-bottom:16px">API Keys</h3>
+      <ul class="key-list" id="key-list"></ul>
+      <button class="btn-full" style="max-width:240px;margin-top:12px" onclick="createNewKey()">+ Create New Key</button>
+    </div>
+  </section>
+</div>
+
+<!-- SIGNUP MODAL -->
+<div class="modal-overlay" id="signup-modal">
+  <div class="modal">
+    <button class="close" onclick="closeSignup()">&times;</button>
+    <div id="signup-form-view">
+      <h3>Get Your Free API Key</h3>
+      <p>No credit card required. Start with 100 free lookups per day.</p>
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" id="signup-email" placeholder="you@company.com">
+      </div>
+      <div class="form-group">
+        <label>Company (optional)</label>
+        <input type="text" id="signup-company" placeholder="Acme Construction">
+      </div>
+      <button class="btn-full" onclick="doSignup()" id="signup-btn">Create Free Account</button>
+      <div id="signup-error" class="error-msg" style="display:none"></div>
+    </div>
+    <div id="signup-success-view" style="display:none">
+      <h3>Account Created!</h3>
+      <p>Here's your API key. Save it now — it won't be shown again.</p>
+      <div class="api-key-display" id="signup-key-display" onclick="copyKey(this)"></div>
+      <div class="success-msg">Key copied to clipboard!</div>
+      <button class="btn-full" onclick="closeSignup();showPage('dashboard')" style="margin-top:16px">Go to Dashboard</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<footer>
+  <div class="container">
+    &copy; 2026 PermitLookup. Building permit data API. <a href="/docs">API Docs</a> · <a href="/redoc">Reference</a>
+  </div>
+</footer>
+
+<script>
+const API = '';
+let currentKey = localStorage.getItem('pl_api_key') || '';
+let currentPage = 'home';
+
+// Init
+document.addEventListener('DOMContentLoaded', () => {
+  loadStats();
+  if (currentKey) {
+    document.getElementById('nav-signup').textContent = 'Dashboard';
+    document.getElementById('nav-signup').onclick = () => showPage('dashboard');
+    document.getElementById('nav-dashboard').style.display = '';
+  }
+  document.getElementById('search-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') doSearch();
+  });
+});
+
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('visible'));
+  document.getElementById('page-' + page).classList.add('visible');
+  currentPage = page;
+  if (page === 'coverage') loadCoverage();
+  if (page === 'dashboard') loadDashboard();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Stats
+async function loadStats() {
+  try {
+    const r = await fetch(API + '/v1/stats');
+    const d = await r.json();
+    animateNumber('stat-permits', d.total_permits);
+    animateNumber('stat-jurisdictions', d.total_jurisdictions);
+    animateNumber('stat-states', d.total_states);
+  } catch(e) {
+    console.error('Stats load failed', e);
+  }
+}
+
+function animateNumber(id, target) {
+  const el = document.getElementById(id);
+  el.classList.remove('loading');
+  let current = 0;
+  const step = Math.max(1, Math.floor(target / 40));
+  const interval = setInterval(() => {
+    current += step;
+    if (current >= target) {
+      current = target;
+      clearInterval(interval);
+    }
+    el.textContent = current.toLocaleString();
+  }, 25);
+}
+
+// Search
+async function doSearch() {
+  const q = document.getElementById('search-input').value.trim();
+  if (!q) return;
+  if (!currentKey) { openSignup(); return; }
+
+  const btn = document.getElementById('search-btn');
+  btn.disabled = true; btn.textContent = 'Searching...';
+
+  try {
+    const params = new URLSearchParams({ address: q, page_size: '20' });
+    const r = await fetch(API + '/v1/permits/search?' + params, {
+      headers: { 'X-API-Key': currentKey }
+    });
+    if (r.status === 401) { openSignup(); return; }
+    if (r.status === 429) { showToast('Daily limit reached. Upgrade your plan.', 'error'); return; }
+    const d = await r.json();
+    renderResults(d);
+  } catch(e) {
+    showToast('Search failed: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Search';
+  }
+}
+
+function renderResults(data) {
+  const area = document.getElementById('results-area');
+  const list = document.getElementById('results-list');
+  const count = document.getElementById('results-count');
+
+  area.classList.add('visible');
+  count.textContent = `${data.total.toLocaleString()} results (page ${data.page}/${data.total_pages || 1})`;
+
+  if (!data.results.length) {
+    list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">No permits found for this address. Try a different search.</div>';
+    return;
+  }
+
+  list.innerHTML = data.results.map(p => `
+    <div class="result-card">
+      <div class="address">${esc(p.address)}${p.city ? ', ' + esc(p.city) : ''}${p.state ? ' ' + esc(p.state) : ''} ${p.zip || ''}</div>
+      <div class="meta">
+        <span><strong>#</strong> ${esc(p.permit_number)}</span>
+        ${p.permit_type ? `<span class="badge badge-blue">${esc(p.permit_type)}</span>` : ''}
+        ${p.status ? `<span class="badge ${statusBadge(p.status)}">${esc(p.status)}</span>` : ''}
+        ${p.issue_date ? `<span>Issued: ${p.issue_date}</span>` : ''}
+        ${p.valuation ? `<span>$${Number(p.valuation).toLocaleString()}</span>` : ''}
+        ${p.jurisdiction ? `<span>${esc(p.jurisdiction)}</span>` : ''}
+      </div>
+      ${p.description ? `<div style="margin-top:8px;font-size:13px;color:var(--text2)">${esc(p.description).substring(0,200)}${p.description.length > 200 ? '...' : ''}</div>` : ''}
+      ${p.contractor_name || p.contractor_company ? `<div style="margin-top:6px;font-size:13px;color:var(--text3)">Contractor: ${esc(p.contractor_name || '')} ${p.contractor_company ? '(' + esc(p.contractor_company) + ')' : ''}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+function statusBadge(s) {
+  s = s.toLowerCase();
+  if (s.includes('issued') || s.includes('final') || s.includes('complete') || s.includes('approved')) return 'badge-green';
+  if (s.includes('pending') || s.includes('review') || s.includes('open')) return 'badge-orange';
+  if (s.includes('expired') || s.includes('denied') || s.includes('void')) return 'badge-red';
+  return 'badge-blue';
+}
+
+// Coverage
+let coverageLoaded = false;
+async function loadCoverage() {
+  if (coverageLoaded) return;
+  try {
+    const r = await fetch(API + '/v1/coverage');
+    const d = await r.json();
+    document.getElementById('cov-states').textContent = d.total_states;
+    document.getElementById('cov-jurisdictions').textContent = d.total_jurisdictions.toLocaleString();
+
+    const grid = document.getElementById('coverage-grid');
+    grid.innerHTML = Object.entries(d.states)
+      .sort((a, b) => b[1] - a[1])
+      .map(([st, ct]) => `
+        <div class="state-card">
+          <div class="state-name">${esc(st)}</div>
+          <div class="state-count">${ct.toLocaleString()}</div>
+          <div class="state-label">records</div>
+        </div>
+      `).join('');
+    coverageLoaded = true;
+  } catch(e) {
+    console.error('Coverage failed', e);
+  }
+}
+
+// Dashboard
+async function loadDashboard() {
+  if (!currentKey) { showPage('home'); openSignup(); return; }
+  try {
+    const [usageR, keysR] = await Promise.all([
+      fetch(API + '/v1/usage', { headers: { 'X-API-Key': currentKey } }),
+      fetch(API + '/v1/api-keys', { headers: { 'X-API-Key': currentKey } })
+    ]);
+
+    if (usageR.status === 401) { currentKey = ''; localStorage.removeItem('pl_api_key'); showPage('home'); openSignup(); return; }
+
+    const usage = await usageR.json();
+    const keys = await keysR.json();
+
+    document.getElementById('dash-plan').textContent = usage.plan.charAt(0).toUpperCase() + usage.plan.slice(1);
+    document.getElementById('dash-used').textContent = usage.daily_used;
+    document.getElementById('dash-limit').textContent = usage.daily_limit.toLocaleString();
+    document.getElementById('dash-monthly').textContent = usage.monthly_used.toLocaleString();
+    document.getElementById('dash-remaining').textContent = usage.daily_remaining.toLocaleString();
+
+    const pct = Math.min(100, (usage.daily_used / usage.daily_limit) * 100);
+    const bar = document.getElementById('dash-bar');
+    bar.style.width = pct + '%';
+    bar.className = 'fill' + (pct > 90 ? ' danger' : pct > 70 ? ' warning' : '');
+
+    const keyList = document.getElementById('key-list');
+    keyList.innerHTML = keys.map(k => `
+      <li>
+        <div>
+          <span class="key-prefix">${esc(k.key_prefix)}</span>
+          <span style="color:var(--text3);font-size:12px;margin-left:8px">${esc(k.name)}</span>
+          ${k.is_active ? '<span class="badge badge-green" style="margin-left:8px">active</span>' : '<span class="badge badge-red" style="margin-left:8px">revoked</span>'}
+        </div>
+        <div class="key-actions">
+          <span style="font-size:12px;color:var(--text3);margin-right:12px">${k.last_used_at ? 'Last used: ' + new Date(k.last_used_at).toLocaleDateString() : 'Never used'}</span>
+          ${k.is_active ? `<button onclick="revokeKey('${k.id}')">Revoke</button>` : ''}
+        </div>
+      </li>
+    `).join('');
+  } catch(e) {
+    showToast('Failed to load dashboard', 'error');
+  }
+}
+
+async function createNewKey() {
+  if (!currentKey) return;
+  try {
+    const r = await fetch(API + '/v1/api-keys', {
+      method: 'POST', headers: { 'X-API-Key': currentKey }
+    });
+    const d = await r.json();
+    if (d.api_key) {
+      showToast('New key created! ' + d.api_key.substring(0, 16) + '...', 'success');
+      loadDashboard();
+    } else {
+      showToast(d.detail || 'Failed to create key', 'error');
+    }
+  } catch(e) {
+    showToast('Error creating key', 'error');
+  }
+}
+
+async function revokeKey(id) {
+  if (!confirm('Revoke this API key? This cannot be undone.')) return;
+  try {
+    await fetch(API + '/v1/api-keys/' + id, {
+      method: 'DELETE', headers: { 'X-API-Key': currentKey }
+    });
+    showToast('Key revoked', 'success');
+    loadDashboard();
+  } catch(e) {
+    showToast('Error revoking key', 'error');
+  }
+}
+
+// Signup
+function openSignup() {
+  document.getElementById('signup-modal').classList.add('visible');
+  document.getElementById('signup-form-view').style.display = '';
+  document.getElementById('signup-success-view').style.display = 'none';
+  document.getElementById('signup-error').style.display = 'none';
+}
+function closeSignup() { document.getElementById('signup-modal').classList.remove('visible'); }
+
+async function doSignup() {
+  const email = document.getElementById('signup-email').value.trim();
+  const company = document.getElementById('signup-company').value.trim();
+  if (!email) { showSignupError('Email is required.'); return; }
+
+  const btn = document.getElementById('signup-btn');
+  btn.disabled = true; btn.textContent = 'Creating account...';
+
+  try {
+    const r = await fetch(API + '/v1/signup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, company_name: company || null })
+    });
+    const d = await r.json();
+    if (!r.ok) { showSignupError(d.detail || 'Signup failed'); return; }
+
+    currentKey = d.api_key;
+    localStorage.setItem('pl_api_key', currentKey);
+
+    document.getElementById('signup-form-view').style.display = 'none';
+    document.getElementById('signup-success-view').style.display = '';
+    document.getElementById('signup-key-display').textContent = d.api_key;
+
+    document.getElementById('nav-signup').textContent = 'Dashboard';
+    document.getElementById('nav-signup').onclick = () => showPage('dashboard');
+    document.getElementById('nav-dashboard').style.display = '';
+
+    try { await navigator.clipboard.writeText(d.api_key); } catch(e) {}
+  } catch(e) {
+    showSignupError('Network error. Try again.');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Create Free Account';
+  }
+}
+
+function showSignupError(msg) {
+  const el = document.getElementById('signup-error');
+  el.textContent = msg; el.style.display = '';
+}
+
+function copyKey(el) {
+  navigator.clipboard.writeText(el.textContent).then(() => showToast('Copied to clipboard!', 'success'));
+}
+
+function subscribe(plan) {
+  if (!currentKey) { openSignup(); return; }
+  showToast('Subscription checkout coming soon. Contact us for ' + plan + ' plan.', 'success');
+}
+
+// Code tabs
+function showCodeTab(tab, lang) {
+  document.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
+  tab.classList.add('active');
+  ['python', 'curl', 'javascript'].forEach(l => {
+    document.getElementById('code-' + l).style.display = l === lang ? '' : 'none';
+  });
+}
+
+// Toast
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast ' + type + ' visible';
+  setTimeout(() => t.classList.remove('visible'), 3000);
+}
+
+function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+</script>
+</body>
+</html>
