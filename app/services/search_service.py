@@ -16,8 +16,9 @@ PERMIT_COLUMNS = [
 ]
 
 # Tailscale userspace networking has a TCP bug that hangs on PostgreSQL responses
-# exceeding ~1200 bytes. Each permit row is ~200 bytes, so max 4 rows per query.
-_BATCH_SIZE = 4
+# exceeding ~1200 bytes. Each permit row is ~200 bytes. Use 2-row batches to
+# leave headroom for bind parameters and trigram similarity queries.
+_BATCH_SIZE = 2
 
 
 # Standard street suffix abbreviations (USPS Publication 28)
