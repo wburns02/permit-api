@@ -29,16 +29,23 @@ async def lifespan(app: FastAPI):
     try:
         await init_db()
         logger.info("Database initialized")
-        # Warmup: run a simple query to establish the Tailscale tunnel
-        # connection. First query through DERP relay is very slow (~7min),
-        # subsequent queries are fast (~3s) once tunnel is warm.
+        # Warmup: run a background query to establish the Tailscale tunnel.
+        # First query through DERP relay is very slow (~7min cold start),
+        # subsequent queries are fast (~3s). Don't block startup.
+        import asyncio
         from app.database import async_session_maker
-        from sqlalchemy import text
-        logger.info("Warming up database tunnel...")
-        async with async_session_maker() as db:
-            r = await db.execute(text("SELECT 1"))
-            r.scalar()
-        logger.info("Database tunnel warm")
+        from sqlalchemy import text as sa_text
+
+        async def _warmup():
+            try:
+                logger.info("Warming up database tunnel (background)...")
+                async with async_session_maker() as db:
+                    await db.execute(sa_text("SELECT 1"))
+                logger.info("Database tunnel warm")
+            except Exception as e:
+                logger.warning("Warmup query failed: %s", e)
+
+        asyncio.create_task(_warmup())
     except Exception as e:
         logger.warning("Database not available at startup: %s", e)
         logger.warning("API will start but database endpoints will fail until DB is connected")
