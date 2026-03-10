@@ -10,9 +10,6 @@ from app.services.search_service import get_coverage
 
 router = APIRouter(tags=["Coverage"])
 
-# Tailscale userspace TCP response size limit workaround
-_SMALL_BATCH = 5
-
 
 @router.get("/coverage")
 async def coverage(db: AsyncSession = Depends(get_db)):
@@ -23,27 +20,17 @@ async def coverage(db: AsyncSession = Depends(get_db)):
     """
     jurisdictions = await get_coverage(db)
 
-    # Aggregate stats (single-value queries, always under size limit)
     total_result = await db.execute(select(func.count()).select_from(Permit))
     total_records = total_result.scalar()
 
-    # Get state counts in batches
-    states = {}
-    offset = 0
-    while True:
-        q = (
-            select(Permit.state, func.count())
-            .group_by(Permit.state)
-            .order_by(func.count().desc())
-            .offset(offset)
-            .limit(_SMALL_BATCH)
-        )
-        batch = (await db.execute(q)).all()
-        for row in batch:
-            states[row[0]] = row[1]
-        if len(batch) < _SMALL_BATCH:
-            break
-        offset += _SMALL_BATCH
+    # Single query for state counts
+    state_q = (
+        select(Permit.state, func.count())
+        .group_by(Permit.state)
+        .order_by(func.count().desc())
+    )
+    state_rows = (await db.execute(state_q)).all()
+    states = {row[0]: row[1] for row in state_rows}
 
     return {
         "total_records": total_records,

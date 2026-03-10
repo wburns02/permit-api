@@ -48,20 +48,25 @@ async def check_rate_limit(request: Request, lookup_count: int = 1) -> dict:
         current = await redis.get(key)
         current = int(current) if current else 0
 
-        if current + lookup_count > daily_limit and plan == PlanTier.FREE:
-            raise HTTPException(
-                status_code=429,
-                detail={
-                    "error": "Daily lookup limit exceeded",
-                    "limit": daily_limit,
-                    "used": current,
-                    "plan": plan.value,
-                    "upgrade_url": f"{settings.FRONTEND_URL}/pricing",
-                },
+        if current + lookup_count > daily_limit:
+            if plan == PlanTier.FREE:
+                raise HTTPException(
+                    status_code=429,
+                    detail={
+                        "error": "Daily lookup limit exceeded",
+                        "limit": daily_limit,
+                        "used": current,
+                        "plan": plan.value,
+                        "upgrade_url": f"{settings.FRONTEND_URL}/pricing",
+                    },
+                )
+            # Paid plans: allow overage but log it
+            logger.warning(
+                "User %s on %s plan exceeded daily limit (%d/%d)",
+                user_id, plan.value, current + lookup_count, daily_limit,
             )
 
         new_count = await redis.incrby(key, lookup_count)
-        # Expire at end of day (max 48h TTL for safety)
         await redis.expire(key, 172800)
         await redis.close()
     else:
@@ -70,15 +75,20 @@ async def check_rate_limit(request: Request, lookup_count: int = 1) -> dict:
             _memory_store[key] = {"count": 0}
         current = _memory_store[key]["count"]
 
-        if current + lookup_count > daily_limit and plan == PlanTier.FREE:
-            raise HTTPException(
-                status_code=429,
-                detail={
-                    "error": "Daily lookup limit exceeded",
-                    "limit": daily_limit,
-                    "used": current,
-                    "plan": plan.value,
-                },
+        if current + lookup_count > daily_limit:
+            if plan == PlanTier.FREE:
+                raise HTTPException(
+                    status_code=429,
+                    detail={
+                        "error": "Daily lookup limit exceeded",
+                        "limit": daily_limit,
+                        "used": current,
+                        "plan": plan.value,
+                    },
+                )
+            logger.warning(
+                "User %s on %s plan exceeded daily limit (%d/%d)",
+                user_id, plan.value, current + lookup_count, daily_limit,
             )
 
         _memory_store[key]["count"] += lookup_count

@@ -2,7 +2,7 @@
 
 import hashlib
 from fastapi import APIRouter, Depends, HTTPException, Request
-from sqlalchemy import select, func
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, EmailStr
 
@@ -33,16 +33,19 @@ async def signup(body: SignupRequest, db: AsyncSession = Depends(get_db)):
 
     No credit card required. Free tier: 100 lookups/day.
     """
+    # Normalize email: lowercase, strip whitespace
+    email = body.email.strip().lower()
+
     # Check if email already registered
     existing = await db.execute(
-        select(ApiUser).where(ApiUser.email == body.email)
+        select(ApiUser).where(func.lower(ApiUser.email) == email)
     )
     if existing.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="Email already registered.")
 
     # Create user
     user = ApiUser(
-        email=body.email,
+        email=email,
         company_name=body.company_name,
         plan=PlanTier.FREE,
     )

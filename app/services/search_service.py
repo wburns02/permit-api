@@ -202,16 +202,36 @@ async def geo_search_permits(
 
 async def get_coverage(db: AsyncSession) -> list[dict]:
     """Get list of supported jurisdictions with record counts."""
-    cols = [Jurisdiction.name, Jurisdiction.state, Jurisdiction.record_count,
-            Jurisdiction.source, Jurisdiction.last_updated]
+    # Join jurisdiction metadata with live permit stats
+    cols = [
+        Jurisdiction.name,
+        Jurisdiction.state,
+        Jurisdiction.record_count,
+        Jurisdiction.source,
+        Jurisdiction.last_updated,
+    ]
     q = select(*cols).order_by(Jurisdiction.record_count.desc())
     result = await db.execute(q)
+
+    # Get the most common source per jurisdiction from permits table
+    source_q = (
+        select(Permit.jurisdiction, Permit.source)
+        .where(Permit.source.is_not(None))
+        .group_by(Permit.jurisdiction, Permit.source)
+        .order_by(func.count().desc())
+    )
+    source_rows = (await db.execute(source_q)).all()
+    source_map = {}
+    for row in source_rows:
+        if row[0] not in source_map:
+            source_map[row[0]] = row[1]
+
     return [
         {
             "name": j.name,
             "state": j.state,
             "record_count": j.record_count,
-            "source": j.source,
+            "source": j.source or source_map.get(j.name),
             "last_updated": j.last_updated.isoformat() if j.last_updated else None,
         }
         for j in result.all()

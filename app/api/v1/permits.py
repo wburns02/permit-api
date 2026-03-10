@@ -54,6 +54,11 @@ async def search(
             permit_type=permit_type,
             page=page, page_size=page_size,
         )
+        if results["total"] == 0 and not any([address, city, state]):
+            results["note"] = (
+                "Geo search returned 0 results. Geographic coordinates are not yet "
+                "available for all records. Try searching by address instead."
+            )
     elif not any([address, city, state, zip, permit_type, status, jurisdiction, contractor]):
         raise HTTPException(
             status_code=400,
