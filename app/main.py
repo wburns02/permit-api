@@ -95,6 +95,22 @@ async def health_db():
         return {"status": "error", "error": str(e), "latency_ms": round((time.time() - t0) * 1000)}
 
 
+@app.get("/health/redis")
+async def health_redis():
+    """Test Redis connectivity."""
+    import time
+    t0 = time.time()
+    try:
+        from app.middleware.rate_limit import get_redis
+        r = await get_redis()
+        if r:
+            await r.close()
+            return {"status": "ok", "connected": True, "latency_ms": round((time.time() - t0) * 1000)}
+        return {"status": "ok", "connected": False, "message": "Redis unavailable, using in-memory fallback", "latency_ms": round((time.time() - t0) * 1000)}
+    except Exception as e:
+        return {"status": "error", "error": str(e), "latency_ms": round((time.time() - t0) * 1000)}
+
+
 @app.get("/health/search-test")
 async def search_test():
     """Test a raw search query."""
