@@ -23,7 +23,16 @@ if [ -n "$TAILSCALE_AUTHKEY" ]; then
         echo "WARNING: PostgreSQL tunnel may not be ready yet"
     fi
 
-    # Background watchdog: restart Tailscale if PollNetMap drops
+    # Keepalive: ping R730 every 60s to prevent Railway NAT from killing
+    # idle Tailscale connections (PollNetMap: unexpected EOF after ~2.5min)
+    (
+        while true; do
+            sleep 60
+            tailscale --socket=/tmp/tailscale.sock ping --timeout=5s 100.85.99.69 >/dev/null 2>&1 || true
+        done
+    ) &
+
+    # Watchdog: reconnect Tailscale if connection drops
     (
         while true; do
             sleep 30
