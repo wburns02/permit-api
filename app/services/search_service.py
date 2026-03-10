@@ -15,12 +15,6 @@ PERMIT_COLUMNS = [
     Permit.jurisdiction, Permit.source,
 ]
 
-# Batch size of 5 keeps PostgreSQL response under WireGuard MTU (1360 bytes).
-# 5 rows × ~195 bytes/row + PG headers ≈ 1075 bytes < 1360 MTU.
-# Responses exceeding MTU cause TCP fragmentation that hangs the Tailscale
-# userspace networking stack.
-_BATCH_SIZE = 5
-
 
 # Standard street suffix abbreviations (USPS Publication 28)
 STREET_ABBREVS = {
@@ -82,7 +76,6 @@ async def search_permits(
 
     if address:
         normalized = normalize_address(address)
-        # Use trigram similarity for fuzzy address matching
         conditions.append(
             text("similarity(address_normalized, :addr) > 0.3").bindparams(addr=normalized)
         )
@@ -118,14 +111,27 @@ async def search_permits(
 
     if address:
         normalized = normalize_address(address)
-        order_by = [
-            text("similarity(address_normalized, :addr) DESC").bindparams(addr=normalized),
-            Permit.issue_date.desc().nullslast(),
-        ]
+        query = (
+            select(*PERMIT_COLUMNS)
+            .where(where_clause)
+            .order_by(
+                text("similarity(address_normalized, :addr) DESC").bindparams(addr=normalized),
+                Permit.issue_date.desc().nullslast(),
+            )
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
     else:
-        order_by = [Permit.issue_date.desc().nullslast()]
+        query = (
+            select(*PERMIT_COLUMNS)
+            .where(where_clause)
+            .order_by(Permit.issue_date.desc().nullslast())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
 
-    rows = await _batched_fetch(db, where_clause, order_by, page, page_size)
+    result = await db.execute(query)
+    rows = result.all()
 
     # Only run COUNT if results exist and page is full
     total = 0
@@ -155,10 +161,9 @@ async def geo_search_permits(
     page_size: int = 25,
 ) -> dict:
     """Search permits within a radius of lat/lng using Haversine approximation."""
-    # ~0.0145 degrees per mile at mid-latitudes
     deg_per_mile = 0.0145
     lat_range = radius_miles * deg_per_mile
-    lng_range = radius_miles * deg_per_mile * 1.2  # wider for longitude
+    lng_range = radius_miles * deg_per_mile * 1.2
 
     conditions = [
         Permit.lat.is_not(None),
@@ -175,8 +180,16 @@ async def geo_search_permits(
     count_q = select(func.count()).select_from(Permit).where(where_clause)
     total = (await db.execute(count_q)).scalar()
 
-    order_by = [Permit.issue_date.desc().nullslast()]
-    rows = await _batched_fetch(db, where_clause, order_by, page, page_size)
+    query = (
+        select(*PERMIT_COLUMNS)
+        .where(where_clause)
+        .order_by(Permit.issue_date.desc().nullslast())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
+
+    result = await db.execute(query)
+    rows = result.all()
 
     return {
         "results": [row_to_dict(r) for r in rows],
@@ -187,54 +200,22 @@ async def geo_search_permits(
     }
 
 
-async def _batched_fetch(db, where_clause, order_by, page, page_size):
-    """Fetch results in small batches to stay under Tailscale TCP response limit."""
-    base_offset = (page - 1) * page_size
-    rows = []
-    for batch_start in range(0, page_size, _BATCH_SIZE):
-        batch_limit = min(_BATCH_SIZE, page_size - batch_start)
-        q = (
-            select(*PERMIT_COLUMNS)
-            .where(where_clause)
-            .order_by(*order_by)
-            .offset(base_offset + batch_start)
-            .limit(batch_limit)
-        )
-        batch = (await db.execute(q)).all()
-        rows.extend(batch)
-        if len(batch) < batch_limit:
-            break
-    return rows
-
-
 async def get_coverage(db: AsyncSession) -> list[dict]:
     """Get list of supported jurisdictions with record counts."""
     cols = [Jurisdiction.name, Jurisdiction.state, Jurisdiction.record_count,
             Jurisdiction.source, Jurisdiction.last_updated]
-    # Jurisdiction rows are small (~100 bytes each), use larger batch
-    jur_batch = 10
-    results = []
-    offset = 0
-    while True:
-        q = (
-            select(*cols)
-            .order_by(Jurisdiction.record_count.desc())
-            .offset(offset)
-            .limit(jur_batch)
-        )
-        batch = (await db.execute(q)).all()
-        for j in batch:
-            results.append({
-                "name": j.name,
-                "state": j.state,
-                "record_count": j.record_count,
-                "source": j.source,
-                "last_updated": j.last_updated.isoformat() if j.last_updated else None,
-            })
-        if len(batch) < jur_batch:
-            break
-        offset += jur_batch
-    return results
+    q = select(*cols).order_by(Jurisdiction.record_count.desc())
+    result = await db.execute(q)
+    return [
+        {
+            "name": j.name,
+            "state": j.state,
+            "record_count": j.record_count,
+            "source": j.source,
+            "last_updated": j.last_updated.isoformat() if j.last_updated else None,
+        }
+        for j in result.all()
+    ]
 
 
 def row_to_dict(r) -> dict:
