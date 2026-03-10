@@ -210,6 +210,8 @@ async def get_coverage(db: AsyncSession) -> list[dict]:
     """Get list of supported jurisdictions with record counts."""
     cols = [Jurisdiction.name, Jurisdiction.state, Jurisdiction.record_count,
             Jurisdiction.source, Jurisdiction.last_updated]
+    # Jurisdiction rows are small (~100 bytes each), use larger batch
+    jur_batch = 10
     results = []
     offset = 0
     while True:
@@ -217,7 +219,7 @@ async def get_coverage(db: AsyncSession) -> list[dict]:
             select(*cols)
             .order_by(Jurisdiction.record_count.desc())
             .offset(offset)
-            .limit(_BATCH_SIZE)
+            .limit(jur_batch)
         )
         batch = (await db.execute(q)).all()
         for j in batch:
@@ -228,9 +230,9 @@ async def get_coverage(db: AsyncSession) -> list[dict]:
                 "source": j.source,
                 "last_updated": j.last_updated.isoformat() if j.last_updated else None,
             })
-        if len(batch) < _BATCH_SIZE:
+        if len(batch) < jur_batch:
             break
-        offset += _BATCH_SIZE
+        offset += jur_batch
     return results
 
 
