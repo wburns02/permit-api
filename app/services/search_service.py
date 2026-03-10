@@ -1,9 +1,14 @@
 """Address normalization and permit search logic."""
 
+import asyncio
 import re
 from sqlalchemy import select, func, text, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.permit import Permit, Jurisdiction
+
+# Query timeout in seconds. Prevents hung queries from blocking the
+# connection pool when the Tailscale tunnel is degraded.
+_QUERY_TIMEOUT = 10
 
 # Columns to select for search results (avoid loading search_vector)
 PERMIT_COLUMNS = [
@@ -15,10 +20,11 @@ PERMIT_COLUMNS = [
     Permit.jurisdiction, Permit.source,
 ]
 
-# The SOCKS5 tunnel proxy handles large responses (65KB buffers), but
-# multiple sequential queries through the Tailscale tunnel can cause hangs.
-# Keep batch size at 5 (proven to work) to minimize round-trips.
-_BATCH_SIZE = 5
+# Use a large batch size to minimize round-trips through the Tailscale tunnel.
+# Each row is ~150 bytes (column-based, no search_vector), 25 rows ≈ 3.75KB.
+# The SOCKS5 tunnel proxy handles 65KB buffers, so this is well within limits.
+# Multiple sequential queries are the main cause of hangs, so 1 batch is ideal.
+_BATCH_SIZE = 25
 
 
 # Standard street suffix abbreviations (USPS Publication 28)
@@ -124,7 +130,14 @@ async def search_permits(
     else:
         order_by = [Permit.issue_date.desc().nullslast()]
 
-    rows = await _batched_fetch(db, where_clause, order_by, page, page_size)
+    try:
+        rows = await asyncio.wait_for(
+            _batched_fetch(db, where_clause, order_by, page, page_size),
+            timeout=_QUERY_TIMEOUT,
+        )
+    except asyncio.TimeoutError:
+        return {"results": [], "total": 0, "page": page, "page_size": page_size,
+                "total_pages": 0, "error": "Query timed out. Try a more specific search."}
 
     # Only run COUNT if results exist and page is full
     total = 0
@@ -132,8 +145,16 @@ async def search_permits(
         if len(rows) < page_size:
             total = (page - 1) * page_size + len(rows)
         else:
-            count_q = select(func.count()).select_from(Permit).where(where_clause)
-            total = (await db.execute(count_q)).scalar()
+            try:
+                count_q = select(func.count()).select_from(Permit).where(where_clause)
+                total = await asyncio.wait_for(
+                    db.execute(count_q),
+                    timeout=_QUERY_TIMEOUT,
+                )
+                total = total.scalar()
+            except asyncio.TimeoutError:
+                # Estimate total as at least this page
+                total = page * page_size + 1
 
     return {
         "results": [row_to_dict(r) for r in rows],
