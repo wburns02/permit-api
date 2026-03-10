@@ -125,10 +125,6 @@ async def search_permits(
     else:
         order_by = [Permit.issue_date.desc().nullslast()]
 
-    # Set statement_timeout for this session so hung queries get cancelled
-    # server-side (prevents connection pool exhaustion over Tailscale tunnel)
-    await db.execute(text("SET statement_timeout TO '10s'"))
-
     rows = await _batched_fetch(db, where_clause, order_by, page, page_size)
 
     # Only run COUNT if results exist and page is full
