@@ -11,8 +11,9 @@ if [ -n "$TAILSCALE_AUTHKEY" ]; then
     tailscale --socket=/tmp/tailscale.sock ip -4
 
     # Forward local port 15432 → R730 PostgreSQL (100.85.99.69:5432) via tailscale nc
+    # Use stdbuf to disable pipe buffering (prevents hangs on larger result sets)
     echo "Setting up PostgreSQL tunnel to R730..."
-    socat TCP-LISTEN:15432,fork,reuseaddr EXEC:"tailscale --socket=/tmp/tailscale.sock nc 100.85.99.69 5432" &
+    socat TCP-LISTEN:15432,fork,reuseaddr EXEC:"stdbuf -i0 -o0 -e0 tailscale --socket=/tmp/tailscale.sock nc 100.85.99.69 5432" &
     sleep 1
 
     # Verify tunnel works
