@@ -11,9 +11,6 @@ engine = create_async_engine(
     pool_recycle=3600,
     pool_pre_ping=True,
     echo=settings.DEBUG and not settings.is_production,
-    # command_timeout prevents asyncpg queries from hanging indefinitely
-    # over the Tailscale tunnel (in seconds)
-    connect_args={"command_timeout": 15},
 )
 
 async_session_maker = async_sessionmaker(
