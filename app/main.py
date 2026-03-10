@@ -111,6 +111,22 @@ async def health_redis():
         return {"status": "error", "error": str(e), "latency_ms": round((time.time() - t0) * 1000)}
 
 
+@app.get("/health/tunnel-test")
+async def tunnel_test(limit: int = 10):
+    """Test tunnel with simple generate_series query."""
+    import time
+    from app.database import async_session_maker
+    from sqlalchemy import text
+    t0 = time.time()
+    try:
+        async with async_session_maker() as db:
+            r = await db.execute(text(f"SELECT generate_series(1, {int(limit)})"))
+            rows = [row[0] for row in r.fetchall()]
+        return {"count": len(rows), "latency_ms": round((time.time() - t0) * 1000)}
+    except Exception as e:
+        return {"status": "error", "error": str(e), "latency_ms": round((time.time() - t0) * 1000)}
+
+
 @app.get("/health/search-test")
 async def search_test(limit: int = 3):
     """Test a raw search query with configurable LIMIT."""
