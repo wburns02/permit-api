@@ -95,68 +95,6 @@ async def health_db():
         return {"status": "error", "error": str(e), "latency_ms": round((time.time() - t0) * 1000)}
 
 
-@app.get("/health/redis")
-async def health_redis():
-    """Test Redis connectivity."""
-    import time
-    t0 = time.time()
-    try:
-        from app.middleware.rate_limit import get_redis
-        r = await get_redis()
-        if r:
-            await r.close()
-            return {"status": "ok", "connected": True, "latency_ms": round((time.time() - t0) * 1000)}
-        return {"status": "ok", "connected": False, "message": "Redis unavailable, using in-memory fallback", "latency_ms": round((time.time() - t0) * 1000)}
-    except Exception as e:
-        return {"status": "error", "error": str(e), "latency_ms": round((time.time() - t0) * 1000)}
-
-
-@app.get("/health/tunnel-test")
-async def tunnel_test(limit: int = 10):
-    """Test tunnel with simple generate_series query."""
-    import time
-    from app.database import async_session_maker
-    from sqlalchemy import text
-    t0 = time.time()
-    try:
-        async with async_session_maker() as db:
-            r = await db.execute(text(f"SELECT generate_series(1, {int(limit)})"))
-            rows = [row[0] for row in r.fetchall()]
-        return {"count": len(rows), "latency_ms": round((time.time() - t0) * 1000)}
-    except Exception as e:
-        return {"status": "error", "error": str(e), "latency_ms": round((time.time() - t0) * 1000)}
-
-
-@app.get("/health/search-test")
-async def search_test(limit: int = 3):
-    """Test a raw search query with configurable LIMIT."""
-    import time
-    from app.database import async_session_maker
-    from sqlalchemy import text
-    t0 = time.time()
-    try:
-        async with async_session_maker() as db:
-            r = await db.execute(text(
-                "SELECT id, permit_number, address, city, state, zip, "
-                "permit_type, status, description, issue_date, jurisdiction, source "
-                "FROM permits "
-                "WHERE LOWER(city) = 'campbell' AND UPPER(state) = 'CA' "
-                f"ORDER BY issue_date DESC NULLS LAST LIMIT {int(limit)}"
-            ))
-            rows = [
-                {"id": str(row[0]), "permit_number": row[1], "address": row[2],
-                 "city": row[3], "state": row[4], "zip": row[5],
-                 "permit_type": row[6], "status": row[7],
-                 "description": str(row[8])[:100] if row[8] else None,
-                 "issue_date": str(row[9]) if row[9] else None,
-                 "jurisdiction": row[10], "source": row[11]}
-                for row in r.fetchall()
-            ]
-        return {"count": len(rows), "results": rows, "latency_ms": round((time.time() - t0) * 1000)}
-    except Exception as e:
-        return {"status": "error", "error": str(e), "latency_ms": round((time.time() - t0) * 1000)}
-
-
 @app.get("/")
 async def root():
     return {

@@ -44,14 +44,7 @@ async def search(
 
     Requires X-API-Key header. Each call counts as 1 lookup against your daily limit.
     """
-    import logging, time
-    _log = logging.getLogger(__name__)
-    _t0 = time.time()
-    _log.info("SEARCH: endpoint entered, user=%s", user.email if user else "none")
-
-    # Rate limit check (temporarily using in-memory only for debug)
-    usage = {"used_today": 0, "daily_limit": 100, "plan": "free", "overage": 0}
-    _log.info("SEARCH: skipped rate limit for debug")
+    usage = await check_rate_limit(request, lookup_count=1)
 
     # Geo search if lat/lng provided
     if lat is not None and lng is not None:
