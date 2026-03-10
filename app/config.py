@@ -12,13 +12,15 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://localhost:5432/permit_api"
+    DATABASE_URL: str = "postgresql+psycopg://localhost:5432/permit_api"
 
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def convert_database_url(cls, v: str) -> str:
         if v and v.startswith("postgresql://"):
-            return v.replace("postgresql://", "postgresql+asyncpg://", 1)
+            return v.replace("postgresql://", "postgresql+psycopg://", 1)
+        if v and v.startswith("postgresql+asyncpg://"):
+            return v.replace("postgresql+asyncpg://", "postgresql+psycopg://", 1)
         return v
 
     # Auth

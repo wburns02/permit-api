@@ -11,10 +11,6 @@ engine = create_async_engine(
     pool_recycle=3600,
     pool_pre_ping=True,
     echo=settings.DEBUG and not settings.is_production,
-    connect_args={
-        "statement_cache_size": 0,  # Disable asyncpg statement cache
-        "prepared_statement_cache_size": 0,  # Use simple query protocol
-    },
 )
 
 async_session_maker = async_sessionmaker(
