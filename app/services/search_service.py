@@ -15,6 +15,10 @@ PERMIT_COLUMNS = [
     Permit.jurisdiction, Permit.source,
 ]
 
+# Tailscale userspace networking has a TCP bug that hangs on PostgreSQL responses
+# exceeding ~1200 bytes. Each permit row is ~200 bytes, so max 4 rows per query.
+_BATCH_SIZE = 4
+
 
 # Standard street suffix abbreviations (USPS Publication 28)
 STREET_ABBREVS = {
@@ -112,27 +116,14 @@ async def search_permits(
 
     if address:
         normalized = normalize_address(address)
-        query = (
-            select(*PERMIT_COLUMNS)
-            .where(where_clause)
-            .order_by(
-                text("similarity(address_normalized, :addr) DESC").bindparams(addr=normalized),
-                Permit.issue_date.desc().nullslast(),
-            )
-            .offset((page - 1) * page_size)
-            .limit(page_size)
-        )
+        order_by = [
+            text("similarity(address_normalized, :addr) DESC").bindparams(addr=normalized),
+            Permit.issue_date.desc().nullslast(),
+        ]
     else:
-        query = (
-            select(*PERMIT_COLUMNS)
-            .where(where_clause)
-            .order_by(Permit.issue_date.desc().nullslast())
-            .offset((page - 1) * page_size)
-            .limit(page_size)
-        )
+        order_by = [Permit.issue_date.desc().nullslast()]
 
-    result = await db.execute(query)
-    rows = result.all()
+    rows = await _batched_fetch(db, where_clause, order_by, page, page_size)
 
     # Only run COUNT if results exist and page is full
     total = 0
@@ -182,15 +173,8 @@ async def geo_search_permits(
     count_q = select(func.count()).select_from(Permit).where(where_clause)
     total = (await db.execute(count_q)).scalar()
 
-    query = (
-        select(*PERMIT_COLUMNS)
-        .where(where_clause)
-        .order_by(Permit.issue_date.desc().nullslast())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-    )
-
-    rows = (await db.execute(query)).all()
+    order_by = [Permit.issue_date.desc().nullslast()]
+    rows = await _batched_fetch(db, where_clause, order_by, page, page_size)
 
     return {
         "results": [row_to_dict(r) for r in rows],
@@ -199,6 +183,26 @@ async def geo_search_permits(
         "page_size": page_size,
         "total_pages": (total + page_size - 1) // page_size,
     }
+
+
+async def _batched_fetch(db, where_clause, order_by, page, page_size):
+    """Fetch results in small batches to stay under Tailscale TCP response limit."""
+    base_offset = (page - 1) * page_size
+    rows = []
+    for batch_start in range(0, page_size, _BATCH_SIZE):
+        batch_limit = min(_BATCH_SIZE, page_size - batch_start)
+        q = (
+            select(*PERMIT_COLUMNS)
+            .where(where_clause)
+            .order_by(*order_by)
+            .offset(base_offset + batch_start)
+            .limit(batch_limit)
+        )
+        batch = (await db.execute(q)).all()
+        rows.extend(batch)
+        if len(batch) < batch_limit:
+            break
+    return rows
 
 
 async def get_coverage(db: AsyncSession) -> list[dict]:

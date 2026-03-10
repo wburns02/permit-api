@@ -10,24 +10,20 @@ if [ -n "$TAILSCALE_AUTHKEY" ]; then
     echo "Tailscale connected:"
     tailscale --socket=/tmp/tailscale.sock ip -4
 
-    # Configure dante socksify to use Tailscale SOCKS5 proxy
-    cat > /etc/socks.conf <<SOCKSEOF
-route {
-    from: 0.0.0.0/0 to: 100.0.0.0/8 via: 127.0.0.1 port = 1055
-    proxyprotocol: socks_v5
-    method: none
-}
-SOCKSEOF
+    # Forward local port 15432 → R730 PostgreSQL via SOCKS5 tunnel proxy
+    echo "Setting up PostgreSQL tunnel to R730..."
+    python3 /app/tunnel_proxy.py &
+    sleep 1
 
-    echo "SOCKS5 proxy configured for Tailscale network (100.0.0.0/8)"
+    # Verify tunnel works
+    if socat -T2 - TCP:localhost:15432 < /dev/null 2>/dev/null; then
+        echo "PostgreSQL tunnel verified on localhost:15432"
+    else
+        echo "WARNING: PostgreSQL tunnel may not be ready yet"
+    fi
 else
     echo "WARNING: TAILSCALE_AUTHKEY not set — Tailscale disabled, using DATABASE_URL directly"
 fi
 
 echo "Starting PermitLookup API..."
-if [ -n "$TAILSCALE_AUTHKEY" ]; then
-    # Use socksify to route all connections to Tailscale IPs through SOCKS5
-    exec socksify uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}
-else
-    exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}
-fi
+exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}

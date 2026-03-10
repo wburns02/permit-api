@@ -8,7 +8,6 @@ RUN apt-get update && apt-get install -y \
     curl \
     socat \
     iptables \
-    dante-client \
     && curl -fsSL https://tailscale.com/install.sh | sh \
     && rm -rf /var/lib/apt/lists/*
 
