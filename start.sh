@@ -6,7 +6,8 @@ if [ -n "$TAILSCALE_AUTHKEY" ]; then
     tailscaled --tun=userspace-networking --socks5-server=localhost:1055 --state=/tmp/tailscale-state --socket=/tmp/tailscale.sock &
     sleep 3
 
-    tailscale --socket=/tmp/tailscale.sock up --authkey="$TAILSCALE_AUTHKEY" --hostname=permit-api-railway
+    # Use --force-reauth to get a fresh session, avoids stale node conflicts
+    tailscale --socket=/tmp/tailscale.sock up --authkey="$TAILSCALE_AUTHKEY" --hostname=permit-api-railway --force-reauth
     echo "Tailscale connected:"
     tailscale --socket=/tmp/tailscale.sock ip -4
 
@@ -21,6 +22,18 @@ if [ -n "$TAILSCALE_AUTHKEY" ]; then
     else
         echo "WARNING: PostgreSQL tunnel may not be ready yet"
     fi
+
+    # Background watchdog: restart Tailscale if PollNetMap drops
+    (
+        while true; do
+            sleep 30
+            if ! tailscale --socket=/tmp/tailscale.sock status >/dev/null 2>&1; then
+                echo "WATCHDOG: Tailscale connection lost, reconnecting..."
+                tailscale --socket=/tmp/tailscale.sock up --authkey="$TAILSCALE_AUTHKEY" --hostname=permit-api-railway --force-reauth 2>/dev/null || true
+                sleep 5
+            fi
+        done
+    ) &
 else
     echo "WARNING: TAILSCALE_AUTHKEY not set — Tailscale disabled, using DATABASE_URL directly"
 fi
