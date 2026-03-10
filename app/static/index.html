@@ -172,8 +172,22 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
   .stats-row{gap:24px}
   .stat .number{font-size:28px}
   .pricing-grid{grid-template-columns:1fr}
+  .coverage-grid{grid-template-columns:repeat(2,1fr)}
   .hero{padding:48px 0 40px}
   .hero h1{font-size:32px}
+  .search-box{flex-direction:column}
+  .search-box button{padding:14px}
+  .code-section{margin:0 -12px}
+  .dash-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:480px){
+  .container{padding:0 16px}
+  .coverage-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .state-card{padding:12px}
+  .stats-row{gap:16px}
+  .stat .number{font-size:24px}
+  nav .inner{height:56px}
+  nav .logo{font-size:17px}
 }
 
 /* Page transitions */
@@ -205,8 +219,8 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
 <div class="page visible" id="page-home">
   <section class="hero">
     <div class="container">
-      <h1>Search 1B+ Building Permits<br>via API</h1>
-      <p>The most comprehensive building permit database. 180+ jurisdictions across 17+ states. Real-time data for contractors, investors, insurers, and analysts.</p>
+      <h1>Building Permit Data<br>via API</h1>
+      <p>The most comprehensive building permit database. 3M+ records from 180+ jurisdictions across 17+ states. Real-time data for contractors, investors, insurers, and analysts.</p>
 
       <div class="stats-row">
         <div class="stat">
@@ -441,6 +455,12 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   document.getElementById('search-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') doSearch();
+  });
+  document.getElementById('signup-modal').addEventListener('click', e => {
+    if (e.target === e.currentTarget) closeSignup();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeSignup();
   });
 });
 
