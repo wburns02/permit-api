@@ -6,48 +6,51 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.models.permit import Permit, Jurisdiction
+from app.services.search_service import get_coverage
 
 router = APIRouter(tags=["Coverage"])
 
+# Tailscale userspace TCP response size limit workaround
+_SMALL_BATCH = 5
+
 
 @router.get("/coverage")
-async def get_coverage(db: AsyncSession = Depends(get_db)):
+async def coverage(db: AsyncSession = Depends(get_db)):
     """
     Get list of supported jurisdictions with record counts.
 
     No authentication required — used on the landing page.
     """
-    result = await db.execute(
-        select(Jurisdiction).order_by(Jurisdiction.record_count.desc())
-    )
-    jurisdictions = result.scalars().all()
+    jurisdictions = await get_coverage(db)
 
-    # Aggregate stats
+    # Aggregate stats (single-value queries, always under size limit)
     total_result = await db.execute(select(func.count()).select_from(Permit))
     total_records = total_result.scalar()
 
-    state_result = await db.execute(
-        select(Permit.state, func.count())
-        .group_by(Permit.state)
-        .order_by(func.count().desc())
-    )
-    states = {row[0]: row[1] for row in state_result.all()}
+    # Get state counts in batches
+    states = {}
+    offset = 0
+    while True:
+        q = (
+            select(Permit.state, func.count())
+            .group_by(Permit.state)
+            .order_by(func.count().desc())
+            .offset(offset)
+            .limit(_SMALL_BATCH)
+        )
+        batch = (await db.execute(q)).all()
+        for row in batch:
+            states[row[0]] = row[1]
+        if len(batch) < _SMALL_BATCH:
+            break
+        offset += _SMALL_BATCH
 
     return {
         "total_records": total_records,
         "total_jurisdictions": len(jurisdictions),
         "total_states": len(states),
         "states": states,
-        "jurisdictions": [
-            {
-                "name": j.name,
-                "state": j.state,
-                "record_count": j.record_count,
-                "source": j.source,
-                "last_updated": j.last_updated.isoformat() if j.last_updated else None,
-            }
-            for j in jurisdictions
-        ],
+        "jurisdictions": jurisdictions,
     }
 
 
