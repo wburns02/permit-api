@@ -208,23 +208,30 @@ async def _batched_fetch(db, where_clause, order_by, page, page_size):
 
 async def get_coverage(db: AsyncSession) -> list[dict]:
     """Get list of supported jurisdictions with record counts."""
-    query = (
-        select(Jurisdiction)
-        .order_by(Jurisdiction.record_count.desc())
-    )
-    result = await db.execute(query)
-    jurisdictions = result.scalars().all()
-
-    return [
-        {
-            "name": j.name,
-            "state": j.state,
-            "record_count": j.record_count,
-            "source": j.source,
-            "last_updated": j.last_updated.isoformat() if j.last_updated else None,
-        }
-        for j in jurisdictions
-    ]
+    cols = [Jurisdiction.name, Jurisdiction.state, Jurisdiction.record_count,
+            Jurisdiction.source, Jurisdiction.last_updated]
+    results = []
+    offset = 0
+    while True:
+        q = (
+            select(*cols)
+            .order_by(Jurisdiction.record_count.desc())
+            .offset(offset)
+            .limit(_BATCH_SIZE)
+        )
+        batch = (await db.execute(q)).all()
+        for j in batch:
+            results.append({
+                "name": j.name,
+                "state": j.state,
+                "record_count": j.record_count,
+                "source": j.source,
+                "last_updated": j.last_updated.isoformat() if j.last_updated else None,
+            })
+        if len(batch) < _BATCH_SIZE:
+            break
+        offset += _BATCH_SIZE
+    return results
 
 
 def row_to_dict(r) -> dict:
