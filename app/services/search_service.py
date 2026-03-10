@@ -3,8 +3,17 @@
 import re
 from sqlalchemy import select, func, text, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import defer
 from app.models.permit import Permit, Jurisdiction
+
+# Columns to select for search results (avoid loading search_vector)
+PERMIT_COLUMNS = [
+    Permit.id, Permit.permit_number, Permit.address, Permit.city, Permit.state,
+    Permit.zip, Permit.lat, Permit.lng, Permit.permit_type, Permit.work_type,
+    Permit.trade, Permit.status, Permit.description, Permit.valuation,
+    Permit.issue_date, Permit.created_date, Permit.completed_date,
+    Permit.owner_name, Permit.contractor_name, Permit.contractor_company,
+    Permit.jurisdiction, Permit.source,
+]
 
 # Standard street suffix abbreviations (USPS Publication 28)
 STREET_ABBREVS = {
@@ -100,23 +109,12 @@ async def search_permits(
 
     where_clause = and_(*conditions)
 
-    # Fetch page first (fast with LIMIT), then estimate total
-    # Defer search_vector to avoid loading large tsvector data
-    query = (
-        select(Permit)
-        .options(defer(Permit.search_vector))
-        .where(where_clause)
-        .order_by(Permit.issue_date.desc().nullslast())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-    )
-
-    # If address search, order by similarity
+    # Use column-based selection (not ORM entity loading) to avoid
+    # round-trip overhead when hydrating entities over high-latency tunnels
     if address:
         normalized = normalize_address(address)
         query = (
-            select(Permit)
-            .options(defer(Permit.search_vector))
+            select(*PERMIT_COLUMNS)
             .where(where_clause)
             .order_by(
                 text("similarity(address_normalized, :addr) DESC").bindparams(addr=normalized),
@@ -125,21 +123,29 @@ async def search_permits(
             .offset((page - 1) * page_size)
             .limit(page_size)
         )
+    else:
+        query = (
+            select(*PERMIT_COLUMNS)
+            .where(where_clause)
+            .order_by(Permit.issue_date.desc().nullslast())
+            .offset((page - 1) * page_size)
+            .limit(page_size)
+        )
 
     result = await db.execute(query)
-    permits = result.scalars().all()
+    rows = result.all()
 
     # Only run COUNT if first page and results exist (avoid slow count on huge datasets)
     total = 0
-    if permits:
-        if len(permits) < page_size:
-            total = (page - 1) * page_size + len(permits)
+    if rows:
+        if len(rows) < page_size:
+            total = (page - 1) * page_size + len(rows)
         else:
             count_q = select(func.count()).select_from(Permit).where(where_clause)
             total = (await db.execute(count_q)).scalar()
 
     return {
-        "results": [permit_to_dict(p) for p in permits],
+        "results": [row_to_dict(r) for r in rows],
         "total": total,
         "page": page,
         "page_size": page_size,
@@ -178,17 +184,17 @@ async def geo_search_permits(
     total = (await db.execute(count_q)).scalar()
 
     query = (
-        select(Permit)
+        select(*PERMIT_COLUMNS)
         .where(where_clause)
         .order_by(Permit.issue_date.desc().nullslast())
         .offset((page - 1) * page_size)
         .limit(page_size)
     )
 
-    permits = (await db.execute(query)).scalars().all()
+    rows = (await db.execute(query)).all()
 
     return {
-        "results": [permit_to_dict(p) for p in permits],
+        "results": [row_to_dict(r) for r in rows],
         "total": total,
         "page": page,
         "page_size": page_size,
@@ -217,29 +223,29 @@ async def get_coverage(db: AsyncSession) -> list[dict]:
     ]
 
 
-def permit_to_dict(p: Permit) -> dict:
-    """Convert permit model to API response dict."""
+def row_to_dict(r) -> dict:
+    """Convert a Row tuple (from column-based select) to API response dict."""
     return {
-        "id": str(p.id),
-        "permit_number": p.permit_number,
-        "address": p.address,
-        "city": p.city,
-        "state": p.state,
-        "zip": p.zip,
-        "lat": p.lat,
-        "lng": p.lng,
-        "permit_type": p.permit_type,
-        "work_type": p.work_type,
-        "trade": p.trade,
-        "status": p.status,
-        "description": p.description,
-        "valuation": p.valuation,
-        "issue_date": p.issue_date.isoformat() if p.issue_date else None,
-        "created_date": p.created_date.isoformat() if p.created_date else None,
-        "completed_date": p.completed_date.isoformat() if p.completed_date else None,
-        "owner_name": p.owner_name,
-        "contractor_name": p.contractor_name,
-        "contractor_company": p.contractor_company,
-        "jurisdiction": p.jurisdiction,
-        "source": p.source,
+        "id": str(r.id),
+        "permit_number": r.permit_number,
+        "address": r.address,
+        "city": r.city,
+        "state": r.state,
+        "zip": r.zip,
+        "lat": r.lat,
+        "lng": r.lng,
+        "permit_type": r.permit_type,
+        "work_type": r.work_type,
+        "trade": r.trade,
+        "status": r.status,
+        "description": r.description,
+        "valuation": r.valuation,
+        "issue_date": r.issue_date.isoformat() if r.issue_date else None,
+        "created_date": r.created_date.isoformat() if r.created_date else None,
+        "completed_date": r.completed_date.isoformat() if r.completed_date else None,
+        "owner_name": r.owner_name,
+        "contractor_name": r.contractor_name,
+        "contractor_company": r.contractor_company,
+        "jurisdiction": r.jurisdiction,
+        "source": r.source,
     }
