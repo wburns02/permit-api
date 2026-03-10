@@ -112,8 +112,8 @@ async def health_redis():
 
 
 @app.get("/health/search-test")
-async def search_test():
-    """Test a raw search query."""
+async def search_test(limit: int = 3):
+    """Test a raw search query with configurable LIMIT."""
     import time
     from app.database import async_session_maker
     from sqlalchemy import text
@@ -121,12 +121,22 @@ async def search_test():
     try:
         async with async_session_maker() as db:
             r = await db.execute(text(
-                "SELECT id, address, city, state FROM permits "
+                "SELECT id, permit_number, address, city, state, zip, "
+                "permit_type, status, description, issue_date, jurisdiction, source "
+                "FROM permits "
                 "WHERE LOWER(city) = 'campbell' AND UPPER(state) = 'CA' "
-                "ORDER BY issue_date DESC NULLS LAST LIMIT 3"
+                f"ORDER BY issue_date DESC NULLS LAST LIMIT {int(limit)}"
             ))
-            rows = [{"id": str(row[0]), "address": row[1], "city": row[2], "state": row[3]} for row in r.fetchall()]
-        return {"results": rows, "latency_ms": round((time.time() - t0) * 1000)}
+            rows = [
+                {"id": str(row[0]), "permit_number": row[1], "address": row[2],
+                 "city": row[3], "state": row[4], "zip": row[5],
+                 "permit_type": row[6], "status": row[7],
+                 "description": str(row[8])[:100] if row[8] else None,
+                 "issue_date": str(row[9]) if row[9] else None,
+                 "jurisdiction": row[10], "source": row[11]}
+                for row in r.fetchall()
+            ]
+        return {"count": len(rows), "results": rows, "latency_ms": round((time.time() - t0) * 1000)}
     except Exception as e:
         return {"status": "error", "error": str(e), "latency_ms": round((time.time() - t0) * 1000)}
 
