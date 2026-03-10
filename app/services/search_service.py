@@ -3,6 +3,7 @@
 import re
 from sqlalchemy import select, func, text, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import defer
 from app.models.permit import Permit, Jurisdiction
 
 # Standard street suffix abbreviations (USPS Publication 28)
@@ -100,8 +101,10 @@ async def search_permits(
     where_clause = and_(*conditions)
 
     # Fetch page first (fast with LIMIT), then estimate total
+    # Defer search_vector to avoid loading large tsvector data
     query = (
         select(Permit)
+        .options(defer(Permit.search_vector))
         .where(where_clause)
         .order_by(Permit.issue_date.desc().nullslast())
         .offset((page - 1) * page_size)
@@ -113,6 +116,7 @@ async def search_permits(
         normalized = normalize_address(address)
         query = (
             select(Permit)
+            .options(defer(Permit.search_vector))
             .where(where_clause)
             .order_by(
                 text("similarity(address_normalized, :addr) DESC").bindparams(addr=normalized),
