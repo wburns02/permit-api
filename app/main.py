@@ -79,6 +79,22 @@ async def health():
     }
 
 
+@app.get("/health/db")
+async def health_db():
+    """Test database connectivity."""
+    import time
+    from app.database import async_session_maker
+    from sqlalchemy import text
+    t0 = time.time()
+    try:
+        async with async_session_maker() as db:
+            r = await db.execute(text("SELECT COUNT(*) FROM permits"))
+            count = r.scalar()
+        return {"status": "ok", "permits": count, "latency_ms": round((time.time() - t0) * 1000)}
+    except Exception as e:
+        return {"status": "error", "error": str(e), "latency_ms": round((time.time() - t0) * 1000)}
+
+
 @app.get("/")
 async def root():
     return {
