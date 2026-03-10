@@ -11,6 +11,9 @@ engine = create_async_engine(
     pool_recycle=3600,
     pool_pre_ping=True,
     echo=settings.DEBUG and not settings.is_production,
+    # 15s statement timeout prevents queries from hanging indefinitely
+    # over the Tailscale tunnel
+    connect_args={"server_settings": {"statement_timeout": "15000"}},
 )
 
 async_session_maker = async_sessionmaker(

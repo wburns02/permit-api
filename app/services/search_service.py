@@ -16,9 +16,9 @@ PERMIT_COLUMNS = [
 ]
 
 # Tailscale userspace networking has a TCP bug that hangs on PostgreSQL responses
-# exceeding ~1200 bytes. Each permit row is ~200 bytes. Use 2-row batches to
-# leave headroom for bind parameters and trigram similarity queries.
-_BATCH_SIZE = 2
+# exceeding ~1200 bytes. Column-based rows (no search_vector) are ~150 bytes.
+# 5 rows ≈ 750 bytes + overhead stays under the limit.
+_BATCH_SIZE = 5
 
 
 # Standard street suffix abbreviations (USPS Publication 28)
@@ -87,9 +87,9 @@ async def search_permits(
         )
 
     if city:
-        conditions.append(func.lower(Permit.city) == city.lower())
+        conditions.append(Permit.city.ilike(city))
     if state:
-        conditions.append(func.upper(Permit.state) == state.upper())
+        conditions.append(Permit.state.ilike(state))
     if zip_code:
         conditions.append(Permit.zip == zip_code)
     if permit_type:
