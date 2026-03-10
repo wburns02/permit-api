@@ -174,12 +174,16 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
   .stat .number{font-size:28px}
   .pricing-grid{grid-template-columns:1fr}
   .coverage-grid{grid-template-columns:repeat(2,1fr)}
-  .hero{padding:48px 0 40px}
+  .hero{padding:48px 0 40px;overflow-x:hidden}
   .hero h1{font-size:32px}
   .search-box{flex-direction:column}
   .search-box button{padding:14px}
-  .code-section{margin:0 -12px}
+  .code-section{margin:0 auto;max-width:100%;width:100%;overflow-x:hidden}
+  .code-block{border-radius:0;max-width:100%;width:100%;box-sizing:border-box;overflow-x:hidden}
+  .code-body{overflow-x:auto;max-width:100%;box-sizing:border-box}
   .dash-grid{grid-template-columns:repeat(2,1fr)}
+  section{overflow-x:hidden}
+  .page{overflow-x:hidden}
 }
 @media(max-width:480px){
   .container{padding:0 16px}
