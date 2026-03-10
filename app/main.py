@@ -95,6 +95,26 @@ async def health_db():
         return {"status": "error", "error": str(e), "latency_ms": round((time.time() - t0) * 1000)}
 
 
+@app.get("/health/search-test")
+async def search_test():
+    """Test a raw search query."""
+    import time
+    from app.database import async_session_maker
+    from sqlalchemy import text
+    t0 = time.time()
+    try:
+        async with async_session_maker() as db:
+            r = await db.execute(text(
+                "SELECT id, address, city, state FROM permits "
+                "WHERE LOWER(city) = 'campbell' AND UPPER(state) = 'CA' "
+                "ORDER BY issue_date DESC NULLS LAST LIMIT 3"
+            ))
+            rows = [{"id": str(row[0]), "address": row[1], "city": row[2], "state": row[3]} for row in r.fetchall()]
+        return {"results": rows, "latency_ms": round((time.time() - t0) * 1000)}
+    except Exception as e:
+        return {"status": "error", "error": str(e), "latency_ms": round((time.time() - t0) * 1000)}
+
+
 @app.get("/")
 async def root():
     return {
