@@ -77,7 +77,8 @@ nav .links .btn-primary:hover{background:var(--accent2)}
 /* Export buttons */
 .export-bar{display:flex;gap:8px;align-items:center}
 .export-btn{padding:6px 14px;border-radius:var(--radius-sm);background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-size:12px;font-weight:600;transition:all .2s;cursor:pointer}
-.export-btn:hover{border-color:var(--accent);color:var(--accent2)}
+.export-btn:hover:not(:disabled){border-color:var(--accent);color:var(--accent2)}
+.export-btn:disabled{opacity:.4;cursor:not-allowed}
 
 /* Results */
 .results-area{max-width:900px;margin:0 auto 80px;display:none}
@@ -356,8 +357,8 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
         <span class="count" id="results-count"></span>
       </div>
       <div class="export-bar">
-        <button type="button" class="export-btn" onclick="exportResults('csv')">Export CSV</button>
-        <button type="button" class="export-btn" onclick="exportResults('json')">Export JSON</button>
+        <button type="button" class="export-btn" onclick="exportResults('csv')" id="export-csv-btn" disabled>Export CSV</button>
+        <button type="button" class="export-btn" onclick="exportResults('json')" id="export-json-btn" disabled>Export JSON</button>
       </div>
     </div>
     <div id="results-list"></div>
@@ -555,16 +556,18 @@ results.forEach(p =>
     <div id="signup-form-view">
       <h3>Get Your Free API Key</h3>
       <p>No credit card required. Start with 100 free lookups per day.</p>
-      <div class="form-group">
-        <label>Email</label>
-        <input type="email" id="signup-email" placeholder="you@company.com">
-      </div>
-      <div class="form-group">
-        <label>Company (optional)</label>
-        <input type="text" id="signup-company" placeholder="Acme Construction">
-      </div>
-      <button class="btn-full" onclick="doSignup()" id="signup-btn">Create Free Account</button>
-      <div id="signup-error" class="error-msg" style="display:none"></div>
+      <form onsubmit="doSignup();return false">
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" id="signup-email" placeholder="you@company.com">
+        </div>
+        <div class="form-group">
+          <label>Company (optional)</label>
+          <input type="text" id="signup-company" placeholder="Acme Construction">
+        </div>
+        <button type="submit" class="btn-full" id="signup-btn">Create Free Account</button>
+        <div id="signup-error" class="error-msg" style="display:none"></div>
+      </form>
     </div>
     <div id="signup-success-view" style="display:none">
       <h3>Account Created!</h3>
@@ -613,6 +616,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function showPage(page) {
+  closeSignup();
   document.querySelectorAll('.page').forEach(p => p.classList.remove('visible'));
   const el = document.getElementById('page-' + page);
   if (!el) { showPage('home'); return; }
@@ -782,6 +786,9 @@ async function doSearch() {
     }
     const d = await r.json();
     lastSearchResults = d.results || [];
+    const hasResults = lastSearchResults.length > 0;
+    document.getElementById('export-csv-btn').disabled = !hasResults;
+    document.getElementById('export-json-btn').disabled = !hasResults;
     renderResults(d);
   } catch(e) {
     showToast('Search failed: ' + e.message, 'error');
