@@ -353,7 +353,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
   <section class="hero">
     <div class="container">
       <h1>Building Permit Data <br>via API</h1>
-      <p>The most comprehensive building permit database. 3M+ records from 180+ jurisdictions across 17+ states. Real-time data for contractors, investors, insurers, and analysts.</p>
+      <p>The most comprehensive building permit database. <span id="hero-count">Millions of</span> records from 180+ jurisdictions across 17+ states. Real-time data for contractors, investors, insurers, and analysts.</p>
 
       <div class="stats-row">
         <div class="stat">
@@ -576,7 +576,7 @@ results.forEach(p =>
           <ul>
             <li>Everything in Free</li>
             <li>Bulk CSV search (500/req)</li>
-            <li>5 API keys</li>
+            <li>25 alerts</li>
             <li>Priority support</li>
           </ul>
           <a class="btn" href="#" onclick="subscribe('starter');return false">Subscribe</a>
@@ -587,9 +587,9 @@ results.forEach(p =>
           <div class="limits">10,000 lookups / day</div>
           <ul>
             <li>Everything in Starter</li>
-            <li>Geo radius search</li>
-            <li>Contractor lookup</li>
-            <li>Webhook alerts</li>
+            <li>Property Intelligence</li>
+            <li>Market analytics</li>
+            <li>Webhook alerts (100)</li>
           </ul>
           <a class="btn" href="#" onclick="subscribe('pro');return false">Subscribe</a>
         </div>
@@ -1057,6 +1057,9 @@ function showPage(page) {
   const activeLink = document.querySelector(`nav .links a[href="${hashMap[page] || '#search'}"]`);
   if (activeLink) activeLink.classList.add('active');
   currentPage = page;
+  if (page === 'home') {
+    setTimeout(() => document.getElementById('search-input')?.focus(), 100);
+  }
   if (page === 'coverage') loadCoverage();
   if (page === 'alerts') loadAlerts();
   if (page === 'dashboard') { loadDashboard(); loadSavedSearches(); loadUsageChart(); }
@@ -1088,6 +1091,12 @@ async function loadStats() {
     animateNumber('stat-permits', d.total_permits);
     animateNumber('stat-jurisdictions', d.total_jurisdictions);
     animateNumber('stat-states', d.total_states);
+    // Update hero copy with real count
+    const heroCount = document.getElementById('hero-count');
+    if (heroCount && d.total_permits) {
+      const m = (d.total_permits / 1000000).toFixed(1);
+      heroCount.textContent = m + 'M+';
+    }
   } catch(e) {
     console.error('Stats load failed', e);
   }
@@ -1467,6 +1476,14 @@ async function doSignup() {
     document.getElementById('nav-signup').onclick = () => showPage('dashboard');
 
     try { await navigator.clipboard.writeText(d.api_key); } catch(e) {}
+
+    // Auto-redirect to dashboard after 4 seconds
+    setTimeout(() => {
+      if (document.getElementById('signup-modal').classList.contains('visible')) {
+        closeSignup();
+        showPage('dashboard');
+      }
+    }, 4000);
   } catch(e) {
     showSignupError('Network error. Try again.');
   } finally {
