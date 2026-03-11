@@ -2049,6 +2049,7 @@ async function loadMarketActivity() {
   const months = document.getElementById('market-months').value || '6';
   if (!zip && !city && !state) { showToast('Enter a ZIP, city, or state', 'error'); return; }
   const results = document.getElementById('market-activity-results');
+  results.style.display = '';
   results.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Loading market data...</div>';
   const params = new URLSearchParams({ months });
   if (zip) params.set('zip', zip);
@@ -2111,7 +2112,8 @@ async function loadHotspots() {
   if (!currentKey) { openSignup(); return; }
   const state = document.getElementById('hotspot-state').value;
   if (!state) { showToast('Select a state', 'error'); return; }
-  const results = document.getElementById('market-hotspot-results');
+  const results = document.getElementById('hotspot-results');
+  results.style.display = '';
   results.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Finding hotspots...</div>';
   try {
     const r = await fetch(`${API}/v1/market/hotspots?state=${state}`, { headers: { 'X-API-Key': currentKey } });
