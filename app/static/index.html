@@ -179,6 +179,45 @@ section .subtitle{color:var(--text2);font-size:16px;margin-bottom:40px}
 .key-list .key-actions button{padding:6px 12px;border-radius:6px;font-size:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);transition:all .2s}
 .key-list .key-actions button:hover{border-color:var(--red);color:var(--red)}
 
+/* Alerts */
+.alerts-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
+.alerts-header h2{margin:0}
+.alert-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;margin-bottom:12px;transition:border-color .2s}
+.alert-card:hover{border-color:var(--border2)}
+.alert-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;gap:12px}
+.alert-card-header h4{font-size:16px;font-weight:700;margin:0;display:flex;align-items:center;gap:8px}
+.alert-card-header .alert-status{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.alert-card-header .alert-status.active{background:var(--green);box-shadow:0 0 8px var(--green-glow)}
+.alert-card-header .alert-status.paused{background:var(--text3)}
+.alert-card-actions{display:flex;gap:6px}
+.alert-card-actions button{padding:5px 10px;border-radius:6px;font-size:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);transition:all .2s}
+.alert-card-actions button:hover{border-color:var(--accent);color:var(--accent2)}
+.alert-card-actions button.delete:hover{border-color:var(--red);color:var(--red)}
+.alert-filters{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.alert-filters .filter-tag{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:var(--accent-glow);color:var(--accent2);border:1px solid rgba(99,102,241,.2)}
+.alert-meta{display:flex;gap:20px;font-size:12px;color:var(--text3)}
+.alert-meta .match-count{color:var(--green);font-weight:600}
+.alert-empty{text-align:center;padding:60px 20px}
+.alert-empty .empty-icon{font-size:48px;margin-bottom:16px;opacity:.3}
+.alert-empty h3{font-size:20px;margin-bottom:8px}
+.alert-empty p{color:var(--text2);font-size:14px;margin-bottom:24px;max-width:400px;margin-left:auto;margin-right:auto}
+.alert-form-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center}
+.alert-form-overlay.visible{display:flex}
+.alert-form{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:32px;max-width:520px;width:90%;animation:modalIn .25s ease}
+.alert-form h3{font-size:20px;font-weight:700;margin-bottom:20px}
+.alert-form .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.alert-form select{width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none}
+.alert-form select:focus{border-color:var(--accent)}
+.alert-form .form-group input,.alert-form .form-group select{width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;transition:border-color .2s}
+.alert-form .form-group input:focus,.alert-form .form-group select:focus{border-color:var(--accent)}
+.alert-form .form-actions{display:flex;gap:12px;margin-top:20px}
+.alert-form .form-actions button{flex:1}
+.btn-secondary{padding:12px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text2);transition:all .2s}
+.btn-secondary:hover{border-color:var(--accent);color:var(--text)}
+.checkbox-group{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.checkbox-group input[type="checkbox"]{width:18px;height:18px;accent-color:var(--accent)}
+.checkbox-group label{font-size:14px;color:var(--text2);cursor:pointer}
+
 /* Signup Modal */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center}
 .modal-overlay.visible{display:flex}
@@ -255,6 +294,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
     <div class="links">
       <a href="#search" onclick="showPage('home');return false">Search</a>
       <a href="#contractors" onclick="showPage('contractors');return false">Contractors</a>
+      <a href="#alerts" onclick="showPage('alerts');return false">Alerts</a>
       <a href="#coverage" onclick="showPage('coverage');return false">Coverage</a>
       <a href="#pricing" onclick="showPage('pricing');return false">Pricing</a>
       <a href="/docs" target="_blank">API Docs</a>
@@ -436,7 +476,7 @@ results.forEach(p =>
             <li>1 API key</li>
             <li>Swagger documentation</li>
           </ul>
-          <a class="btn" href="#" onclick="openSignup();return false">Get Started</a>
+          <a class="btn" href="#" onclick="openSignup();return false">Get Free API Key</a>
         </div>
         <div class="price-card">
           <div class="plan-name">Starter</div>
@@ -522,6 +562,14 @@ results.forEach(p =>
       <h2>Dashboard</h2>
       <p class="subtitle">Manage your API keys and monitor usage</p>
 
+      <div id="dash-auth-gate" style="text-align:center;padding:60px 20px;display:none">
+        <div style="font-size:48px;margin-bottom:16px;opacity:.3">&#128274;</div>
+        <h3 style="font-size:20px;margin-bottom:8px">Sign in to view your dashboard</h3>
+        <p style="color:var(--text2);font-size:14px;margin-bottom:24px;max-width:400px;margin-left:auto;margin-right:auto">Create a free account to get your API key and start searching building permits.</p>
+        <button class="btn-full" style="max-width:240px;margin:0 auto" onclick="openSignup()">Get Free API Key</button>
+      </div>
+
+      <div id="dash-content" style="display:none">
       <div class="dash-grid">
         <div class="dash-card">
           <div class="dash-label">Plan</div>
@@ -545,6 +593,7 @@ results.forEach(p =>
       <h3 style="margin-bottom:16px">API Keys</h3>
       <ul class="key-list" id="key-list"></ul>
       <button class="btn-full" style="max-width:240px;margin-top:12px" onclick="createNewKey()">+ Create New Key</button>
+      </div>
     </div>
   </section>
 </div>
@@ -623,7 +672,7 @@ function showPage(page) {
   el.classList.add('visible');
   // Update active nav link
   document.querySelectorAll('nav .links a').forEach(a => a.classList.remove('active'));
-  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors' };
+  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts' };
   const activeLink = document.querySelector(`nav .links a[href="${hashMap[page] || '#search'}"]`);
   if (activeLink) activeLink.classList.add('active');
   currentPage = page;
@@ -643,7 +692,7 @@ function showPage(page) {
 // Hash routing
 function routeFromHash() {
   const h = location.hash.replace('#','') || 'home';
-  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors' };
+  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts' };
   showPage(map[h] || 'home');
 }
 window.addEventListener('hashchange', routeFromHash);
@@ -913,7 +962,13 @@ async function loadCoverage() {
 
 // Dashboard
 async function loadDashboard() {
-  if (!currentKey) { showPage('home'); openSignup(); return; }
+  if (!currentKey) {
+    document.getElementById('dash-auth-gate').style.display = '';
+    document.getElementById('dash-content').style.display = 'none';
+    return;
+  }
+  document.getElementById('dash-auth-gate').style.display = 'none';
+  document.getElementById('dash-content').style.display = '';
   try {
     const [usageR, keysR] = await Promise.all([
       fetch(API + '/v1/usage', { headers: { 'X-API-Key': currentKey } }),

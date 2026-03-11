@@ -15,6 +15,7 @@ from app.database import init_db
 # Import models to register with SQLAlchemy
 from app.models.permit import Permit, Jurisdiction  # noqa: F401
 from app.models.api_key import ApiUser, ApiKey, UsageLog  # noqa: F401
+from app.models.alert import PermitAlert  # noqa: F401
 
 # Import routers
 from app.api.v1.permits import router as permits_router
@@ -22,6 +23,7 @@ from app.api.v1.auth import router as auth_router
 from app.api.v1.billing import router as billing_router
 from app.api.v1.coverage import router as coverage_router
 from app.api.v1.contractors import router as contractors_router
+from app.api.v1.alerts import router as alerts_router
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +76,7 @@ app.include_router(auth_router, prefix="/v1")
 app.include_router(billing_router, prefix="/v1")
 app.include_router(coverage_router, prefix="/v1")
 app.include_router(contractors_router, prefix="/v1")
+app.include_router(alerts_router, prefix="/v1")
 
 
 @app.get("/health")
@@ -114,7 +117,7 @@ async def root():
 async def _spa_page():
     return FileResponse(STATIC_DIR / "index.html")
 
-for _path in ("/search", "/coverage", "/pricing", "/dashboard", "/contractors"):
+for _path in ("/search", "/coverage", "/pricing", "/dashboard", "/contractors", "/alerts"):
     app.get(_path, include_in_schema=False)(_spa_page)
 
 
