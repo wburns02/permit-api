@@ -1943,7 +1943,7 @@ function updatePropertyPage() {
 
 async function lookupProperty() {
   if (!currentKey) { openSignup(); return; }
-  const addr = document.getElementById('property-address-input').value.trim();
+  const addr = document.getElementById('property-address').value.trim();
   if (!addr) { showToast('Enter an address', 'error'); return; }
   const results = document.getElementById('property-results');
   results.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Looking up property...</div>';
