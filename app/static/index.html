@@ -364,7 +364,8 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
 .leads-filters .filter-group select,.leads-filters .filter-group input{padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;outline:none;transition:border-color .2s}
 .leads-filters .filter-group select:focus,.leads-filters .filter-group input:focus{border-color:var(--accent)}
 
-.leads-board{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;align-items:start;min-height:400px}
+.leads-board-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;margin:0 -8px;padding:0 8px 8px}
+.leads-board{display:grid;grid-template-columns:repeat(5,minmax(200px,1fr));gap:12px;align-items:start;min-height:400px;min-width:max-content;width:100%}
 .lead-column{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:0;overflow:hidden}
 .lead-col-header{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--surface);z-index:2}
 .lead-col-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
@@ -405,12 +406,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
 .lead-col-body:empty .col-drop-hint{display:block}
 
 @media(max-width:900px){
-  .leads-board{grid-template-columns:repeat(3,1fr)}
-  .lead-column:nth-child(4),.lead-column:nth-child(5){grid-column:span 1}
-}
-@media(max-width:600px){
-  .leads-board{grid-template-columns:1fr 1fr}
-  .lead-column:last-child{grid-column:span 2}
+  .leads-board{min-width:860px}
 }
 </style>
 </head>
@@ -980,7 +976,7 @@ results.forEach(p =>
         </div>
 
         <!-- Board view -->
-        <div class="leads-board" id="leads-board">
+        <div class="leads-board-scroll"><div class="leads-board" id="leads-board">
           <div class="lead-column col-new">
             <div class="lead-col-header">
               <span class="lead-col-title">🆕 New</span>
@@ -1016,7 +1012,7 @@ results.forEach(p =>
             </div>
             <div class="lead-col-body" id="col-body-lost"></div>
           </div>
-        </div>
+        </div></div><!-- end board-scroll -->
 
         <div class="leads-empty" id="leads-empty">
           <div class="empty-icon">🎯</div>
@@ -2867,6 +2863,8 @@ function renderLeadsBoard() {
   // Show/hide empty state
   const isEmpty = total === 0;
   document.getElementById('leads-empty').classList.toggle('visible', isEmpty);
+  const boardScroll = document.querySelector('.leads-board-scroll');
+  if (boardScroll) boardScroll.style.display = isEmpty ? 'none' : '';
   document.getElementById('leads-board').style.display = isEmpty ? 'none' : '';
 }
 
