@@ -120,6 +120,29 @@ section .subtitle{color:var(--text2);font-size:16px;margin-bottom:40px}
 .code-body .str{color:var(--green)}
 .code-body .comment{color:var(--text3)}
 
+/* Contractors */
+.contractor-search{max-width:600px;margin-bottom:40px}
+.contractor-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:16px;cursor:pointer;transition:border-color .2s,transform .15s}
+.contractor-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.contractor-card .contractor-name{font-size:18px;font-weight:700;margin-bottom:8px}
+.contractor-card .contractor-stats{display:flex;flex-wrap:wrap;gap:20px;margin-bottom:12px}
+.contractor-card .contractor-stats .stat-item{text-align:center}
+.contractor-card .contractor-stats .stat-item .stat-num{font-size:22px;font-weight:700;color:var(--accent2)}
+.contractor-card .contractor-stats .stat-item .stat-lbl{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
+.contractor-card .tags{display:flex;flex-wrap:wrap;gap:6px}
+.contractor-card .tags .tag{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
+.contractor-card .date-range{font-size:12px;color:var(--text3);margin-top:8px}
+.contractor-detail{display:none}
+.contractor-detail.visible{display:block}
+.contractor-detail .back-btn{padding:8px 16px;border-radius:var(--radius-sm);background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-size:13px;margin-bottom:24px;transition:all .2s}
+.contractor-detail .back-btn:hover{border-color:var(--accent);color:var(--text)}
+.contractor-profile-header{margin-bottom:32px}
+.contractor-profile-header h2{font-size:28px;font-weight:700;margin-bottom:8px}
+.contractor-profile-header .profile-stats{display:flex;gap:32px;flex-wrap:wrap}
+.contractor-profile-header .profile-stat{text-align:center}
+.contractor-profile-header .profile-stat .num{font-size:32px;font-weight:800;color:var(--accent2)}
+.contractor-profile-header .profile-stat .lbl{font-size:12px;color:var(--text3);text-transform:uppercase}
+
 /* Dashboard */
 .dashboard-section{display:none}
 .dashboard-section.visible{display:block}
@@ -211,6 +234,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
     </div>
     <div class="links">
       <a href="#search" onclick="showPage('home');return false">Search</a>
+      <a href="#contractors" onclick="showPage('contractors');return false">Contractors</a>
       <a href="#coverage" onclick="showPage('coverage');return false">Coverage</a>
       <a href="#pricing" onclick="showPage('pricing');return false">Pricing</a>
       <a href="/docs" target="_blank">API Docs</a>
@@ -373,6 +397,42 @@ results.forEach(p =>
   </section>
 </div>
 
+<!-- CONTRACTORS PAGE -->
+<div class="page" id="page-contractors">
+  <section>
+    <div class="container">
+      <!-- Search View -->
+      <div id="contractors-search-view">
+        <h2>Contractor Intelligence</h2>
+        <p class="subtitle">Search contractors by name or company. See their permit history, specialties, and active markets.</p>
+        <div class="contractor-search">
+          <div class="search-box">
+            <input type="text" id="contractor-input" placeholder="Search contractors... e.g. Johnson Electric" autocomplete="off">
+            <button onclick="doContractorSearch()" id="contractor-search-btn">Search</button>
+          </div>
+        </div>
+        <div id="contractor-results"></div>
+        <div id="contractor-empty" style="text-align:center;padding:60px 0;color:var(--text3);display:none">
+          <div style="font-size:48px;margin-bottom:16px;opacity:.3">&#128269;</div>
+          <div style="font-size:16px;margin-bottom:8px">Search for a contractor by name or company</div>
+          <div style="font-size:13px">See their permit history, specialties, and active jurisdictions</div>
+        </div>
+      </div>
+
+      <!-- Detail View -->
+      <div class="contractor-detail" id="contractor-detail">
+        <button class="back-btn" onclick="showContractorSearch()">&#8592; Back to search</button>
+        <div class="contractor-profile-header">
+          <h2 id="contractor-profile-name"></h2>
+          <div class="profile-stats" id="contractor-profile-stats"></div>
+        </div>
+        <h3 style="margin-bottom:16px">Permit History</h3>
+        <div id="contractor-permits-list"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
 <!-- DASHBOARD PAGE -->
 <div class="page" id="page-dashboard">
   <section>
@@ -477,6 +537,11 @@ function showPage(page) {
   currentPage = page;
   if (page === 'coverage') loadCoverage();
   if (page === 'dashboard') loadDashboard();
+  if (page === 'contractors') {
+    showContractorSearch();
+    const results = document.getElementById('contractor-results');
+    if (!results.innerHTML.trim()) document.getElementById('contractor-empty').style.display = '';
+  }
   window.scrollTo({ top: 0, behavior: 'smooth' });
   // Update hash without triggering hashchange
   const hash = page === 'home' ? '#search' : '#' + page;
@@ -486,7 +551,7 @@ function showPage(page) {
 // Hash routing
 function routeFromHash() {
   const h = location.hash.replace('#','') || 'home';
-  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard' };
+  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors' };
   showPage(map[h] || 'home');
 }
 window.addEventListener('hashchange', routeFromHash);
@@ -833,6 +898,127 @@ function showToast(msg, type) {
   t.className = 'toast ' + type + ' visible';
   setTimeout(() => t.classList.remove('visible'), 3000);
 }
+
+// Contractors
+async function doContractorSearch() {
+  const q = document.getElementById('contractor-input').value.trim();
+  if (!q) { showToast('Enter a contractor name to search.', 'error'); return; }
+  if (!currentKey) { openSignup(); return; }
+
+  const btn = document.getElementById('contractor-search-btn');
+  btn.disabled = true; btn.textContent = 'Searching...';
+  document.getElementById('contractor-empty').style.display = 'none';
+
+  try {
+    const params = new URLSearchParams({ name: q, page_size: '20' });
+    const r = await fetch(API + '/v1/contractors/search?' + params, {
+      headers: { 'X-API-Key': currentKey }
+    });
+    if (r.status === 401) { openSignup(); return; }
+    if (!r.ok) { const err = await r.json(); showToast(err.detail || 'Search failed', 'error'); return; }
+    const d = await r.json();
+    renderContractors(d);
+  } catch(e) {
+    showToast('Search failed: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Search';
+  }
+}
+
+function renderContractors(data) {
+  const list = document.getElementById('contractor-results');
+  if (!data.results.length) {
+    list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">No contractors found. Try a different name.</div>';
+    return;
+  }
+
+  list.innerHTML = data.results.map(c => `
+    <div class="contractor-card" onclick="viewContractor('${esc(c.contractor).replace(/'/g, "\\'")}')">
+      <div class="contractor-name">${esc(c.contractor)}</div>
+      <div class="contractor-stats">
+        <div class="stat-item">
+          <div class="stat-num">${c.total_permits.toLocaleString()}</div>
+          <div class="stat-lbl">Permits</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">${c.jurisdictions}</div>
+          <div class="stat-lbl">Jurisdictions</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-num">${c.states}</div>
+          <div class="stat-lbl">States</div>
+        </div>
+      </div>
+      <div class="tags">
+        ${c.permit_types.slice(0, 5).map(t => `<span class="tag">${esc(t)}</span>`).join('')}
+        ${c.active_states.map(s => `<span class="tag" style="border-color:var(--accent);color:var(--accent2)">${esc(s)}</span>`).join('')}
+      </div>
+      ${c.first_permit && c.last_permit ? `<div class="date-range">Active: ${c.first_permit} — ${c.last_permit}</div>` : ''}
+    </div>
+  `).join('');
+}
+
+async function viewContractor(name) {
+  if (!currentKey) { openSignup(); return; }
+
+  document.getElementById('contractors-search-view').style.display = 'none';
+  const detail = document.getElementById('contractor-detail');
+  detail.classList.add('visible');
+  document.getElementById('contractor-profile-name').textContent = name;
+  document.getElementById('contractor-permits-list').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Loading permits...</div>';
+
+  try {
+    const params = new URLSearchParams({ page_size: '30' });
+    const r = await fetch(API + '/v1/contractors/' + encodeURIComponent(name) + '/permits?' + params, {
+      headers: { 'X-API-Key': currentKey }
+    });
+    if (!r.ok) { showToast('Failed to load contractor permits', 'error'); return; }
+    const d = await r.json();
+
+    // Profile stats
+    const stats = document.getElementById('contractor-profile-stats');
+    const jurisdictions = new Set(d.results.map(p => p.jurisdiction).filter(Boolean));
+    const types = new Set(d.results.map(p => p.permit_type).filter(Boolean));
+    stats.innerHTML = `
+      <div class="profile-stat"><div class="num">${d.total.toLocaleString()}</div><div class="lbl">Total Permits</div></div>
+      <div class="profile-stat"><div class="num">${jurisdictions.size}</div><div class="lbl">Jurisdictions</div></div>
+      <div class="profile-stat"><div class="num">${types.size}</div><div class="lbl">Specialties</div></div>
+    `;
+
+    // Permit list (reuse result-card style)
+    const list = document.getElementById('contractor-permits-list');
+    if (!d.results.length) {
+      list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">No permits found for this contractor.</div>';
+      return;
+    }
+    list.innerHTML = d.results.map(p => `
+      <div class="result-card">
+        <div class="address">${esc(p.address)}${p.city ? ', ' + esc(p.city) : ''}${p.state ? ' ' + esc(p.state) : ''} ${p.zip || ''}</div>
+        <div class="meta">
+          <span><strong>#</strong> ${esc(p.permit_number)}</span>
+          ${p.permit_type ? `<span class="badge badge-blue">${esc(p.permit_type)}</span>` : ''}
+          ${p.status ? `<span class="badge ${statusBadge(p.status)}">${esc(p.status)}</span>` : ''}
+          ${p.issue_date ? `<span>Issued: ${p.issue_date}</span>` : ''}
+          ${p.valuation ? `<span>$${Number(p.valuation).toLocaleString()}</span>` : ''}
+          ${p.jurisdiction ? `<span>${esc(p.jurisdiction)}</span>` : ''}
+        </div>
+        ${p.description ? `<div style="margin-top:8px;font-size:13px;color:var(--text2)">${esc(p.description).substring(0,200)}</div>` : ''}
+      </div>
+    `).join('');
+  } catch(e) {
+    showToast('Error loading contractor: ' + e.message, 'error');
+  }
+}
+
+function showContractorSearch() {
+  document.getElementById('contractors-search-view').style.display = '';
+  document.getElementById('contractor-detail').classList.remove('visible');
+}
+
+// Init contractor page
+document.getElementById('contractor-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') doContractorSearch();
+});
 
 function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 </script>

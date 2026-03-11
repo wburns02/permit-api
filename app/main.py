@@ -21,6 +21,7 @@ from app.api.v1.permits import router as permits_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.billing import router as billing_router
 from app.api.v1.coverage import router as coverage_router
+from app.api.v1.contractors import router as contractors_router
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +73,7 @@ app.include_router(permits_router, prefix="/v1")
 app.include_router(auth_router, prefix="/v1")
 app.include_router(billing_router, prefix="/v1")
 app.include_router(coverage_router, prefix="/v1")
+app.include_router(contractors_router, prefix="/v1")
 
 
 @app.get("/health")
@@ -112,7 +114,7 @@ async def root():
 async def _spa_page():
     return FileResponse(STATIC_DIR / "index.html")
 
-for _path in ("/search", "/coverage", "/pricing", "/dashboard"):
+for _path in ("/search", "/coverage", "/pricing", "/dashboard", "/contractors"):
     app.get(_path, include_in_schema=False)(_spa_page)
 
 
