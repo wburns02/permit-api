@@ -539,6 +539,10 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
     </div>
     <div id="permit-map"></div>
     <div id="results-list"></div>
+    <div id="load-more-area" style="text-align:center;padding:16px 0;display:none">
+      <button id="load-more-btn" onclick="loadMoreResults()" style="padding:10px 32px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-size:14px;font-weight:600;transition:all .2s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">Load More Results</button>
+      <div id="load-more-info" style="font-size:12px;color:var(--text3);margin-top:6px"></div>
+    </div>
   </div>
 
   <!-- Code Example -->
@@ -1116,8 +1120,13 @@ results.forEach(p =>
 <div class="page" id="page-dashboard">
   <section>
     <div class="container">
-      <h2>Dashboard</h2>
-      <p class="subtitle">Manage your API keys and monitor usage</p>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:4px">
+        <div>
+          <h2>Dashboard</h2>
+          <p class="subtitle" style="margin-bottom:0">Manage your API keys and monitor usage</p>
+        </div>
+        <button id="signout-btn" onclick="signOut()" style="padding:8px 18px;border-radius:var(--radius-sm);background:none;border:1px solid var(--border);color:var(--text3);font-size:13px;font-weight:600;transition:all .2s;display:none" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">Sign Out</button>
+      </div>
 
       <div id="dash-auth-gate" style="text-align:center;padding:60px 20px;display:none">
         <div style="font-size:48px;margin-bottom:16px;opacity:.3">&#128274;</div>
@@ -1273,7 +1282,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === e.currentTarget) closeSignup();
   });
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeSignup();
+    if (e.key === 'Escape') { closeSignup(); closeAlertForm(); closeSavedSearchForm(); }
   });
   // Populate state filter dropdown
   populateStateFilter();
@@ -1422,6 +1431,9 @@ function parseSearchQuery(q) {
 }
 
 let lastSearchResults = [];
+let lastSearchParams = {};
+let lastSearchPage = 1;
+let lastSearchTotalPages = 1;
 
 async function doSearch() {
   const q = document.getElementById('search-input').value.trim();
@@ -1449,6 +1461,10 @@ async function doSearch() {
     if (filterState) params.state = filterState;
     if (filterJurisdiction) params.jurisdiction = filterJurisdiction;
 
+    // Reset pagination
+    lastSearchParams = { ...params };
+    lastSearchPage = 1;
+
     const r = await fetch(API + '/v1/permits/search?' + new URLSearchParams(params), {
       headers: { 'X-API-Key': currentKey }
     });
@@ -1465,6 +1481,7 @@ async function doSearch() {
     }
     const d = await r.json();
     lastSearchResults = d.results || [];
+    lastSearchTotalPages = d.total_pages || 1;
     const hasResults = lastSearchResults.length > 0;
     document.getElementById('export-csv-btn').disabled = !hasResults;
     document.getElementById('export-json-btn').disabled = !hasResults;
@@ -1561,6 +1578,70 @@ function renderResults(data) {
 
   // Prepare map data
   prepareMapMarkers(data.results);
+
+  // Show/hide Load More
+  const loadMoreArea = document.getElementById('load-more-area');
+  const loadMoreInfo = document.getElementById('load-more-info');
+  const hasMore = (data.page || 1) < (data.total_pages || 1);
+  loadMoreArea.style.display = hasMore ? '' : 'none';
+  if (hasMore) {
+    loadMoreInfo.textContent = `Showing ${data.results.length} of ${data.total.toLocaleString()} results`;
+  }
+}
+
+function renderResultCard(p) {
+  return `<div class="result-card">
+    <div class="address">${esc(p.address)}${p.city ? ', ' + esc(p.city) : ''}${p.state ? ' ' + esc(p.state) : ''} ${p.zip || ''}</div>
+    <div class="meta">
+      <span><strong>#</strong> ${esc(p.permit_number)}</span>
+      ${p.permit_type ? `<span class="badge badge-blue">${esc(p.permit_type)}</span>` : ''}
+      ${p.status ? `<span class="badge ${statusBadge(p.status)}">${esc(p.status)}</span>` : ''}
+      ${p.issue_date ? `<span>Issued: ${p.issue_date}</span>` : ''}
+      ${p.valuation ? `<span>$${Number(p.valuation).toLocaleString()}</span>` : ''}
+      ${p.jurisdiction ? `<span>${esc(p.jurisdiction)}</span>` : ''}
+    </div>
+    ${p.description ? `<div style="margin-top:8px;font-size:13px;color:var(--text2)">${esc(p.description).substring(0,200)}${p.description.length > 200 ? '...' : ''}</div>` : ''}
+    ${p.contractor_name || p.contractor_company ? `<div style="margin-top:6px;font-size:13px;color:var(--text3)">Contractor: ${esc(p.contractor_name || '')} ${p.contractor_company ? '(' + esc(p.contractor_company) + ')' : ''}</div>` : ''}
+  </div>`;
+}
+
+async function loadMoreResults() {
+  if (!currentKey) return;
+  const btn = document.getElementById('load-more-btn');
+  btn.disabled = true; btn.textContent = 'Loading...';
+  try {
+    const nextPage = lastSearchPage + 1;
+    const params = { ...lastSearchParams, page: nextPage };
+    const r = await fetch(API + '/v1/permits/search?' + new URLSearchParams(params), {
+      headers: { 'X-API-Key': currentKey }
+    });
+    if (!r.ok) { showToast('Failed to load more results', 'error'); return; }
+    const d = await r.json();
+    lastSearchPage = nextPage;
+    const newResults = d.results || [];
+    lastSearchResults = [...lastSearchResults, ...newResults];
+
+    // Append cards
+    const list = document.getElementById('results-list');
+    newResults.forEach(p => {
+      list.insertAdjacentHTML('beforeend', renderResultCard(p));
+    });
+    prepareMapMarkers(lastSearchResults);
+
+    // Update Load More state
+    const hasMore = nextPage < (d.total_pages || 1);
+    document.getElementById('load-more-area').style.display = hasMore ? '' : 'none';
+    document.getElementById('load-more-info').textContent = `Showing ${lastSearchResults.length} of ${d.total.toLocaleString()} results`;
+
+    // Update count display
+    document.getElementById('results-count').textContent = `${d.total.toLocaleString()} results (page ${nextPage}/${d.total_pages || 1})`;
+
+    showToast(`Loaded ${newResults.length} more permits`, 'success');
+  } catch(e) {
+    showToast('Error loading more: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Load More Results';
+  }
 }
 
 function statusBadge(s) {
@@ -1593,19 +1674,34 @@ async function loadCoverage() {
       `).join('');
     coverageLoaded = true;
   } catch(e) {
-    console.error('Coverage failed', e);
+    // Coverage fetch aborted on navigation — silently retry next time
   }
+}
+
+function signOut() {
+  if (!confirm('Sign out? Your API key will be cleared from this browser.')) return;
+  currentKey = '';
+  localStorage.removeItem('pl_api_key');
+  document.getElementById('nav-signup').textContent = 'Get API Key';
+  document.getElementById('nav-signup').onclick = openSignup;
+  const signoutBtn = document.getElementById('signout-btn');
+  if (signoutBtn) signoutBtn.style.display = 'none';
+  showPage('home');
+  showToast('Signed out successfully.', 'success');
 }
 
 // Dashboard
 async function loadDashboard() {
+  const signoutBtn = document.getElementById('signout-btn');
   if (!currentKey) {
     document.getElementById('dash-auth-gate').style.display = '';
     document.getElementById('dash-content').style.display = 'none';
+    if (signoutBtn) signoutBtn.style.display = 'none';
     return;
   }
   document.getElementById('dash-auth-gate').style.display = 'none';
   document.getElementById('dash-content').style.display = '';
+  if (signoutBtn) signoutBtn.style.display = '';
   try {
     const [usageR, keysR] = await Promise.all([
       fetch(API + '/v1/usage', { headers: { 'X-API-Key': currentKey } }),
@@ -1629,19 +1725,23 @@ async function loadDashboard() {
     bar.className = 'fill' + (pct > 90 ? ' danger' : pct > 70 ? ' warning' : '');
 
     const keyList = document.getElementById('key-list');
-    keyList.innerHTML = keys.map(k => `
+    keyList.innerHTML = keys.map(k => {
+      const isCurrentKey = currentKey && k.key_prefix === currentKey.substring(0, 12) + '...';
+      return `
       <li>
         <div>
           <span class="key-prefix">${esc(k.key_prefix)}</span>
           <span style="color:var(--text3);font-size:12px;margin-left:8px">${esc(k.name)}</span>
           ${k.is_active ? '<span class="badge badge-green" style="margin-left:8px">active</span>' : '<span class="badge badge-red" style="margin-left:8px">revoked</span>'}
+          ${isCurrentKey ? '<span style="color:var(--text3);font-size:11px;margin-left:8px">(this browser)</span>' : ''}
         </div>
         <div class="key-actions">
           <span style="font-size:12px;color:var(--text3);margin-right:12px">${k.last_used_at ? 'Last used: ' + new Date(k.last_used_at).toLocaleDateString() : 'Never used'}</span>
+          ${isCurrentKey ? `<button type="button" onclick="navigator.clipboard.writeText(currentKey).then(()=>showToast('API key copied!','success'))" style="margin-right:6px;border-color:var(--accent);color:var(--accent)">Copy Key</button>` : ''}
           ${k.is_active ? `<button type="button" onclick="revokeKey('${k.id}')">Revoke</button>` : ''}
         </div>
-      </li>
-    `).join('');
+      </li>`;
+    }).join('');
   } catch(e) {
     showToast('Failed to load dashboard', 'error');
   }
