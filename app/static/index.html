@@ -214,7 +214,6 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
       <a href="#" onclick="showPage('coverage')">Coverage</a>
       <a href="#" onclick="showPage('pricing')">Pricing</a>
       <a href="/docs" target="_blank">API Docs</a>
-      <button onclick="showPage('dashboard')" id="nav-dashboard" style="display:none">Dashboard</button>
       <button class="btn-primary" onclick="openSignup()" id="nav-signup">Get API Key</button>
     </div>
   </div>
@@ -456,7 +455,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (currentKey) {
     document.getElementById('nav-signup').textContent = 'Dashboard';
     document.getElementById('nav-signup').onclick = () => showPage('dashboard');
-    document.getElementById('nav-dashboard').style.display = '';
   }
   document.getElementById('search-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') doSearch();
@@ -705,7 +703,6 @@ async function doSignup() {
 
     document.getElementById('nav-signup').textContent = 'Dashboard';
     document.getElementById('nav-signup').onclick = () => showPage('dashboard');
-    document.getElementById('nav-dashboard').style.display = '';
 
     try { await navigator.clipboard.writeText(d.api_key); } catch(e) {}
   } catch(e) {
