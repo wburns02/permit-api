@@ -265,11 +265,58 @@ section .subtitle{color:var(--text2);font-size:16px;margin-bottom:40px}
 .toast.success{border-color:var(--green)}
 .toast.error{border-color:var(--red)}
 
+/* Property Risk Score */
+.risk-hero{text-align:center;padding:48px 0 32px}
+.risk-badge{display:inline-flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border);border-radius:24px;padding:5px 14px;font-size:12px;color:var(--text3);margin-bottom:16px}
+.risk-search-row{display:flex;gap:8px;max-width:560px;margin:0 auto}
+.risk-search-row input{flex:1;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:15px;outline:none;transition:border-color .2s}
+.risk-search-row input:focus{border-color:var(--accent)}
+.risk-search-row button{padding:12px 24px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;transition:all .2s;white-space:nowrap}
+.risk-search-row button:hover{background:var(--accent2)}
+.risk-result-grid{display:grid;grid-template-columns:280px 1fr;gap:24px;align-items:start}
+.risk-score-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:32px 24px;text-align:center;position:sticky;top:80px}
+.risk-gauge{position:relative;width:160px;height:160px;margin:0 auto 20px}
+.risk-gauge svg{width:160px;height:160px;transform:rotate(-90deg)}
+.risk-gauge-bg{fill:none;stroke:var(--surface2);stroke-width:14}
+.risk-gauge-fill{fill:none;stroke-width:14;stroke-linecap:round;transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1),stroke .5s}
+.risk-gauge-label{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.risk-score-num{font-size:42px;font-weight:800;line-height:1}
+.risk-grade{font-size:22px;font-weight:700;margin-top:2px}
+.risk-category{font-size:13px;font-weight:600;margin-top:8px;padding:4px 14px;border-radius:20px;display:inline-block}
+.risk-cat-low{background:rgba(34,197,94,.15);color:var(--green)}
+.risk-cat-moderate{background:rgba(245,158,11,.15);color:var(--orange)}
+.risk-cat-high{background:rgba(239,68,68,.15);color:var(--red)}
+.risk-cat-veryhigh{background:rgba(239,68,68,.25);color:#ff6b6b}
+.risk-signals{display:flex;flex-direction:column;gap:12px}
+.risk-signal-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px 20px;display:flex;align-items:flex-start;gap:14px}
+.risk-signal-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.risk-signal-good{background:rgba(34,197,94,.15)}
+.risk-signal-warn{background:rgba(245,158,11,.15)}
+.risk-signal-bad{background:rgba(239,68,68,.15)}
+.risk-signal-neutral{background:var(--surface2)}
+.risk-signal-title{font-size:14px;font-weight:600;margin-bottom:2px}
+.risk-signal-desc{font-size:13px;color:var(--text2);line-height:1.5}
+.risk-permit-timeline{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.risk-timeline-item{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.risk-timeline-item:last-child{border-bottom:none}
+.risk-timeline-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.risk-use-cases{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:24px}
+.risk-use-case{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;text-align:center}
+.risk-use-case .icon{font-size:24px;margin-bottom:8px}
+.risk-use-case h4{font-size:13px;font-weight:600;margin-bottom:4px}
+.risk-use-case p{font-size:12px;color:var(--text3)}
+.risk-skeleton{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:32px;text-align:center;animation:pulse 1.5s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
 /* Footer */
 footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color:var(--text3);font-size:13px}
 
 /* Responsive */
 @media(max-width:768px){
+  .risk-result-grid{grid-template-columns:1fr}
+  .risk-score-card{position:static}
+  .risk-use-cases{grid-template-columns:1fr}
+  .risk-search-row{flex-direction:column}
   nav .links a:not(.btn-primary){display:none}
   .stats-row{gap:24px}
   .stat .number{font-size:28px}
@@ -423,6 +470,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
       <a href="#contractors" onclick="showPage('contractors');return false">Contractors</a>
       <a href="#alerts" onclick="showPage('alerts');return false">Alerts</a>
       <a href="#leads" onclick="showPage('leads');return false">Leads</a>
+      <a href="#risk" onclick="showPage('risk');return false">Risk Score</a>
       <a href="#properties" onclick="showPage('properties');return false">Properties</a>
       <a href="#market" onclick="showPage('market');return false">Market</a>
       <a href="#coverage" onclick="showPage('coverage');return false">Coverage</a>
@@ -1116,6 +1164,125 @@ results.forEach(p =>
   </div>
 </div>
 
+<!-- RISK SCORE PAGE -->
+<div class="page" id="page-risk">
+  <section class="container" style="padding-bottom:60px">
+    <div class="risk-hero">
+      <div class="risk-badge">🏠 Permit-Based Risk Intelligence</div>
+      <h2 style="font-size:36px;font-weight:800;margin-bottom:12px">Property Risk Score</h2>
+      <p style="color:var(--text2);font-size:17px;max-width:580px;margin:0 auto 32px">Instant permit history analysis for any US property. Assess compliance risk, construction quality signals, and permit gaps.</p>
+      <div class="risk-search-row">
+        <input type="text" id="risk-address-input" placeholder="123 Main St, Austin TX 78701" autocomplete="off"
+          onkeydown="if(event.key==='Enter')runRiskScore()">
+        <button onclick="runRiskScore()" id="risk-analyze-btn">Analyze Property</button>
+      </div>
+      <p style="font-size:12px;color:var(--text3);margin-top:10px">Try: <a href="#" onclick="document.getElementById('risk-address-input').value='5601 Monterey Oaks Blvd, Austin TX';runRiskScore();return false" style="color:var(--accent2)">5601 Monterey Oaks Blvd, Austin TX</a> · <a href="#" onclick="document.getElementById('risk-address-input').value='1100 Congress Ave, Austin TX';runRiskScore();return false" style="color:var(--accent2)">1100 Congress Ave, Austin TX</a></p>
+    </div>
+
+    <!-- Skeleton / Loading -->
+    <div id="risk-loading" style="display:none;max-width:800px;margin:0 auto">
+      <div class="risk-skeleton" style="height:220px;margin-bottom:16px"></div>
+      <div class="risk-skeleton" style="height:120px;margin-bottom:16px"></div>
+      <div class="risk-skeleton" style="height:120px"></div>
+    </div>
+
+    <!-- Results -->
+    <div id="risk-result" style="display:none;max-width:860px;margin:0 auto">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px">
+        <div>
+          <h3 id="risk-result-address" style="font-size:18px;font-weight:700"></h3>
+          <p id="risk-result-subtitle" style="font-size:13px;color:var(--text3);margin-top:2px"></p>
+        </div>
+        <button onclick="runRiskScore()" style="padding:8px 18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:var(--text2)">Re-analyze</button>
+      </div>
+
+      <div class="risk-result-grid">
+        <!-- Score card -->
+        <div class="risk-score-card">
+          <div class="risk-gauge">
+            <svg viewBox="0 0 160 160">
+              <circle class="risk-gauge-bg" cx="80" cy="80" r="62"/>
+              <circle class="risk-gauge-fill" id="risk-gauge-fill" cx="80" cy="80" r="62" stroke-dasharray="389.56" stroke-dashoffset="389.56"/>
+            </svg>
+            <div class="risk-gauge-label">
+              <span class="risk-score-num" id="risk-score-num">--</span>
+              <span class="risk-grade" id="risk-grade"></span>
+            </div>
+          </div>
+          <div class="risk-category" id="risk-category-badge"></div>
+          <div style="margin-top:20px;font-size:13px;color:var(--text2);line-height:1.6" id="risk-summary-text"></div>
+          <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
+              <span style="color:var(--text3)">Permits Found</span>
+              <span id="risk-stat-permits" style="font-weight:600">—</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
+              <span style="color:var(--text3)">Last Permit</span>
+              <span id="risk-stat-last" style="font-weight:600">—</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px">
+              <span style="color:var(--text3)">Contractors</span>
+              <span id="risk-stat-contractors" style="font-weight:600">—</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:12px">
+              <span style="color:var(--text3)">Open Permits</span>
+              <span id="risk-stat-open" style="font-weight:600">—</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Signals + timeline -->
+        <div>
+          <h4 style="font-size:15px;font-weight:700;margin-bottom:14px">Risk Signals</h4>
+          <div class="risk-signals" id="risk-signals"></div>
+
+          <h4 style="font-size:15px;font-weight:700;margin:24px 0 12px">Permit History</h4>
+          <div class="risk-permit-timeline" id="risk-timeline">
+            <p style="color:var(--text3);font-size:13px">No permit records found.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Use cases -->
+      <div style="margin-top:32px">
+        <h4 style="font-size:15px;font-weight:700;margin-bottom:14px;text-align:center;color:var(--text2)">Who uses Property Risk Scores?</h4>
+        <div class="risk-use-cases">
+          <div class="risk-use-case">
+            <div class="icon">🏦</div>
+            <h4>Lenders</h4>
+            <p>Verify collateral quality before mortgage approval</p>
+          </div>
+          <div class="risk-use-case">
+            <div class="icon">🛡️</div>
+            <h4>Insurers</h4>
+            <p>Identify unpermitted work that voids coverage</p>
+          </div>
+          <div class="risk-use-case">
+            <div class="icon">🏠</div>
+            <h4>Investors</h4>
+            <p>Due diligence on renovation history and compliance</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Auth gate for unauthenticated -->
+      <div id="risk-auth-gate" style="display:none;margin-top:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;text-align:center">
+        <p style="font-weight:600;margin-bottom:6px">This is a demo report</p>
+        <p style="color:var(--text2);font-size:14px;margin-bottom:16px">Sign up free to analyze any property with live permit data.</p>
+        <button onclick="openSignup()" style="padding:10px 28px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600">Get Free Access</button>
+      </div>
+    </div>
+
+    <!-- Empty/No results state -->
+    <div id="risk-empty" style="display:none;max-width:560px;margin:0 auto;text-align:center;padding:40px 0">
+      <div style="font-size:48px;margin-bottom:16px">🔍</div>
+      <h3 style="font-size:20px;font-weight:700;margin-bottom:8px">No permits found</h3>
+      <p style="color:var(--text2);font-size:15px" id="risk-empty-msg">We couldn't find permit records for that address. Try a different format or check coverage.</p>
+      <button onclick="showPage('coverage')" style="margin-top:16px;padding:10px 24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;color:var(--text2)">Check Coverage</button>
+    </div>
+  </section>
+</div>
+
 <!-- DASHBOARD PAGE -->
 <div class="page" id="page-dashboard">
   <section>
@@ -1299,7 +1466,7 @@ function showPage(page) {
   el.classList.add('visible');
   // Update active nav link
   document.querySelectorAll('nav .links a').forEach(a => a.classList.remove('active'));
-  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', properties: '#properties', market: '#market' };
+  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', risk: '#risk', properties: '#properties', market: '#market' };
   const activeLink = document.querySelector(`nav .links a[href="${hashMap[page] || '#search'}"]`);
   if (activeLink) activeLink.classList.add('active');
   currentPage = page;
@@ -1325,7 +1492,7 @@ function showPage(page) {
 // Hash routing
 function routeFromHash() {
   const h = location.hash.replace('#','') || 'home';
-  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', properties: 'properties', market: 'market' };
+  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', risk: 'risk', properties: 'properties', market: 'market' };
   showPage(map[h] || 'home');
 }
 window.addEventListener('hashchange', routeFromHash);
@@ -3055,6 +3222,241 @@ function formatDateAgo(dateStr) {
   if (days < 30) return Math.floor(days / 7) + ' weeks ago';
   if (days < 365) return Math.floor(days / 30) + ' months ago';
   return Math.floor(days / 365) + ' years ago';
+}
+
+// ============ PROPERTY RISK SCORE ============
+async function runRiskScore() {
+  const addr = document.getElementById('risk-address-input').value.trim();
+  if (!addr) { showToast('Enter a property address', 'error'); return; }
+
+  const btn = document.getElementById('risk-analyze-btn');
+  btn.disabled = true; btn.textContent = 'Analyzing...';
+  document.getElementById('risk-result').style.display = 'none';
+  document.getElementById('risk-empty').style.display = 'none';
+  document.getElementById('risk-loading').style.display = '';
+
+  try {
+    let permits = [];
+    let isDemo = false;
+
+    if (currentKey) {
+      // Parse address
+      const parts = addr.split(',');
+      const street = parts[0]?.trim() || addr;
+      const cityState = parts.slice(1).join(',').trim();
+      let city = '', state = '';
+      const csMatch = cityState.match(/^(.*?)\s+([A-Z]{2})\s*\d*$/);
+      if (csMatch) { city = csMatch[1].trim(); state = csMatch[2]; }
+      else city = cityState;
+
+      const params = new URLSearchParams({ q: addr, limit: 50 });
+      if (city) params.set('city', city);
+      if (state) params.set('state', state);
+      const r = await fetch(`${API}/v1/permits/search?${params}`, { headers: { 'X-API-Key': currentKey } });
+      if (r.ok) {
+        const d = await r.json();
+        permits = d.results || [];
+      }
+    } else {
+      // Demo with mock data
+      isDemo = true;
+      permits = generateDemoPermits(addr);
+    }
+
+    document.getElementById('risk-loading').style.display = 'none';
+
+    if (!permits.length && currentKey) {
+      document.getElementById('risk-empty-msg').textContent = 'No permit records found for "' + addr + '". This may indicate unpermitted work or the address is outside our coverage area.';
+      document.getElementById('risk-empty').style.display = '';
+      return;
+    }
+
+    renderRiskScore(addr, permits, isDemo);
+  } catch(e) {
+    document.getElementById('risk-loading').style.display = 'none';
+    showToast('Analysis failed: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Analyze Property';
+  }
+}
+
+function generateDemoPermits(addr) {
+  const now = new Date();
+  return [
+    { permit_number: 'BP-2019-04821', permit_type: 'building', description: 'Kitchen remodel - remove load-bearing wall', status: 'finaled', issue_date: '2019-03-15', contractor_name: 'Austin Premier Builders', estimated_value: 42000 },
+    { permit_number: 'BP-2021-11203', permit_type: 'electrical', description: 'Panel upgrade 100A to 200A service', status: 'finaled', issue_date: '2021-07-22', contractor_name: 'Lone Star Electric', estimated_value: 8500 },
+    { permit_number: 'BP-2022-08774', permit_type: 'roofing', description: 'Full roof replacement - asphalt shingles', status: 'finaled', issue_date: '2022-04-10', contractor_name: 'Texas Roofing Co', estimated_value: 18000 },
+    { permit_number: 'BP-2023-15590', permit_type: 'plumbing', description: 'Water heater replacement - tankless unit', status: 'finaled', issue_date: '2023-11-08', contractor_name: 'Capital Plumbing', estimated_value: 4200 },
+    { permit_number: 'BP-2024-02211', permit_type: 'mechanical', description: 'HVAC system replacement - 4-ton unit', status: 'issued', issue_date: '2024-06-15', contractor_name: 'Central Texas HVAC', estimated_value: 12000 },
+  ];
+}
+
+function computeRiskScore(permits) {
+  const signals = [];
+  let score = 100;
+
+  if (!permits.length) {
+    score = 25;
+    signals.push({ type: 'bad', icon: '⚠️', title: 'No Permit Records Found', desc: 'No permit history on file. Property may have unpermitted additions, renovations, or repairs — a significant compliance and resale risk.' });
+    return { score, signals };
+  }
+
+  // Open/unfinaled permits
+  const openPermits = permits.filter(p => p.status && !['finaled','closed','approved','completed','issued'].some(s => (p.status||'').toLowerCase().includes(s.split('')[0])) && ['open','active','pending','in progress'].some(s => (p.status||'').toLowerCase().includes(s)));
+  // More precise: finaled = good, issued/in-progress = open/active work
+  const issuedNotFinaled = permits.filter(p => {
+    const s = (p.status||'').toLowerCase();
+    return s.includes('issued') || s.includes('open') || s.includes('active') || s.includes('progress');
+  });
+  if (issuedNotFinaled.length > 0) {
+    score -= issuedNotFinaled.length * 8;
+    signals.push({ type: 'warn', icon: '🔓', title: `${issuedNotFinaled.length} Open Permit${issuedNotFinaled.length>1?'s':''}`, desc: `${issuedNotFinaled.length} permit${issuedNotFinaled.length>1?'s are':' is'} issued but not finaled. Uninspected work creates compliance exposure and can complicate insurance claims and resale.` });
+  }
+
+  // Last permit date
+  const dates = permits.map(p => p.issue_date ? new Date(p.issue_date) : null).filter(Boolean);
+  dates.sort((a,b)=>b-a);
+  const lastDate = dates[0];
+  if (lastDate) {
+    const yearsAgo = (Date.now() - lastDate) / (365.25 * 86400000);
+    if (yearsAgo > 15) {
+      score -= 12;
+      signals.push({ type: 'warn', icon: '📅', title: 'No Recent Permit Activity', desc: `Last permit was ${Math.round(yearsAgo)} years ago. Aging systems (HVAC, electrical, plumbing) are typically unreported when repaired without permits.` });
+    } else if (yearsAgo < 2) {
+      signals.push({ type: 'good', icon: '✅', title: 'Recent Permitted Work', desc: `Active permit history within the last ${Math.round(yearsAgo * 12)} months shows the property has current, inspected improvements.` });
+    } else {
+      signals.push({ type: 'good', icon: '📋', title: 'Active Permit History', desc: `Most recent permit ${Math.round(yearsAgo)} year${yearsAgo>1?'s':''} ago. Property has documented renovation and repair history.` });
+    }
+  }
+
+  // Contractor diversity
+  const contractors = [...new Set(permits.map(p => p.contractor_name).filter(Boolean))];
+  if (contractors.length > 4) {
+    score -= 8;
+    signals.push({ type: 'warn', icon: '🔄', title: `${contractors.length} Different Contractors`, desc: 'High contractor turnover can indicate recurring issues, disputes, or quality problems requiring repeat repairs.' });
+  } else if (contractors.length >= 2) {
+    signals.push({ type: 'neutral', icon: '👷', title: `${contractors.length} Licensed Contractors`, desc: `Work performed by ${contractors.length} different licensed contractors. All pulled proper permits.` });
+  } else if (contractors.length === 1) {
+    signals.push({ type: 'good', icon: '👷', title: 'Single Licensed Contractor', desc: `Consistent relationship with one licensed contractor: ${contractors[0] || 'on file'}.` });
+  }
+
+  // High-risk permit types
+  const highRiskTypes = ['demolition','structural','foundation'];
+  const highRiskPermits = permits.filter(p => highRiskTypes.some(t => (p.permit_type||'').toLowerCase().includes(t) || (p.description||'').toLowerCase().includes(t)));
+  if (highRiskPermits.length > 0) {
+    score -= 6;
+    signals.push({ type: 'warn', icon: '🏗️', title: 'Structural/Demolition Work', desc: `${highRiskPermits.length} structural or demolition permit${highRiskPermits.length>1?'s'':''} on file. Verify final inspections and engineering approvals.` });
+  }
+
+  // Permit volume (positive signal)
+  if (permits.length >= 3) {
+    signals.push({ type: 'good', icon: '📊', title: `${permits.length} Permit Records on File`, desc: `Well-documented property with ${permits.length} permits spanning renovations, systems upgrades, and maintenance — all properly permitted and inspected.` });
+  }
+
+  // Total valuation
+  const totalValue = permits.reduce((sum, p) => sum + (p.estimated_value || 0), 0);
+  if (totalValue > 50000) {
+    signals.push({ type: 'neutral', icon: '💰', title: `$${totalValue.toLocaleString()} in Permitted Work`, desc: 'Significant documented investment in the property through properly permitted improvements.' });
+  }
+
+  score = Math.max(0, Math.min(100, Math.round(score)));
+  return { score, signals, lastDate, contractors, issuedNotFinaled };
+}
+
+function scoreToGrade(score) {
+  if (score >= 85) return { grade: 'A', cat: 'Low Risk', cls: 'risk-cat-low', color: '#22c55e' };
+  if (score >= 70) return { grade: 'B', cat: 'Moderate Risk', cls: 'risk-cat-moderate', color: '#f59e0b' };
+  if (score >= 55) return { grade: 'C', cat: 'Elevated Risk', cls: 'risk-cat-high', color: '#ef4444' };
+  if (score >= 40) return { grade: 'D', cat: 'High Risk', cls: 'risk-cat-veryhigh', color: '#ef4444' };
+  return { grade: 'F', cat: 'Very High Risk', cls: 'risk-cat-veryhigh', color: '#ff6b6b' };
+}
+
+function renderRiskScore(addr, permits, isDemo) {
+  const { score, signals, lastDate, contractors, issuedNotFinaled } = computeRiskScore(permits);
+  const { grade, cat, cls, color } = scoreToGrade(score);
+
+  document.getElementById('risk-result-address').textContent = addr;
+  document.getElementById('risk-result-subtitle').textContent = `Analysis based on ${permits.length} permit record${permits.length!==1?'s':''} · Updated just now`;
+  document.getElementById('risk-auth-gate').style.display = isDemo ? '' : 'none';
+
+  // Animate gauge
+  const circumference = 389.56;
+  const fill = document.getElementById('risk-gauge-fill');
+  fill.style.stroke = color;
+  setTimeout(() => {
+    fill.style.strokeDashoffset = circumference - (score / 100) * circumference;
+  }, 100);
+
+  // Score + grade
+  const numEl = document.getElementById('risk-score-num');
+  numEl.style.color = color;
+  let current = 0;
+  const target = score;
+  const step = () => { current = Math.min(current + Math.ceil((target - current) / 6 + 1), target); numEl.textContent = current; if (current < target) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+
+  document.getElementById('risk-grade').textContent = grade;
+  document.getElementById('risk-grade').style.color = color;
+  const badge = document.getElementById('risk-category-badge');
+  badge.textContent = cat;
+  badge.className = 'risk-category ' + cls;
+
+  // Summary text
+  const summaries = {
+    A: 'Well-documented property with strong permit compliance. Low risk for insurers, lenders, and investors.',
+    B: 'Generally compliant property with minor risk signals. Review open permits before closing.',
+    C: 'Elevated risk signals detected. Recommend full permit audit before insurance binding or loan origination.',
+    D: 'High-risk indicators. Multiple compliance gaps detected — requires thorough due diligence.',
+    F: 'Critical compliance concerns. Significant unpermitted work or violations likely present.'
+  };
+  document.getElementById('risk-summary-text').textContent = summaries[grade];
+
+  // Stats
+  document.getElementById('risk-stat-permits').textContent = permits.length;
+  document.getElementById('risk-stat-last').textContent = lastDate ? lastDate.toLocaleDateString('en-US', { year: 'numeric', month: 'short' }) : 'None on file';
+  document.getElementById('risk-stat-contractors').textContent = contractors ? contractors.length : 0;
+  document.getElementById('risk-stat-open').textContent = issuedNotFinaled ? issuedNotFinaled.length : 0;
+
+  // Signals
+  const signalsEl = document.getElementById('risk-signals');
+  if (signals.length) {
+    signalsEl.innerHTML = signals.map(s => `
+      <div class="risk-signal-card">
+        <div class="risk-signal-icon risk-signal-${s.type}">${s.icon}</div>
+        <div>
+          <div class="risk-signal-title">${esc(s.title)}</div>
+          <div class="risk-signal-desc">${esc(s.desc)}</div>
+        </div>
+      </div>`).join('');
+  } else {
+    signalsEl.innerHTML = '<p style="color:var(--text3);font-size:13px">No risk signals detected.</p>';
+  }
+
+  // Timeline
+  const timelineEl = document.getElementById('risk-timeline');
+  if (permits.length) {
+    const sorted = [...permits].sort((a,b) => new Date(b.issue_date||0) - new Date(a.issue_date||0)).slice(0, 8);
+    const dotColors = { finaled: '#22c55e', issued: '#f59e0b', expired: '#ef4444', denied: '#ef4444' };
+    timelineEl.innerHTML = sorted.map(p => {
+      const statusKey = Object.keys(dotColors).find(k => (p.status||'').toLowerCase().includes(k)) || 'issued';
+      const dotColor = dotColors[statusKey];
+      return `<div class="risk-timeline-item">
+        <div class="risk-timeline-dot" style="background:${dotColor}"></div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600">${esc(p.permit_type||'Permit')} — ${esc(p.description||p.permit_number||'')}</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">
+            ${p.issue_date ? new Date(p.issue_date).toLocaleDateString('en-US',{year:'numeric',month:'short'}) : ''}
+            ${p.contractor_name ? '· ' + esc(p.contractor_name) : ''}
+            ${p.estimated_value ? '· $' + Number(p.estimated_value).toLocaleString() : ''}
+          </div>
+        </div>
+        <div style="font-size:11px;padding:2px 8px;background:var(--surface2);border-radius:4px;white-space:nowrap;color:var(--text3)">${esc(p.status||'—')}</div>
+      </div>`;
+    }).join('');
+  }
+
+  document.getElementById('risk-result').style.display = '';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // ============ USAGE CHART ============
