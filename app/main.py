@@ -108,6 +108,14 @@ async def root():
     return FileResponse(STATIC_DIR / "index.html")
 
 
+# SPA catch-all routes — serve index.html for frontend pages
+async def _spa_page():
+    return FileResponse(STATIC_DIR / "index.html")
+
+for _path in ("/search", "/coverage", "/pricing", "/dashboard"):
+    app.get(_path, include_in_schema=False)(_spa_page)
+
+
 @app.get("/api")
 async def api_info():
     return {

@@ -210,9 +210,9 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
       PermitLookup
     </div>
     <div class="links">
-      <a href="#" onclick="showPage('home')">Search</a>
-      <a href="#" onclick="showPage('coverage')">Coverage</a>
-      <a href="#" onclick="showPage('pricing')">Pricing</a>
+      <a href="#search" onclick="showPage('home');return false">Search</a>
+      <a href="#coverage" onclick="showPage('coverage');return false">Coverage</a>
+      <a href="#pricing" onclick="showPage('pricing');return false">Pricing</a>
       <a href="/docs" target="_blank">API Docs</a>
       <button class="btn-primary" onclick="openSignup()" id="nav-signup">Get API Key</button>
     </div>
@@ -223,7 +223,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
 <div class="page visible" id="page-home">
   <section class="hero">
     <div class="container">
-      <h1>Building Permit Data<br>via API</h1>
+      <h1>Building Permit Data <br>via API</h1>
       <p>The most comprehensive building permit database. 3M+ records from 180+ jurisdictions across 17+ states. Real-time data for contractors, investors, insurers, and analysts.</p>
 
       <div class="stats-row">
@@ -410,7 +410,7 @@ results.forEach(p =>
 <!-- SIGNUP MODAL -->
 <div class="modal-overlay" id="signup-modal">
   <div class="modal">
-    <button class="close" onclick="closeSignup()">&times;</button>
+    <button type="button" class="close" onclick="closeSignup()">&times;</button>
     <div id="signup-form-view">
       <h3>Get Your Free API Key</h3>
       <p>No credit card required. Start with 100 free lookups per day.</p>
@@ -465,16 +465,31 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') closeSignup();
   });
+  // Route from hash on load
+  if (location.hash) routeFromHash();
 });
 
 function showPage(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('visible'));
-  document.getElementById('page-' + page).classList.add('visible');
+  const el = document.getElementById('page-' + page);
+  if (!el) { showPage('home'); return; }
+  el.classList.add('visible');
   currentPage = page;
   if (page === 'coverage') loadCoverage();
   if (page === 'dashboard') loadDashboard();
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Update hash without triggering hashchange
+  const hash = page === 'home' ? '#search' : '#' + page;
+  if (location.hash !== hash) history.replaceState(null, '', hash);
 }
+
+// Hash routing
+function routeFromHash() {
+  const h = location.hash.replace('#','') || 'home';
+  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard' };
+  showPage(map[h] || 'home');
+}
+window.addEventListener('hashchange', routeFromHash);
 
 // Stats
 async function loadStats() {
@@ -505,21 +520,80 @@ function animateNumber(id, target) {
 }
 
 // Search
+const US_STATES = {AL:1,AK:1,AZ:1,AR:1,CA:1,CO:1,CT:1,DE:1,FL:1,GA:1,HI:1,ID:1,IL:1,IN:1,IA:1,KS:1,KY:1,LA:1,ME:1,MD:1,MA:1,MI:1,MN:1,MS:1,MO:1,MT:1,NE:1,NV:1,NH:1,NJ:1,NM:1,NY:1,NC:1,ND:1,OH:1,OK:1,OR:1,PA:1,RI:1,SC:1,SD:1,TN:1,TX:1,UT:1,VT:1,VA:1,WA:1,WV:1,WI:1,WY:1,DC:1};
+
+function parseSearchQuery(q) {
+  // Try to parse "city, state" or "city state" or "address, city, state" patterns
+  const params = { page_size: '20' };
+  const parts = q.split(',').map(s => s.trim()).filter(Boolean);
+
+  if (parts.length >= 2) {
+    // Last part might be state (or "city state")
+    const lastPart = parts[parts.length - 1].trim();
+    const lastWords = lastPart.split(/\s+/);
+    const possibleState = lastWords[lastWords.length - 1].toUpperCase();
+
+    if (possibleState.length === 2 && US_STATES[possibleState]) {
+      params.state = possibleState;
+      // Remove state from last part
+      const cityPart = lastWords.length > 1 ? lastWords.slice(0, -1).join(' ') : '';
+      if (parts.length === 2) {
+        // "city, state" or "address, state"
+        const first = parts[0];
+        if (/^\d/.test(first)) {
+          params.address = first;
+          if (cityPart) params.city = cityPart;
+        } else {
+          params.city = cityPart || first;
+          if (cityPart) params.address = first;
+        }
+      } else {
+        // "address, city, state"
+        params.address = parts.slice(0, -1).join(', ');
+        if (cityPart) params.city = cityPart;
+      }
+    } else {
+      // No state detected, use whole thing as address
+      params.address = q;
+    }
+  } else {
+    // Single term — check if it's "city state"
+    const words = q.split(/\s+/);
+    const last = words[words.length - 1].toUpperCase();
+    if (words.length >= 2 && last.length === 2 && US_STATES[last]) {
+      params.state = last;
+      params.city = words.slice(0, -1).join(' ');
+    } else {
+      params.address = q;
+    }
+  }
+  return params;
+}
+
 async function doSearch() {
   const q = document.getElementById('search-input').value.trim();
-  if (!q) return;
+  if (!q) { showToast('Enter an address, city, or state to search.', 'error'); return; }
   if (!currentKey) { openSignup(); return; }
 
   const btn = document.getElementById('search-btn');
   btn.disabled = true; btn.textContent = 'Searching...';
 
   try {
-    const params = new URLSearchParams({ address: q, page_size: '20' });
+    const params = new URLSearchParams(parseSearchQuery(q));
     const r = await fetch(API + '/v1/permits/search?' + params, {
       headers: { 'X-API-Key': currentKey }
     });
-    if (r.status === 401) { openSignup(); return; }
+    if (r.status === 401) {
+      currentKey = ''; localStorage.removeItem('pl_api_key');
+      document.getElementById('nav-signup').textContent = 'Get API Key';
+      document.getElementById('nav-signup').onclick = openSignup;
+      openSignup(); return;
+    }
     if (r.status === 429) { showToast('Daily limit reached. Upgrade your plan.', 'error'); return; }
+    if (!r.ok) {
+      const err = await r.json();
+      showToast(err.detail || 'Search failed', 'error'); return;
+    }
     const d = await r.json();
     renderResults(d);
   } catch(e) {
@@ -721,9 +795,26 @@ function copyKey(el) {
   navigator.clipboard.writeText(el.textContent).then(() => showToast('Copied to clipboard!', 'success'));
 }
 
-function subscribe(plan) {
+async function subscribe(plan) {
   if (!currentKey) { openSignup(); return; }
-  showToast('Subscription checkout coming soon. Contact us for ' + plan + ' plan.', 'success');
+  if (plan === 'enterprise') {
+    showToast('Contact sales@permits.ecbtx.com for Enterprise pricing.', 'success');
+    return;
+  }
+  try {
+    const r = await fetch(API + '/v1/subscribe?plan=' + plan, {
+      method: 'POST',
+      headers: { 'X-API-Key': currentKey }
+    });
+    const d = await r.json();
+    if (d.checkout_url) {
+      window.location.href = d.checkout_url;
+    } else {
+      showToast(d.detail || 'Billing coming soon. Contact us to upgrade.', 'error');
+    }
+  } catch(e) {
+    showToast('Billing coming soon. Contact sales@permits.ecbtx.com to upgrade.', 'error');
+  }
 }
 
 // Code tabs
