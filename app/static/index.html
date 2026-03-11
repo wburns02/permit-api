@@ -286,6 +286,44 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
 .page{display:none;animation:fadeIn .3s ease}
 .page.visible{display:block}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* Alert test/history results */
+.alert-test-results{margin-top:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;max-height:320px;overflow-y:auto}
+.alert-test-results h5{font-size:13px;color:var(--text2);margin-bottom:10px}
+.alert-test-results table{width:100%;font-size:12px;border-collapse:collapse}
+.alert-test-results th{text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);color:var(--text3);font-weight:500}
+.alert-test-results td{padding:6px 8px;border-bottom:1px solid var(--border);color:var(--text2)}
+.alert-history{margin-top:12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px}
+.alert-history .hist-entry{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;flex-wrap:wrap}
+.alert-history .hist-entry:last-child{border-bottom:none}
+.hist-status{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:600}
+.hist-status.success{background:var(--green-glow);color:var(--green)}
+.hist-status.failed{background:rgba(239,68,68,.15);color:var(--red)}
+.hist-status.partial{background:rgba(245,158,11,.15);color:var(--orange)}
+
+/* Feature cards */
+.feature-card{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:32px;transition:border-color .2s}
+.feature-card:hover{border-color:var(--accent)}
+.feature-card ul{list-style:none;padding:0;margin-top:16px}
+.feature-card ul li{padding:5px 0;font-size:13px;color:var(--text3)}
+.feature-card ul li::before{content:'✓ ';color:var(--green)}
+
+/* Property risk signals */
+.risk-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:16px}
+.risk-card{background:var(--surface2);padding:16px;border-radius:var(--radius-sm)}
+.risk-card .risk-val{font-size:24px;font-weight:700}
+.risk-card .risk-lbl{font-size:12px;color:var(--text3);margin-top:2px}
+
+/* Saved searches */
+.ss-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.ss-item .ss-actions{display:flex;gap:8px}
+
+/* Market bars */
+.mbar-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.mbar-label{width:80px;font-size:12px;color:var(--text3);text-align:right;white-space:nowrap}
+.mbar-track{flex:1;height:22px;background:var(--surface2);border-radius:4px;overflow:hidden}
+.mbar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:4px;transition:width .4s}
+.mbar-count{width:70px;font-size:12px;color:var(--text2);text-align:right}
 </style>
 </head>
 <body>
@@ -300,6 +338,8 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
       <a href="#search" onclick="showPage('home');return false">Search</a>
       <a href="#contractors" onclick="showPage('contractors');return false">Contractors</a>
       <a href="#alerts" onclick="showPage('alerts');return false">Alerts</a>
+      <a href="#properties" onclick="showPage('properties');return false">Properties</a>
+      <a href="#market" onclick="showPage('market');return false">Market</a>
       <a href="#coverage" onclick="showPage('coverage');return false">Coverage</a>
       <a href="#pricing" onclick="showPage('pricing');return false">Pricing</a>
       <a href="/docs" target="_blank">API Docs</a>
@@ -448,6 +488,52 @@ console.log(<span class="str">`Found ${total} permits`</span>);
 results.forEach(p =>
   console.log(<span class="str">`${p.address} — ${p.permit_type} — ${p.status}`</span>)
 );</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Industry Verticals -->
+  <section style="background:var(--surface);padding:80px 0">
+    <div class="container">
+      <h2 style="text-align:center;font-size:28px;font-weight:700;margin-bottom:12px">Built for Every Industry</h2>
+      <p class="subtitle" style="text-align:center;margin-bottom:48px;max-width:580px;margin-left:auto;margin-right:auto">Three verticals, one API. Lead generation, insurance underwriting, or real estate intelligence — we have the data.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:24px">
+        <div class="feature-card">
+          <div style="font-size:36px;margin-bottom:12px">🔔</div>
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:8px">Lead Generation</h3>
+          <p style="color:var(--text2);font-size:14px;line-height:1.6">Real-time permit alerts for roofers, solar installers, HVAC contractors, and home service companies. New permits = new customers.</p>
+          <ul>
+            <li>Instant, daily, or weekly alerts</li>
+            <li>Email + webhook delivery</li>
+            <li>Filter by type, area, contractor</li>
+            <li>Up to 100 active alerts (Pro)</li>
+          </ul>
+          <button onclick="showPage('alerts')" style="margin-top:16px;padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600">Set Up Alerts →</button>
+        </div>
+        <div class="feature-card">
+          <div style="font-size:36px;margin-bottom:12px">🛡️</div>
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:8px">Insurance &amp; Underwriting</h3>
+          <p style="color:var(--text2);font-size:14px;line-height:1.6">Property-level permit history with risk signals. Identify unpermitted gaps, renovation intensity, and permit type patterns.</p>
+          <ul>
+            <li>Per-property risk signals</li>
+            <li>Bulk CSV portfolio analysis</li>
+            <li>10yr+ unpermitted gap detection</li>
+            <li>Up to 10,000 addresses/request</li>
+          </ul>
+          <button onclick="showPage('properties')" style="margin-top:16px;padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600">Property Lookup →</button>
+        </div>
+        <div class="feature-card">
+          <div style="font-size:36px;margin-bottom:12px">📊</div>
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:8px">Real Estate &amp; PropTech</h3>
+          <p style="color:var(--text2);font-size:14px;line-height:1.6">Market intelligence for investors and platforms. Monthly trends, growth hotspots, top contractors, and valuation data by ZIP code.</p>
+          <ul>
+            <li>Monthly permit volume trends</li>
+            <li>ZIP code growth hotspots</li>
+            <li>Top contractors per market</li>
+            <li>Saved searches with re-run</li>
+          </ul>
+          <button onclick="showPage('market')" style="margin-top:16px;padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600">Market Intelligence →</button>
+        </div>
       </div>
     </div>
   </section>
@@ -603,6 +689,108 @@ results.forEach(p =>
   </section>
 </div>
 
+<!-- PROPERTIES PAGE -->
+<div class="page" id="page-properties">
+  <section>
+    <div class="container">
+      <h2>Property Intelligence</h2>
+      <p class="subtitle">Full permit history and risk signals for any property. Built for insurance underwriters and investors.</p>
+
+      <!-- Lookup form -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:24px">
+        <h3 style="font-size:16px;font-weight:600;margin-bottom:16px">Property Lookup</h3>
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <input type="text" id="property-address" placeholder="Enter full property address (e.g. 123 Main St, Austin TX)" style="flex:1;min-width:240px;padding:12px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;transition:border-color .2s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" />
+          <button onclick="lookupProperty()" id="property-lookup-btn" style="padding:12px 24px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;transition:background .2s" onmouseover="this.style.background='var(--accent2)'" onmouseout="this.style.background='var(--accent)'">Lookup</button>
+        </div>
+      </div>
+
+      <!-- Bulk upload (auth gated) -->
+      <div id="property-bulk-section" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:24px;display:none">
+        <h3 style="font-size:16px;font-weight:600;margin-bottom:6px">Bulk Property Report</h3>
+        <p style="color:var(--text3);font-size:13px;margin-bottom:16px">Upload a CSV with an "address" column. Each address = 1 lookup. Requires Starter plan or higher.</p>
+        <div id="bulk-drop" style="border:2px dashed var(--border);border-radius:var(--radius-sm);padding:32px;text-align:center;cursor:pointer;transition:border-color .2s" onclick="document.getElementById('bulk-csv-input').click()" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+          <div style="font-size:32px;margin-bottom:8px">📄</div>
+          <p style="color:var(--text2);font-size:14px">Click to upload CSV or drag &amp; drop</p>
+          <p style="color:var(--text3);font-size:12px;margin-top:4px">Must have an "address" column</p>
+          <input type="file" id="bulk-csv-input" accept=".csv" style="display:none" onchange="uploadBulkReport(this.files[0])">
+        </div>
+        <div id="bulk-results" style="margin-top:16px"></div>
+      </div>
+
+      <!-- Auth gate -->
+      <div id="property-auth-gate" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:40px;text-align:center;display:none">
+        <div style="font-size:48px;margin-bottom:12px;opacity:.3">🔒</div>
+        <h3 style="font-size:18px;margin-bottom:8px">Sign in to use Property Intelligence</h3>
+        <p style="color:var(--text2);font-size:14px;margin-bottom:20px">Create a free account to look up any property's full permit history and risk signals.</p>
+        <button onclick="openSignup()" style="padding:10px 28px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-weight:600">Get Free API Key</button>
+      </div>
+
+      <!-- Results -->
+      <div id="property-results"></div>
+    </div>
+  </section>
+</div>
+
+<!-- MARKET INTELLIGENCE PAGE -->
+<div class="page" id="page-market">
+  <section>
+    <div class="container">
+      <h2>Market Intelligence <span style="background:var(--accent-glow);color:var(--accent2);padding:3px 10px;border-radius:4px;font-size:13px;vertical-align:middle;margin-left:8px">Pro+</span></h2>
+      <p class="subtitle">Monthly permit trends, growth hotspots, and top contractors by market area.</p>
+
+      <!-- Activity -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:24px">
+        <h3 style="font-size:16px;font-weight:600;margin-bottom:16px">Market Activity</h3>
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+          <div>
+            <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">ZIP Code</label>
+            <input type="text" id="market-zip" placeholder="78701" maxlength="5" style="width:100px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">City</label>
+            <input type="text" id="market-city" placeholder="Austin" style="width:140px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">State</label>
+            <select id="market-state" style="width:90px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px">
+              <option value="">Any</option>
+              <option value="AL">AL</option><option value="AZ">AZ</option><option value="CA">CA</option><option value="CO">CO</option><option value="CT">CT</option><option value="FL">FL</option><option value="GA">GA</option><option value="IL">IL</option><option value="IN">IN</option><option value="KY">KY</option><option value="LA">LA</option><option value="MA">MA</option><option value="MD">MD</option><option value="MI">MI</option><option value="MN">MN</option><option value="NC">NC</option><option value="NJ">NJ</option><option value="NY">NY</option><option value="OH">OH</option><option value="OR">OR</option><option value="PA">PA</option><option value="TN">TN</option><option value="TX">TX</option><option value="VA">VA</option><option value="WA">WA</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">Window</label>
+            <select id="market-months" style="width:120px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px">
+              <option value="3">3 months</option>
+              <option value="6" selected>6 months</option>
+              <option value="12">12 months</option>
+              <option value="24">24 months</option>
+            </select>
+          </div>
+          <button onclick="loadMarketActivity()" id="market-activity-btn" style="padding:10px 24px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600">Analyze</button>
+        </div>
+      </div>
+      <div id="market-activity-results" style="display:none;margin-bottom:32px"></div>
+
+      <!-- Hotspots -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:24px">
+        <h3 style="font-size:16px;font-weight:600;margin-bottom:16px">Growth Hotspots by State</h3>
+        <div style="display:flex;gap:12px;align-items:flex-end">
+          <div>
+            <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">State</label>
+            <select id="hotspot-state" style="width:180px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px">
+              <option value="">Select a state</option>
+              <option value="AL">Alabama</option><option value="AZ">Arizona</option><option value="CA">California</option><option value="CO">Colorado</option><option value="CT">Connecticut</option><option value="FL">Florida</option><option value="GA">Georgia</option><option value="IL">Illinois</option><option value="IN">Indiana</option><option value="KY">Kentucky</option><option value="LA">Louisiana</option><option value="MA">Massachusetts</option><option value="MD">Maryland</option><option value="MI">Michigan</option><option value="MN">Minnesota</option><option value="NC">North Carolina</option><option value="NJ">New Jersey</option><option value="NY">New York</option><option value="OH">Ohio</option><option value="OR">Oregon</option><option value="PA">Pennsylvania</option><option value="TN">Tennessee</option><option value="TX">Texas</option><option value="VA">Virginia</option><option value="WA">Washington</option>
+            </select>
+          </div>
+          <button onclick="loadHotspots()" id="hotspot-btn" style="padding:10px 24px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600">Find Hotspots</button>
+        </div>
+      </div>
+      <div id="hotspot-results" style="display:none"></div>
+    </div>
+  </section>
+</div>
+
 <!-- ALERT CREATE/EDIT MODAL -->
 <div class="alert-form-overlay" id="alert-form-overlay">
   <div class="alert-form">
@@ -672,6 +860,7 @@ results.forEach(p =>
         <div class="form-group">
           <label>Webhook URL (optional)</label>
           <input type="url" id="alert-webhook" placeholder="https://your-app.com/webhook">
+          <button type="button" onclick="testWebhookUrl()" id="test-webhook-btn" style="display:none;margin-top:6px;padding:4px 12px;background:none;color:var(--accent2);border:1px solid var(--border2);border-radius:4px;font-size:12px;cursor:pointer">Test URL Format</button>
         </div>
       </div>
       <div class="checkbox-group">
@@ -724,9 +913,69 @@ results.forEach(p =>
       <h3 style="margin-bottom:16px">API Keys</h3>
       <ul class="key-list" id="key-list"></ul>
       <button class="btn-full" style="max-width:240px;margin-top:12px" onclick="createNewKey()">+ Create New Key</button>
+
+      <!-- Usage Chart -->
+      <div style="margin-top:36px">
+        <h3 style="margin-bottom:16px">Usage — Last 7 Days</h3>
+        <div id="usage-chart" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;min-height:120px"></div>
       </div>
+
+      <!-- Saved Searches -->
+      <div style="margin-top:36px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h3>Saved Searches</h3>
+          <button onclick="openSavedSearchForm()" style="padding:8px 18px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600">+ New</button>
+        </div>
+        <div id="saved-searches-list"></div>
+      </div>
+
+      </div><!-- end dash-content -->
     </div>
   </section>
+</div>
+
+<!-- SAVED SEARCH MODAL -->
+<div class="modal-overlay" id="saved-search-modal">
+  <div class="modal" style="max-width:480px">
+    <button type="button" class="close" onclick="closeSavedSearchForm()">&times;</button>
+    <h3>New Saved Search</h3>
+    <p>Save a set of filters to re-run anytime from your dashboard.</p>
+    <form onsubmit="saveSavedSearch();return false">
+      <div class="form-group">
+        <label>Name</label>
+        <input type="text" id="ss-name" placeholder="e.g. TX Building Permits" required>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group">
+          <label>State</label>
+          <select id="ss-state">
+            <option value="">Any</option>
+            <option value="AL">Alabama</option><option value="AZ">Arizona</option><option value="CA">California</option><option value="CO">Colorado</option><option value="CT">Connecticut</option><option value="FL">Florida</option><option value="GA">Georgia</option><option value="IL">Illinois</option><option value="IN">Indiana</option><option value="KY">Kentucky</option><option value="LA">Louisiana</option><option value="MA">Massachusetts</option><option value="MD">Maryland</option><option value="MI">Michigan</option><option value="MN">Minnesota</option><option value="NC">North Carolina</option><option value="NJ">New Jersey</option><option value="NY">New York</option><option value="OH">Ohio</option><option value="OR">Oregon</option><option value="PA">Pennsylvania</option><option value="TN">Tennessee</option><option value="TX">Texas</option><option value="VA">Virginia</option><option value="WA">Washington</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>City</label>
+          <input type="text" id="ss-city" placeholder="e.g. Austin">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Permit Type</label>
+        <select id="ss-permit-type">
+          <option value="">Any</option>
+          <option value="building">Building</option>
+          <option value="electrical">Electrical</option>
+          <option value="plumbing">Plumbing</option>
+          <option value="mechanical">Mechanical</option>
+          <option value="demolition">Demolition</option>
+          <option value="roofing">Roofing</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:8px">
+        <button type="button" class="btn-secondary" onclick="closeSavedSearchForm()" style="flex:1">Cancel</button>
+        <button type="submit" class="btn-full" id="ss-save-btn" style="flex:1">Save Search</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <!-- SIGNUP MODAL -->
@@ -804,13 +1053,14 @@ function showPage(page) {
   el.classList.add('visible');
   // Update active nav link
   document.querySelectorAll('nav .links a').forEach(a => a.classList.remove('active'));
-  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts' };
+  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', properties: '#properties', market: '#market' };
   const activeLink = document.querySelector(`nav .links a[href="${hashMap[page] || '#search'}"]`);
   if (activeLink) activeLink.classList.add('active');
   currentPage = page;
   if (page === 'coverage') loadCoverage();
   if (page === 'alerts') loadAlerts();
-  if (page === 'dashboard') loadDashboard();
+  if (page === 'dashboard') { loadDashboard(); loadSavedSearches(); loadUsageChart(); }
+  if (page === 'properties') updatePropertyPage();
   if (page === 'contractors') {
     showContractorSearch();
     const results = document.getElementById('contractor-results');
@@ -825,7 +1075,7 @@ function showPage(page) {
 // Hash routing
 function routeFromHash() {
   const h = location.hash.replace('#','') || 'home';
-  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts' };
+  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', properties: 'properties', market: 'market' };
   showPage(map[h] || 'home');
 }
 window.addEventListener('hashchange', routeFromHash);
@@ -1326,7 +1576,7 @@ function renderContractors(data) {
         ${c.permit_types.slice(0, 5).map(t => `<span class="tag">${esc(t)}</span>`).join('')}
         ${c.active_states.map(s => `<span class="tag" style="border-color:var(--accent);color:var(--accent2)">${esc(s)}</span>`).join('')}
       </div>
-      ${c.first_permit && c.last_permit ? `<div class="date-range">Active: ${c.first_permit} — ${c.last_permit}</div>` : ''}
+      ${(c.first_active||c.first_permit) && (c.last_active||c.last_permit) ? `<div class="date-range">Active: ${c.first_active||c.first_permit} — ${c.last_active||c.last_permit}</div>` : ''}
     </div>
   `).join('');
 }
@@ -1461,6 +1711,8 @@ function renderAlertCard(a) {
       <div class="alert-card-actions">
         <button onclick="toggleAlert('${a.id}',${!a.is_active})">${a.is_active ? 'Pause' : 'Resume'}</button>
         <button onclick="editAlert('${a.id}')">Edit</button>
+        <button onclick="testAlert('${a.id}')">Test</button>
+        <button onclick="showAlertHistory('${a.id}')">History</button>
         <button class="delete" onclick="deleteAlert('${a.id}')">Delete</button>
       </div>
     </div>
@@ -1470,9 +1722,11 @@ function renderAlertCard(a) {
     </div>
     <div class="alert-meta">
       <span>${freqLabels[a.frequency] || a.frequency} ${a.email_notify ? '· Email' : ''}${a.webhook_url ? ' · Webhook' : ''}</span>
-      <span class="match-count">${a.total_matches.toLocaleString()} total matches</span>
+      <span class="match-count">${(a.total_matches||0).toLocaleString()} total matches</span>
       ${a.last_checked_at ? `<span>Last checked: ${new Date(a.last_checked_at).toLocaleDateString()}</span>` : '<span>Not yet checked</span>'}
+      ${a.consecutive_failures > 0 ? `<span style="color:var(--red)">⚠ ${a.consecutive_failures} failure(s)</span>` : ''}
     </div>
+    <div id="alert-detail-${a.id}"></div>
   </div>`;
 }
 
@@ -1591,6 +1845,448 @@ async function deleteAlert(id) {
   } catch(e) {
     showToast('Failed to delete alert', 'error');
   }
+}
+
+async function testAlert(id) {
+  if (!currentKey) { openSignup(); return; }
+  const el = document.getElementById('alert-detail-' + id);
+  el.innerHTML = '<div style="padding:8px;color:var(--text3)">Running test...</div>';
+  try {
+    const r = await fetch(`${API}/v1/alerts/${id}/test`, {
+      method: 'POST',
+      headers: { 'X-API-Key': currentKey },
+    });
+    const d = await r.json();
+    if (!r.ok) { el.innerHTML = `<div class="alert-test-results"><p style="color:var(--red)">${esc(d.detail||'Test failed')}</p></div>`; return; }
+    const matches = d.matches || [];
+    if (!matches.length) {
+      el.innerHTML = '<div class="alert-test-results"><p style="color:var(--text3)">No permits match this alert right now.</p></div>';
+      return;
+    }
+    el.innerHTML = `<div class="alert-test-results">
+      <p><strong>${matches.length}</strong> permit${matches.length!==1?'s':''} match this alert:</p>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead><tr style="color:var(--text3)"><th style="text-align:left;padding:4px">Address</th><th style="text-align:left;padding:4px">Type</th><th style="text-align:left;padding:4px">Status</th><th style="text-align:left;padding:4px">Issued</th></tr></thead>
+        <tbody>${matches.map(p=>`<tr style="border-top:1px solid var(--border)">
+          <td style="padding:4px">${esc(p.address||'')}${p.city?', '+esc(p.city):''} ${esc(p.state||'')}</td>
+          <td style="padding:4px">${esc(p.permit_type||'')}</td>
+          <td style="padding:4px">${esc(p.status||'')}</td>
+          <td style="padding:4px">${esc(p.issue_date||'')}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`;
+  } catch(e) {
+    el.innerHTML = `<div class="alert-test-results"><p style="color:var(--red)">Error: ${esc(e.message)}</p></div>`;
+  }
+}
+
+async function showAlertHistory(id) {
+  if (!currentKey) { openSignup(); return; }
+  const el = document.getElementById('alert-detail-' + id);
+  el.innerHTML = '<div style="padding:8px;color:var(--text3)">Loading history...</div>';
+  try {
+    const r = await fetch(`${API}/v1/alerts/${id}/history`, { headers: { 'X-API-Key': currentKey } });
+    const d = await r.json();
+    if (!r.ok) { el.innerHTML = `<div class="alert-history"><p style="color:var(--red)">${esc(d.detail||'Failed')}</p></div>`; return; }
+    const history = d.history || [];
+    if (!history.length) {
+      el.innerHTML = '<div class="alert-history"><p style="color:var(--text3)">No execution history yet.</p></div>';
+      return;
+    }
+    el.innerHTML = `<div class="alert-history">
+      ${history.map(h=>`<div class="hist-entry">
+        <span>${new Date(h.run_at).toLocaleString()}</span>
+        <span class="hist-status ${h.delivery_status==='success'?'ok':'fail'}">${esc(h.delivery_status||'unknown')}</span>
+        <span>${h.match_count} match${h.match_count!==1?'es':''}</span>
+        <span style="color:var(--text3)">${esc(h.delivery_method||'')}</span>
+        ${h.error?`<span style="color:var(--red);font-size:11px">${esc(h.error)}</span>`:''}
+      </div>`).join('')}
+    </div>`;
+  } catch(e) {
+    el.innerHTML = `<div class="alert-history"><p style="color:var(--red)">Error: ${esc(e.message)}</p></div>`;
+  }
+}
+
+// ============ WEBHOOK TEST ============
+function testWebhookUrl() {
+  const url = document.getElementById('alert-webhook').value.trim();
+  if (!url) { showToast('Enter a webhook URL first', 'error'); return; }
+  try {
+    const u = new URL(url);
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') throw new Error('Must be http or https');
+    showToast('URL format looks valid! ✓', 'success');
+  } catch(e) {
+    showToast('Invalid URL: ' + e.message, 'error');
+  }
+}
+
+const webhookInput = document.getElementById('alert-webhook');
+if (webhookInput) {
+  webhookInput.addEventListener('input', function() {
+    const btn = document.getElementById('test-webhook-btn');
+    if (btn) btn.style.display = this.value.trim() ? '' : 'none';
+  });
+}
+
+// ============ PROPERTIES ============
+function updatePropertyPage() {
+  const bulkSection = document.getElementById('property-bulk-section');
+  const authGate = document.getElementById('property-auth-gate');
+  if (!currentKey) {
+    if (authGate) authGate.style.display = '';
+    if (bulkSection) bulkSection.style.display = 'none';
+    return;
+  }
+  if (authGate) authGate.style.display = 'none';
+  if (bulkSection) bulkSection.style.display = '';
+}
+
+async function lookupProperty() {
+  if (!currentKey) { openSignup(); return; }
+  const addr = document.getElementById('property-address-input').value.trim();
+  if (!addr) { showToast('Enter an address', 'error'); return; }
+  const results = document.getElementById('property-results');
+  results.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Looking up property...</div>';
+  try {
+    const r = await fetch(`${API}/v1/properties/history?address=${encodeURIComponent(addr)}`, {
+      headers: { 'X-API-Key': currentKey },
+    });
+    const d = await r.json();
+    if (r.status === 402 || r.status === 403) {
+      results.innerHTML = `<div style="text-align:center;padding:40px"><p style="color:var(--red)">${esc(d.detail||'Upgrade required')}</p><button class="btn-primary" onclick="showPage('pricing')" style="margin-top:12px">View Plans</button></div>`;
+      return;
+    }
+    if (!r.ok) { results.innerHTML = `<div style="text-align:center;padding:40px;color:var(--red)">${esc(d.detail||'Lookup failed')}</div>`; return; }
+    renderPropertyResults(d);
+  } catch(e) {
+    results.innerHTML = `<div style="text-align:center;padding:40px;color:var(--red)">Error: ${esc(e.message)}</div>`;
+  }
+}
+
+function renderPropertyResults(d) {
+  const results = document.getElementById('property-results');
+  const risk = d.risk_signals || {};
+  const permits = d.permits || [];
+  const typeBreakdown = risk.permit_type_breakdown || {};
+  results.innerHTML = `
+    <div class="risk-grid">
+      <div class="risk-card">
+        <div class="risk-val">${risk.permit_count||0}</div>
+        <div class="risk-lbl">Total Permits</div>
+      </div>
+      <div class="risk-card">
+        <div class="risk-val">${risk.last_permit_date||'—'}</div>
+        <div class="risk-lbl">Last Permit</div>
+      </div>
+      <div class="risk-card ${risk.has_unpermitted_gap?'risk-warn':''}">
+        <div class="risk-val">${risk.has_unpermitted_gap?'⚠ Yes':'No'}</div>
+        <div class="risk-lbl">10+ yr Gap</div>
+      </div>
+      <div class="risk-card">
+        <div class="risk-val">${risk.renovation_intensity!=null?risk.renovation_intensity.toFixed(1):'—'}</div>
+        <div class="risk-lbl">Permits/yr</div>
+      </div>
+    </div>
+    ${Object.keys(typeBreakdown).length ? `<div style="margin:12px 0;font-size:13px;color:var(--text2)">
+      ${Object.entries(typeBreakdown).map(([t,c])=>`<span style="margin-right:12px"><strong>${c}</strong> ${esc(t)}</span>`).join('')}
+    </div>` : ''}
+    <h4 style="margin:16px 0 8px">Permit History (${permits.length})</h4>
+    ${permits.length ? permits.map(p=>`<div class="result-card">
+      <div class="address">${esc(p.address||'')}${p.city?', '+esc(p.city):''} ${esc(p.state||'')}</div>
+      <div class="meta">
+        <span><strong>#</strong> ${esc(p.permit_number||'')}</span>
+        ${p.permit_type?`<span class="badge badge-blue">${esc(p.permit_type)}</span>`:''}
+        ${p.status?`<span class="badge ${statusBadge(p.status)}">${esc(p.status)}</span>`:''}
+        ${p.issue_date?`<span>Issued: ${p.issue_date}</span>`:''}
+        ${p.valuation?`<span>$${Number(p.valuation).toLocaleString()}</span>`:''}
+      </div>
+      ${p.description?`<div style="margin-top:6px;font-size:13px;color:var(--text2)">${esc(p.description).substring(0,180)}</div>`:''}
+    </div>`).join('') : '<div style="padding:20px;color:var(--text3)">No permits found for this address.</div>'}
+  `;
+}
+
+async function uploadBulkReport(file) {
+  if (!file) return;
+  if (!currentKey) { openSignup(); return; }
+  const results = document.getElementById('property-results');
+  results.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Processing bulk report...</div>';
+  const fd = new FormData();
+  fd.append('file', file);
+  try {
+    const r = await fetch(`${API}/v1/properties/bulk-report`, {
+      method: 'POST',
+      headers: { 'X-API-Key': currentKey },
+      body: fd,
+    });
+    const d = await r.json();
+    if (r.status === 402 || r.status === 403) {
+      results.innerHTML = `<div style="text-align:center;padding:40px"><p style="color:var(--red)">${esc(d.detail||'Upgrade required')}</p></div>`;
+      return;
+    }
+    if (!r.ok) { results.innerHTML = `<div style="text-align:center;padding:40px;color:var(--red)">${esc(d.detail||'Upload failed')}</div>`; return; }
+    const rows = d.results || [];
+    results.innerHTML = `<h4 style="margin-bottom:12px">Bulk Report — ${rows.length} addresses</h4>` +
+      rows.map(row=>`<div class="result-card">
+        <div class="address">${esc(row.address||'')}</div>
+        ${row.error?`<div style="color:var(--red);font-size:13px">${esc(row.error)}</div>`:
+        `<div class="meta">
+          <span>${(row.permits||[]).length} permit(s)</span>
+          ${row.risk_signals?`<span>${row.risk_signals.has_unpermitted_gap?'⚠ Gap detected':'No gap'}</span>`:''}
+          ${row.risk_signals?`<span>Last: ${row.risk_signals.last_permit_date||'—'}</span>`:''}
+        </div>`}
+      </div>`).join('');
+  } catch(e) {
+    results.innerHTML = `<div style="text-align:center;padding:40px;color:var(--red)">Error: ${esc(e.message)}</div>`;
+  }
+}
+
+// ============ MARKET ============
+async function loadMarketActivity() {
+  if (!currentKey) { openSignup(); return; }
+  const zip = document.getElementById('market-zip').value.trim();
+  const city = document.getElementById('market-city').value.trim();
+  const state = document.getElementById('market-state').value;
+  const months = document.getElementById('market-months').value || '6';
+  if (!zip && !city && !state) { showToast('Enter a ZIP, city, or state', 'error'); return; }
+  const results = document.getElementById('market-activity-results');
+  results.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Loading market data...</div>';
+  const params = new URLSearchParams({ months });
+  if (zip) params.set('zip', zip);
+  if (city) params.set('city', city);
+  if (state) params.set('state', state);
+  try {
+    const r = await fetch(`${API}/v1/market/activity?${params}`, { headers: { 'X-API-Key': currentKey } });
+    const d = await r.json();
+    if (r.status === 403) {
+      results.innerHTML = `<div style="text-align:center;padding:40px"><p style="color:var(--text2)">${esc(d.detail||'Pro plan required')}</p><button class="btn-primary" onclick="showPage('pricing')" style="margin-top:12px">Upgrade to Pro</button></div>`;
+      return;
+    }
+    if (!r.ok) { results.innerHTML = `<div style="text-align:center;padding:40px;color:var(--red)">${esc(d.detail||'Failed')}</div>`; return; }
+    renderMarketActivity(d);
+  } catch(e) {
+    results.innerHTML = `<div style="text-align:center;padding:40px;color:var(--red)">Error: ${esc(e.message)}</div>`;
+  }
+}
+
+function renderMarketActivity(d) {
+  const results = document.getElementById('market-activity-results');
+  const monthly = d.monthly_volume || [];
+  const contractors = d.top_contractors || [];
+  const types = d.permit_type_breakdown || {};
+  const maxVol = Math.max(...monthly.map(m=>m.count), 1);
+  results.innerHTML = `
+    <div style="margin-bottom:20px">
+      <h4 style="margin-bottom:4px">Monthly Volume</h4>
+      <p style="font-size:13px;color:var(--text3);margin-bottom:8px">Total: <strong>${d.total_permits||0}</strong> permits · Avg valuation: <strong>${d.avg_valuation?'$'+Math.round(d.avg_valuation).toLocaleString():'—'}</strong></p>
+      <div style="display:flex;gap:4px;align-items:flex-end;height:80px">
+        ${monthly.map(m=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+          <div class="mbar-track" style="height:60px;width:100%">
+            <div class="mbar-fill" style="height:${Math.round((m.count/maxVol)*60)}px"></div>
+          </div>
+          <div style="font-size:10px;color:var(--text3);writing-mode:vertical-rl;text-orientation:mixed;transform:rotate(180deg)">${esc(m.month||'')}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+    ${contractors.length?`<div style="margin-bottom:20px">
+      <h4 style="margin-bottom:8px">Top Contractors</h4>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr style="color:var(--text3)"><th style="text-align:left;padding:4px">Contractor</th><th style="text-align:right;padding:4px">Permits</th></tr></thead>
+        <tbody>${contractors.map(c=>`<tr style="border-top:1px solid var(--border)"><td style="padding:4px">${esc(c.contractor||'')}</td><td style="text-align:right;padding:4px">${c.count}</td></tr>`).join('')}</tbody>
+      </table>
+    </div>`:''}
+    ${Object.keys(types).length?`<div>
+      <h4 style="margin-bottom:8px">Permit Types</h4>
+      ${Object.entries(types).map(([t,c])=>`<div class="mbar-row">
+        <span style="width:120px;font-size:12px">${esc(t)}</span>
+        <div class="mbar-track" style="flex:1;height:16px">
+          <div class="mbar-fill" style="height:16px;width:${Math.round((c/Math.max(...Object.values(types)))*100)}%"></div>
+        </div>
+        <span style="width:40px;text-align:right;font-size:12px">${c}</span>
+      </div>`).join('')}
+    </div>`:''}
+  `;
+}
+
+async function loadHotspots() {
+  if (!currentKey) { openSignup(); return; }
+  const state = document.getElementById('hotspot-state').value;
+  if (!state) { showToast('Select a state', 'error'); return; }
+  const results = document.getElementById('market-hotspot-results');
+  results.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Finding hotspots...</div>';
+  try {
+    const r = await fetch(`${API}/v1/market/hotspots?state=${state}`, { headers: { 'X-API-Key': currentKey } });
+    const d = await r.json();
+    if (r.status === 403) {
+      results.innerHTML = `<div style="text-align:center;padding:40px"><p style="color:var(--text2)">${esc(d.detail||'Pro plan required')}</p><button class="btn-primary" onclick="showPage('pricing')" style="margin-top:12px">Upgrade to Pro</button></div>`;
+      return;
+    }
+    if (!r.ok) { results.innerHTML = `<div style="text-align:center;padding:40px;color:var(--red)">${esc(d.detail||'Failed')}</div>`; return; }
+    const hotspots = d.hotspots || [];
+    if (!hotspots.length) { results.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">No hotspot data available for this state.</div>'; return; }
+    results.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="color:var(--text3)">
+        <th style="text-align:left;padding:6px">ZIP</th>
+        <th style="text-align:right;padding:6px">Permits</th>
+        <th style="text-align:right;padding:6px">Recent</th>
+        <th style="text-align:right;padding:6px">Growth</th>
+      </tr></thead>
+      <tbody>${hotspots.map(h=>`<tr style="border-top:1px solid var(--border)">
+        <td style="padding:6px;font-weight:600">${esc(h.zip||'')}</td>
+        <td style="text-align:right;padding:6px">${h.total_permits||0}</td>
+        <td style="text-align:right;padding:6px">${h.recent_permits||0}</td>
+        <td style="text-align:right;padding:6px;color:${h.growth_rate>0?'var(--green)':'var(--text3)'}">${h.growth_rate!=null?(h.growth_rate>0?'+':'')+h.growth_rate.toFixed(0)+'%':'—'}</td>
+      </tr>`).join('')}</tbody>
+    </table>`;
+  } catch(e) {
+    results.innerHTML = `<div style="text-align:center;padding:40px;color:var(--red)">Error: ${esc(e.message)}</div>`;
+  }
+}
+
+// ============ SAVED SEARCHES ============
+function openSavedSearchForm() {
+  document.getElementById('saved-search-modal').classList.add('visible');
+}
+
+function closeSavedSearchForm() {
+  document.getElementById('saved-search-modal').classList.remove('visible');
+  document.getElementById('ss-name').value = '';
+  document.getElementById('ss-state').value = '';
+  document.getElementById('ss-city').value = '';
+  document.getElementById('ss-permit-type').value = '';
+}
+
+document.getElementById('saved-search-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeSavedSearchForm();
+});
+
+async function saveSavedSearch() {
+  if (!currentKey) { openSignup(); return; }
+  const name = document.getElementById('ss-name').value.trim();
+  if (!name) { showToast('Name is required', 'error'); return; }
+  const filters = {};
+  const state = document.getElementById('ss-state').value;
+  const city = document.getElementById('ss-city').value.trim();
+  const permitType = document.getElementById('ss-permit-type').value;
+  if (state) filters.state = state;
+  if (city) filters.city = city;
+  if (permitType) filters.permit_type = permitType;
+  const btn = document.getElementById('ss-save-btn');
+  btn.disabled = true;
+  try {
+    const r = await fetch(`${API}/v1/saved-searches`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-API-Key': currentKey },
+      body: JSON.stringify({ name, filters }),
+    });
+    if (!r.ok) { const err = await r.json(); showToast(err.detail||'Failed', 'error'); return; }
+    closeSavedSearchForm();
+    showToast('Search saved!', 'success');
+    loadSavedSearches();
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function loadSavedSearches() {
+  if (!currentKey) return;
+  const list = document.getElementById('saved-searches-list');
+  if (!list) return;
+  try {
+    const r = await fetch(`${API}/v1/saved-searches`, { headers: { 'X-API-Key': currentKey } });
+    if (!r.ok) return;
+    const d = await r.json();
+    const searches = d.saved_searches || [];
+    if (!searches.length) {
+      list.innerHTML = '<div style="padding:12px;color:var(--text3);font-size:13px">No saved searches yet.</div>';
+      return;
+    }
+    list.innerHTML = searches.map(s=>`<div class="ss-item">
+      <div>
+        <strong style="font-size:14px">${esc(s.name)}</strong>
+        <div style="font-size:12px;color:var(--text3);margin-top:2px">${Object.entries(s.filters||{}).map(([k,v])=>`${k}: ${esc(v)}`).join(' · ')||'All permits'}</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button onclick="runSavedSearch('${s.id}')" style="padding:4px 10px;font-size:12px">Run</button>
+        <button onclick="deleteSavedSearch('${s.id}')" style="padding:4px 10px;font-size:12px;color:var(--red);border-color:var(--red)">Delete</button>
+      </div>
+    </div>`).join('');
+  } catch(e) { /* silent */ }
+}
+
+async function runSavedSearch(id) {
+  if (!currentKey) { openSignup(); return; }
+  try {
+    const r = await fetch(`${API}/v1/saved-searches/${id}/run`, {
+      method: 'POST',
+      headers: { 'X-API-Key': currentKey },
+    });
+    const d = await r.json();
+    if (!r.ok) { showToast(d.detail||'Failed to run search', 'error'); return; }
+    const count = (d.results||[]).length;
+    showToast(`Found ${count} permit${count!==1?'s':''} — showing in search`, 'success');
+    // Navigate to search with results if available
+    if (d.results && d.results.length) {
+      showPage('search');
+      const list = document.getElementById('results-list');
+      if (list) {
+        list.innerHTML = d.results.map(p=>`<div class="result-card">
+          <div class="address">${esc(p.address||'')}${p.city?', '+esc(p.city):''} ${esc(p.state||'')}</div>
+          <div class="meta">
+            <span><strong>#</strong> ${esc(p.permit_number||'')}</span>
+            ${p.permit_type?`<span class="badge badge-blue">${esc(p.permit_type)}</span>`:''}
+            ${p.status?`<span class="badge ${statusBadge(p.status)}">${esc(p.status)}</span>`:''}
+            ${p.issue_date?`<span>Issued: ${p.issue_date}</span>`:''}
+          </div>
+        </div>`).join('');
+        document.getElementById('results-section').style.display='';
+        document.getElementById('results-count').textContent = count + ' result' + (count!==1?'s':'');
+      }
+    }
+  } catch(e) {
+    showToast('Error: ' + e.message, 'error');
+  }
+}
+
+async function deleteSavedSearch(id) {
+  if (!confirm('Delete this saved search?')) return;
+  try {
+    const r = await fetch(`${API}/v1/saved-searches/${id}`, {
+      method: 'DELETE',
+      headers: { 'X-API-Key': currentKey },
+    });
+    if (!r.ok) throw new Error('Failed');
+    showToast('Search deleted', 'success');
+    loadSavedSearches();
+  } catch(e) {
+    showToast('Failed to delete', 'error');
+  }
+}
+
+// ============ USAGE CHART ============
+async function loadUsageChart() {
+  if (!currentKey) return;
+  const container = document.getElementById('usage-chart');
+  if (!container) return;
+  try {
+    const r = await fetch(`${API}/v1/usage`, { headers: { 'X-API-Key': currentKey } });
+    if (!r.ok) return;
+    const d = await r.json();
+    const daily = d.daily_usage || [];
+    if (!daily.length) { container.innerHTML = '<div style="font-size:13px;color:var(--text3)">No usage data yet.</div>'; return; }
+    const maxVal = Math.max(...daily.map(x=>x.count), 1);
+    container.innerHTML = `
+      <div style="display:flex;gap:3px;align-items:flex-end;height:60px">
+        ${daily.slice(-30).map(x=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center">
+          <div title="${x.date}: ${x.count}" style="background:var(--accent);width:100%;height:${Math.max(2,Math.round((x.count/maxVal)*50))}px;border-radius:2px 2px 0 0;min-height:2px"></div>
+        </div>`).join('')}
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-top:4px">
+        <span>${daily[0]?.date||''}</span><span>Last 30 days</span><span>${daily[daily.length-1]?.date||''}</span>
+      </div>
+    `;
+  } catch(e) { /* silent */ }
 }
 </script>
 </body>
