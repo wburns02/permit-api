@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PermitLookup — Building Permit Data API</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%236366f1'/><text x='8' y='24' font-size='22' fill='white' font-weight='bold'>P</text></svg>">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -178,6 +180,22 @@ section .subtitle{color:var(--text2);font-size:16px;margin-bottom:40px}
 .key-list .key-prefix{font-family:var(--mono);font-size:14px}
 .key-list .key-actions button{padding:6px 12px;border-radius:6px;font-size:12px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);transition:all .2s}
 .key-list .key-actions button:hover{border-color:var(--red);color:var(--red)}
+
+/* Map View */
+.view-toggle{display:flex;gap:4px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:3px;margin-left:12px}
+.view-toggle button{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;border:none;background:none;color:var(--text3);transition:all .2s}
+.view-toggle button.active{background:var(--accent);color:#fff}
+.view-toggle button:hover:not(.active){color:var(--text);background:var(--surface2)}
+#permit-map{width:100%;height:450px;border-radius:var(--radius);border:1px solid var(--border);margin-bottom:16px;display:none;z-index:1}
+#permit-map.visible{display:block;animation:fadeIn .3s ease}
+.map-legend{display:flex;gap:16px;justify-content:center;margin-bottom:12px;font-size:12px;color:var(--text3)}
+.map-legend .dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
+.leaflet-popup-content-wrapper{background:var(--surface)!important;color:var(--text)!important;border:1px solid var(--border)!important;border-radius:var(--radius-sm)!important;box-shadow:0 4px 20px rgba(0,0,0,.4)!important}
+.leaflet-popup-tip{background:var(--surface)!important}
+.leaflet-popup-content{margin:12px!important;font-family:var(--font)!important;font-size:13px!important;line-height:1.5!important}
+.leaflet-popup-content .popup-addr{font-weight:700;font-size:14px;margin-bottom:6px}
+.leaflet-popup-content .popup-meta{color:var(--text2);font-size:12px}
+.leaflet-popup-close-button{color:var(--text3)!important}
 
 /* Alerts */
 .alerts-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;flex-wrap:wrap;gap:12px}
@@ -441,11 +459,18 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
         <h3>Results</h3>
         <span class="count" id="results-count"></span>
       </div>
-      <div class="export-bar">
-        <button type="button" class="export-btn" onclick="exportResults('csv')" id="export-csv-btn" disabled>Export CSV</button>
-        <button type="button" class="export-btn" onclick="exportResults('json')" id="export-json-btn" disabled>Export JSON</button>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <div class="view-toggle" id="view-toggle" style="display:none">
+          <button class="active" onclick="setResultView('list')" id="view-list-btn">List</button>
+          <button onclick="setResultView('map')" id="view-map-btn">Map</button>
+        </div>
+        <div class="export-bar">
+          <button type="button" class="export-btn" onclick="exportResults('csv')" id="export-csv-btn" disabled>Export CSV</button>
+          <button type="button" class="export-btn" onclick="exportResults('json')" id="export-json-btn" disabled>Export JSON</button>
+        </div>
       </div>
     </div>
+    <div id="permit-map"></div>
     <div id="results-list"></div>
   </div>
 
@@ -1296,8 +1321,12 @@ function renderResults(data) {
   area.classList.add('visible');
   count.textContent = `${data.total.toLocaleString()} results (page ${data.page}/${data.total_pages || 1})`;
 
+  // Show view toggle
+  document.getElementById('view-toggle').style.display = data.results.length ? 'flex' : 'none';
+
   if (!data.results.length) {
     list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">No permits found for this address. Try a different search.</div>';
+    document.getElementById('permit-map').classList.remove('visible');
     return;
   }
 
@@ -1316,6 +1345,9 @@ function renderResults(data) {
       ${p.contractor_name || p.contractor_company ? `<div style="margin-top:6px;font-size:13px;color:var(--text3)">Contractor: ${esc(p.contractor_name || '')} ${p.contractor_company ? '(' + esc(p.contractor_company) + ')' : ''}</div>` : ''}
     </div>
   `).join('');
+
+  // Prepare map data
+  prepareMapMarkers(data.results);
 }
 
 function statusBadge(s) {
@@ -1661,6 +1693,157 @@ document.getElementById('contractor-input').addEventListener('keydown', e => {
 });
 
 function esc(s) { if (!s) return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+// ============ MAP VIEW ============
+let permitMap = null;
+let mapMarkers = [];
+let mapDataReady = [];
+let currentView = 'list';
+
+// US state/city approximate coordinates for fallback geocoding
+const CITY_COORDS = {
+  'TX':{ lat:31.0,lng:-99.5, cities:{ 'AUSTIN':[30.27,-97.74],'HOUSTON':[29.76,-95.37],'DALLAS':[32.78,-96.80],'SAN ANTONIO':[29.42,-98.49],'FORT WORTH':[32.76,-97.33],'EL PASO':[31.76,-106.49],'ARLINGTON':[32.74,-97.11],'PLANO':[33.02,-96.70],'ROUND ROCK':[30.51,-97.68],'MCKINNEY':[33.20,-96.62] }},
+  'FL':{ lat:27.8,lng:-81.8, cities:{ 'MIAMI':[25.76,-80.19],'ORLANDO':[28.54,-81.38],'TAMPA':[27.95,-82.46],'JACKSONVILLE':[30.33,-81.66],'ST PETERSBURG':[27.77,-82.64],'FORT LAUDERDALE':[26.12,-80.14] }},
+  'CA':{ lat:36.8,lng:-119.4, cities:{ 'LOS ANGELES':[34.05,-118.24],'SAN FRANCISCO':[37.77,-122.42],'SAN DIEGO':[32.72,-117.16],'SAN JOSE':[37.34,-121.89],'SACRAMENTO':[38.58,-121.49] }},
+  'NY':{ lat:42.2,lng:-74.9, cities:{ 'NEW YORK':[40.71,-74.01],'BUFFALO':[42.89,-78.88],'ROCHESTER':[43.16,-77.61] }},
+  'IL':{ lat:40.0,lng:-89.0, cities:{ 'CHICAGO':[41.88,-87.63],'AURORA':[41.76,-88.32] }},
+  'PA':{ lat:41.2,lng:-77.2, cities:{ 'PHILADELPHIA':[39.95,-75.17],'PITTSBURGH':[40.44,-79.99] }},
+  'OH':{ lat:40.4,lng:-82.7, cities:{ 'COLUMBUS':[39.96,-82.99],'CLEVELAND':[41.50,-81.69],'CINCINNATI':[39.10,-84.51] }},
+  'GA':{ lat:32.2,lng:-83.4, cities:{ 'ATLANTA':[33.75,-84.39] }},
+  'NC':{ lat:35.8,lng:-79.0, cities:{ 'CHARLOTTE':[35.23,-80.84],'RALEIGH':[35.78,-78.64] }},
+  'MI':{ lat:44.3,lng:-85.6, cities:{ 'DETROIT':[42.33,-83.05],'GRAND RAPIDS':[42.96,-85.67] }},
+  'NJ':{ lat:40.1,lng:-74.7, cities:{ 'NEWARK':[40.74,-74.17],'JERSEY CITY':[40.73,-74.04] }},
+  'VA':{ lat:37.8,lng:-78.2, cities:{ 'VIRGINIA BEACH':[36.85,-75.98],'RICHMOND':[37.54,-77.44] }},
+  'WA':{ lat:47.4,lng:-120.7, cities:{ 'SEATTLE':[47.61,-122.33],'SPOKANE':[47.66,-117.43] }},
+  'AZ':{ lat:34.0,lng:-111.1, cities:{ 'PHOENIX':[33.45,-112.07],'TUCSON':[32.22,-110.97],'MESA':[33.42,-111.83] }},
+  'MA':{ lat:42.4,lng:-71.4, cities:{ 'BOSTON':[42.36,-71.06] }},
+  'TN':{ lat:35.5,lng:-86.6, cities:{ 'NASHVILLE':[36.16,-86.78],'MEMPHIS':[35.15,-90.05] }},
+  'CO':{ lat:39.6,lng:-105.8, cities:{ 'DENVER':[39.74,-104.99],'COLORADO SPRINGS':[38.83,-104.82] }},
+  'IN':{ lat:39.8,lng:-86.1, cities:{ 'INDIANAPOLIS':[39.77,-86.16] }},
+  'MN':{ lat:46.7,lng:-94.7, cities:{ 'MINNEAPOLIS':[44.98,-93.27] }},
+  'OR':{ lat:43.8,lng:-120.6, cities:{ 'PORTLAND':[45.52,-122.68] }},
+  'CT':{ lat:41.6,lng:-72.7, cities:{ 'HARTFORD':[41.76,-72.68] }},
+  'KY':{ lat:37.8,lng:-84.3, cities:{ 'LOUISVILLE':[38.25,-85.76] }},
+  'MD':{ lat:39.0,lng:-76.6, cities:{ 'BALTIMORE':[39.29,-76.61] }},
+  'AL':{ lat:32.3,lng:-86.9, cities:{ 'BIRMINGHAM':[33.52,-86.81] }},
+};
+
+function getPermitCoords(p) {
+  // Use lat/lng if available
+  if (p.latitude && p.longitude) return [p.latitude, p.longitude];
+  if (p.lat && p.lng) return [p.lat, p.lng];
+
+  // Fallback: approximate by city/state
+  const state = (p.state || '').toUpperCase();
+  const city = (p.city || '').toUpperCase().trim();
+  const stateData = CITY_COORDS[state];
+  if (!stateData) return null;
+
+  if (city && stateData.cities[city]) {
+    const [lat, lng] = stateData.cities[city];
+    // Add small jitter to prevent marker stacking
+    return [lat + (Math.random() - 0.5) * 0.02, lng + (Math.random() - 0.5) * 0.02];
+  }
+
+  // Fall back to state center with larger jitter
+  return [stateData.lat + (Math.random() - 0.5) * 1.0, stateData.lng + (Math.random() - 0.5) * 1.0];
+}
+
+function getMarkerColor(p) {
+  const s = (p.status || '').toLowerCase();
+  if (s.includes('issued') || s.includes('final') || s.includes('complete') || s.includes('approved')) return '#22c55e';
+  if (s.includes('pending') || s.includes('review') || s.includes('open')) return '#f59e0b';
+  if (s.includes('expired') || s.includes('denied') || s.includes('void')) return '#ef4444';
+  return '#6366f1';
+}
+
+function prepareMapMarkers(results) {
+  mapDataReady = results.filter(p => {
+    const coords = getPermitCoords(p);
+    if (coords) { p._mapCoords = coords; return true; }
+    return false;
+  });
+}
+
+function initMap() {
+  const mapEl = document.getElementById('permit-map');
+  if (permitMap) {
+    permitMap.remove();
+    permitMap = null;
+  }
+  mapEl.classList.add('visible');
+
+  permitMap = L.map('permit-map', {
+    zoomControl: true,
+    scrollWheelZoom: true,
+  }).setView([39.8, -98.6], 4); // US center
+
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+    maxZoom: 19,
+  }).addTo(permitMap);
+
+  // Clear old markers
+  mapMarkers.forEach(m => m.remove());
+  mapMarkers = [];
+
+  if (!mapDataReady.length) {
+    mapEl.innerHTML = '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1000;color:var(--text2);font-size:14px;text-align:center;padding:20px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border)">No mappable results.<br>Most permits don\'t include coordinates.</div>';
+    return;
+  }
+
+  const bounds = L.latLngBounds();
+
+  mapDataReady.forEach(p => {
+    const [lat, lng] = p._mapCoords;
+    const color = getMarkerColor(p);
+
+    const marker = L.circleMarker([lat, lng], {
+      radius: 7,
+      fillColor: color,
+      color: color,
+      weight: 1,
+      opacity: 0.8,
+      fillOpacity: 0.6,
+    }).addTo(permitMap);
+
+    marker.bindPopup(`
+      <div class="popup-addr">${esc(p.address || 'Unknown')}${p.city ? ', ' + esc(p.city) : ''}</div>
+      <div class="popup-meta">
+        ${p.permit_number ? '<strong>#</strong> ' + esc(p.permit_number) + '<br>' : ''}
+        ${p.permit_type ? 'Type: ' + esc(p.permit_type) + '<br>' : ''}
+        ${p.status ? 'Status: ' + esc(p.status) + '<br>' : ''}
+        ${p.issue_date ? 'Issued: ' + p.issue_date + '<br>' : ''}
+        ${p.valuation ? 'Value: $' + Number(p.valuation).toLocaleString() + '<br>' : ''}
+        ${p.contractor_name ? 'Contractor: ' + esc(p.contractor_name) : ''}
+      </div>
+    `, { maxWidth: 280 });
+
+    mapMarkers.push(marker);
+    bounds.extend([lat, lng]);
+  });
+
+  if (bounds.isValid()) {
+    permitMap.fitBounds(bounds, { padding: [30, 30], maxZoom: 14 });
+  }
+}
+
+function setResultView(view) {
+  currentView = view;
+  document.getElementById('view-list-btn').classList.toggle('active', view === 'list');
+  document.getElementById('view-map-btn').classList.toggle('active', view === 'map');
+
+  const list = document.getElementById('results-list');
+  const mapEl = document.getElementById('permit-map');
+
+  if (view === 'map') {
+    list.style.display = 'none';
+    initMap();
+  } else {
+    list.style.display = '';
+    mapEl.classList.remove('visible');
+  }
+}
 
 // ============ ALERTS ============
 let alertsList = [];
