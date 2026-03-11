@@ -61,6 +61,23 @@ nav .links .btn-primary:hover{background:var(--accent2)}
 .search-box button:hover{background:var(--accent2)}
 .search-box button:disabled{opacity:.5;cursor:not-allowed}
 
+/* Filters */
+.filters-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+.filter-group{display:flex;flex-direction:column;gap:4px}
+.filter-group label{font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.filter-group select,.filter-group input[type="date"],.filter-group input[type="text"]{padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;outline:none;transition:border-color .2s;font-family:var(--font)}
+.filter-group select:focus,.filter-group input:focus{border-color:var(--accent)}
+.filter-group select option{background:var(--surface);color:var(--text)}
+.filter-apply-btn{padding:10px 24px;border-radius:var(--radius-sm);background:var(--accent);color:#fff;border:none;font-size:14px;font-weight:600;transition:background .2s}
+.filter-apply-btn:hover{background:var(--accent2)}
+.filter-clear-btn{padding:10px 24px;border-radius:var(--radius-sm);background:none;color:var(--text3);border:1px solid var(--border);font-size:14px;transition:all .2s}
+.filter-clear-btn:hover{border-color:var(--accent);color:var(--text)}
+
+/* Export buttons */
+.export-bar{display:flex;gap:8px;align-items:center}
+.export-btn{padding:6px 14px;border-radius:var(--radius-sm);background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-size:12px;font-weight:600;transition:all .2s;cursor:pointer}
+.export-btn:hover{border-color:var(--accent);color:var(--accent2)}
+
 /* Results */
 .results-area{max-width:900px;margin:0 auto 80px;display:none}
 .results-area.visible{display:block}
@@ -201,6 +218,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
   .hero h1{font-size:32px}
   .search-box{flex-direction:column}
   .search-box button{padding:14px}
+  .filters-grid{grid-template-columns:1fr 1fr}
   .code-section{margin:0 auto;max-width:100%;width:100%;overflow-x:hidden}
   .code-block{border-radius:0;max-width:100%;width:100%;box-sizing:border-box;overflow-x:hidden}
   .code-body{overflow-x:auto;max-width:100%;box-sizing:border-box}
@@ -228,10 +246,10 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
 
 <nav>
   <div class="inner">
-    <div class="logo">
+    <a href="/" class="logo" onclick="showPage('home');return false" style="text-decoration:none;color:inherit">
       <div class="logo-icon">P</div>
       PermitLookup
-    </div>
+    </a>
     <div class="links">
       <a href="#search" onclick="showPage('home');return false">Search</a>
       <a href="#contractors" onclick="showPage('contractors');return false">Contractors</a>
@@ -270,14 +288,76 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
           <input type="text" id="search-input" placeholder="Search by address... e.g. 123 Main St, Austin TX" autocomplete="off">
           <button onclick="doSearch()" id="search-btn">Search</button>
         </div>
+        <div class="filters-toggle" style="text-align:center;margin-top:12px">
+          <button type="button" onclick="toggleFilters()" id="filters-toggle-btn" style="background:none;border:none;color:var(--text3);font-size:13px;padding:4px 12px;cursor:pointer;transition:color .2s">
+            <span id="filters-icon">&#9662;</span> Advanced Filters
+          </button>
+        </div>
+        <div class="filters-panel" id="filters-panel" style="display:none;margin-top:16px;animation:fadeIn .25s ease">
+          <div class="filters-grid">
+            <div class="filter-group">
+              <label>Permit Type</label>
+              <select id="filter-type">
+                <option value="">All Types</option>
+                <option value="building">Building</option>
+                <option value="electrical">Electrical</option>
+                <option value="plumbing">Plumbing</option>
+                <option value="mechanical">Mechanical</option>
+                <option value="demolition">Demolition</option>
+                <option value="roofing">Roofing</option>
+                <option value="fire">Fire</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Status</label>
+              <select id="filter-status">
+                <option value="">All Statuses</option>
+                <option value="issued">Issued</option>
+                <option value="pending">Pending</option>
+                <option value="approved">Approved</option>
+                <option value="completed">Completed</option>
+                <option value="expired">Expired</option>
+                <option value="denied">Denied</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Date From</label>
+              <input type="date" id="filter-date-from">
+            </div>
+            <div class="filter-group">
+              <label>Date To</label>
+              <input type="date" id="filter-date-to">
+            </div>
+            <div class="filter-group">
+              <label>State</label>
+              <select id="filter-state">
+                <option value="">All States</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Jurisdiction</label>
+              <input type="text" id="filter-jurisdiction" placeholder="e.g. Travis County">
+            </div>
+          </div>
+          <div style="display:flex;gap:12px;margin-top:16px;justify-content:center">
+            <button type="button" class="filter-apply-btn" onclick="doSearch()">Apply Filters</button>
+            <button type="button" class="filter-clear-btn" onclick="clearFilters()">Clear All</button>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
   <div class="results-area container" id="results-area">
     <div class="results-header">
-      <h3>Results</h3>
-      <span class="count" id="results-count"></span>
+      <div>
+        <h3>Results</h3>
+        <span class="count" id="results-count"></span>
+      </div>
+      <div class="export-bar">
+        <button type="button" class="export-btn" onclick="exportResults('csv')">Export CSV</button>
+        <button type="button" class="export-btn" onclick="exportResults('json')">Export JSON</button>
+      </div>
     </div>
     <div id="results-list"></div>
   </div>
@@ -421,7 +501,7 @@ results.forEach(p =>
 
       <!-- Detail View -->
       <div class="contractor-detail" id="contractor-detail">
-        <button class="back-btn" onclick="showContractorSearch()">&#8592; Back to search</button>
+        <button type="button" class="back-btn" onclick="showContractorSearch()" style="position:relative;z-index:10">&#8592; Back to search</button>
         <div class="contractor-profile-header">
           <h2 id="contractor-profile-name"></h2>
           <div class="profile-stats" id="contractor-profile-stats"></div>
@@ -525,6 +605,8 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') closeSignup();
   });
+  // Populate state filter dropdown
+  populateStateFilter();
   // Route from hash on load
   if (location.hash) routeFromHash();
 });
@@ -567,6 +649,21 @@ async function loadStats() {
   } catch(e) {
     console.error('Stats load failed', e);
   }
+}
+
+async function populateStateFilter() {
+  try {
+    const r = await fetch(API + '/v1/coverage');
+    const d = await r.json();
+    const sel = document.getElementById('filter-state');
+    if (sel && d.states) {
+      Object.keys(d.states).sort().forEach(st => {
+        const opt = document.createElement('option');
+        opt.value = st; opt.textContent = st;
+        sel.appendChild(opt);
+      });
+    }
+  } catch(e) {}
 }
 
 function animateNumber(id, target) {
@@ -635,17 +732,35 @@ function parseSearchQuery(q) {
   return params;
 }
 
+let lastSearchResults = [];
+
 async function doSearch() {
   const q = document.getElementById('search-input').value.trim();
-  if (!q) { showToast('Enter an address, city, or state to search.', 'error'); return; }
+  // Get filter values
+  const filterType = document.getElementById('filter-type')?.value || '';
+  const filterStatus = document.getElementById('filter-status')?.value || '';
+  const filterDateFrom = document.getElementById('filter-date-from')?.value || '';
+  const filterDateTo = document.getElementById('filter-date-to')?.value || '';
+  const filterState = document.getElementById('filter-state')?.value || '';
+  const filterJurisdiction = document.getElementById('filter-jurisdiction')?.value?.trim() || '';
+
+  const hasFilters = filterType || filterStatus || filterDateFrom || filterDateTo || filterState || filterJurisdiction;
+  if (!q && !hasFilters) { showToast('Enter an address or select filters to search.', 'error'); return; }
   if (!currentKey) { openSignup(); return; }
 
   const btn = document.getElementById('search-btn');
   btn.disabled = true; btn.textContent = 'Searching...';
 
   try {
-    const params = new URLSearchParams(parseSearchQuery(q));
-    const r = await fetch(API + '/v1/permits/search?' + params, {
+    const params = q ? parseSearchQuery(q) : { page_size: '20' };
+    if (filterType) params.permit_type = filterType;
+    if (filterStatus) params.status = filterStatus;
+    if (filterDateFrom) params.date_from = filterDateFrom;
+    if (filterDateTo) params.date_to = filterDateTo;
+    if (filterState) params.state = filterState;
+    if (filterJurisdiction) params.jurisdiction = filterJurisdiction;
+
+    const r = await fetch(API + '/v1/permits/search?' + new URLSearchParams(params), {
       headers: { 'X-API-Key': currentKey }
     });
     if (r.status === 401) {
@@ -660,12 +775,63 @@ async function doSearch() {
       showToast(err.detail || 'Search failed', 'error'); return;
     }
     const d = await r.json();
+    lastSearchResults = d.results || [];
     renderResults(d);
   } catch(e) {
     showToast('Search failed: ' + e.message, 'error');
   } finally {
     btn.disabled = false; btn.textContent = 'Search';
   }
+}
+
+function toggleFilters() {
+  const panel = document.getElementById('filters-panel');
+  const icon = document.getElementById('filters-icon');
+  if (panel.style.display === 'none') {
+    panel.style.display = '';
+    icon.innerHTML = '&#9652;';
+  } else {
+    panel.style.display = 'none';
+    icon.innerHTML = '&#9662;';
+  }
+}
+
+function clearFilters() {
+  document.getElementById('filter-type').value = '';
+  document.getElementById('filter-status').value = '';
+  document.getElementById('filter-date-from').value = '';
+  document.getElementById('filter-date-to').value = '';
+  document.getElementById('filter-state').value = '';
+  document.getElementById('filter-jurisdiction').value = '';
+  showToast('Filters cleared', 'success');
+}
+
+function exportResults(format) {
+  if (!lastSearchResults.length) { showToast('No results to export.', 'error'); return; }
+
+  if (format === 'json') {
+    const blob = new Blob([JSON.stringify(lastSearchResults, null, 2)], { type: 'application/json' });
+    downloadBlob(blob, 'permits-export.json');
+  } else {
+    const headers = ['permit_number','address','city','state','zip','permit_type','status','issue_date','valuation','contractor_name','contractor_company','jurisdiction','description'];
+    const rows = lastSearchResults.map(r => headers.map(h => {
+      const v = r[h] || '';
+      return typeof v === 'string' && v.includes(',') ? '"' + v.replace(/"/g, '""') + '"' : v;
+    }).join(','));
+    const csv = headers.join(',') + '\n' + rows.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    downloadBlob(blob, 'permits-export.csv');
+  }
+  showToast(`Exported ${lastSearchResults.length} results as ${format.toUpperCase()}`, 'success');
+}
+
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 }
 
 function renderResults(data) {
@@ -767,7 +933,7 @@ async function loadDashboard() {
         </div>
         <div class="key-actions">
           <span style="font-size:12px;color:var(--text3);margin-right:12px">${k.last_used_at ? 'Last used: ' + new Date(k.last_used_at).toLocaleDateString() : 'Never used'}</span>
-          ${k.is_active ? `<button onclick="revokeKey('${k.id}')">Revoke</button>` : ''}
+          ${k.is_active ? `<button type="button" onclick="revokeKey('${k.id}')">Revoke</button>` : ''}
         </div>
       </li>
     `).join('');
@@ -809,10 +975,16 @@ async function revokeKey(id) {
 
 // Signup
 function openSignup() {
-  document.getElementById('signup-modal').classList.add('visible');
+  const modal = document.getElementById('signup-modal');
+  modal.classList.add('visible');
   document.getElementById('signup-form-view').style.display = '';
   document.getElementById('signup-success-view').style.display = 'none';
   document.getElementById('signup-error').style.display = 'none';
+  // Reset form fields for re-use
+  document.getElementById('signup-email').value = '';
+  document.getElementById('signup-company').value = '';
+  document.getElementById('signup-btn').disabled = false;
+  document.getElementById('signup-btn').textContent = 'Create Free Account';
 }
 function closeSignup() { document.getElementById('signup-modal').classList.remove('visible'); }
 
