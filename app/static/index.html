@@ -3345,7 +3345,7 @@ function computeRiskScore(permits) {
   const highRiskPermits = permits.filter(p => highRiskTypes.some(t => (p.permit_type||'').toLowerCase().includes(t) || (p.description||'').toLowerCase().includes(t)));
   if (highRiskPermits.length > 0) {
     score -= 6;
-    signals.push({ type: 'warn', icon: '🏗️', title: 'Structural/Demolition Work', desc: `${highRiskPermits.length} structural or demolition permit${highRiskPermits.length>1?'s'':''} on file. Verify final inspections and engineering approvals.` });
+    signals.push({ type: 'warn', icon: '🏗️', title: 'Structural/Demolition Work', desc: `${highRiskPermits.length} structural or demolition permit${highRiskPermits.length>1?'s':''} on file. Verify final inspections and engineering approvals.` });
   }
 
   // Permit volume (positive signal)
