@@ -29,11 +29,12 @@ button{cursor:pointer;font-family:var(--font)}
 /* Navigation */
 nav{position:sticky;top:0;z-index:100;background:rgba(10,10,15,.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);padding:0 24px}
 nav .inner{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;height:64px}
-nav .logo{font-size:20px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:10px}
+nav .logo{font-size:20px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:10px;cursor:pointer}
 nav .logo-icon{width:32px;height:32px;background:linear-gradient(135deg,var(--accent),#a855f7);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px}
 nav .links{display:flex;gap:8px;align-items:center}
 nav .links a, nav .links button{padding:8px 16px;border-radius:var(--radius-sm);color:var(--text2);font-size:14px;font-weight:500;transition:all .2s;border:none;background:none}
 nav .links a:hover, nav .links button:hover{color:var(--text);background:var(--surface2);text-decoration:none}
+nav .links a.active{color:var(--text);background:var(--surface2)}
 nav .links .btn-primary{background:var(--accent);color:#fff;padding:8px 20px}
 nav .links .btn-primary:hover{background:var(--accent2)}
 
@@ -616,6 +617,11 @@ function showPage(page) {
   const el = document.getElementById('page-' + page);
   if (!el) { showPage('home'); return; }
   el.classList.add('visible');
+  // Update active nav link
+  document.querySelectorAll('nav .links a').forEach(a => a.classList.remove('active'));
+  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors' };
+  const activeLink = document.querySelector(`nav .links a[href="${hashMap[page] || '#search'}"]`);
+  if (activeLink) activeLink.classList.add('active');
   currentPage = page;
   if (page === 'coverage') loadCoverage();
   if (page === 'dashboard') loadDashboard();
