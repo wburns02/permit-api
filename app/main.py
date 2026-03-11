@@ -109,6 +109,68 @@ async def health():
     }
 
 
+@app.post("/health/db/migrate-expansion")
+async def migrate_expansion():
+    """Add new columns and tables for industry expansion."""
+    from app.database import async_session_maker
+    from sqlalchemy import text
+    migrations = []
+    async with async_session_maker() as db:
+        # Add columns to permit_alerts
+        for col, typ, default in [
+            ("last_error", "TEXT", None),
+            ("consecutive_failures", "INTEGER", "0"),
+        ]:
+            try:
+                defstr = f" DEFAULT {default}" if default else ""
+                await db.execute(text(f"ALTER TABLE permit_alerts ADD COLUMN {col} {typ}{defstr}"))
+                migrations.append(f"permit_alerts.{col} added")
+            except Exception:
+                migrations.append(f"permit_alerts.{col} already exists")
+                await db.rollback()
+
+        # Create alert_execution_history table
+        try:
+            await db.execute(text("""
+                CREATE TABLE IF NOT EXISTS alert_execution_history (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    alert_id UUID REFERENCES permit_alerts(id) ON DELETE CASCADE,
+                    run_at TIMESTAMPTZ DEFAULT NOW(),
+                    match_count INTEGER DEFAULT 0,
+                    delivery_method VARCHAR(20),
+                    delivery_status VARCHAR(20),
+                    error TEXT,
+                    matches_sample JSONB
+                )
+            """))
+            await db.execute(text("CREATE INDEX IF NOT EXISTS ix_alert_history_alert_run ON alert_execution_history (alert_id, run_at)"))
+            migrations.append("alert_execution_history table created")
+        except Exception as e:
+            migrations.append(f"alert_execution_history: {e}")
+            await db.rollback()
+
+        # Create saved_searches table
+        try:
+            await db.execute(text("""
+                CREATE TABLE IF NOT EXISTS saved_searches (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID REFERENCES api_users(id),
+                    name VARCHAR(200) NOT NULL,
+                    filters JSONB DEFAULT '{}'::jsonb,
+                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    last_run_at TIMESTAMPTZ
+                )
+            """))
+            await db.execute(text("CREATE INDEX IF NOT EXISTS ix_saved_searches_user ON saved_searches (user_id)"))
+            migrations.append("saved_searches table created")
+        except Exception as e:
+            migrations.append(f"saved_searches: {e}")
+            await db.rollback()
+
+        await db.commit()
+    return {"migrations": migrations}
+
+
 @app.get("/health/db")
 async def health_db():
     """Test database connectivity."""
