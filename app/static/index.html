@@ -2242,7 +2242,7 @@ async function runSavedSearch(id) {
             ${p.issue_date?`<span>Issued: ${p.issue_date}</span>`:''}
           </div>
         </div>`).join('');
-        document.getElementById('results-section').style.display='';
+        document.getElementById('results-area').classList.add('visible');
         document.getElementById('results-count').textContent = count + ' result' + (count!==1?'s':'');
       }
     }
