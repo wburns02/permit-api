@@ -33,6 +33,8 @@ class PermitAlert(Base):
     last_checked_at = Column(DateTime(timezone=True))
     last_match_count = Column(Integer, default=0)
     total_matches = Column(Integer, default=0)
+    last_error = Column(Text)
+    consecutive_failures = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (

@@ -57,6 +57,7 @@ async def search_contractors(
             func.max(Permit.issue_date).label("last_permit"),
             func.array_agg(func.distinct(Permit.permit_type)).label("permit_types"),
             func.array_agg(func.distinct(Permit.state)).label("active_states"),
+            func.avg(Permit.valuation).label("avg_valuation"),
         )
         .where(where)
         .group_by(contractor_key)
@@ -93,10 +94,11 @@ async def search_contractors(
                 "total_permits": r.total_permits,
                 "jurisdictions": r.jurisdictions,
                 "states": r.states,
-                "first_permit": r.first_permit.isoformat() if r.first_permit else None,
-                "last_permit": r.last_permit.isoformat() if r.last_permit else None,
+                "first_active": r.first_permit.isoformat() if r.first_permit else None,
+                "last_active": r.last_permit.isoformat() if r.last_permit else None,
                 "permit_types": [t for t in (r.permit_types or []) if t],
                 "active_states": [s for s in (r.active_states or []) if s],
+                "avg_valuation": round(r.avg_valuation, 2) if r.avg_valuation else None,
             }
             for r in rows
         ],

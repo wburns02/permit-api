@@ -56,30 +56,31 @@ def normalize_address(address: str) -> str:
     return addr
 
 
-async def search_permits(
-    db: AsyncSession,
-    address: str | None = None,
-    city: str | None = None,
-    state: str | None = None,
-    zip_code: str | None = None,
-    permit_type: str | None = None,
-    status: str | None = None,
-    jurisdiction: str | None = None,
-    contractor: str | None = None,
-    date_from: str | None = None,
-    date_to: str | None = None,
-    page: int = 1,
-    page_size: int = 25,
-) -> dict:
-    """Search permits with full-text and trigram matching."""
+def build_filter_conditions(filters: dict) -> list:
+    """Build SQLAlchemy filter conditions from a filters dict.
+
+    Shared by search_permits() and alert_engine.match_alert().
+    Supported keys: address, city, state, zip_code/zip, permit_type, status,
+    jurisdiction, contractor, keyword, date_from, date_to.
+    """
     conditions = []
+    address = filters.get("address")
+    city = filters.get("city")
+    state = filters.get("state")
+    zip_code = filters.get("zip_code") or filters.get("zip")
+    permit_type = filters.get("permit_type")
+    status = filters.get("status")
+    jurisdiction = filters.get("jurisdiction")
+    contractor = filters.get("contractor")
+    keyword = filters.get("keyword")
+    date_from = filters.get("date_from")
+    date_to = filters.get("date_to")
 
     if address:
         normalized = normalize_address(address)
         conditions.append(
             text("similarity(address_normalized, :addr) > 0.3").bindparams(addr=normalized)
         )
-
     if city:
         conditions.append(Permit.city.ilike(city))
     if state:
@@ -99,10 +100,43 @@ async def search_permits(
                 Permit.contractor_company.ilike(f"%{contractor}%"),
             )
         )
+    if keyword:
+        conditions.append(
+            or_(
+                Permit.description.ilike(f"%{keyword}%"),
+                Permit.address.ilike(f"%{keyword}%"),
+                Permit.owner_name.ilike(f"%{keyword}%"),
+            )
+        )
     if date_from:
         conditions.append(Permit.issue_date >= date_from)
     if date_to:
         conditions.append(Permit.issue_date <= date_to)
+
+    return conditions
+
+
+async def search_permits(
+    db: AsyncSession,
+    address: str | None = None,
+    city: str | None = None,
+    state: str | None = None,
+    zip_code: str | None = None,
+    permit_type: str | None = None,
+    status: str | None = None,
+    jurisdiction: str | None = None,
+    contractor: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    page: int = 1,
+    page_size: int = 25,
+) -> dict:
+    """Search permits with full-text and trigram matching."""
+    conditions = build_filter_conditions({
+        "address": address, "city": city, "state": state, "zip_code": zip_code,
+        "permit_type": permit_type, "status": status, "jurisdiction": jurisdiction,
+        "contractor": contractor, "date_from": date_from, "date_to": date_to,
+    })
 
     if not conditions:
         return {"results": [], "total": 0, "page": page, "page_size": page_size}

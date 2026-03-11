@@ -51,6 +51,11 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     VERSION: str = "0.1.0"
 
+    # SendGrid (alert emails)
+    SENDGRID_API_KEY: str | None = None
+    SENDGRID_FROM_EMAIL: str = "alerts@permitlookup.com"
+    ALERT_BATCH_SIZE: int = 50
+
     # Sentry
     SENTRY_DSN: str | None = None
 

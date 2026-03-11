@@ -16,6 +16,8 @@ from app.database import init_db
 from app.models.permit import Permit, Jurisdiction  # noqa: F401
 from app.models.api_key import ApiUser, ApiKey, UsageLog  # noqa: F401
 from app.models.alert import PermitAlert  # noqa: F401
+from app.models.alert_history import AlertExecutionHistory  # noqa: F401
+from app.models.saved_search import SavedSearch  # noqa: F401
 
 # Import routers
 from app.api.v1.permits import router as permits_router
@@ -24,6 +26,9 @@ from app.api.v1.billing import router as billing_router
 from app.api.v1.coverage import router as coverage_router
 from app.api.v1.contractors import router as contractors_router
 from app.api.v1.alerts import router as alerts_router
+from app.api.v1.properties import router as properties_router
+from app.api.v1.market import router as market_router
+from app.api.v1.saved_searches import router as saved_searches_router
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +43,20 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("Database not available at startup: %s", e)
         logger.warning("API will start but database endpoints will fail until DB is connected")
+
+    # Start alert scheduler
+    from app.services.scheduler import start_scheduler, stop_scheduler
+    try:
+        start_scheduler()
+    except Exception as e:
+        logger.warning("Failed to start alert scheduler: %s", e)
+
     yield
+
+    try:
+        stop_scheduler()
+    except Exception:
+        pass
     logger.info("Shutting down PermitLookup API")
 
 
@@ -77,6 +95,9 @@ app.include_router(billing_router, prefix="/v1")
 app.include_router(coverage_router, prefix="/v1")
 app.include_router(contractors_router, prefix="/v1")
 app.include_router(alerts_router, prefix="/v1")
+app.include_router(properties_router, prefix="/v1")
+app.include_router(market_router, prefix="/v1")
+app.include_router(saved_searches_router, prefix="/v1")
 
 
 @app.get("/health")
@@ -117,7 +138,7 @@ async def root():
 async def _spa_page():
     return FileResponse(STATIC_DIR / "index.html")
 
-for _path in ("/search", "/coverage", "/pricing", "/dashboard", "/contractors", "/alerts"):
+for _path in ("/search", "/coverage", "/pricing", "/dashboard", "/contractors", "/alerts", "/properties", "/market", "/saved-searches"):
     app.get(_path, include_in_schema=False)(_spa_page)
 
 
@@ -134,5 +155,9 @@ async def api_info():
             "coverage": "GET /v1/coverage",
             "usage": "GET /v1/usage",
             "signup": "POST /v1/signup",
+            "alerts": "GET /v1/alerts",
+            "properties": "GET /v1/properties/history?address=...",
+            "market": "GET /v1/market/activity?zip=78701&months=6",
+            "saved_searches": "GET /v1/saved-searches",
         },
     }
