@@ -581,6 +581,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
           <button class="active" onclick="setResultView('list')" id="view-list-btn">List</button>
           <button onclick="setResultView('map')" id="view-map-btn">Map</button>
         </div>
+        <button type="button" id="save-search-quick-btn" onclick="openQuickSaveSearch()" style="display:none;padding:6px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text2);font-size:12px;font-weight:600;transition:all .2s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">&#9733; Save Search</button>
         <div class="export-bar">
           <button type="button" class="export-btn" onclick="exportResults('csv')" id="export-csv-btn" disabled>Export CSV</button>
           <button type="button" class="export-btn" onclick="exportResults('json')" id="export-json-btn" disabled>Export JSON</button>
@@ -1024,7 +1025,7 @@ results.forEach(p =>
                 <option value="100">100</option>
               </select>
             </div>
-            <button onclick="importLeads()" id="leads-import-btn" style="padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;transition:background .2s;white-space:nowrap" onmouseover="this.style.background='var(--accent2)'" onmouseout="this.style.background='var(--accent)'">Import Leads</button>
+            <button onclick="importLeads()" id="leads-import-btn" style="padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;transition:background .2s;white-space:nowrap" onmouseover="this.style.background='var(--accent2)'" onmouseout="this.style.background='var(--accent)'" title="Search permits with these filters and add to your pipeline">Fetch Leads</button>
             <button onclick="loadMockLeads()" style="padding:8px 16px;background:none;border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-size:12px;font-weight:600;transition:all .2s;white-space:nowrap" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">Load Demo Data</button>
           </div>
         </div>
@@ -1073,7 +1074,7 @@ results.forEach(p =>
           <h3>No leads yet</h3>
           <p>Import recent permits to start building your pipeline, or load demo data to see how it works.</p>
           <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-            <button onclick="importLeads()" class="btn-full" style="max-width:200px">Import Leads</button>
+            <button onclick="importLeads()" class="btn-full" style="max-width:200px">Fetch Leads</button>
             <button onclick="loadMockLeads()" class="btn-secondary" style="max-width:200px;padding:12px">Load Demo Data</button>
           </div>
         </div>
@@ -1720,8 +1721,10 @@ function renderResults(data) {
   area.classList.add('visible');
   count.textContent = `${data.total.toLocaleString()} results (page ${data.page}/${data.total_pages || 1})`;
 
-  // Show view toggle
+  // Show view toggle and save search button
   document.getElementById('view-toggle').style.display = data.results.length ? 'flex' : 'none';
+  const saveQuickBtn = document.getElementById('save-search-quick-btn');
+  if (saveQuickBtn) saveQuickBtn.style.display = (data.results.length && currentKey) ? '' : 'none';
 
   if (!data.results.length) {
     list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">No permits found for this address. Try a different search.</div>';
@@ -2088,10 +2091,16 @@ async function doContractorSearch() {
 
 function renderContractors(data) {
   const list = document.getElementById('contractor-results');
+  const emptyEl = document.getElementById('contractor-empty');
   if (!data.results.length) {
-    list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">No contractors found. Try a different name.</div>';
+    list.innerHTML = '';
+    if (emptyEl) {
+      emptyEl.style.display = '';
+      emptyEl.innerHTML = '<div style="font-size:48px;margin-bottom:16px;opacity:.3">🔍</div><div style="font-size:16px;font-weight:600;margin-bottom:8px">No contractors found</div><div style="font-size:13px;color:var(--text3)">Try a different name or company. Results come from our permit database.</div>';
+    }
     return;
   }
+  if (emptyEl) emptyEl.style.display = 'none';
 
   list.innerHTML = data.results.map(c => `
     <div class="contractor-card" onclick="viewContractor('${esc(c.contractor).replace(/'/g, "\\'")}')">
@@ -2843,6 +2852,15 @@ function openSavedSearchForm() {
   document.getElementById('saved-search-modal').classList.add('visible');
 }
 
+function openQuickSaveSearch() {
+  // Pre-fill the saved search modal with current search params
+  const q = document.getElementById('search-input').value.trim();
+  const nameInput = document.getElementById('ss-name');
+  if (nameInput && q) nameInput.value = q.length > 30 ? q.substring(0, 30) : q;
+  openSavedSearchForm();
+  setTimeout(() => nameInput?.focus(), 100);
+}
+
 function closeSavedSearchForm() {
   document.getElementById('saved-search-modal').classList.remove('visible');
   document.getElementById('ss-name').value = '';
@@ -2980,7 +2998,10 @@ function loadLeadsPage() {
 
 function loadLeadsFromStorage() {
   try {
-    return JSON.parse(localStorage.getItem('pl_leads') || '[]');
+    const stored = localStorage.getItem('pl_leads');
+    if (stored !== null) return JSON.parse(stored);
+    // First visit: auto-populate with demo data
+    return loadMockLeads();
   } catch(e) { return []; }
 }
 
@@ -3048,7 +3069,7 @@ async function importLeads() {
   } catch(e) {
     showToast('Import failed: ' + e.message, 'error');
   } finally {
-    btn.disabled = false; btn.textContent = 'Import Leads';
+    btn.disabled = false; btn.textContent = 'Fetch Leads';
   }
 }
 
@@ -3242,18 +3263,10 @@ async function runRiskScore() {
     let isDemo = false;
 
     if (currentKey) {
-      // Parse address
-      const parts = addr.split(',');
-      const street = parts[0]?.trim() || addr;
-      const cityState = parts.slice(1).join(',').trim();
-      let city = '', state = '';
-      const csMatch = cityState.match(/^(.*?)\s+([A-Z]{2})\s*\d*$/);
-      if (csMatch) { city = csMatch[1].trim(); state = csMatch[2]; }
-      else city = cityState;
-
-      const params = new URLSearchParams({ q: addr, limit: 50 });
-      if (city) params.set('city', city);
-      if (state) params.set('state', state);
+      // Use same smart query parser as main search to avoid q= param (causes 400)
+      const parsed = parseSearchQuery(addr);
+      const params = new URLSearchParams(parsed);
+      params.set('page_size', '50');
       const r = await fetch(`${API}/v1/permits/search?${params}`, { headers: { 'X-API-Key': currentKey } });
       if (r.ok) {
         const d = await r.json();
