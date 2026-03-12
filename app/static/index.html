@@ -2310,10 +2310,18 @@ function showPage(page) {
   if (page === 'dashboard') { loadDashboard(); loadSavedSearches(); loadUsageChart(); }
   if (page === 'properties') updatePropertyPage();
   if (page === 'feed') { if (!feedItems.length) loadFeed(); }
+  if (page === 'market') { loadMarketPageDefaults(); }
   if (page === 'contractors') {
     showContractorSearch();
     const results = document.getElementById('contractor-results');
-    if (!results.innerHTML.trim()) document.getElementById('contractor-empty').style.display = '';
+    if (!results.innerHTML.trim()) {
+      // Auto-load demo contractors on first visit
+      if (!currentKey) {
+        loadDemoContractors();
+      } else {
+        document.getElementById('contractor-empty').style.display = '';
+      }
+    }
   } else {
     // Hide compare bar when navigating away from contractors
     const cbar = document.getElementById('compare-bar');
@@ -2454,15 +2462,17 @@ async function doSearch() {
     const area = document.getElementById('results-area');
     if (area) {
       area.classList.add('visible');
-      area.innerHTML = `<div style="text-align:center;padding:48px 24px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)">
-        <div style="font-size:40px;margin-bottom:12px">🔒</div>
-        <h3 style="font-size:20px;font-weight:700;margin-bottom:8px">Free API key required</h3>
-        <p style="color:var(--text2);font-size:15px;margin-bottom:20px;max-width:480px;margin-left:auto;margin-right:auto">Sign up free to search <strong>7M+ permit records</strong> across 17 states. Takes 10 seconds — no credit card.</p>
-        <button class="btn-full" style="max-width:240px;margin:0 auto" onclick="openSignup()">Get Free API Key →</button>
-        <p style="color:var(--text3);font-size:12px;margin-top:16px">Already have a key? Enter it in the dashboard.</p>
-      </div>`;
+      // Show seeded demo results with CTA banner
+      const demoPermits = generateDemoPermits(q || 'demo search');
+      const demoSlice = demoPermits.slice(0, 5);
+      area.innerHTML = `<div style="margin-bottom:16px;padding:12px 18px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:var(--radius-sm);font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <span>🔒 Demo results — <strong>sign up free</strong> to search 7M+ real permit records across 17 states</span>
+        <button onclick="openSignup()" style="padding:7px 18px;background:rgba(251,191,36,.2);border:1px solid rgba(251,191,36,.4);border-radius:var(--radius-sm);color:#fbbf24;font-size:13px;font-weight:700;white-space:nowrap">Get Free API Key →</button>
+      </div>
+      <div id="results-list">${demoSlice.map(p => `<div class="result-card"><div class="address">${esc(p.address)}, ${esc(p.city)} ${esc(p.state)}</div><div class="meta"><span><strong>#</strong> ${esc(p.permit_number)}</span>${p.permit_type?`<span class="badge badge-blue">${esc(p.permit_type)}</span>`:''}<span class="badge ${statusBadge(p.status||'issued')}">${esc(p.status||'Issued')}</span><span>Issued: ${p.issue_date}</span>${p.estimated_value?`<span>$${Number(p.estimated_value).toLocaleString()}</span>`:''}<span>${esc(p.jurisdiction||p.city+' '+p.state)}</span></div>${p.description?`<div style="margin-top:8px;font-size:13px;color:var(--text2)">${esc(p.description)}</div>`:''}</div>`).join('')}
+      <div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">Sign up free to see all results and access the full database →</div></div>`;
     }
-    openSignup(); return;
+    return;
   }
 
   const btn = document.getElementById('search-btn');
@@ -2841,7 +2851,7 @@ async function revokeKey(id) {
 }
 
 // Signup
-function openSignup() {
+function openSignup(plan) {
   const modal = document.getElementById('signup-modal');
   modal.classList.add('visible');
   document.getElementById('signup-form-view').style.display = '';
@@ -2852,6 +2862,27 @@ function openSignup() {
   document.getElementById('signup-company').value = '';
   document.getElementById('signup-btn').disabled = false;
   document.getElementById('signup-btn').textContent = 'Create Free Account';
+  // Show plan badge if coming from a paid plan CTA
+  let planBadge = document.getElementById('signup-plan-badge');
+  if (plan && plan !== 'enterprise') {
+    const planInfo = { starter: { name: 'Starter', price: '$49/mo', color: '#6366f1' }, pro: { name: 'Pro', price: '$149/mo', color: '#a855f7' } };
+    const info = planInfo[plan];
+    if (info) {
+      if (!planBadge) {
+        planBadge = document.createElement('div');
+        planBadge.id = 'signup-plan-badge';
+        planBadge.style.cssText = 'margin-bottom:12px;padding:8px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;text-align:center';
+        document.getElementById('signup-form-view').insertBefore(planBadge, document.getElementById('signup-form-view').firstChild);
+      }
+      planBadge.style.background = info.color + '22';
+      planBadge.style.border = '1px solid ' + info.color + '44';
+      planBadge.style.color = info.color;
+      planBadge.textContent = '→ You selected ' + info.name + ' (' + info.price + ') — create your free account first, then upgrade in your dashboard.';
+      planBadge.style.display = '';
+    }
+  } else if (planBadge) {
+    planBadge.style.display = 'none';
+  }
 }
 function closeSignup() { document.getElementById('signup-modal').classList.remove('visible'); }
 
@@ -2915,7 +2946,7 @@ function copyKey(el) {
 }
 
 async function subscribe(plan) {
-  if (!currentKey) { openSignup(); return; }
+  if (!currentKey) { openSignup(plan); return; }
   if (plan === 'enterprise') {
     showToast('Contact sales@permits.ecbtx.com for Enterprise pricing.', 'success');
     return;
@@ -2975,6 +3006,20 @@ function generateDemoContractors(q) {
   });
 }
 
+function loadDemoContractors() {
+  const demo = generateDemoContractors('');
+  document.getElementById('contractor-empty').style.display = 'none';
+  const emptyNote = document.createElement('div');
+  emptyNote.id = 'contractor-demo-note';
+  emptyNote.style.cssText = 'margin-bottom:16px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px';
+  emptyNote.innerHTML = '<span>🔨 Demo contractors — sign up free to search 180K+ licensed contractors across 7M+ permits</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button>';
+  const resultsEl = document.getElementById('contractor-results');
+  if (!document.getElementById('contractor-demo-note')) {
+    resultsEl.parentNode.insertBefore(emptyNote, resultsEl);
+  }
+  renderContractors({ results: demo });
+}
+
 async function doContractorSearch() {
   const q = document.getElementById('contractor-input').value.trim();
   if (!q) { showToast('Enter a contractor name to search.', 'error'); return; }
@@ -2984,6 +3029,7 @@ async function doContractorSearch() {
     await new Promise(r => setTimeout(r, 400));
     btn.disabled = false; btn.textContent = 'Search';
     document.getElementById('contractor-empty').style.display = 'none';
+    document.getElementById('contractor-demo-note')?.remove();
     const demoData = { results: generateDemoContractors(q) };
     renderContractors(demoData);
     // Add demo banner
@@ -3068,8 +3114,9 @@ function renderContractors(data) {
         ${c.active_states.map(s => `<span class="tag" style="border-color:var(--accent);color:var(--accent2)">${esc(s)}</span>`).join('')}
       </div>
       ${(c.first_active||c.first_permit) && (c.last_active||c.last_permit) ? `<div class="date-range">Active: ${c.first_active||c.first_permit} — ${c.last_active||c.last_permit}</div>` : ''}
-      <div style="margin-top:10px;font-size:12px;color:var(--accent2);display:flex;gap:10px;align-items:center">
-        <span onclick="event.stopPropagation();viewContractor('${esc(c.contractor).replace(/'/g, "\\'")}');" style="cursor:pointer;text-decoration:underline;text-underline-offset:2px">View permits →</span>
+      <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+        <button onclick="event.stopPropagation();viewContractor('${esc(c.contractor).replace(/'/g, "\\'")}');" style="padding:6px 14px;background:var(--accent-glow);border:1px solid rgba(99,102,241,.3);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--accent2);cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(99,102,241,.2)'" onmouseout="this.style.background='var(--accent-glow)'">View Permit History →</button>
+        <span style="font-size:11px;color:var(--text3)">Click card to compare</span>
       </div>
     </div>
   `).join('');
@@ -4023,6 +4070,21 @@ async function uploadBulkReport(file) {
 }
 
 // ============ MARKET ============
+let _marketDefaultsLoaded = false;
+function loadMarketPageDefaults() {
+  if (_marketDefaultsLoaded) return;
+  _marketDefaultsLoaded = true;
+  // Pre-fill Texas as default state and show demo hotspots
+  const hotspotState = document.getElementById('hotspot-state');
+  if (hotspotState && !hotspotState.value) hotspotState.value = 'TX';
+  // Auto-load demo hotspots for TX
+  setTimeout(() => {
+    if (!document.querySelector('#hotspot-results')?.innerHTML?.trim()) {
+      loadHotspots();
+    }
+  }, 300);
+}
+
 function generateDemoMarketActivity(city, state, months) {
   const mo = parseInt(months) || 6;
   const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
