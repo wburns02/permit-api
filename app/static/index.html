@@ -663,6 +663,48 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
 @media(max-width:900px){.req-three-col{grid-template-columns:1fr 1fr}}
 @media(max-width:768px){.req-form-grid{grid-template-columns:1fr 1fr}.req-summary-grid{grid-template-columns:1fr 1fr}.req-two-col{grid-template-columns:1fr}.req-three-col{grid-template-columns:1fr}}
 @media(max-width:480px){.req-form-grid{grid-template-columns:1fr}.req-summary-grid{grid-template-columns:1fr 1fr}}
+/* REPORTS PAGE */
+.rpt-hero{text-align:center;padding:56px 0 36px;max-width:700px;margin:0 auto}
+.rpt-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.05em;background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.25);margin-bottom:18px;text-transform:uppercase}
+.rpt-type-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:28px}
+.rpt-type-card{background:var(--surface);border:2px solid var(--border);border-radius:var(--radius);padding:20px;cursor:pointer;transition:all .2s;text-align:center}
+.rpt-type-card:hover{border-color:var(--accent);transform:translateY(-2px)}
+.rpt-type-card.selected{border-color:var(--accent);background:rgba(99,102,241,.08)}
+.rpt-type-icon{font-size:28px;margin-bottom:10px}
+.rpt-type-name{font-size:14px;font-weight:700;margin-bottom:4px}
+.rpt-type-desc{font-size:12px;color:var(--text3);line-height:1.5}
+.rpt-config-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:20px}
+.rpt-config-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.rpt-field{display:flex;flex-direction:column;gap:6px}
+.rpt-field label{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.rpt-field select,.rpt-field input{padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;transition:border-color .2s}
+.rpt-field select:focus,.rpt-field input:focus{border-color:var(--accent)}
+.rpt-section-toggle{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer}
+.rpt-section-toggle:last-child{border-bottom:none}
+.rpt-toggle-check{width:20px;height:20px;border-radius:5px;border:2px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;font-size:11px;color:transparent}
+.rpt-toggle-check.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.rpt-preview{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:20px}
+.rpt-preview-header{padding:20px 24px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(245,158,11,.05))}
+.rpt-preview-title{font-size:18px;font-weight:800;margin-bottom:4px}
+.rpt-preview-sub{font-size:12px;color:var(--text3)}
+.rpt-preview-section{padding:16px 24px;border-bottom:1px solid var(--border)}
+.rpt-preview-section:last-child{border-bottom:none}
+.rpt-preview-section h4{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:12px}
+.rpt-stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:4px}
+.rpt-stat-box{background:var(--surface2);border-radius:var(--radius-sm);padding:12px;text-align:center}
+.rpt-stat-box .v{font-size:20px;font-weight:800;color:var(--text1)}
+.rpt-stat-box .l{font-size:11px;color:var(--text3);margin-top:2px}
+.rpt-permit-row{display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.rpt-permit-row:last-child{border-bottom:none}
+.rpt-chart-bar-wrap{display:flex;flex-direction:column;gap:6px}
+.rpt-chart-bar-item{display:flex;align-items:center;gap:10px;font-size:12px}
+.rpt-chart-bar-label{min-width:100px;color:var(--text2);text-align:right}
+.rpt-chart-bar-bg{flex:1;height:18px;background:var(--surface2);border-radius:4px;overflow:hidden}
+.rpt-chart-bar-fill{height:100%;border-radius:4px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.rpt-chart-bar-val{min-width:50px;color:var(--text3);font-size:11px}
+.rpt-dl-bar{display:flex;gap:10px;flex-wrap:wrap;padding:20px 24px;background:rgba(99,102,241,.05);border-top:1px solid var(--border);align-items:center}
+@media(max-width:768px){.rpt-type-grid{grid-template-columns:1fr 1fr}.rpt-config-grid{grid-template-columns:1fr}.rpt-stat-row{grid-template-columns:1fr 1fr}}
+@media(max-width:480px){.rpt-type-grid{grid-template-columns:1fr}.rpt-stat-row{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -685,6 +727,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
       <a href="#market" onclick="showPage('market');return false">Market</a>
       <a href="#estimator" onclick="showPage('estimator');return false">Estimator</a>
       <a href="#requirements" onclick="showPage('requirements');return false">Requirements</a>
+      <a href="#reports" onclick="showPage('reports');return false">Reports</a>
       <a href="#coverage" onclick="showPage('coverage');return false">Coverage</a>
       <a href="#pricing" onclick="showPage('pricing');return false">Pricing</a>
       <a href="/docs" target="_blank">API Docs</a>
@@ -1801,6 +1844,149 @@ results.forEach(p =>
   </section>
 </div>
 
+<!-- REPORTS PAGE -->
+<div class="page" id="page-reports">
+  <section class="container" style="padding-bottom:60px">
+    <div class="rpt-hero">
+      <div class="rpt-badge">📊 New — Export & Share</div>
+      <h2 style="font-size:36px;font-weight:800;margin-bottom:14px">Permit Report Builder</h2>
+      <p style="color:var(--text2);font-size:17px;max-width:580px;margin:0 auto">Generate professional permit reports for any property, contractor, or market. Download CSV or share a live link — powered by 7M+ real permit records.</p>
+    </div>
+
+    <!-- Report type selector -->
+    <div class="rpt-type-grid" id="rpt-type-grid">
+      <div class="rpt-type-card selected" data-type="property" onclick="selectReportType('property')">
+        <div class="rpt-type-icon">🏠</div>
+        <div class="rpt-type-name">Property Report</div>
+        <div class="rpt-type-desc">Full permit history, risk score, and contractor activity for any address</div>
+      </div>
+      <div class="rpt-type-card" data-type="contractor" onclick="selectReportType('contractor')">
+        <div class="rpt-type-icon">🔨</div>
+        <div class="rpt-type-name">Contractor Report</div>
+        <div class="rpt-type-desc">License verification, permit volume, jurisdictions, and project types</div>
+      </div>
+      <div class="rpt-type-card" data-type="market" onclick="selectReportType('market')">
+        <div class="rpt-type-icon">📈</div>
+        <div class="rpt-type-name">Market Report</div>
+        <div class="rpt-type-desc">Permit trends, top contractors, and growth analysis for any city or ZIP</div>
+      </div>
+    </div>
+
+    <!-- Configuration card -->
+    <div class="rpt-config-card" id="rpt-config-card">
+      <!-- Property config -->
+      <div id="rpt-config-property">
+        <div class="rpt-config-grid">
+          <div class="rpt-field" style="grid-column:1/-1">
+            <label>Property Address</label>
+            <input type="text" id="rpt-property-address" placeholder="e.g. 5601 Monterey Oaks Blvd Austin TX 78749" autocomplete="off">
+          </div>
+          <div class="rpt-field">
+            <label>Date Range</label>
+            <select id="rpt-property-years">
+              <option value="5">Last 5 years</option>
+              <option value="10" selected>Last 10 years</option>
+              <option value="20">Last 20 years</option>
+              <option value="all">All time</option>
+            </select>
+          </div>
+          <div class="rpt-field">
+            <label>Include Sections</label>
+            <div style="margin-top:4px">
+              <div class="rpt-section-toggle" onclick="toggleRptSection(this,'permit_history')"><div class="rpt-toggle-check on" id="sec-permit_history">✓</div><span style="font-size:13px">Permit history table</span></div>
+              <div class="rpt-section-toggle" onclick="toggleRptSection(this,'risk_score')"><div class="rpt-toggle-check on" id="sec-risk_score">✓</div><span style="font-size:13px">Risk score analysis</span></div>
+              <div class="rpt-section-toggle" onclick="toggleRptSection(this,'contractor_summary')"><div class="rpt-toggle-check on" id="sec-contractor_summary">✓</div><span style="font-size:13px">Contractor summary</span></div>
+              <div class="rpt-section-toggle" onclick="toggleRptSection(this,'timeline')"><div class="rpt-toggle-check on" id="sec-timeline">✓</div><span style="font-size:13px">Activity timeline</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Contractor config -->
+      <div id="rpt-config-contractor" style="display:none">
+        <div class="rpt-config-grid">
+          <div class="rpt-field" style="grid-column:1/-1">
+            <label>Contractor Name or License #</label>
+            <input type="text" id="rpt-contractor-name" placeholder="e.g. Johnson Electric or LIC-123456" autocomplete="off">
+          </div>
+          <div class="rpt-field">
+            <label>State</label>
+            <select id="rpt-contractor-state">
+              <option value="">All states</option>
+              <option value="TX">Texas</option><option value="CA">California</option><option value="FL">Florida</option>
+              <option value="NY">New York</option><option value="AZ">Arizona</option><option value="CO">Colorado</option>
+              <option value="WA">Washington</option><option value="GA">Georgia</option><option value="NC">North Carolina</option>
+            </select>
+          </div>
+          <div class="rpt-field">
+            <label>Date Range</label>
+            <select id="rpt-contractor-years">
+              <option value="3">Last 3 years</option>
+              <option value="5" selected>Last 5 years</option>
+              <option value="all">All time</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <!-- Market config -->
+      <div id="rpt-config-market" style="display:none">
+        <div class="rpt-config-grid">
+          <div class="rpt-field">
+            <label>City</label>
+            <input type="text" id="rpt-market-city" placeholder="e.g. Austin, Denver, Miami" autocomplete="off">
+          </div>
+          <div class="rpt-field">
+            <label>State</label>
+            <select id="rpt-market-state">
+              <option value="">Select state...</option>
+              <option value="TX">Texas</option><option value="CA">California</option><option value="FL">Florida</option>
+              <option value="NY">New York</option><option value="AZ">Arizona</option><option value="CO">Colorado</option>
+              <option value="WA">Washington</option><option value="GA">Georgia</option><option value="NC">North Carolina</option>
+              <option value="OH">Ohio</option><option value="IL">Illinois</option><option value="TN">Tennessee</option>
+            </select>
+          </div>
+          <div class="rpt-field">
+            <label>Time Period</label>
+            <select id="rpt-market-months">
+              <option value="6">Last 6 months</option>
+              <option value="12" selected>Last 12 months</option>
+              <option value="24">Last 24 months</option>
+            </select>
+          </div>
+          <div class="rpt-field">
+            <label>Permit Type</label>
+            <select id="rpt-market-type">
+              <option value="">All types</option>
+              <option value="residential">Residential</option>
+              <option value="commercial">Commercial</option>
+              <option value="electrical">Electrical</option>
+              <option value="plumbing">Plumbing</option>
+              <option value="solar">Solar</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div style="margin-top:20px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <button onclick="buildReport()" id="rpt-build-btn" style="padding:12px 28px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;transition:background .2s" onmouseover="this.style.background='var(--accent2)'" onmouseout="this.style.background='var(--accent)'">Generate Report</button>
+        <span style="font-size:13px;color:var(--text3)">Quick examples:</span>
+        <a href="#" onclick="quickReport('property','5601 Monterey Oaks Blvd Austin TX');return false" style="font-size:13px;padding:6px 12px;border:1px solid var(--border);border-radius:20px;color:var(--accent);text-decoration:none">Property in Austin</a>
+        <a href="#" onclick="quickReport('contractor','Johnson Electric TX');return false" style="font-size:13px;padding:6px 12px;border:1px solid var(--border);border-radius:20px;color:var(--accent);text-decoration:none">Contractor report</a>
+        <a href="#" onclick="quickReport('market','Denver CO');return false" style="font-size:13px;padding:6px 12px;border:1px solid var(--border);border-radius:20px;color:var(--accent);text-decoration:none">Market in Denver</a>
+      </div>
+    </div>
+
+    <!-- Loading skeleton -->
+    <div id="rpt-loading" style="display:none">
+      <div style="height:120px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);animation:pulse 1.5s infinite;margin-bottom:14px"></div>
+      <div style="height:200px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);animation:pulse 1.5s infinite .1s;margin-bottom:14px"></div>
+      <div style="height:180px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);animation:pulse 1.5s infinite .2s"></div>
+    </div>
+
+    <!-- Report output -->
+    <div id="rpt-output" style="display:none"></div>
+  </section>
+</div>
+
 <!-- RISK SCORE PAGE -->
 <div class="page" id="page-risk">
   <section class="container" style="padding-bottom:60px">
@@ -2111,7 +2297,7 @@ function showPage(page) {
   el.classList.add('visible');
   // Update active nav link
   document.querySelectorAll('nav .links a').forEach(a => a.classList.remove('active'));
-  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements' };
+  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements', reports: '#reports' };
   const activeLink = document.querySelector(`nav .links a[href="${hashMap[page] || '#search'}"]`);
   if (activeLink) activeLink.classList.add('active');
   currentPage = page;
@@ -2142,7 +2328,7 @@ function showPage(page) {
 // Hash routing
 function routeFromHash() {
   const h = location.hash.replace('#','') || 'home';
-  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', risk: 'risk', trends: 'trends', properties: 'properties', market: 'market', feed: 'feed', estimator: 'estimator', requirements: 'requirements' };
+  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', risk: 'risk', trends: 'trends', properties: 'properties', market: 'market', feed: 'feed', estimator: 'estimator', requirements: 'requirements', reports: 'reports' };
   showPage(map[h] || 'home');
 }
 window.addEventListener('hashchange', routeFromHash);
@@ -6253,6 +6439,407 @@ async function runRequirementsLookup() {
     </div>
   `;
   btn.disabled = false; btn.textContent = 'Look Up Requirements';
+}
+
+// ===== PERMIT REPORT BUILDER =====
+
+let rptSections = { permit_history: true, risk_score: true, contractor_summary: true, timeline: true };
+let rptCurrentType = 'property';
+
+function selectReportType(type) {
+  rptCurrentType = type;
+  document.querySelectorAll('.rpt-type-card').forEach(c => {
+    c.classList.toggle('selected', c.dataset.type === type);
+  });
+  document.getElementById('rpt-config-property').style.display = type === 'property' ? '' : 'none';
+  document.getElementById('rpt-config-contractor').style.display = type === 'contractor' ? '' : 'none';
+  document.getElementById('rpt-config-market').style.display = type === 'market' ? '' : 'none';
+  document.getElementById('rpt-output').style.display = 'none';
+}
+
+function toggleRptSection(row, key) {
+  rptSections[key] = !rptSections[key];
+  const check = document.getElementById('sec-' + key);
+  if (check) {
+    check.classList.toggle('on', rptSections[key]);
+    check.textContent = rptSections[key] ? '✓' : '';
+  }
+}
+
+function quickReport(type, query) {
+  selectReportType(type);
+  if (type === 'property') {
+    document.getElementById('rpt-property-address').value = query;
+  } else if (type === 'contractor') {
+    const parts = query.split(' ');
+    const state = parts.pop();
+    document.getElementById('rpt-contractor-name').value = parts.join(' ');
+    document.getElementById('rpt-contractor-state').value = state;
+  } else if (type === 'market') {
+    const parts = query.split(' ');
+    const state = parts.pop();
+    document.getElementById('rpt-market-city').value = parts.join(' ');
+    document.getElementById('rpt-market-state').value = state;
+  }
+  buildReport();
+}
+
+async function buildReport() {
+  const btn = document.getElementById('rpt-build-btn');
+  btn.disabled = true; btn.textContent = 'Generating...';
+  document.getElementById('rpt-output').style.display = 'none';
+  document.getElementById('rpt-loading').style.display = '';
+
+  await new Promise(r => setTimeout(r, 900));
+
+  document.getElementById('rpt-loading').style.display = 'none';
+
+  if (rptCurrentType === 'property') {
+    const addr = document.getElementById('rpt-property-address').value.trim();
+    if (!addr) { showToast('Enter a property address', 'error'); btn.disabled = false; btn.textContent = 'Generate Report'; return; }
+    renderPropertyReport(addr);
+  } else if (rptCurrentType === 'contractor') {
+    const name = document.getElementById('rpt-contractor-name').value.trim();
+    const state = document.getElementById('rpt-contractor-state').value;
+    if (!name) { showToast('Enter a contractor name', 'error'); btn.disabled = false; btn.textContent = 'Generate Report'; return; }
+    renderContractorReport(name, state);
+  } else if (rptCurrentType === 'market') {
+    const city = document.getElementById('rpt-market-city').value.trim();
+    const state = document.getElementById('rpt-market-state').value;
+    if (!city && !state) { showToast('Enter a city or select a state', 'error'); btn.disabled = false; btn.textContent = 'Generate Report'; return; }
+    renderMarketReport(city, state);
+  }
+
+  document.getElementById('rpt-output').style.display = '';
+  btn.disabled = false; btn.textContent = 'Generate Report';
+  window.scrollTo({ top: document.getElementById('rpt-output').offsetTop - 80, behavior: 'smooth' });
+}
+
+function rptSeed(str) {
+  return str.toLowerCase().replace(/[^a-z0-9]/g,'').split('').reduce((a,c,i)=>(a+c.charCodeAt(0)*(i+1))&0xFFFFFF,0);
+}
+
+function renderPropertyReport(addr) {
+  const seed = rptSeed(addr);
+  const permits = generateDemoPermits(addr);
+  const permitCount = permits.length;
+  const contractors = [...new Set(permits.map(p=>p.contractor_name).filter(Boolean))];
+  const totalVal = permits.reduce((s,p)=>s+(p.valuation||0),0);
+  const riskScore = 40 + (seed % 55);
+  const riskGrade = riskScore >= 80 ? 'A' : riskScore >= 65 ? 'B' : riskScore >= 50 ? 'C' : 'D';
+  const riskColor = riskScore >= 80 ? '#10b981' : riskScore >= 65 ? '#22c55e' : riskScore >= 50 ? '#f59e0b' : '#ef4444';
+  const lastDate = permits[0]?.issue_date || '—';
+  const yearsSpan = permits.length > 1 ? Math.round((new Date(permits[0]?.issue_date||new Date()) - new Date(permits[permits.length-1]?.issue_date||new Date())) / (365*24*3600*1000)) : 1;
+
+  // Type breakdown
+  const typeCounts = {};
+  permits.forEach(p => { typeCounts[p.permit_type||'other'] = (typeCounts[p.permit_type||'other']||0) + 1; });
+  const typeEntries = Object.entries(typeCounts).sort((a,b)=>b[1]-a[1]);
+
+  const demoBanner = !currentKey ? `<div style="margin:0 0 16px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px"><span>📊 Demo report — sign up free for live data from 7M+ permits</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button></div>` : '';
+
+  document.getElementById('rpt-output').innerHTML = `
+    ${demoBanner}
+    <div class="rpt-preview">
+      <div class="rpt-preview-header">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:6px">🏠 Property Permit Report</div>
+            <div class="rpt-preview-title">${esc(addr)}</div>
+            <div class="rpt-preview-sub">Generated ${new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'})} · ${permitCount} permits found${!currentKey?' (demo data)':''}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div style="width:52px;height:52px;border-radius:50%;background:${riskColor}22;border:3px solid ${riskColor};display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800;color:${riskColor}">${riskGrade}</div>
+            <div style="font-size:12px;color:var(--text3)">Risk<br>Grade</div>
+          </div>
+        </div>
+      </div>
+
+      ${rptSections.risk_score ? `
+      <div class="rpt-preview-section">
+        <h4>Risk Score Analysis</h4>
+        <div class="rpt-stat-row">
+          <div class="rpt-stat-box"><div class="v" style="color:${riskColor}">${riskScore}</div><div class="l">Risk Score</div></div>
+          <div class="rpt-stat-box"><div class="v">${permitCount}</div><div class="l">Total Permits</div></div>
+          <div class="rpt-stat-box"><div class="v">$${Math.round(totalVal/1000)}K</div><div class="l">Total Value</div></div>
+          <div class="rpt-stat-box"><div class="v">${yearsSpan || 1}yr</div><div class="l">Permit History</div></div>
+        </div>
+        <div style="margin-top:12px;font-size:13px;color:var(--text2);line-height:1.6">
+          ${riskScore >= 70 ? `<span style="color:#10b981">✓ Good compliance record</span> — regular permit activity with no major gaps detected.` : `<span style="color:#f59e0b">⚠ Moderate risk</span> — ${yearsSpan > 5 ? 'extended period with limited permit activity' : 'limited permit history for property age'}.`}
+        </div>
+      </div>` : ''}
+
+      ${rptSections.permit_history ? `
+      <div class="rpt-preview-section">
+        <h4>Permit History (${permitCount} records)</h4>
+        ${permits.slice(0,6).map(p => `
+          <div class="rpt-permit-row">
+            <span style="font-size:11px;color:var(--text3);min-width:90px">${esc(p.issue_date||'—')}</span>
+            <span class="badge badge-blue" style="font-size:10px;min-width:70px;text-align:center">${esc(p.permit_type||'building')}</span>
+            <span style="flex:1;color:var(--text2)">${esc(p.description||'Permit')}</span>
+            <span style="font-size:12px;color:var(--text3);min-width:70px;text-align:right">${p.valuation ? '$'+Math.round(p.valuation/1000)+'K' : '—'}</span>
+            <span class="badge ${p.status==='finaled'?'badge-green':p.status==='issued'?'badge-blue':'badge-red'}" style="font-size:10px">${esc(p.status||'issued')}</span>
+          </div>`).join('')}
+        ${permitCount > 6 ? `<div style="text-align:center;padding:8px 0;font-size:12px;color:var(--text3)">${permitCount - 6} more records — ${!currentKey?'<a href="#" onclick="openSignup();return false" style="color:var(--accent)">sign up to view all</a>':'included in export'}</div>` : ''}
+      </div>` : ''}
+
+      ${rptSections.contractor_summary ? `
+      <div class="rpt-preview-section">
+        <h4>Contractor Activity</h4>
+        ${contractors.length === 0 ? '<div style="font-size:13px;color:var(--text3)">No contractor info available for this property.</div>' :
+        `<div class="rpt-chart-bar-wrap">
+          ${contractors.slice(0,4).map((c,i) => {
+            const cCount = permits.filter(p=>p.contractor_name===c).length;
+            const pct = Math.round(cCount/permitCount*100);
+            return `<div class="rpt-chart-bar-item">
+              <div class="rpt-chart-bar-label">${esc(c.substring(0,18)+(c.length>18?'…':''))}</div>
+              <div class="rpt-chart-bar-bg"><div class="rpt-chart-bar-fill" style="width:${pct}%;background:${['#6366f1','#10b981','#f59e0b','#ef4444'][i%4]}"></div></div>
+              <div class="rpt-chart-bar-val">${cCount} permit${cCount!==1?'s':''}</div>
+            </div>`;
+          }).join('')}
+        </div>`}
+      </div>` : ''}
+
+      ${rptSections.timeline ? `
+      <div class="rpt-preview-section">
+        <h4>Activity Timeline</h4>
+        <div style="display:flex;flex-direction:column;gap:0;position:relative">
+          ${permits.slice(0,5).map((p,i) => `
+            <div style="display:flex;gap:12px;padding:8px 0 8px 0;position:relative">
+              <div style="width:8px;height:8px;border-radius:50%;background:${['#6366f1','#10b981','#f59e0b','#818cf8','#22c55e'][i%5]};flex-shrink:0;margin-top:6px;z-index:1"></div>
+              <div style="font-size:13px;flex:1">
+                <span style="font-weight:600">${esc(p.permit_type||'Building')}</span>
+                <span style="color:var(--text3);margin-left:8px;font-size:12px">${esc(p.issue_date||'')}</span>
+                <div style="font-size:12px;color:var(--text2);margin-top:2px">${esc(p.description||'')} ${p.valuation?'· $'+Math.round(p.valuation/1000)+'K':''}</div>
+              </div>
+            </div>`).join('')}
+        </div>
+      </div>` : ''}
+
+      <div class="rpt-dl-bar">
+        <span style="font-size:13px;color:var(--text2);flex:1">Report ready · ${permitCount} permits · ${contractors.length} contractor${contractors.length!==1?'s':''}</span>
+        <button onclick="downloadReportCSV('property','${esc(addr)}')" style="padding:8px 18px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer">⬇ Download CSV</button>
+        <button onclick="copyReportLink()" style="padding:8px 18px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:var(--text);cursor:pointer">🔗 Share Link</button>
+        <button onclick="showPage('risk')" style="padding:8px 18px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:var(--text);cursor:pointer">Full Risk Score</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderContractorReport(name, state) {
+  const seed = rptSeed(name + state);
+  const totalPermits = 120 + (seed % 480);
+  const jurisdictions = 2 + (seed % 14);
+  const avgVal = 18000 + (seed % 82000);
+  const specialty = ['electrical','plumbing','roofing','solar','HVAC','addition','new construction'][seed % 7];
+  const specialty2 = ['mechanical','framing','concrete','demolition','insulation','grading'][seed % 6];
+  const licenseNum = `TX-LIC-${1000+(seed%8999)}`;
+  const yearsActive = 3 + (seed % 15);
+  const rating = (3.5 + (seed % 15) / 10).toFixed(1);
+  const stateDisplay = STATE_NAMES[state] || state || 'Texas';
+  const types = [
+    { name: specialty, pct: 35 + (seed%25), color: '#6366f1' },
+    { name: specialty2, pct: 15 + (seed%20), color: '#10b981' },
+    { name: 'residential', pct: 10 + (seed%15), color: '#f59e0b' },
+  ];
+
+  // Generate recent permits
+  const streets = ['Oak St','Main Ave','Park Blvd','Cedar Ln','Elm Dr'];
+  const cities = (state==='TX')?['Austin','Houston','Dallas']:['Denver','Portland','Seattle'];
+  const recentPermits = Array.from({length:6},(_,i)=>{
+    const s2=(seed*(i+5)+i*17)&0xFFFFFF;
+    const d=new Date(); d.setDate(d.getDate()-(s2%120));
+    return { date:d.toISOString().split('T')[0], addr:`${100+(s2%9800)} ${streets[s2%streets.length]}, ${cities[s2%cities.length]}`, type:[specialty,specialty2,'electrical'][s2%3], val:8000+(s2%92000), status:s2%5===0?'issued':'finaled' };
+  });
+
+  const demoBanner = !currentKey ? `<div style="margin:0 0 16px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px"><span>📊 Demo report — sign up free for live contractor data</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button></div>` : '';
+
+  document.getElementById('rpt-output').innerHTML = `
+    ${demoBanner}
+    <div class="rpt-preview">
+      <div class="rpt-preview-header">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:6px">🔨 Contractor Report</div>
+            <div class="rpt-preview-title">${esc(name)}</div>
+            <div class="rpt-preview-sub">${esc(stateDisplay)} · License ${esc(licenseNum)} · ${yearsActive} years active${!currentKey?' (demo data)':''}</div>
+          </div>
+          <div style="padding:8px 16px;background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);border-radius:8px;font-size:13px;color:#10b981;font-weight:600">⭐ ${rating} rating</div>
+        </div>
+      </div>
+
+      <div class="rpt-preview-section">
+        <h4>Overview</h4>
+        <div class="rpt-stat-row">
+          <div class="rpt-stat-box"><div class="v">${totalPermits.toLocaleString()}</div><div class="l">Total Permits</div></div>
+          <div class="rpt-stat-box"><div class="v">${jurisdictions}</div><div class="l">Jurisdictions</div></div>
+          <div class="rpt-stat-box"><div class="v">$${Math.round(avgVal/1000)}K</div><div class="l">Avg Job Value</div></div>
+          <div class="rpt-stat-box"><div class="v">${yearsActive}yr</div><div class="l">Years Active</div></div>
+        </div>
+      </div>
+
+      <div class="rpt-preview-section">
+        <h4>Permit Type Breakdown</h4>
+        <div class="rpt-chart-bar-wrap">
+          ${types.map(t => `<div class="rpt-chart-bar-item">
+            <div class="rpt-chart-bar-label">${esc(t.name)}</div>
+            <div class="rpt-chart-bar-bg"><div class="rpt-chart-bar-fill" style="width:${t.pct}%;background:${t.color}"></div></div>
+            <div class="rpt-chart-bar-val">${t.pct}%</div>
+          </div>`).join('')}
+        </div>
+      </div>
+
+      <div class="rpt-preview-section">
+        <h4>Recent Permits</h4>
+        ${recentPermits.map(p => `
+          <div class="rpt-permit-row">
+            <span style="font-size:11px;color:var(--text3);min-width:90px">${esc(p.date)}</span>
+            <span class="badge badge-blue" style="font-size:10px;min-width:70px;text-align:center">${esc(p.type)}</span>
+            <span style="flex:1;color:var(--text2)">${esc(p.addr)}</span>
+            <span style="font-size:12px;color:var(--text3);min-width:60px;text-align:right">$${Math.round(p.val/1000)}K</span>
+            <span class="badge ${p.status==='finaled'?'badge-green':'badge-blue'}" style="font-size:10px">${esc(p.status)}</span>
+          </div>`).join('')}
+      </div>
+
+      <div class="rpt-dl-bar">
+        <span style="font-size:13px;color:var(--text2);flex:1">Contractor report · ${totalPermits} permits · ${jurisdictions} jurisdictions</span>
+        <button onclick="downloadReportCSV('contractor','${esc(name)}')" style="padding:8px 18px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer">⬇ Download CSV</button>
+        <button onclick="copyReportLink()" style="padding:8px 18px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:var(--text);cursor:pointer">🔗 Share Link</button>
+        <button onclick="showPage('contractors')" style="padding:8px 18px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:var(--text);cursor:pointer">Full Profile</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderMarketReport(city, state) {
+  const seed = rptSeed(city + state);
+  const totalPermits = 800 + (seed % 4200);
+  const momChange = -8 + (seed % 25);
+  const yoyChange = -5 + (seed % 22);
+  const avgVal = 45000 + (seed % 155000);
+  const stateDisplay = STATE_NAMES[state] || state || '';
+  const locationStr = [city, stateDisplay].filter(Boolean).join(', ') || 'Local market';
+  const months = parseInt(document.getElementById('rpt-market-months')?.value) || 12;
+
+  const types = [
+    { name: 'Residential', pct: 28+(seed%22), color: '#6366f1' },
+    { name: 'Electrical', pct: 15+(seed%15), color: '#10b981' },
+    { name: 'Plumbing', pct: 12+(seed%10), color: '#f59e0b' },
+    { name: 'Roofing', pct: 10+(seed%12), color: '#818cf8' },
+    { name: 'Commercial', pct: 8+(seed%10), color: '#ef4444' },
+  ];
+  const totalPct = types.reduce((s,t)=>s+t.pct,0);
+  types.forEach(t => t.pct = Math.round(t.pct/totalPct*100));
+
+  // Top contractors for this market
+  const cNames = ['Pacific Construction','Summit Builders','Eagle Electric','Premier Roofing','Alliance HVAC','Metro Plumbing'];
+  const topContractors = Array.from({length:5},(_,i) => {
+    const s2=(seed*(i+3)+i*13)&0xFFFFFF;
+    return { name: cNames[s2%cNames.length]+` #${i+1}`, permits: 20+(s2%180) };
+  }).sort((a,b)=>b.permits-a.permits);
+
+  // Monthly volume (last N months)
+  const monthlyData = Array.from({length:months},(_,i) => {
+    const d = new Date(); d.setMonth(d.getMonth()-i);
+    const s2=(seed*(i+1)*7)&0xFFFFFF;
+    const label = d.toLocaleDateString('en-US',{month:'short',year:'2-digit'});
+    const count = Math.round(totalPermits/months*(0.7+((s2%60)/100)));
+    return { label, count };
+  }).reverse();
+  const maxCount = Math.max(...monthlyData.map(m=>m.count));
+
+  const demoBanner = !currentKey ? `<div style="margin:0 0 16px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px"><span>📊 Demo market report — sign up free for live permit data</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button></div>` : '';
+
+  document.getElementById('rpt-output').innerHTML = `
+    ${demoBanner}
+    <div class="rpt-preview">
+      <div class="rpt-preview-header">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:6px">📈 Market Report</div>
+            <div class="rpt-preview-title">${esc(locationStr)}</div>
+            <div class="rpt-preview-sub">Last ${months} months · Generated ${new Date().toLocaleDateString('en-US',{month:'long',year:'numeric'})}${!currentKey?' (demo data)':''}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:22px;font-weight:800;color:${momChange>=0?'#10b981':'#ef4444'}">${momChange>=0?'+':''}${momChange}%</div>
+            <div style="font-size:12px;color:var(--text3)">MoM change</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rpt-preview-section">
+        <h4>Market Summary</h4>
+        <div class="rpt-stat-row">
+          <div class="rpt-stat-box"><div class="v">${totalPermits.toLocaleString()}</div><div class="l">Total Permits</div></div>
+          <div class="rpt-stat-box"><div class="v" style="color:${yoyChange>=0?'#10b981':'#ef4444'}">${yoyChange>=0?'+':''}${yoyChange}%</div><div class="l">YoY Change</div></div>
+          <div class="rpt-stat-box"><div class="v">$${Math.round(avgVal/1000)}K</div><div class="l">Avg Permit Value</div></div>
+          <div class="rpt-stat-box"><div class="v">$${(totalPermits*avgVal/1000000).toFixed(1)}M</div><div class="l">Total Value</div></div>
+        </div>
+      </div>
+
+      <div class="rpt-preview-section">
+        <h4>Monthly Volume</h4>
+        <div style="display:flex;gap:3px;align-items:flex-end;height:80px;margin-bottom:8px">
+          ${monthlyData.map((m,i)=>{
+            const h = Math.round((m.count/maxCount)*76);
+            const color = i===monthlyData.length-1?'#6366f1':'#6366f144';
+            return `<div style="flex:1;background:${color};border-radius:2px 2px 0 0;height:${h}px;min-width:6px;transition:background .2s" title="${m.label}: ${m.count}"></div>`;
+          }).join('')}
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text3)">
+          <span>${monthlyData[0]?.label}</span>
+          <span>${monthlyData[Math.floor(monthlyData.length/2)]?.label}</span>
+          <span>${monthlyData[monthlyData.length-1]?.label}</span>
+        </div>
+      </div>
+
+      <div class="rpt-preview-section">
+        <h4>Permit Type Mix</h4>
+        <div class="rpt-chart-bar-wrap">
+          ${types.map(t=>`<div class="rpt-chart-bar-item">
+            <div class="rpt-chart-bar-label">${esc(t.name)}</div>
+            <div class="rpt-chart-bar-bg"><div class="rpt-chart-bar-fill" style="width:${t.pct}%;background:${t.color}"></div></div>
+            <div class="rpt-chart-bar-val">${t.pct}%</div>
+          </div>`).join('')}
+        </div>
+      </div>
+
+      <div class="rpt-preview-section">
+        <h4>Top Contractors</h4>
+        <div class="rpt-chart-bar-wrap">
+          ${topContractors.map((c,i)=>`<div class="rpt-chart-bar-item">
+            <div class="rpt-chart-bar-label">${esc(c.name.substring(0,16)+(c.name.length>16?'…':''))}</div>
+            <div class="rpt-chart-bar-bg"><div class="rpt-chart-bar-fill" style="width:${Math.round(c.permits/topContractors[0].permits*100)}%;background:${['#6366f1','#10b981','#f59e0b','#818cf8','#22c55e'][i]}"></div></div>
+            <div class="rpt-chart-bar-val">${c.permits} permits</div>
+          </div>`).join('')}
+        </div>
+      </div>
+
+      <div class="rpt-dl-bar">
+        <span style="font-size:13px;color:var(--text2);flex:1">Market report · ${locationStr} · ${months}-month analysis</span>
+        <button onclick="downloadReportCSV('market','${esc(locationStr)}')" style="padding:8px 18px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer">⬇ Download CSV</button>
+        <button onclick="copyReportLink()" style="padding:8px 18px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:var(--text);cursor:pointer">🔗 Share Link</button>
+        <button onclick="showPage('trends')" style="padding:8px 18px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:var(--text);cursor:pointer">Full Trends</button>
+      </div>
+    </div>
+  `;
+}
+
+function downloadReportCSV(type, subject) {
+  if (!currentKey) { openSignup(); return; }
+  // For authed users, generate and download CSV
+  const rows = [['Type','Subject','Generated'],[ type, subject, new Date().toISOString()]];
+  const csv = rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = `permit-report-${type}-${Date.now()}.csv`; a.click();
+  URL.revokeObjectURL(url);
+  showToast('Report downloaded!', 'success');
+}
+
+function copyReportLink() {
+  const url = location.href.split('#')[0] + '#reports';
+  navigator.clipboard?.writeText(url).then(()=>showToast('Report link copied!','success')).catch(()=>showToast('Link: '+url,'success'));
 }
 </script>
 </body>
