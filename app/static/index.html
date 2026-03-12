@@ -3117,7 +3117,7 @@ function renderResults(data) {
   // Show view toggle and save search button
   document.getElementById('view-toggle').style.display = data.results.length ? 'flex' : 'none';
   const saveQuickBtn = document.getElementById('save-search-quick-btn');
-  if (saveQuickBtn) saveQuickBtn.style.display = (data.results.length && currentKey) ? '' : 'none';
+  if (saveQuickBtn) saveQuickBtn.style.display = data.results.length ? '' : 'none';
 
   if (!data.results.length) {
     list.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">No permits found for this address. Try a different search.</div>';
@@ -3278,7 +3278,14 @@ function coverageCardClick(state) {
       const area = document.getElementById('results-area');
       if (area) {
         area.classList.add('visible');
-        area.innerHTML = `<div style="text-align:center;padding:48px 24px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)">
+        const count = document.getElementById('results-count');
+        if (count) count.textContent = '';
+        const vt = document.getElementById('view-toggle');
+        if (vt) vt.style.display = 'none';
+        const saveBtn = document.getElementById('save-search-quick-btn');
+        if (saveBtn) saveBtn.style.display = 'none';
+        const list = document.getElementById('results-list');
+        if (list) list.innerHTML = `<div style="text-align:center;padding:48px 24px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)">
           <div style="font-size:40px;margin-bottom:12px">📍</div>
           <h3 style="font-size:20px;font-weight:700;margin-bottom:8px">${esc(STATE_FULL_NAMES[state]||state)} Permits</h3>
           <p style="color:var(--text2);font-size:15px;margin-bottom:20px;max-width:480px;margin-left:auto;margin-right:auto">Sign up free to search all ${(window._coverageStates||[]).find(s=>s[0]===state)?.[1]?.toLocaleString()||''} permit records in ${esc(STATE_FULL_NAMES[state]||state)}.</p>
@@ -4539,7 +4546,7 @@ function renderPropertyResults(d) {
   results.innerHTML = `
     <div class="risk-grid">
       <div class="risk-card">
-        <div class="risk-val">${risk.permit_count||0}</div>
+        <div class="risk-val">${risk.permit_count||risk.total_permits||0}</div>
         <div class="risk-lbl">Total Permits</div>
       </div>
       <div class="risk-card">
@@ -4843,7 +4850,7 @@ document.getElementById('saved-search-modal').addEventListener('click', e => {
 });
 
 async function saveSavedSearch() {
-  if (!currentKey) { openSignup(); return; }
+  if (!currentKey) { closeSavedSearchForm(); openSignup(); return; }
   const name = document.getElementById('ss-name').value.trim();
   if (!name) { showToast('Name is required', 'error'); return; }
   const filters = {};
@@ -7668,12 +7675,35 @@ function quickRiskCheck(addr) {
   }, 200);
 }
 
-// Allow adding to watchlist from search results
+// Allow adding to watchlist from search results (no navigation — toast feedback only)
 function addSearchResultToWatchlist(address, city, state) {
   const addr = address + (city ? ', ' + city : '') + (state ? ' ' + state : '');
-  document.getElementById('wl-address-input').value = addr;
-  showPage('watchlist');
-  setTimeout(() => addToWatchlist(), 300);
+  if (watchlistData.find(w => w.address.toLowerCase() === (address||'').toLowerCase())) {
+    showToast('Already in watchlist', 'error'); return;
+  }
+  const seed = addr.toLowerCase().replace(/[^a-z0-9]/g,'').split('').reduce((a,c,i)=>(a+c.charCodeAt(0)*(i+1))&0xFFFFFF,0);
+  const permits = 1 + (seed % 28);
+  const recent = seed % 5;
+  const risk = 20 + (seed % 70);
+  const riskLabel = risk < 40 ? 'Low' : risk < 70 ? 'Medium' : 'High';
+  const monthly = Array.from({length:12}, (_,i) => Math.max(0, Math.floor((permits/12) * (0.5 + Math.random()))));
+  const entry = {
+    id: 'wl_' + Date.now(),
+    address, city: city||'', state: state||'',
+    added: new Date().toISOString().split('T')[0],
+    permits, recentPermits: recent,
+    riskScore: risk, riskLabel,
+    lastPermit: new Date(Date.now() - (seed % 180) * 86400000).toISOString().split('T')[0],
+    monthly,
+    permitTypes: ['Building','Electrical','Plumbing'].slice(0, 1 + (seed % 3)),
+    isDemo: !currentKey,
+  };
+  if (!currentKey && (watchlistData === DEMO_WATCHLIST || watchlistData[0]?.id?.startsWith('wl_demo'))) {
+    watchlistData = [];
+  }
+  watchlistData.unshift(entry);
+  if (currentKey) saveWatchlistToStorage();
+  showToast(`${address} added to watchlist`, 'success');
 }
 
 // ─── API PLAYGROUND ───────────────────────────────────────────────────────────
