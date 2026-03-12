@@ -299,7 +299,7 @@ section .subtitle{color:var(--text2);font-size:16px;margin-bottom:40px}
 .trends-zip-bar{flex:2;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;margin-right:12px}
 .trends-zip-fill{height:6px;background:var(--accent);border-radius:3px;transition:width 1s ease}
 .trends-zip-count{font-size:12px;color:var(--text3);min-width:50px;text-align:right}
-.chart-tooltip{position:absolute;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;pointer-events:none;z-index:100;display:none;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.chart-tooltip{position:fixed;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;pointer-events:none;z-index:9999;display:none;box-shadow:0 4px 12px rgba(0,0,0,.3);white-space:nowrap}
 .trends-skeleton{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;animation:pulse 1.5s ease-in-out infinite}
 .trends-demo-banner{background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.3);border-radius:var(--radius-sm);padding:12px 20px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 @keyframes trendDraw{to{stroke-dashoffset:0}}
@@ -937,8 +937,10 @@ results.forEach(p =>
           <option value="TX">TX</option><option value="CA">CA</option><option value="FL">FL</option><option value="NY">NY</option><option value="GA">GA</option><option value="NC">NC</option><option value="AZ">AZ</option><option value="CO">CO</option><option value="WA">WA</option><option value="OH">OH</option><option value="IL">IL</option><option value="PA">PA</option><option value="TN">TN</option><option value="VA">VA</option><option value="MA">MA</option><option value="NJ">NJ</option><option value="OR">OR</option>
         </select>
         <select id="trends-months">
-          <option value="12">12 months</option>
-          <option value="24" selected>24 months</option>
+          <option value="3">3 months</option>
+          <option value="6">6 months</option>
+          <option value="12" selected>12 months</option>
+          <option value="24">24 months</option>
         </select>
         <button onclick="loadTrends()" id="trends-analyze-btn">Analyze</button>
       </div>
@@ -1007,7 +1009,7 @@ results.forEach(p =>
               <th style="text-align:left;padding:8px 4px">Month</th>
               <th style="text-align:right;padding:8px 4px">Permits</th>
               <th style="text-align:right;padding:8px 4px">MoM Change</th>
-              <th style="text-align:right;padding:8px 4px">Avg Value</th>
+              <th style="text-align:right;padding:8px 4px">Total Value</th>
             </tr></thead>
             <tbody id="trends-table-body"></tbody>
           </table>
@@ -2432,9 +2434,17 @@ function initMap() {
   mapMarkers = [];
 
   if (!mapDataReady.length) {
-    mapEl.innerHTML = '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1000;color:var(--text2);font-size:14px;text-align:center;padding:20px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border)">No mappable results.<br>Most permits don\'t include coordinates.</div>';
+    mapEl.style.position = 'relative';
+    const noCoordOverlay = document.createElement('div');
+    noCoordOverlay.id = 'map-no-coords-overlay';
+    noCoordOverlay.style.cssText = 'position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:1000;color:var(--text2);font-size:14px;text-align:center;padding:20px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border)';
+    noCoordOverlay.innerHTML = 'No mappable results.<br>Most permits don\'t include coordinates.';
+    mapEl.appendChild(noCoordOverlay);
     return;
   }
+  // Remove no-coords overlay if it exists from previous render
+  const oldOverlay = document.getElementById('map-no-coords-overlay');
+  if (oldOverlay) oldOverlay.remove();
 
   const bounds = L.latLngBounds();
 
@@ -3254,6 +3264,7 @@ function loadMockLeads() {
   saveLeadsToStorage();
   renderLeadsBoard();
   showToast(`Loaded ${added} demo lead${added !== 1 ? 's' : ''}!`, 'success');
+  return leadsData;
 }
 
 function renderLeadsBoard() {
@@ -3871,8 +3882,10 @@ function showTrendsTooltip(e, text) {
   if (!tip) return;
   tip.textContent = text;
   tip.style.display = 'block';
-  tip.style.left = (e.offsetX + 12) + 'px';
-  tip.style.top = (e.offsetY - 28) + 'px';
+  tip.style.position = 'fixed';
+  tip.style.left = (e.clientX + 14) + 'px';
+  tip.style.top = (e.clientY - 36) + 'px';
+  tip.style.zIndex = '9999';
 }
 function hideTrendsTooltip() {
   const tip = document.getElementById('trends-tooltip');
