@@ -834,6 +834,40 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
 .value-type-bar-label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;color:var(--text2)}
 .value-type-bar-track{height:8px;background:var(--surface2);border-radius:4px;overflow:hidden}
 .value-type-bar-fill{height:100%;border-radius:4px;transition:width .6s ease}
+/* Property Passport */
+.passport-header-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 32px;margin-bottom:24px;display:flex;gap:32px;align-items:flex-start;flex-wrap:wrap}
+.passport-address{font-size:22px;font-weight:800;margin-bottom:4px;line-height:1.2}
+.passport-meta{font-size:13px;color:var(--text3);margin-bottom:20px}
+.passport-stats{display:flex;gap:24px;flex-wrap:wrap}
+.passport-stat{display:flex;flex-direction:column;gap:2px}
+.passport-stat-val{font-size:22px;font-weight:800;color:var(--text)}
+.passport-stat-lbl{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.passport-timeline{display:flex;flex-direction:column;gap:0}
+.passport-tl-item{display:flex;gap:16px;padding:16px 0;border-bottom:1px solid var(--border)}
+.passport-tl-item:last-child{border-bottom:none}
+.passport-tl-line{display:flex;flex-direction:column;align-items:center;flex-shrink:0;width:32px}
+.passport-tl-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0;margin-top:4px}
+.passport-tl-connector{width:2px;flex:1;background:var(--border);margin-top:4px}
+.passport-tl-body{flex:1;min-width:0}
+.passport-tl-type{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+.passport-tl-desc{font-size:13px;color:var(--text2);margin-bottom:6px;line-height:1.4}
+.passport-tl-meta{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--text3)}
+.passport-contractors{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-top:4px}
+.passport-contractor-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 16px;display:flex;gap:12px;align-items:flex-start;transition:border-color .2s;cursor:pointer}
+.passport-contractor-card:hover{border-color:var(--accent)}
+.passport-contractor-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:800;color:#fff;flex-shrink:0}
+.passport-contractor-name{font-size:13px;font-weight:700;margin-bottom:2px}
+.passport-contractor-meta{font-size:11px;color:var(--text3)}
+.passport-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;margin-bottom:20px}
+.passport-section h3{font-size:15px;font-weight:700;margin:0 0 16px}
+.passport-risk-flags{display:flex;flex-direction:column;gap:10px}
+.passport-risk-flag{display:flex;gap:12px;align-items:flex-start;padding:12px 16px;border-radius:var(--radius-sm);font-size:13px}
+.passport-risk-flag.warn{background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2);color:#fbbf24}
+.passport-risk-flag.ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);color:#22c55e}
+.passport-risk-flag.info{background:rgba(99,179,237,.1);border:1px solid rgba(99,179,237,.2);color:#63b3ed}
+.passport-share-bar{display:flex;gap:10px;flex-wrap:wrap;padding:16px 0 0}
+@media(max-width:768px){#passport-layout{grid-template-columns:1fr!important}}
+@media(max-width:600px){.passport-header-card{padding:20px 16px}.passport-stats{gap:16px}.passport-address{font-size:18px}}
 .owners-search-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:28px}
 .owners-search-row .form-group{display:flex;flex-direction:column;gap:6px;flex:1;min-width:140px}
 .owners-search-row .form-group label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em}
@@ -912,6 +946,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
           <a href="#coverage" onclick="showPage('coverage');closeNavDropdown();return false">Coverage</a>
           <a href="#owners" onclick="showPage('owners');closeNavDropdown();return false">Owner Intelligence</a>
           <a href="#value" onclick="showPage('value');closeNavDropdown();return false">Value Analytics</a>
+          <a href="#passport" onclick="showPage('passport');closeNavDropdown();return false">Property Passport</a>
         </div>
       </div>
       <a href="/docs" target="_blank">API Docs</a>
@@ -1141,6 +1176,18 @@ results.forEach(p =>
             <li>Average permit value by city &amp; state</li>
           </ul>
           <button onclick="showPage('value')" style="margin-top:16px;padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600">Explore Value Analytics →</button>
+        </div>
+        <div class="feature-card">
+          <div style="font-size:36px;margin-bottom:12px">🏠</div>
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:8px">Property Passport</h3>
+          <p style="color:var(--text2);font-size:14px;line-height:1.6">Full construction history for any address. Every permit, every contractor, timeline of renovations, and risk signals — one shareable report.</p>
+          <ul>
+            <li>Complete permit timeline (all years)</li>
+            <li>Contractor network &amp; work history</li>
+            <li>Open permit &amp; inspection risk flags</li>
+            <li>Shareable link for realtors &amp; buyers</li>
+          </ul>
+          <button onclick="showPage('passport')" style="margin-top:16px;padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600">View Passport →</button>
         </div>
       </div>
     </div>
@@ -2675,6 +2722,116 @@ results.forEach(p =>
   </section>
 </div>
 
+<!-- PROPERTY PASSPORT PAGE -->
+<div class="page" id="page-passport">
+  <section class="container" style="padding:40px 0 80px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:24px">
+      <div>
+        <div style="display:inline-block;padding:6px 16px;background:rgba(99,179,237,.1);border:1px solid rgba(99,179,237,.2);border-radius:20px;font-size:12px;font-weight:600;color:#63b3ed;margin-bottom:14px;letter-spacing:.04em">PROPERTY PASSPORT</div>
+        <h2 style="font-size:32px;font-weight:800;margin-bottom:8px">Full Construction History</h2>
+        <p style="color:var(--text2);font-size:15px;max-width:600px">Every permit ever pulled on any address. Contractors, timelines, costs, and risk flags — one shareable report for realtors, buyers, and investors.</p>
+      </div>
+      <div id="passport-demo-badge" style="padding:8px 16px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:var(--radius-sm);font-size:12px;color:#fbbf24;font-weight:600;white-space:nowrap;align-self:flex-start">Demo Data — <a href="#" onclick="openSignup();return false" style="color:#fbbf24">Sign up free</a> for live data</div>
+    </div>
+
+    <!-- Lookup bar -->
+    <div style="display:flex;gap:10px;margin-bottom:32px;flex-wrap:wrap">
+      <input type="text" id="passport-address-input" placeholder="Enter any property address (e.g. 1234 Oak St, Austin TX)" autocomplete="off"
+        style="flex:1;min-width:280px;padding:12px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;font-family:var(--font);outline:none;transition:border-color .2s"
+        onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+        onkeydown="if(event.key==='Enter')lookupPassport()">
+      <button onclick="lookupPassport()" style="padding:12px 28px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap">Generate Passport</button>
+    </div>
+
+    <!-- Example addresses -->
+    <div style="margin-bottom:28px;font-size:13px;color:var(--text3)">
+      Try:
+      <a href="#" onclick="document.getElementById('passport-address-input').value='4201 Main St, Houston TX';lookupPassport();return false" style="color:var(--accent2);margin:0 8px">4201 Main St, Houston TX</a>
+      <a href="#" onclick="document.getElementById('passport-address-input').value='850 NW 23rd Ave, Portland OR';lookupPassport();return false" style="color:var(--accent2);margin:0 8px">850 NW 23rd Ave, Portland OR</a>
+      <a href="#" onclick="document.getElementById('passport-address-input').value='2100 Westlake Ave, Seattle WA';lookupPassport();return false" style="color:var(--accent2);margin:0 8px">2100 Westlake Ave, Seattle WA</a>
+    </div>
+
+    <!-- Results area -->
+    <div id="passport-results" style="display:none">
+      <!-- Property header card -->
+      <div class="passport-header-card">
+        <div style="flex:1;min-width:0">
+          <div id="passport-prop-type" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--accent2);margin-bottom:8px"></div>
+          <div id="passport-prop-address" class="passport-address"></div>
+          <div id="passport-prop-meta" class="passport-meta"></div>
+          <div class="passport-stats">
+            <div class="passport-stat">
+              <span id="pp-stat-permits" class="passport-stat-val">—</span>
+              <span class="passport-stat-lbl">Total Permits</span>
+            </div>
+            <div class="passport-stat">
+              <span id="pp-stat-value" class="passport-stat-val">—</span>
+              <span class="passport-stat-lbl">Total Est. Value</span>
+            </div>
+            <div class="passport-stat">
+              <span id="pp-stat-years" class="passport-stat-val">—</span>
+              <span class="passport-stat-lbl">Years Active</span>
+            </div>
+            <div class="passport-stat">
+              <span id="pp-stat-contractors" class="passport-stat-val">—</span>
+              <span class="passport-stat-lbl">Contractors</span>
+            </div>
+            <div class="passport-stat">
+              <span id="pp-stat-open" class="passport-stat-val" style="color:#fbbf24">—</span>
+              <span class="passport-stat-lbl">Open Permits</span>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div id="passport-score-ring" style="width:80px;height:80px;border-radius:50%;border:4px solid var(--green);display:flex;align-items:center;justify-content:center;flex-direction:column">
+            <span id="passport-score-val" style="font-size:24px;font-weight:800"></span>
+            <span style="font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em">Score</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Two-column: timeline + sidebar -->
+      <div style="display:grid;grid-template-columns:1fr 300px;gap:20px" id="passport-layout">
+        <!-- Timeline -->
+        <div>
+          <div class="passport-section">
+            <h3>📅 Permit Timeline</h3>
+            <div id="passport-timeline" class="passport-timeline"></div>
+          </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div>
+          <!-- Risk flags -->
+          <div class="passport-section">
+            <h3>⚠️ Risk Signals</h3>
+            <div id="passport-risk-flags" class="passport-risk-flags"></div>
+          </div>
+
+          <!-- Contractors -->
+          <div class="passport-section">
+            <h3>👷 Contractor Network</h3>
+            <div id="passport-contractors"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Share bar -->
+      <div class="passport-share-bar">
+        <button onclick="sharePassport()" style="padding:10px 22px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:700;cursor:pointer">🔗 Share Passport</button>
+        <button onclick="printPassport()" style="padding:10px 22px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:var(--text);cursor:pointer">🖨️ Print / PDF</button>
+        <button onclick="searchPassportAddress()" style="padding:10px 22px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:var(--text);cursor:pointer">🔍 Search Permits</button>
+      </div>
+    </div>
+
+    <div id="passport-empty" style="text-align:center;padding:60px 20px;color:var(--text3)">
+      <div style="font-size:48px;margin-bottom:16px">🏠</div>
+      <div style="font-size:16px;font-weight:600;color:var(--text2);margin-bottom:8px">Enter an address to generate a Property Passport</div>
+      <div style="font-size:13px">Complete construction history, contractor network, and risk signals for any address</div>
+    </div>
+  </section>
+</div>
+
 <!-- DASHBOARD PAGE -->
 <div class="page" id="page-dashboard">
   <section>
@@ -2929,7 +3086,7 @@ function showPage(page) {
   // Update active nav link
   document.querySelectorAll('nav .links a, .nav-dropdown-menu a').forEach(a => a.classList.remove('active'));
   document.getElementById('nav-tools-btn')?.classList.remove('has-active');
-  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements', reports: '#reports', watchlist: '#watchlist', playground: '#playground', owners: '#owners', value: '#value' };
+  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements', reports: '#reports', watchlist: '#watchlist', playground: '#playground', owners: '#owners', value: '#value', passport: '#passport' };
   const activeHash = hashMap[page] || '#search';
   const activeLink = document.querySelector(`a[href="${activeHash}"]`);
   if (activeLink) {
@@ -2956,6 +3113,7 @@ function showPage(page) {
   if (page === 'playground') { initPlayground(); }
   if (page === 'owners') { initOwnersPage(); }
   if (page === 'value') { initValueAnalytics(); }
+  if (page === 'passport') { initPassportPage(); }
   if (page === 'contractors') {
     showContractorSearch();
     const results = document.getElementById('contractor-results');
@@ -2981,7 +3139,7 @@ function showPage(page) {
 // Hash routing
 function routeFromHash() {
   const h = location.hash.replace('#','') || 'home';
-  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', risk: 'risk', trends: 'trends', properties: 'properties', market: 'market', feed: 'feed', estimator: 'estimator', requirements: 'requirements', reports: 'reports', watchlist: 'watchlist', playground: 'playground', owners: 'owners', value: 'value' };
+  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', risk: 'risk', trends: 'trends', properties: 'properties', market: 'market', feed: 'feed', estimator: 'estimator', requirements: 'requirements', reports: 'reports', watchlist: 'watchlist', playground: 'playground', owners: 'owners', value: 'value', passport: 'passport' };
   showPage(map[h] || 'home');
 }
 window.addEventListener('hashchange', routeFromHash);
@@ -3132,7 +3290,7 @@ async function doSearch() {
           <span>🔒 Demo results — <strong>sign up free</strong> to search 7M+ real permit records across 17 states</span>
           <button onclick="openSignup()" style="padding:7px 18px;background:rgba(251,191,36,.2);border:1px solid rgba(251,191,36,.4);border-radius:var(--radius-sm);color:#fbbf24;font-size:13px;font-weight:700;white-space:nowrap">Get Free API Key →</button>
         </div>
-        ${demoSlice.map(p => `<div class="result-card"><div class="address">${esc(p.address)}, ${esc(p.city)} ${esc(p.state)}</div><div class="meta"><span><strong>#</strong> ${esc(p.permit_number)}</span>${p.permit_type?`<span class="badge badge-blue">${esc(p.permit_type)}</span>`:''}<span class="badge ${statusBadge(p.status||'issued')}">${esc(p.status||'Issued')}</span><span>Issued: ${p.issue_date}</span>${p.estimated_value?`<span>$${Number(p.estimated_value).toLocaleString()}</span>`:''}<span>${esc(p.jurisdiction||p.city+' '+p.state)}</span></div>${p.description?`<div style="margin-top:8px;font-size:13px;color:var(--text2)">${esc(p.description)}</div>`:''}<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button onclick="addSearchResultToWatchlist('${esc(p.address||'').replace(/'/g,"\\'")}','${esc(p.city||'').replace(/'/g,"\\'")}','${esc(p.state||'')}')" style="padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='#22c55e';this.style.color='#22c55e'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">+ Watchlist</button><button onclick="openRiskForAddress('${esc(p.address||'').replace(/'/g,"\\'")}','${esc(p.city||'').replace(/'/g,"\\'")}','${esc(p.state||'')}')" style="padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--accent2)';this.style.color='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">Risk Score →</button></div></div>`).join('')}
+        ${demoSlice.map(p => `<div class="result-card"><div class="address">${esc(p.address)}, ${esc(p.city)} ${esc(p.state)}</div><div class="meta"><span><strong>#</strong> ${esc(p.permit_number)}</span>${p.permit_type?`<span class="badge badge-blue">${esc(p.permit_type)}</span>`:''}<span class="badge ${statusBadge(p.status||'issued')}">${esc(p.status||'Issued')}</span><span>Issued: ${p.issue_date}</span>${p.estimated_value?`<span>$${Number(p.estimated_value).toLocaleString()}</span>`:''}<span>${esc(p.jurisdiction||p.city+' '+p.state)}</span></div>${p.description?`<div style="margin-top:8px;font-size:13px;color:var(--text2)">${esc(p.description)}</div>`:''}<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button onclick="addSearchResultToWatchlist('${esc(p.address||'').replace(/'/g,"\\'")}','${esc(p.city||'').replace(/'/g,"\\'")}','${esc(p.state||'')}')" style="padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='#22c55e';this.style.color='#22c55e'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">+ Watchlist</button><button onclick="openRiskForAddress('${esc(p.address||'').replace(/'/g,"\\'")}','${esc(p.city||'').replace(/'/g,"\\'")}','${esc(p.state||'')}')" style="padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--accent2)';this.style.color='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">Risk Score →</button><button onclick="openPassportForAddress('${esc(p.address||'').replace(/'/g,"\\'")}','${esc(p.city||'').replace(/'/g,"\\'")}','${esc(p.state||'')}')" style="padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='#63b3ed';this.style.color='#63b3ed'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">Passport →</button></div></div>`).join('')}
         <div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">Sign up free to see all results and access the full database →</div>`;
       }
     }
@@ -3268,7 +3426,7 @@ function renderResults(data) {
       </div>
       ${p.description ? `<div style="margin-top:8px;font-size:13px;color:var(--text2)">${esc(p.description).substring(0,200)}${p.description.length > 200 ? '...' : ''}</div>` : ''}
       ${p.contractor_name || p.contractor_company ? `<div style="margin-top:6px;font-size:13px;color:var(--text3)">Contractor: ${esc(p.contractor_name || '')} ${p.contractor_company ? '(' + esc(p.contractor_company) + ')' : ''}</div>` : ''}
-      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button onclick="addSearchResultToWatchlist('${esc(p.address||'').replace(/'/g,"\\'")}','${esc(p.city||'').replace(/'/g,"\\'")}','${esc(p.state||'')}')" style="padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='#22c55e';this.style.color='#22c55e'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">+ Watchlist</button><button onclick="openRiskForAddress('${esc(p.address||'').replace(/'/g,"\\'")}','${esc(p.city||'').replace(/'/g,"\\'")}','${esc(p.state||'')}')" style="padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--accent2)';this.style.color='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">Risk Score →</button></div>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button onclick="addSearchResultToWatchlist('${esc(p.address||'').replace(/'/g,"\\'")}','${esc(p.city||'').replace(/'/g,"\\'")}','${esc(p.state||'')}')" style="padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='#22c55e';this.style.color='#22c55e'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">+ Watchlist</button><button onclick="openRiskForAddress('${esc(p.address||'').replace(/'/g,"\\'")}','${esc(p.city||'').replace(/'/g,"\\'")}','${esc(p.state||'')}')" style="padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--accent2)';this.style.color='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">Risk Score →</button><button onclick="openPassportForAddress('${esc(p.address||'').replace(/'/g,"\\'")}','${esc(p.city||'').replace(/'/g,"\\'")}','${esc(p.state||'')}')" style="padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='#63b3ed';this.style.color='#63b3ed'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">Passport →</button></div>
     </div>
   `).join('');
 
@@ -7815,6 +7973,15 @@ function openRiskForAddress(address, city, state) {
   }, 150);
 }
 
+function openPassportForAddress(address, city, state) {
+  const addr = address + (city ? ', ' + city : '') + (state ? ' ' + state : '');
+  showPage('passport');
+  setTimeout(() => {
+    const input = document.getElementById('passport-address-input');
+    if (input) { input.value = addr; lookupPassport(); }
+  }, 150);
+}
+
 // Allow adding to watchlist from search results (no navigation — toast feedback only)
 function addSearchResultToWatchlist(address, city, state) {
   const addr = address + (city ? ', ' + city : '') + (state ? ' ' + state : '');
@@ -8010,6 +8177,291 @@ function drillValueMarket(city, state) {
     if (stateFilter) stateFilter.value = state;
     doSearch();
   }, 150);
+}
+
+// ============ PROPERTY PASSPORT ============
+const PASSPORT_PERMIT_TYPES = [
+  { type: 'Building / New Construction', color: '#6366f1', icon: '🏗️' },
+  { type: 'Electrical', color: '#f59e0b', icon: '⚡' },
+  { type: 'Plumbing', color: '#3b82f6', icon: '🔧' },
+  { type: 'Mechanical / HVAC', color: '#10b981', icon: '❄️' },
+  { type: 'Roofing', color: '#8b5cf6', icon: '🏠' },
+  { type: 'Demolition', color: '#ef4444', icon: '🔨' },
+  { type: 'Addition / Remodel', color: '#ec4899', icon: '🏡' },
+  { type: 'Pool / Spa', color: '#06b6d4', icon: '🏊' },
+  { type: 'Fire Suppression', color: '#f97316', icon: '🚒' },
+  { type: 'Solar / Energy', color: '#84cc16', icon: '☀️' },
+];
+const PASSPORT_CONTRACTORS = [
+  'Apex Construction', 'BlueStar Builders', 'CoreTech Services', 'Delta Electric',
+  'Eagle Roofing', 'First Choice Plumbing', 'GreenBuild LLC', 'Heritage Contractors',
+  'Ironwood Construction', 'Keystone HVAC', 'Liberty Builders', 'Metro Electric',
+  'NorthStar Remodeling', 'Omega Plumbing', 'Pacific Contractors', 'Quality First Build',
+  'Redwood Construction', 'Summit Electrical', 'TrueForm Builders', 'United Roofing',
+];
+
+let passportCurrentAddress = '';
+
+function passportRng(seed) {
+  let s = seed;
+  return () => { s = (s * 1664525 + 1013904223) & 0xFFFFFFFF; return (s >>> 0) / 0xFFFFFFFF; };
+}
+
+function generatePassportData(address) {
+  const seed = address.toLowerCase().replace(/[^a-z0-9]/g,'').split('').reduce((a,c,i)=>(a+c.charCodeAt(0)*(i+7))&0x7FFFFFFF,0);
+  const rng = passportRng(seed);
+  const numPermits = 4 + Math.floor(rng() * 14); // 4-17 permits
+  const startYear = 1998 + Math.floor(rng() * 14); // 1998-2012
+  const propTypes = ['Single Family Residential', 'Multi-Family', 'Commercial - Retail', 'Commercial - Office', 'Industrial', 'Mixed Use'];
+  const propType = propTypes[Math.floor(rng() * propTypes.length)];
+  const ownerNames = ['Johnson Family Trust', 'Smith Holdings LLC', 'Williams Properties', 'Garcia Investments', 'Brown Real Estate', 'Davis Family Ltd', 'Miller Development', 'Wilson Group LLC'];
+  const owner = ownerNames[Math.floor(rng() * ownerNames.length)];
+  const yearBuilt = startYear - 2 - Math.floor(rng() * 30);
+  const sqft = 800 + Math.floor(rng() * 4200);
+
+  // Pick 2-4 contractors for this property
+  const numContractors = 2 + Math.floor(rng() * 3);
+  const contractorIdxs = [];
+  while (contractorIdxs.length < numContractors) {
+    const idx = Math.floor(rng() * PASSPORT_CONTRACTORS.length);
+    if (!contractorIdxs.includes(idx)) contractorIdxs.push(idx);
+  }
+  const contractors = contractorIdxs.map(i => PASSPORT_CONTRACTORS[i]);
+
+  const statuses = ['Finaled', 'Finaled', 'Finaled', 'Finaled', 'Expired', 'Closed', 'Issued'];
+  const openStatuses = ['Issued', 'In Review', 'Approved'];
+
+  const permits = [];
+  let year = startYear;
+  for (let i = 0; i < numPermits; i++) {
+    year += Math.floor(rng() * 3);
+    if (year > 2025) year = 2025;
+    const month = 1 + Math.floor(rng() * 12);
+    const day = 1 + Math.floor(rng() * 28);
+    const typeInfo = PASSPORT_PERMIT_TYPES[Math.floor(rng() * PASSPORT_PERMIT_TYPES.length)];
+    const isOpen = (i === numPermits - 1) && rng() > 0.55;
+    const status = isOpen ? openStatuses[Math.floor(rng() * openStatuses.length)] : statuses[Math.floor(rng() * statuses.length)];
+    const baseValue = typeInfo.type.includes('New Construction') ? 120000 + Math.floor(rng() * 380000)
+      : typeInfo.type.includes('Addition') ? 30000 + Math.floor(rng() * 120000)
+      : 2000 + Math.floor(rng() * 38000);
+    const contractor = contractors[Math.floor(rng() * contractors.length)];
+    const descs = {
+      'Building / New Construction': ['New single family residence', 'New commercial building construction', 'New residential structure'],
+      'Electrical': ['Panel upgrade to 200A', 'Electrical service upgrade', 'New circuit installation', 'EV charger installation'],
+      'Plumbing': ['Water heater replacement', 'Sewer line repair', 'Kitchen/bath plumbing rough-in', 'Backflow preventer installation'],
+      'Mechanical / HVAC': ['HVAC system replacement', 'New AC unit installation', 'Ductwork replacement', 'Mini-split installation'],
+      'Roofing': ['Re-roof (shingles)', 'Complete roof replacement', 'Roof repair - storm damage'],
+      'Demolition': ['Interior demolition', 'Detached structure demolition', 'Partial demolition for remodel'],
+      'Addition / Remodel': ['Kitchen remodel', 'Master bath addition', 'Second story addition', 'Accessory dwelling unit', 'Garage conversion to ADU'],
+      'Pool / Spa': ['In-ground pool installation', 'Spa/hot tub installation', 'Pool remodel'],
+      'Fire Suppression': ['Fire sprinkler system installation', 'Fire suppression upgrade'],
+      'Solar / Energy': ['Rooftop solar PV installation', 'Battery storage system', 'Solar + battery bundle'],
+    };
+    const typeDescs = descs[typeInfo.type] || ['Permit work'];
+    const desc = typeDescs[Math.floor(rng() * typeDescs.length)];
+    permits.push({
+      id: `${year}-${String(month).padStart(2,'0')}${String(day).padStart(2,'0')}-${Math.floor(rng()*9000+1000)}`,
+      type: typeInfo.type,
+      color: typeInfo.color,
+      icon: typeInfo.icon,
+      status,
+      isOpen,
+      year,
+      date: `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`,
+      value: baseValue,
+      contractor,
+      description: desc,
+    });
+  }
+  permits.sort((a,b) => b.date.localeCompare(a.date));
+
+  const totalValue = permits.reduce((s,p) => s+p.value, 0);
+  const openPermits = permits.filter(p => p.isOpen).length;
+  const uniqueContractors = [...new Set(permits.map(p => p.contractor))];
+  const years = [...new Set(permits.map(p => p.year))];
+  const minYear = Math.min(...years), maxYear = Math.max(...years);
+
+  // Risk score: start at 90, penalize open permits, expired permits
+  let score = 90;
+  score -= openPermits * 8;
+  const expired = permits.filter(p => p.status === 'Expired').length;
+  score -= expired * 5;
+  if (totalValue > 500000) score += 3;
+  score = Math.max(30, Math.min(99, score));
+
+  const contractorDetails = uniqueContractors.map(name => {
+    const cPermits = permits.filter(p => p.contractor === name);
+    return { name, count: cPermits.length, value: cPermits.reduce((s,p) => s+p.value, 0), lastYear: Math.max(...cPermits.map(p => p.year)) };
+  }).sort((a,b) => b.count - a.count);
+
+  return { address, propType, owner, yearBuilt, sqft, permits, totalValue, openPermits, uniqueContractors: uniqueContractors.length, yearsSpan: `${minYear}–${maxYear}`, score, contractorDetails };
+}
+
+function renderPassportScore(score) {
+  const ring = document.getElementById('passport-score-ring');
+  const val = document.getElementById('passport-score-val');
+  if (!ring || !val) return;
+  const color = score >= 80 ? '#22c55e' : score >= 60 ? '#f59e0b' : '#ef4444';
+  ring.style.borderColor = color;
+  val.textContent = score;
+  val.style.color = color;
+}
+
+function renderPassportTimeline(permits) {
+  const el = document.getElementById('passport-timeline');
+  if (!el) return;
+  const statusColor = s => s === 'Finaled' || s === 'Closed' ? '#22c55e' : s === 'Expired' ? '#ef4444' : '#f59e0b';
+  el.innerHTML = permits.map((p, i) => `
+    <div class="passport-tl-item">
+      <div class="passport-tl-line">
+        <div class="passport-tl-dot" style="background:${p.color}"></div>
+        ${i < permits.length - 1 ? '<div class="passport-tl-connector"></div>' : ''}
+      </div>
+      <div class="passport-tl-body">
+        <div class="passport-tl-type" style="color:${p.color}">${p.icon} ${esc(p.type)}</div>
+        <div class="passport-tl-desc">${esc(p.description)}</div>
+        <div class="passport-tl-meta">
+          <span style="color:${statusColor(p.status)};font-weight:600">${esc(p.status)}</span>
+          <span>📅 ${p.date}</span>
+          <span>💰 $${p.value.toLocaleString()}</span>
+          <span>👷 ${esc(p.contractor)}</span>
+          <span style="font-size:11px;color:var(--text3)">#{${esc(p.id)}}</span>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function renderPassportContractors(contractorDetails) {
+  const el = document.getElementById('passport-contractors');
+  if (!el) return;
+  const colors = ['#6366f1','#3b82f6','#10b981','#f59e0b','#ec4899','#8b5cf6'];
+  el.innerHTML = '<div class="passport-contractors">' + contractorDetails.map((c, i) => {
+    const initials = c.name.split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+    const color = colors[i % colors.length];
+    return `<div class="passport-contractor-card" onclick="goToContractor('${esc(c.name).replace(/'/g,"\\'")}')">
+      <div class="passport-contractor-avatar" style="background:${color}">${initials}</div>
+      <div>
+        <div class="passport-contractor-name">${esc(c.name)}</div>
+        <div class="passport-contractor-meta">${c.count} permit${c.count!==1?'s':''} · $${c.value.toLocaleString()}</div>
+        <div class="passport-contractor-meta">Last active: ${c.lastYear}</div>
+      </div>
+    </div>`;
+  }).join('') + '</div>';
+}
+
+function renderPassportRiskFlags(data) {
+  const el = document.getElementById('passport-risk-flags');
+  if (!el) return;
+  const flags = [];
+  if (data.openPermits > 0) {
+    flags.push({ cls: 'warn', icon: '⚠️', text: `${data.openPermits} open permit${data.openPermits!==1?'s':''} — may affect title transfer` });
+  } else {
+    flags.push({ cls: 'ok', icon: '✓', text: 'No open permits on record' });
+  }
+  const expired = data.permits.filter(p => p.status === 'Expired').length;
+  if (expired > 0) {
+    flags.push({ cls: 'warn', icon: '⚠️', text: `${expired} expired permit${expired!==1?'s':''} — work may be unpermitted` });
+  }
+  if (data.permits.some(p => p.type === 'Demolition')) {
+    flags.push({ cls: 'info', icon: 'ℹ️', text: 'Demolition permit on record — verify current structure' });
+  }
+  if (data.permits.length >= 10) {
+    flags.push({ cls: 'ok', icon: '✓', text: 'High renovation history — well-documented improvements' });
+  }
+  if (data.uniqueContractors >= 4) {
+    flags.push({ cls: 'info', icon: 'ℹ️', text: `${data.uniqueContractors} different contractors — review work continuity` });
+  }
+  if (data.permits.some(p => p.type === 'Addition / Remodel' && (p.value||0) > 100000)) {
+    flags.push({ cls: 'ok', icon: '✓', text: 'Major permitted renovation on record ($100K+)' });
+  }
+  el.innerHTML = flags.map(f => `<div class="passport-risk-flag ${f.cls}">${f.icon} ${f.text}</div>`).join('');
+}
+
+function lookupPassport() {
+  const input = document.getElementById('passport-address-input');
+  if (!input) return;
+  const address = (input.value || '').trim();
+  if (!address) { showToast('Enter a property address first', 'error'); input.focus(); return; }
+  passportCurrentAddress = address;
+
+  // Brief loading state
+  const btn = input.nextElementSibling;
+  const origText = btn ? btn.textContent : '';
+  if (btn) { btn.textContent = 'Generating…'; btn.disabled = true; }
+
+  setTimeout(() => {
+    if (btn) { btn.textContent = origText; btn.disabled = false; }
+    const data = generatePassportData(address);
+
+    // Show results
+    const results = document.getElementById('passport-results');
+    const empty = document.getElementById('passport-empty');
+    if (results) results.style.display = '';
+    if (empty) empty.style.display = 'none';
+
+    // Header
+    document.getElementById('passport-prop-type').textContent = data.propType;
+    document.getElementById('passport-prop-address').textContent = data.address;
+    document.getElementById('passport-prop-meta').textContent = `Built ${data.yearBuilt} · ${data.sqft.toLocaleString()} sq ft · Owner: ${data.owner}`;
+    document.getElementById('pp-stat-permits').textContent = data.permits.length;
+    document.getElementById('pp-stat-value').textContent = '$' + (data.totalValue >= 1000000 ? (data.totalValue/1000000).toFixed(1)+'M' : (data.totalValue/1000).toFixed(0)+'K');
+    document.getElementById('pp-stat-years').textContent = data.yearsSpan;
+    document.getElementById('pp-stat-contractors').textContent = data.uniqueContractors;
+    document.getElementById('pp-stat-open').textContent = data.openPermits || '0';
+    document.getElementById('pp-stat-open').style.color = data.openPermits > 0 ? '#fbbf24' : '#22c55e';
+    renderPassportScore(data.score);
+    renderPassportTimeline(data.permits);
+    renderPassportContractors(data.contractorDetails);
+    renderPassportRiskFlags(data);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, 250);
+}
+
+function initPassportPage() {
+  // Check for address in URL param
+  const hash = location.hash;
+  const m = hash.match(/[?&]addr=([^&]+)/);
+  if (m) {
+    const addr = decodeURIComponent(m[1]);
+    const inp = document.getElementById('passport-address-input');
+    if (inp) { inp.value = addr; lookupPassport(); }
+  }
+}
+
+function sharePassport() {
+  if (!passportCurrentAddress) { showToast('Look up an address first', 'error'); return; }
+  const url = location.origin + '/#passport?addr=' + encodeURIComponent(passportCurrentAddress);
+  showToast('Passport link copied to clipboard!', 'success');
+  navigator.clipboard.writeText(url).catch(() => {
+    // Fallback: select text in a temp input
+    const tmp = document.createElement('input');
+    tmp.value = url;
+    document.body.appendChild(tmp);
+    tmp.select();
+    document.execCommand('copy');
+    document.body.removeChild(tmp);
+  });
+}
+
+function printPassport() {
+  window.print();
+}
+
+function searchPassportAddress() {
+  if (!passportCurrentAddress) return;
+  showPage('home');
+  setTimeout(() => {
+    const inp = document.getElementById('search-input');
+    if (inp) { inp.value = passportCurrentAddress; doSearch(); }
+  }, 150);
+}
+
+function goToContractor(name) {
+  showPage('contractors');
+  setTimeout(() => {
+    const inp = document.getElementById('contractor-input');
+    if (inp) { inp.value = name; doContractorSearch(); }
+  }, 200);
 }
 
 // ─── API PLAYGROUND ───────────────────────────────────────────────────────────
