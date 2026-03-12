@@ -743,6 +743,70 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
 .wl-summary-stat .num{font-size:24px;font-weight:800;color:var(--accent2);margin-bottom:4px}
 .wl-summary-stat .lbl{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px}
 @media(max-width:768px){.wl-grid{grid-template-columns:1fr}.wl-summary-bar{grid-template-columns:1fr 1fr}}
+
+/* API Playground */
+.playground-layout{display:grid;grid-template-columns:240px 1fr;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;min-height:600px}
+.pg-sidebar{border-right:1px solid var(--border);padding:0;display:flex;flex-direction:column}
+.pg-sidebar-header{padding:16px;border-bottom:1px solid var(--border)}
+.pg-sidebar-header h4{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin:0 0 10px}
+.pg-search{width:100%;padding:7px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;outline:none}
+.pg-search:focus{border-color:var(--accent)}
+.pg-endpoint-list{flex:1;overflow-y:auto;padding:8px 0}
+.pg-endpoint-item{display:flex;align-items:center;gap:8px;padding:8px 16px;cursor:pointer;border-radius:0;transition:background .15s;user-select:none}
+.pg-endpoint-item:hover{background:var(--surface2)}
+.pg-endpoint-item.active{background:rgba(99,102,241,.1);border-right:2px solid var(--accent)}
+.pg-method{font-size:10px;font-weight:800;padding:2px 6px;border-radius:4px;letter-spacing:.04em;flex-shrink:0;width:36px;text-align:center}
+.pg-method.GET{background:rgba(16,185,129,.12);color:#10b981}
+.pg-method.POST{background:rgba(245,158,11,.12);color:#f59e0b}
+.pg-method.PUT{background:rgba(99,102,241,.12);color:#818cf8}
+.pg-method.DELETE{background:rgba(239,68,68,.12);color:#ef4444}
+.pg-endpoint-name{font-size:13px;color:var(--text2)}
+.pg-main{display:flex;flex-direction:column;overflow:hidden}
+.pg-top{padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.pg-path-badge{display:flex;align-items:center;gap:8px}
+.pg-path-text{font-family:monospace;font-size:14px;font-weight:600;color:var(--text)}
+.pg-endpoint-desc{font-size:13px;color:var(--text3);margin-top:4px;line-height:1.5}
+.pg-auth-badge{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:600}
+.pg-auth-badge.required{background:rgba(245,158,11,.12);color:#f59e0b}
+.pg-auth-badge.public{background:rgba(16,185,129,.12);color:#10b981}
+.pg-body{padding:20px 24px;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:20px}
+.pg-section-title{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);margin-bottom:10px}
+.pg-param-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px}
+.pg-param{display:flex;flex-direction:column;gap:4px}
+.pg-param label{font-size:12px;color:var(--text2);font-weight:500}
+.pg-param label span{color:var(--red);margin-left:2px}
+.pg-param input,.pg-param select,.pg-param textarea{padding:8px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;outline:none;transition:border-color .2s;font-family:var(--font)}
+.pg-param input:focus,.pg-param select:focus,.pg-param textarea:focus{border-color:var(--accent)}
+.pg-param textarea{resize:vertical;min-height:80px;font-family:monospace;font-size:12px}
+.pg-run-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.pg-run-btn{padding:10px 28px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:8px}
+.pg-run-btn:hover{background:#5558f0;transform:translateY(-1px)}
+.pg-run-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.pg-key-hint{font-size:12px;color:var(--text3)}
+.pg-code-panel{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+.pg-tab-bar{display:flex;border-bottom:1px solid var(--border);background:var(--surface2)}
+.pg-tab{padding:8px 14px;font-size:12px;font-weight:600;color:var(--text3);cursor:pointer;border:none;background:none;transition:all .15s;border-bottom:2px solid transparent}
+.pg-tab:hover{color:var(--text2)}
+.pg-tab.active{color:var(--accent2);border-bottom-color:var(--accent)}
+.pg-code-copy{padding:4px 10px;font-size:11px;background:none;border:1px solid var(--border);border-radius:4px;color:var(--text3);cursor:pointer;transition:all .15s}
+.pg-code-copy:hover{border-color:var(--accent2);color:var(--accent2)}
+.pg-code-pre{padding:16px;font-family:monospace;font-size:12px;line-height:1.6;overflow-x:auto;margin:0;color:var(--text2);max-height:240px;overflow-y:auto}
+.pg-response{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+.pg-response-header{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:var(--surface2);gap:12px;flex-wrap:wrap}
+.pg-response-status{font-size:12px;font-weight:700;padding:3px 8px;border-radius:4px}
+.pg-response-status.ok{background:rgba(16,185,129,.15);color:#10b981}
+.pg-response-status.err{background:rgba(239,68,68,.15);color:#ef4444}
+.pg-response-pre{padding:16px;font-family:monospace;font-size:12px;line-height:1.6;overflow-x:auto;margin:0;color:var(--text2);max-height:360px;overflow-y:auto}
+.json-key{color:#818cf8}.json-str{color:#34d399}.json-num{color:#fb923c}.json-bool{color:#fbbf24}.json-null{color:var(--text3)}
+.pg-empty{text-align:center;padding:48px 20px;color:var(--text3);font-size:14px}
+@media(max-width:768px){
+  .playground-layout{grid-template-columns:1fr;min-height:auto}
+  .pg-sidebar{border-right:none;border-bottom:1px solid var(--border);max-height:200px}
+  .pg-endpoint-list{display:flex;flex-wrap:nowrap;overflow-x:auto;padding:8px}
+  .pg-endpoint-item{flex-shrink:0;border-right:none!important}
+  .pg-param-grid{grid-template-columns:1fr}
+}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -769,6 +833,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
       <a href="#watchlist" onclick="showPage('watchlist');return false">Watchlist</a>
       <a href="#coverage" onclick="showPage('coverage');return false">Coverage</a>
       <a href="#pricing" onclick="showPage('pricing');return false">Pricing</a>
+      <a href="#playground" onclick="showPage('playground');return false">Playground</a>
       <a href="/docs" target="_blank">API Docs</a>
       <button class="btn-primary" onclick="openSignup()" id="nav-signup">Get API Key</button>
     </div>
@@ -2198,6 +2263,83 @@ results.forEach(p =>
   </section>
 </div>
 
+<!-- API PLAYGROUND PAGE -->
+<div class="page" id="page-playground">
+  <section class="container" style="padding:40px 0 80px">
+    <div style="text-align:center;margin-bottom:32px">
+      <div style="display:inline-block;padding:6px 16px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:20px;font-size:12px;font-weight:600;color:var(--accent2);margin-bottom:14px;letter-spacing:.04em">INTERACTIVE API EXPLORER</div>
+      <h2 style="font-size:32px;font-weight:800;margin-bottom:10px">API Playground</h2>
+      <p style="color:var(--text2);font-size:16px;max-width:520px;margin:0 auto">Test any endpoint live, generate code snippets, and explore the PermitLookup API without leaving the browser.</p>
+    </div>
+    <div class="playground-layout" id="playground-layout">
+      <!-- Left sidebar: endpoint list -->
+      <div class="pg-sidebar">
+        <div class="pg-sidebar-header">
+          <h4>Endpoints</h4>
+          <input class="pg-search" id="pg-filter" type="text" placeholder="Filter..." oninput="filterPgEndpoints(this.value)">
+        </div>
+        <div class="pg-endpoint-list" id="pg-endpoint-list"></div>
+      </div>
+      <!-- Right main panel -->
+      <div class="pg-main" id="pg-main">
+        <div class="pg-empty" id="pg-empty-state">Select an endpoint from the list to get started.</div>
+        <div id="pg-content" style="display:none;flex-direction:column;flex:1">
+          <!-- Endpoint info bar -->
+          <div class="pg-top">
+            <div style="flex:1">
+              <div class="pg-path-badge">
+                <span class="pg-method GET" id="pg-method-badge">GET</span>
+                <span class="pg-path-text" id="pg-path-display">/v1/permits/search</span>
+                <span class="pg-auth-badge public" id="pg-auth-badge">Public</span>
+              </div>
+              <p class="pg-endpoint-desc" id="pg-desc">Search building permits by address, city, state, or keywords.</p>
+            </div>
+          </div>
+          <!-- Parameters -->
+          <div class="pg-body">
+            <div id="pg-params-section">
+              <div class="pg-section-title">Parameters</div>
+              <div class="pg-param-grid" id="pg-params-form"></div>
+            </div>
+            <!-- Run button -->
+            <div class="pg-run-row">
+              <button class="pg-run-btn" id="pg-run-btn" onclick="runPlayground()">
+                <span>&#9654;</span> Run Request
+              </button>
+              <span class="pg-key-hint" id="pg-key-hint"></span>
+            </div>
+            <!-- Code panel -->
+            <div class="pg-code-panel">
+              <div class="pg-tab-bar">
+                <span style="flex:1;padding:8px 14px;font-size:12px;font-weight:600;color:var(--text3)">Code</span>
+                <button class="pg-tab active" id="pg-tab-curl" onclick="setPgLang('curl')">cURL</button>
+                <button class="pg-tab" id="pg-tab-python" onclick="setPgLang('python')">Python</button>
+                <button class="pg-tab" id="pg-tab-node" onclick="setPgLang('node')">Node.js</button>
+                <div style="padding:6px 10px">
+                  <button class="pg-code-copy" onclick="copyPgCode()">Copy</button>
+                </div>
+              </div>
+              <pre class="pg-code-pre" id="pg-code-pre"></pre>
+            </div>
+            <!-- Response panel -->
+            <div class="pg-response" id="pg-response-panel" style="display:none">
+              <div class="pg-response-header">
+                <span style="font-size:12px;font-weight:600;color:var(--text2)">Response</span>
+                <div style="display:flex;align-items:center;gap:10px">
+                  <span class="pg-response-status ok" id="pg-status-badge">200 OK</span>
+                  <span style="font-size:11px;color:var(--text3)" id="pg-response-time"></span>
+                  <button class="pg-code-copy" onclick="copyPgResponse()">Copy</button>
+                </div>
+              </div>
+              <pre class="pg-response-pre" id="pg-response-pre"></pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
 <!-- DASHBOARD PAGE -->
 <div class="page" id="page-dashboard">
   <section>
@@ -2432,7 +2574,7 @@ function showPage(page) {
   el.classList.add('visible');
   // Update active nav link
   document.querySelectorAll('nav .links a').forEach(a => a.classList.remove('active'));
-  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements', reports: '#reports', watchlist: '#watchlist' };
+  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements', reports: '#reports', watchlist: '#watchlist', playground: '#playground' };
   const activeLink = document.querySelector(`nav .links a[href="${hashMap[page] || '#search'}"]`);
   if (activeLink) activeLink.classList.add('active');
   currentPage = page;
@@ -2448,6 +2590,7 @@ function showPage(page) {
   if (page === 'market') { loadMarketPageDefaults(); }
   if (page === 'trends') { loadTrendsPageDefaults(); }
   if (page === 'watchlist') { loadWatchlistPage(); }
+  if (page === 'playground') { initPlayground(); }
   if (page === 'contractors') {
     showContractorSearch();
     const results = document.getElementById('contractor-results');
@@ -2473,7 +2616,7 @@ function showPage(page) {
 // Hash routing
 function routeFromHash() {
   const h = location.hash.replace('#','') || 'home';
-  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', risk: 'risk', trends: 'trends', properties: 'properties', market: 'market', feed: 'feed', estimator: 'estimator', requirements: 'requirements', reports: 'reports', watchlist: 'watchlist' };
+  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', risk: 'risk', trends: 'trends', properties: 'properties', market: 'market', feed: 'feed', estimator: 'estimator', requirements: 'requirements', reports: 'reports', watchlist: 'watchlist', playground: 'playground' };
   showPage(map[h] || 'home');
 }
 window.addEventListener('hashchange', routeFromHash);
@@ -7280,6 +7423,362 @@ function addSearchResultToWatchlist(address, city, state) {
   showPage('watchlist');
   setTimeout(() => addToWatchlist(), 300);
 }
+
+// ─── API PLAYGROUND ───────────────────────────────────────────────────────────
+const PG_STATES = ['TX','CA','FL','NY','IL','PA','OH','GA','NC','MI','NJ','VA','WA','AZ','MA','IN','TN','MO','MD','CO','MN','WI','OR','SC','AL','KY','LA'];
+const PG_PERMIT_TYPES = ['building','electrical','plumbing','mechanical','demolition','roofing','residential','commercial','fire','hvac'];
+
+const PG_ENDPOINTS = [
+  {
+    id: 'search',
+    method: 'GET',
+    path: '/v1/permits/search',
+    name: 'Search Permits',
+    description: 'Search building permits by address, city, state, or keyword. Supports fuzzy matching across 3.5M+ records.',
+    auth: false,
+    params: [
+      { name: 'q', label: 'Query', type: 'text', placeholder: 'e.g. 123 Main St Austin TX', full: true },
+      { name: 'state', label: 'State', type: 'select', options: ['', ...PG_STATES] },
+      { name: 'city', label: 'City', type: 'text', placeholder: 'e.g. Austin' },
+      { name: 'permit_type', label: 'Permit Type', type: 'select', options: ['', ...PG_PERMIT_TYPES] },
+      { name: 'limit', label: 'Limit', type: 'number', placeholder: '10', default: '10' },
+    ],
+    demoResponse: () => {
+      const permits = generateDemoPermits('Austin TX').slice(0, 3);
+      return { results: permits, total: 1284, page: 1, limit: 10 };
+    },
+  },
+  {
+    id: 'coverage',
+    method: 'GET',
+    path: '/v1/coverage',
+    name: 'Coverage',
+    description: 'List all covered jurisdictions and their permit counts.',
+    auth: false,
+    params: [
+      { name: 'state', label: 'Filter by State', type: 'select', options: ['', ...PG_STATES] },
+    ],
+    demoResponse: () => ({ jurisdictions: [
+      { name: 'Austin', state: 'TX', total_permits: 284923, last_updated: '2026-03-01' },
+      { name: 'Houston', state: 'TX', total_permits: 512847, last_updated: '2026-03-01' },
+      { name: 'Los Angeles', state: 'CA', total_permits: 893421, last_updated: '2026-03-01' },
+    ], total: 179 }),
+  },
+  {
+    id: 'stats',
+    method: 'GET',
+    path: '/v1/stats',
+    name: 'Stats',
+    description: 'Get aggregate database statistics including total permits, jurisdictions, and states.',
+    auth: false,
+    params: [],
+    demoResponse: () => ({ total_permits: 3580000, total_jurisdictions: 179, total_states: 17, last_updated: '2026-03-12' }),
+  },
+  {
+    id: 'usage',
+    method: 'GET',
+    path: '/v1/usage',
+    name: 'Usage',
+    description: 'Get your current API usage, limits, and plan details.',
+    auth: true,
+    params: [],
+    demoResponse: () => ({ plan: 'starter', daily_limit: 1000, used_today: 47, remaining_today: 953, monthly_total: 1284 }),
+  },
+  {
+    id: 'api-keys',
+    method: 'GET',
+    path: '/v1/api-keys',
+    name: 'API Keys',
+    description: 'List all API keys associated with your account.',
+    auth: true,
+    params: [],
+    demoResponse: () => ({ keys: [{ id: 'k_demo', prefix: 'pl_demo_', created_at: '2026-01-15T10:00:00Z', is_active: true }] }),
+  },
+  {
+    id: 'signup',
+    method: 'POST',
+    path: '/v1/signup',
+    name: 'Sign Up',
+    description: 'Create a free account and receive an API key instantly.',
+    auth: false,
+    isBody: true,
+    params: [
+      { name: 'email', label: 'Email', type: 'email', placeholder: 'you@company.com', required: true, full: true },
+      { name: 'company', label: 'Company', type: 'text', placeholder: 'Acme Corp' },
+      { name: 'name', label: 'Name', type: 'text', placeholder: 'Jane Smith' },
+    ],
+    demoResponse: () => ({ api_key: 'pl_demo_a1b2c3d4e5f6', plan: 'free', daily_limit: 100, message: 'Welcome! Your API key has been created.' }),
+  },
+  {
+    id: 'bulk',
+    method: 'POST',
+    path: '/v1/permits/bulk',
+    name: 'Bulk Search',
+    description: 'Batch permit lookups via CSV upload. Returns results for multiple addresses at once. Requires Starter+ plan.',
+    auth: true,
+    isBody: true,
+    params: [
+      { name: 'addresses', label: 'Addresses (one per line)', type: 'textarea', placeholder: '123 Main St, Austin TX\n456 Oak Ave, Houston TX', required: true, full: true },
+    ],
+    demoResponse: () => ({ results: [
+      { input: '123 Main St, Austin TX', permits: generateDemoPermits('123 Main St Austin TX').slice(0, 2) },
+      { input: '456 Oak Ave, Houston TX', permits: generateDemoPermits('456 Oak Ave Houston TX').slice(0, 2) },
+    ], total: 4 }),
+  },
+];
+
+let pgSelectedId = null;
+let pgLang = 'curl';
+let pgInitialized = false;
+
+function initPlayground() {
+  if (pgInitialized) { updatePgKeyHint(); return; }
+  pgInitialized = true;
+  renderPgEndpointList(PG_ENDPOINTS);
+  selectPgEndpoint('search');
+}
+
+function renderPgEndpointList(endpoints) {
+  const listEl = document.getElementById('pg-endpoint-list');
+  listEl.innerHTML = endpoints.map(ep => `
+    <div class="pg-endpoint-item${ep.id === pgSelectedId ? ' active' : ''}" id="pg-item-${ep.id}" onclick="selectPgEndpoint('${ep.id}')">
+      <span class="pg-method ${ep.method}">${ep.method}</span>
+      <span class="pg-endpoint-name">${ep.name}</span>
+    </div>`).join('');
+}
+
+function filterPgEndpoints(q) {
+  const filtered = q ? PG_ENDPOINTS.filter(ep => ep.name.toLowerCase().includes(q.toLowerCase()) || ep.path.toLowerCase().includes(q.toLowerCase())) : PG_ENDPOINTS;
+  renderPgEndpointList(filtered);
+}
+
+function selectPgEndpoint(id) {
+  pgSelectedId = id;
+  const ep = PG_ENDPOINTS.find(e => e.id === id);
+  if (!ep) return;
+
+  // Update sidebar active state
+  document.querySelectorAll('.pg-endpoint-item').forEach(el => el.classList.remove('active'));
+  const item = document.getElementById('pg-item-' + id);
+  if (item) item.classList.add('active');
+
+  // Show content
+  document.getElementById('pg-empty-state').style.display = 'none';
+  const content = document.getElementById('pg-content');
+  content.style.display = 'flex';
+
+  // Update header
+  const methodBadge = document.getElementById('pg-method-badge');
+  methodBadge.textContent = ep.method;
+  methodBadge.className = 'pg-method ' + ep.method;
+  document.getElementById('pg-path-display').textContent = ep.path;
+  document.getElementById('pg-desc').textContent = ep.description;
+
+  const authBadge = document.getElementById('pg-auth-badge');
+  authBadge.textContent = ep.auth ? 'Auth Required' : 'Public';
+  authBadge.className = 'pg-auth-badge ' + (ep.auth ? 'required' : 'public');
+
+  // Build params form
+  const form = document.getElementById('pg-params-form');
+  const paramsSection = document.getElementById('pg-params-section');
+  if (!ep.params.length) {
+    paramsSection.style.display = 'none';
+  } else {
+    paramsSection.style.display = '';
+    form.innerHTML = ep.params.map(p => `
+      <div class="pg-param${p.full ? '" style="grid-column:1/-1' : ''}">
+        <label>${p.label}${p.required ? '<span>*</span>' : ''}</label>
+        ${p.type === 'select'
+          ? `<select id="pg-p-${p.name}">${p.options.map(o => `<option value="${o}">${o || '(any)'}</option>`).join('')}</select>`
+          : p.type === 'textarea'
+          ? `<textarea id="pg-p-${p.name}" placeholder="${p.placeholder || ''}">${p.default || ''}</textarea>`
+          : `<input type="${p.type}" id="pg-p-${p.name}" placeholder="${p.placeholder || ''}" value="${p.default || ''}">`
+        }
+      </div>`).join('');
+  }
+
+  // Update key hint
+  updatePgKeyHint();
+
+  // Hide old response
+  document.getElementById('pg-response-panel').style.display = 'none';
+
+  // Update code snippet
+  updatePgCode();
+
+  // Add live-update listeners
+  ep.params.forEach(p => {
+    const el = document.getElementById('pg-p-' + p.name);
+    if (el) el.addEventListener('input', updatePgCode);
+  });
+}
+
+function updatePgKeyHint() {
+  const ep = PG_ENDPOINTS.find(e => e.id === pgSelectedId);
+  const hint = document.getElementById('pg-key-hint');
+  if (!hint || !ep) return;
+  if (ep.auth && !currentKey) {
+    hint.innerHTML = '<span style="color:#f59e0b">&#9888; Requires API key — <a href="#" onclick="openSignup();return false" style="color:#f59e0b;text-decoration:underline">sign up free</a></span>';
+  } else if (!currentKey) {
+    hint.innerHTML = '<span style="color:var(--text3)">No API key — demo response shown</span>';
+  } else {
+    hint.innerHTML = '<span style="color:#10b981">&#10003; Using your API key</span>';
+  }
+}
+
+function getPgParamValues(ep) {
+  const vals = {};
+  ep.params.forEach(p => {
+    const el = document.getElementById('pg-p-' + p.name);
+    if (el && el.value.trim()) vals[p.name] = el.value.trim();
+  });
+  return vals;
+}
+
+function buildPgUrl(ep, params) {
+  const base = 'https://permits.ecbtx.com' + ep.path;
+  if (ep.method !== 'GET' || !Object.keys(params).length) return base;
+  const qs = new URLSearchParams(params).toString();
+  return base + '?' + qs;
+}
+
+function updatePgCode() {
+  const ep = PG_ENDPOINTS.find(e => e.id === pgSelectedId);
+  if (!ep) return;
+  const params = getPgParamValues(ep);
+  const url = buildPgUrl(ep, ep.isBody ? {} : params);
+  const key = currentKey || 'YOUR_API_KEY';
+  let code = '';
+
+  if (pgLang === 'curl') {
+    if (ep.method === 'GET') {
+      code = `curl -X GET "${url}" \\\n  -H "X-API-Key: ${key}"`;
+    } else if (ep.isBody) {
+      const body = ep.method === 'POST' && ep.id === 'bulk'
+        ? `{"addresses": ["${(params.addresses || '').split('\n').filter(Boolean).join('", "')}"]}`
+        : JSON.stringify(params, null, 2).replace(/\n/g, '\n  ');
+      code = `curl -X ${ep.method} "${url}" \\\n  -H "X-API-Key: ${key}" \\\n  -H "Content-Type: application/json" \\\n  -d '${body}'`;
+    }
+  } else if (pgLang === 'python') {
+    const importLine = 'import requests\n\n';
+    if (ep.method === 'GET') {
+      const paramsStr = Object.keys(params).length
+        ? '\nparams = ' + JSON.stringify(params, null, 4).replace(/\n/g, '\n') + '\n\nresponse = requests.get(\n    "' + ep.path.replace('/v1', 'https://permits.ecbtx.com/v1') + '",\n    params=params,\n    headers={"X-API-Key": "' + key + '"}\n)'
+        : '\nresponse = requests.get(\n    "' + url + '",\n    headers={"X-API-Key": "' + key + '"}\n)';
+      code = importLine + paramsStr + '\nprint(response.json())';
+    } else {
+      const body = { ...params };
+      code = importLine + 'body = ' + JSON.stringify(body, null, 4) + '\n\nresponse = requests.post(\n    "' + url + '",\n    json=body,\n    headers={"X-API-Key": "' + key + '"}\n)\nprint(response.json())';
+    }
+  } else if (pgLang === 'node') {
+    if (ep.method === 'GET') {
+      code = `const response = await fetch(\n  "${url}",\n  { headers: { "X-API-Key": "${key}" } }\n);\nconst data = await response.json();\nconsole.log(data);`;
+    } else {
+      const body = { ...params };
+      code = `const response = await fetch("${url}", {\n  method: "${ep.method}",\n  headers: {\n    "X-API-Key": "${key}",\n    "Content-Type": "application/json"\n  },\n  body: JSON.stringify(${JSON.stringify(body, null, 4).replace(/\n/g, '\n  ')})\n});\nconst data = await response.json();\nconsole.log(data);`;
+    }
+  }
+
+  document.getElementById('pg-code-pre').textContent = code;
+  updatePgTabBars();
+}
+
+function updatePgTabBars() {
+  ['curl','python','node'].forEach(lang => {
+    const tab = document.getElementById('pg-tab-' + lang);
+    if (tab) tab.className = 'pg-tab' + (lang === pgLang ? ' active' : '');
+  });
+}
+
+function setPgLang(lang) {
+  pgLang = lang;
+  updatePgCode();
+}
+
+function copyPgCode() {
+  const pre = document.getElementById('pg-code-pre');
+  navigator.clipboard.writeText(pre.textContent).then(() => showToast('Code copied!', 'success'));
+}
+
+function copyPgResponse() {
+  const pre = document.getElementById('pg-response-pre');
+  navigator.clipboard.writeText(pre.textContent).then(() => showToast('Response copied!', 'success'));
+}
+
+function syntaxHighlightJson(json) {
+  return json.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g, m => {
+      let cls = 'json-num';
+      if (/^"/.test(m)) cls = /:$/.test(m) ? 'json-key' : 'json-str';
+      else if (/true|false/.test(m)) cls = 'json-bool';
+      else if (/null/.test(m)) cls = 'json-null';
+      return `<span class="${cls}">${m}</span>`;
+    });
+}
+
+async function runPlayground() {
+  const ep = PG_ENDPOINTS.find(e => e.id === pgSelectedId);
+  if (!ep) return;
+
+  const btn = document.getElementById('pg-run-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span style="animation:spin 1s linear infinite;display:inline-block">&#8635;</span> Running...';
+
+  const responsePanel = document.getElementById('pg-response-panel');
+  responsePanel.style.display = '';
+  document.getElementById('pg-response-pre').innerHTML = '<span style="color:var(--text3)">Loading...</span>';
+  document.getElementById('pg-status-badge').textContent = '...';
+  document.getElementById('pg-status-badge').className = 'pg-response-status';
+  document.getElementById('pg-response-time').textContent = '';
+
+  const params = getPgParamValues(ep);
+  const start = Date.now();
+
+  try {
+    let resp, data;
+    if (!currentKey && !ep.auth) {
+      // Use demo response
+      await new Promise(r => setTimeout(r, 400 + Math.random() * 300));
+      data = ep.demoResponse();
+      const elapsed = Date.now() - start;
+      document.getElementById('pg-status-badge').textContent = '200 OK (demo)';
+      document.getElementById('pg-status-badge').className = 'pg-response-status ok';
+      document.getElementById('pg-response-time').textContent = elapsed + 'ms';
+    } else if (!currentKey && ep.auth) {
+      await new Promise(r => setTimeout(r, 200));
+      data = { detail: 'API key required. Sign up free at permits.ecbtx.com to get your key.' };
+      document.getElementById('pg-status-badge').textContent = '401 Unauthorized';
+      document.getElementById('pg-status-badge').className = 'pg-response-status err';
+      document.getElementById('pg-response-time').textContent = (Date.now() - start) + 'ms';
+    } else {
+      const url = buildPgUrl(ep, ep.isBody ? {} : params);
+      const opts = { headers: { 'X-API-Key': currentKey } };
+      if (ep.method !== 'GET') {
+        opts.method = ep.method;
+        opts.headers['Content-Type'] = 'application/json';
+        opts.body = JSON.stringify(params);
+      }
+      resp = await fetch(url, opts);
+      const elapsed = Date.now() - start;
+      data = await resp.json();
+      const statusText = resp.ok ? resp.status + ' OK' : resp.status + ' Error';
+      document.getElementById('pg-status-badge').textContent = statusText;
+      document.getElementById('pg-status-badge').className = 'pg-response-status ' + (resp.ok ? 'ok' : 'err');
+      document.getElementById('pg-response-time').textContent = elapsed + 'ms';
+    }
+
+    const pretty = JSON.stringify(data, null, 2);
+    document.getElementById('pg-response-pre').innerHTML = syntaxHighlightJson(pretty);
+  } catch(e) {
+    document.getElementById('pg-status-badge').textContent = 'Error';
+    document.getElementById('pg-status-badge').className = 'pg-response-status err';
+    document.getElementById('pg-response-pre').textContent = e.message;
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<span>&#9654;</span> Run Request';
+  }
+}
+// ─── END API PLAYGROUND ────────────────────────────────────────────────────────
 </script>
 </body>
 </html>
