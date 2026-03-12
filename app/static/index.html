@@ -2991,6 +2991,9 @@ async function doSearch() {
       // Show view toggle in demo mode (map won't have markers but shows the feature exists)
       const vt = document.getElementById('view-toggle');
       if (vt) vt.style.display = 'flex';
+      // Show Save Search button in demo mode (opens SS modal → signup)
+      const saveQuickBtnDemo = document.getElementById('save-search-quick-btn');
+      if (saveQuickBtnDemo) saveQuickBtnDemo.style.display = '';
       // Export buttons: enable with signup prompt in demo mode
       const expCsv = document.getElementById('export-csv-btn');
       const expJson = document.getElementById('export-json-btn');
