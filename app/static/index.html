@@ -853,7 +853,14 @@ results.forEach(p =>
     <div class="container">
       <h2>Coverage</h2>
       <p class="subtitle">Permit data from <span id="cov-states">17+</span> states and <span id="cov-jurisdictions">180+</span> jurisdictions</p>
-      <div class="coverage-grid" id="coverage-grid"></div>
+      <div class="coverage-grid" id="coverage-grid">
+        <div class="state-card" style="animation:pulse 1.5s ease infinite"><div style="height:14px;background:var(--surface2);border-radius:4px;width:40%;margin-bottom:8px"></div><div style="height:28px;background:var(--surface2);border-radius:4px;width:70%"></div></div>
+        <div class="state-card" style="animation:pulse 1.5s ease infinite .1s"><div style="height:14px;background:var(--surface2);border-radius:4px;width:40%;margin-bottom:8px"></div><div style="height:28px;background:var(--surface2);border-radius:4px;width:70%"></div></div>
+        <div class="state-card" style="animation:pulse 1.5s ease infinite .2s"><div style="height:14px;background:var(--surface2);border-radius:4px;width:40%;margin-bottom:8px"></div><div style="height:28px;background:var(--surface2);border-radius:4px;width:70%"></div></div>
+        <div class="state-card" style="animation:pulse 1.5s ease infinite .3s"><div style="height:14px;background:var(--surface2);border-radius:4px;width:40%;margin-bottom:8px"></div><div style="height:28px;background:var(--surface2);border-radius:4px;width:70%"></div></div>
+        <div class="state-card" style="animation:pulse 1.5s ease infinite .1s"><div style="height:14px;background:var(--surface2);border-radius:4px;width:40%;margin-bottom:8px"></div><div style="height:28px;background:var(--surface2);border-radius:4px;width:70%"></div></div>
+        <div class="state-card" style="animation:pulse 1.5s ease infinite .2s"><div style="height:14px;background:var(--surface2);border-radius:4px;width:40%;margin-bottom:8px"></div><div style="height:28px;background:var(--surface2);border-radius:4px;width:70%"></div></div>
+      </div>
     </div>
   </section>
 </div>
@@ -930,6 +937,14 @@ results.forEach(p =>
           <div class="search-box">
             <input type="text" id="contractor-input" placeholder="Search contractors... e.g. Johnson Electric" autocomplete="off">
             <button onclick="doContractorSearch()" id="contractor-search-btn">Search</button>
+          </div>
+          <div id="contractor-sort-row" style="display:none;margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+            <span style="font-size:13px;color:var(--text3)">Sort by:</span>
+            <select id="contractor-sort" onchange="sortContractorResults()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text1);padding:6px 12px;border-radius:var(--radius-sm);font-size:13px">
+              <option value="permits">Most Permits</option>
+              <option value="name">Name A–Z</option>
+              <option value="jurisdictions">Most Jurisdictions</option>
+            </select>
           </div>
         </div>
         <div id="contractor-results"></div>
@@ -1928,7 +1943,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === e.currentTarget) closeSignup();
   });
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeSignup(); closeAlertForm(); closeSavedSearchForm(); document.getElementById('feed-detail-modal')?.classList.remove('visible'); }
+    if (e.key === 'Escape') { closeSignup(); closeAlertForm(); closeSavedSearchForm(); document.getElementById('feed-detail-modal')?.classList.remove('visible'); if (document.getElementById('compare-view')?.classList.contains('visible')) exitCompareView(); }
   });
   // Populate state filter dropdown
   populateStateFilter();
@@ -2635,6 +2650,9 @@ function renderContractors(data) {
   }
   if (emptyEl) emptyEl.style.display = 'none';
   lastContractorResults = data.results;
+  // Show sort row
+  const sortRow = document.getElementById('contractor-sort-row');
+  if (sortRow) sortRow.style.display = 'flex';
 
   // Add compare hint above results
   const hintId = 'compare-hint-row';
@@ -2674,6 +2692,18 @@ function renderContractors(data) {
       </div>
     </div>
   `).join('');
+}
+
+function sortContractorResults() {
+  const sortBy = document.getElementById('contractor-sort')?.value || 'permits';
+  const sorted = [...lastContractorResults].sort((a, b) => {
+    if (sortBy === 'name') return (a.contractor || '').localeCompare(b.contractor || '');
+    if (sortBy === 'jurisdictions') return (b.jurisdictions || 0) - (a.jurisdictions || 0);
+    return (b.total_permits || 0) - (a.total_permits || 0); // default: most permits
+  });
+  // Reset compare selection when re-sorting
+  compareSelection = [];
+  renderContractors({ results: sorted });
 }
 
 // ============ CONTRACTOR COMPARISON ============
@@ -3436,18 +3466,54 @@ function updatePropertyPage() {
   const authGate = document.getElementById('property-auth-gate');
   const lookupForm = document.getElementById('property-lookup-form');
   if (!currentKey) {
-    if (authGate) authGate.style.display = '';
+    // Demo mode: show lookup form with demo note, hide auth gate
+    if (authGate) authGate.style.display = 'none';
     if (bulkSection) bulkSection.style.display = 'none';
-    if (lookupForm) lookupForm.style.display = 'none';
+    if (lookupForm) lookupForm.style.display = '';
+    // Show demo note
+    let note = document.getElementById('property-demo-note');
+    if (!note) {
+      note = document.createElement('div');
+      note.id = 'property-demo-note';
+      note.style.cssText = 'margin-bottom:16px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px';
+      note.innerHTML = '<span>📋 Demo mode — sign up free to lookup any property with live permit data</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button>';
+      if (lookupForm) lookupForm.insertAdjacentElement('beforebegin', note);
+    }
     return;
   }
+  document.getElementById('property-demo-note')?.remove();
   if (authGate) authGate.style.display = 'none';
   if (bulkSection) bulkSection.style.display = '';
   if (lookupForm) lookupForm.style.display = '';
 }
 
 async function lookupProperty() {
-  if (!currentKey) { openSignup(); return; }
+  if (!currentKey) {
+    const addr = document.getElementById('property-address').value.trim();
+    if (!addr) { showToast('Enter a property address', 'error'); return; }
+    const results = document.getElementById('property-results');
+    results.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3)">Loading demo data...</div>';
+    await new Promise(r => setTimeout(r, 500));
+    // Generate demo property data from address seed
+    const seed = addr.toLowerCase().replace(/[^a-z0-9]/g, '').split('').reduce((a,c,i) => (a + c.charCodeAt(0) * (i+1)) & 0xFFFFFF, 0);
+    const permits = generateDemoPermits(addr);
+    const demoData = {
+      permits,
+      risk_signals: {
+        total_permits: permits.length,
+        last_permit_date: permits[0]?.issue_date || null,
+        has_unpermitted_gap: (seed & 0x3) === 0,
+        renovation_intensity: (1 + (seed % 8)) / 3,
+      },
+    };
+    renderPropertyResults(demoData);
+    // Add demo banner to results
+    const banner = document.createElement('div');
+    banner.style.cssText = 'margin-bottom:16px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px';
+    banner.innerHTML = '<span>📋 Demo results — sign up free to get live property data from 7M+ permits</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button>';
+    results.insertBefore(banner, results.firstChild);
+    return;
+  }
   const addr = document.getElementById('property-address').value.trim();
   if (!addr) { showToast('Enter an address', 'error'); return; }
   const results = document.getElementById('property-results');
@@ -3859,15 +3925,46 @@ let leadsFilter = 'all';
 const LEAD_STAGES = ['new', 'contacted', 'quoted', 'won', 'lost'];
 
 function loadLeadsPage() {
-  if (!currentKey) {
-    document.getElementById('leads-auth-gate').style.display = '';
-    document.getElementById('leads-content').style.display = 'none';
-    return;
-  }
   document.getElementById('leads-auth-gate').style.display = 'none';
   document.getElementById('leads-content').style.display = '';
+  if (!currentKey) {
+    // Demo mode: show mock leads with amber banner
+    if (!leadsData.length) {
+      leadsData = loadMockLeadsDemo();
+    }
+    renderLeadsBoard();
+    // Show demo note
+    let note = document.getElementById('leads-demo-note');
+    if (!note) {
+      note = document.createElement('div');
+      note.id = 'leads-demo-note';
+      note.style.cssText = 'margin-bottom:16px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px';
+      note.innerHTML = '<span>📊 Demo pipeline — sign up free to import real permit leads from 7M+ records</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button>';
+      const content = document.getElementById('leads-content');
+      if (content) content.insertBefore(note, content.firstChild);
+    }
+    return;
+  }
+  document.getElementById('leads-demo-note')?.remove();
   leadsData = loadLeadsFromStorage();
   renderLeadsBoard();
+}
+
+function loadMockLeadsDemo() {
+  const now = new Date();
+  const daysAgo = n => { const d = new Date(now); d.setDate(d.getDate() - n); return d.toISOString().split('T')[0]; };
+  return [
+    { id: 'mock_001', address: '4821 Burnet Rd', city: 'Austin', state: 'TX', permit_type: 'roofing', valuation: 18500, contractor_name: 'Peak Roofing Solutions', issue_date: daysAgo(2), stage: 'new', description: 'Roof replacement, 35 squares, architectural shingles', imported_at: now.toISOString(), notes: '' },
+    { id: 'mock_002', address: '2310 Westheimer Rd', city: 'Houston', state: 'TX', permit_type: 'electrical', valuation: 12000, contractor_name: 'Bright Wire Electric', issue_date: daysAgo(3), stage: 'new', description: 'Service upgrade to 200A, panel replacement', imported_at: now.toISOString(), notes: '' },
+    { id: 'mock_003', address: '951 Brickell Ave', city: 'Miami', state: 'FL', permit_type: 'mechanical', valuation: 9800, contractor_name: 'CoolAir HVAC', issue_date: daysAgo(1), stage: 'new', description: 'HVAC replacement, 4-ton split system', imported_at: now.toISOString(), notes: '' },
+    { id: 'mock_004', address: '7742 Peachtree St NE', city: 'Atlanta', state: 'GA', permit_type: 'roofing', valuation: 22000, contractor_name: 'Southern Shield Roofing', issue_date: daysAgo(4), stage: 'contacted', description: 'Complete roof tear-off and replacement, 48 squares', imported_at: now.toISOString(), notes: '' },
+    { id: 'mock_005', address: '8821 Research Blvd', city: 'Austin', state: 'TX', permit_type: 'building', valuation: 450000, contractor_name: 'TechSpace Builders', issue_date: daysAgo(3), stage: 'contacted', description: 'Commercial tenant improvement, 8,000 sq ft office fit-out', imported_at: now.toISOString(), notes: '' },
+    { id: 'mock_006', address: '18205 FM 529', city: 'Houston', state: 'TX', permit_type: 'building', valuation: 185000, contractor_name: 'Cornerstone Builders', issue_date: daysAgo(6), stage: 'quoted', description: 'New residential construction, 2,400 sq ft single family home', imported_at: now.toISOString(), notes: '' },
+    { id: 'mock_007', address: '5512 Bee Caves Rd', city: 'Austin', state: 'TX', permit_type: 'electrical', valuation: 31000, contractor_name: 'SunPower Solar TX', issue_date: daysAgo(7), stage: 'quoted', description: 'Solar panel installation, 28 panels, battery storage', imported_at: now.toISOString(), notes: '' },
+    { id: 'mock_008', address: '2801 University Blvd', city: 'Dallas', state: 'TX', permit_type: 'mechanical', valuation: 14200, contractor_name: 'Climate Masters', issue_date: daysAgo(12), stage: 'won', description: 'Commercial HVAC replacement, 10-ton rooftop unit', imported_at: now.toISOString(), notes: '' },
+    { id: 'mock_009', address: '9933 Westview Dr', city: 'Houston', state: 'TX', permit_type: 'roofing', valuation: 19500, contractor_name: 'Gulf Coast Roofing', issue_date: daysAgo(14), stage: 'won', description: 'Insurance claim, full replacement after hail damage', imported_at: now.toISOString(), notes: '' },
+    { id: 'mock_010', address: '876 Oak Lawn Ave', city: 'Dallas', state: 'TX', permit_type: 'roofing', valuation: 13200, contractor_name: 'Lone Star Roofing', issue_date: daysAgo(18), stage: 'lost', description: 'Residential re-roof, 32 squares', imported_at: now.toISOString(), notes: '' },
+  ];
 }
 
 function loadLeadsFromStorage() {
