@@ -615,6 +615,53 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
 .est-cta{background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(16,185,129,.08));border:1px solid rgba(99,102,241,.25);border-radius:var(--radius);padding:28px;text-align:center;margin-top:20px}
 @media(max-width:768px){.est-form-grid{grid-template-columns:1fr 1fr}.est-summary-grid{grid-template-columns:1fr 1fr}.est-two-col{grid-template-columns:1fr}}
 @media(max-width:480px){.est-form-grid{grid-template-columns:1fr}.est-summary-grid{grid-template-columns:1fr 1fr}}
+/* REQUIREMENTS PAGE */
+.req-hero{text-align:center;padding:60px 0 40px;max-width:700px;margin:0 auto}
+.req-badge{display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700;letter-spacing:.05em;background:rgba(99,102,241,.12);color:#818cf8;border:1px solid rgba(99,102,241,.25);margin-bottom:18px;text-transform:uppercase}
+.req-form-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;margin-bottom:28px}
+.req-form-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.req-field{display:flex;flex-direction:column;gap:6px}
+.req-field label{font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.req-field select,.req-field input{padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;transition:border-color .2s}
+.req-field select:focus,.req-field input:focus{border-color:var(--accent)}
+.req-summary-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.req-stat{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 16px;text-align:center;transition:border-color .2s}
+.req-stat:hover{border-color:var(--border2)}
+.req-stat-icon{font-size:22px;margin-bottom:6px}
+.req-stat-val{font-size:22px;font-weight:800;color:var(--text1);margin-bottom:2px}
+.req-stat-label{font-size:12px;color:var(--text3)}
+.req-three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px}
+.req-two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+.req-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px}
+.req-card h4{font-size:14px;font-weight:700;margin-bottom:14px;color:var(--text);display:flex;align-items:center;gap:8px}
+.req-doc-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);animation:fadeIn .3s ease both}
+.req-doc-item:last-child{border-bottom:none}
+.req-doc-check{width:20px;height:20px;border-radius:50%;background:rgba(16,185,129,.15);border:2px solid rgba(16,185,129,.4);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:#10b981;margin-top:1px}
+.req-doc-check.optional{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.3);color:#fbbf24}
+.req-doc-name{font-size:13px;font-weight:600;margin-bottom:2px}
+.req-doc-desc{font-size:12px;color:var(--text3);line-height:1.5}
+.req-doc-tag{display:inline-flex;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;letter-spacing:.03em;margin-left:6px}
+.req-doc-tag.required{background:rgba(16,185,129,.12);color:#10b981;border:1px solid rgba(16,185,129,.2)}
+.req-doc-tag.optional{background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.2)}
+.req-timeline-step{display:flex;gap:0;margin-bottom:0;position:relative}
+.req-timeline-step:not(:last-child)::after{content:'';position:absolute;left:10px;top:22px;bottom:-8px;width:2px;background:var(--border)}
+.req-step-dot{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;z-index:1}
+.req-step-body{flex:1;padding:0 0 16px 12px}
+.req-step-name{font-size:13px;font-weight:700;margin-bottom:3px}
+.req-step-range{font-size:12px;color:var(--text3)}
+.req-rejection-item{display:flex;gap:10px;padding:11px 14px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.15);border-radius:var(--radius-sm);margin-bottom:8px;animation:fadeIn .3s ease both}
+.req-rejection-item:last-child{margin-bottom:0}
+.req-rejection-icon{color:#ef4444;font-size:14px;flex-shrink:0;margin-top:1px}
+.req-rejection-text{font-size:13px;color:var(--text2);line-height:1.5}
+.req-contact-card{background:linear-gradient(135deg,rgba(99,102,241,.08),rgba(16,185,129,.05));border:1px solid rgba(99,102,241,.2);border-radius:var(--radius);padding:20px;margin-bottom:20px}
+.req-contact-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(99,102,241,.1);font-size:13px}
+.req-contact-row:last-child{border-bottom:none}
+.req-contact-label{color:var(--text3);min-width:100px;font-size:12px}
+.req-contact-val{color:var(--text);font-weight:500}
+.req-cta{background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(16,185,129,.08));border:1px solid rgba(99,102,241,.25);border-radius:var(--radius);padding:28px;text-align:center;margin-top:20px}
+@media(max-width:900px){.req-three-col{grid-template-columns:1fr 1fr}}
+@media(max-width:768px){.req-form-grid{grid-template-columns:1fr 1fr}.req-summary-grid{grid-template-columns:1fr 1fr}.req-two-col{grid-template-columns:1fr}.req-three-col{grid-template-columns:1fr}}
+@media(max-width:480px){.req-form-grid{grid-template-columns:1fr}.req-summary-grid{grid-template-columns:1fr 1fr}}
 </style>
 </head>
 <body>
@@ -636,6 +683,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
       <a href="#trends" onclick="showPage('trends');return false">Trends</a>
       <a href="#market" onclick="showPage('market');return false">Market</a>
       <a href="#estimator" onclick="showPage('estimator');return false">Estimator</a>
+      <a href="#requirements" onclick="showPage('requirements');return false">Requirements</a>
       <a href="#coverage" onclick="showPage('coverage');return false">Coverage</a>
       <a href="#pricing" onclick="showPage('pricing');return false">Pricing</a>
       <a href="/docs" target="_blank">API Docs</a>
@@ -1650,6 +1698,96 @@ results.forEach(p =>
   </section>
 </div>
 
+<!-- REQUIREMENTS PAGE -->
+<div class="page" id="page-requirements">
+  <section class="container" style="padding-bottom:60px">
+    <div class="req-hero">
+      <div class="req-badge">📋 PermitFlow Competitor Feature — Free</div>
+      <h2 style="font-size:36px;font-weight:800;margin-bottom:14px">Jurisdiction Permit Requirements</h2>
+      <p style="color:var(--text2);font-size:17px;max-width:600px;margin:0 auto">Get the exact documents, timelines, fees, and common rejection reasons for any permit type in any city — before you file.</p>
+    </div>
+
+    <div class="req-form-card">
+      <div class="req-form-grid">
+        <div class="req-field">
+          <label>Project Type</label>
+          <select id="req-project-type">
+            <option value="kitchen_remodel">Kitchen Remodel</option>
+            <option value="bathroom_remodel">Bathroom Remodel</option>
+            <option value="room_addition">Room Addition</option>
+            <option value="new_construction">New Construction</option>
+            <option value="roof_replacement">Roof Replacement</option>
+            <option value="electrical_panel">Electrical Panel Upgrade</option>
+            <option value="hvac_replacement">HVAC Replacement</option>
+            <option value="solar_installation">Solar Installation</option>
+            <option value="deck_patio">Deck / Patio</option>
+            <option value="garage_conversion">Garage Conversion / ADU</option>
+            <option value="fence">Fence</option>
+            <option value="pool">Swimming Pool</option>
+            <option value="plumbing_remodel">Plumbing Remodel</option>
+            <option value="window_door">Window / Door Replacement</option>
+            <option value="demolition">Demolition</option>
+          </select>
+        </div>
+        <div class="req-field">
+          <label>State</label>
+          <select id="req-state">
+            <option value="">Select state...</option>
+            <option value="TX">Texas</option>
+            <option value="CA">California</option>
+            <option value="FL">Florida</option>
+            <option value="NY">New York</option>
+            <option value="AZ">Arizona</option>
+            <option value="CO">Colorado</option>
+            <option value="WA">Washington</option>
+            <option value="GA">Georgia</option>
+            <option value="NC">North Carolina</option>
+            <option value="OH">Ohio</option>
+            <option value="IL">Illinois</option>
+            <option value="PA">Pennsylvania</option>
+            <option value="TN">Tennessee</option>
+            <option value="NV">Nevada</option>
+            <option value="OR">Oregon</option>
+            <option value="MN">Minnesota</option>
+            <option value="VA">Virginia</option>
+          </select>
+        </div>
+        <div class="req-field">
+          <label>City</label>
+          <input type="text" id="req-city" placeholder="e.g. Austin, Denver, Portland" autocomplete="off">
+        </div>
+      </div>
+      <div style="margin-top:18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+        <button onclick="runRequirementsLookup()" id="req-btn" style="padding:12px 28px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;transition:background .2s" onmouseover="this.style.background='var(--accent2)'" onmouseout="this.style.background='var(--accent)'">Look Up Requirements</button>
+        <span style="font-size:13px;color:var(--text3)">Quick examples:</span>
+        <a href="#" onclick="quickRequirements('kitchen_remodel','TX','Austin');return false" style="font-size:13px;padding:6px 12px;border:1px solid var(--border);border-radius:20px;color:var(--accent);text-decoration:none">Kitchen in Austin</a>
+        <a href="#" onclick="quickRequirements('solar_installation','CA','Los Angeles');return false" style="font-size:13px;padding:6px 12px;border:1px solid var(--border);border-radius:20px;color:var(--accent);text-decoration:none">Solar in LA</a>
+        <a href="#" onclick="quickRequirements('room_addition','FL','Miami');return false" style="font-size:13px;padding:6px 12px;border:1px solid var(--border);border-radius:20px;color:var(--accent);text-decoration:none">Addition in Miami</a>
+        <a href="#" onclick="quickRequirements('hvac_replacement','CO','Denver');return false" style="font-size:13px;padding:6px 12px;border:1px solid var(--border);border-radius:20px;color:var(--accent);text-decoration:none">HVAC in Denver</a>
+      </div>
+    </div>
+
+    <!-- Loading skeleton -->
+    <div id="req-loading" style="display:none">
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px">
+        ${[1,2,3,4].map(()=>'<div style="height:90px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);animation:pulse 1.5s infinite"></div>').join('')}
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px">
+        <div style="height:280px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);animation:pulse 1.5s infinite"></div>
+        <div style="height:280px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);animation:pulse 1.5s infinite .1s"></div>
+        <div style="height:280px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);animation:pulse 1.5s infinite .2s"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div style="height:200px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);animation:pulse 1.5s infinite .1s"></div>
+        <div style="height:200px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);animation:pulse 1.5s infinite .2s"></div>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div id="req-results" style="display:none"></div>
+  </section>
+</div>
+
 <!-- RISK SCORE PAGE -->
 <div class="page" id="page-risk">
   <section class="container" style="padding-bottom:60px">
@@ -1960,7 +2098,7 @@ function showPage(page) {
   el.classList.add('visible');
   // Update active nav link
   document.querySelectorAll('nav .links a').forEach(a => a.classList.remove('active'));
-  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator' };
+  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements' };
   const activeLink = document.querySelector(`nav .links a[href="${hashMap[page] || '#search'}"]`);
   if (activeLink) activeLink.classList.add('active');
   currentPage = page;
@@ -1991,7 +2129,7 @@ function showPage(page) {
 // Hash routing
 function routeFromHash() {
   const h = location.hash.replace('#','') || 'home';
-  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', risk: 'risk', trends: 'trends', properties: 'properties', market: 'market', feed: 'feed', estimator: 'estimator' };
+  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', risk: 'risk', trends: 'trends', properties: 'properties', market: 'market', feed: 'feed', estimator: 'estimator', requirements: 'requirements' };
   showPage(map[h] || 'home');
 }
 window.addEventListener('hashchange', routeFromHash);
@@ -5282,6 +5420,696 @@ function generateEstimatorComparables(type, state, budget) {
       status: ((seed + i) % 5 === 0) ? 'issued' : 'finaled',
     };
   });
+}
+
+// ===== JURISDICTION PERMIT REQUIREMENTS =====
+
+const REQ_DATA = {
+  kitchen_remodel: {
+    label: 'Kitchen Remodel',
+    permitType: 'Building + Electrical + Plumbing',
+    documents: [
+      { name: 'Building Permit Application', desc: 'Completed and signed application form with property owner info', required: true },
+      { name: 'Floor Plan (existing + proposed)', desc: 'Dimensioned floor plans showing current layout and proposed changes, to scale', required: true },
+      { name: 'Electrical Load Calculation', desc: 'Panel schedule and circuit additions for new appliances (20A circuits for refrigerator, dishwasher, microwave)', required: true },
+      { name: 'Plumbing Riser Diagram', desc: 'Schematic showing supply and drain lines, fixture locations, and water heater', required: true },
+      { name: 'Mechanical Ventilation Plan', desc: 'Range hood CFM specs and duct routing to exterior or makeup air calculation', required: true },
+      { name: 'Structural Details (if wall removal)', desc: 'Engineer-stamped beam sizing and post/footing design for load-bearing wall removal', required: false },
+      { name: 'Energy Compliance Form', desc: 'Title 24 (CA) or state equivalent — required when adding lighting or HVAC changes', required: false },
+      { name: "Contractor's License & Insurance", desc: 'State contractor license number, general liability ($1M min), and workers comp certificate', required: true },
+    ],
+    rejectionReasons: [
+      'Missing structural engineer stamp for load-bearing wall removal',
+      'Electrical load calculations show panel over capacity — upgrade required',
+      'Ventilation CFM insufficient per mechanical code (min 100 CFM for range hoods)',
+      'Plumbing riser diagram missing or doesn\'t match floor plan',
+      'Permit application unsigned or property owner not listed as applicant',
+    ],
+    timelineSteps: [
+      { name: 'Application & plan submittal', range: '1–2 days', color: '#818cf8' },
+      { name: 'Over-the-counter or digital plan review', range: '3–10 business days', color: '#6366f1' },
+      { name: 'Corrections & resubmittal (if needed)', range: '5–14 days', color: '#f59e0b' },
+      { name: 'Permit issuance & fee payment', range: '1–2 days', color: '#10b981' },
+      { name: 'Framing / rough-in inspections', range: 'Same day scheduling', color: '#22c55e' },
+      { name: 'Final inspection & certificate of occupancy', range: '1–3 days after completion', color: '#34d399' },
+    ],
+    inspections: ['Framing rough-in', 'Electrical rough-in', 'Plumbing rough-in', 'Insulation (if applicable)', 'Final building', 'Final electrical', 'Final plumbing'],
+    feeBase: 480, feePerSqFt: 0.85, stateMult: { CA: 2.2, NY: 2.0, WA: 1.6, CO: 1.4, TX: 0.9, FL: 1.1, AZ: 0.95 },
+    reviewDays: { CA: 21, NY: 28, WA: 14, CO: 12, TX: 8, FL: 10, AZ: 8, default: 10 },
+    passRate: 68,
+  },
+  bathroom_remodel: {
+    label: 'Bathroom Remodel',
+    permitType: 'Building + Plumbing + Electrical',
+    documents: [
+      { name: 'Building Permit Application', desc: 'Signed application with owner/contractor information', required: true },
+      { name: 'Floor Plan (existing + proposed)', desc: 'Dimensioned plans showing fixture layout, door/window locations', required: true },
+      { name: 'Plumbing Riser Diagram', desc: 'Supply and drain layout including vent connections and trap locations', required: true },
+      { name: 'Wet Area Waterproofing Detail', desc: 'Manufacturer specifications for shower pan, liner, or tile system waterproofing', required: true },
+      { name: 'Electrical Plan', desc: 'GFCI outlet placement, exhaust fan specs and CFM, lighting circuit', required: true },
+      { name: 'Mechanical Ventilation Calc', desc: 'Exhaust fan sizing: 1 CFM per sq ft minimum, or 50 CFM continuous', required: true },
+      { name: "Contractor's License & Insurance", desc: 'Plumbing and electrical subcontractor licenses where required', required: true },
+      { name: 'Asbestos Survey (pre-1980 homes)', desc: 'Required if disturbing existing tile, drywall, or flooring in older homes', required: false },
+    ],
+    rejectionReasons: [
+      'Exhaust fan CFM not meeting minimum ventilation requirements',
+      'Missing wet area waterproofing detail or non-approved system specified',
+      'GFCI protection plan incomplete (all outlets within 6\' of water must be GFCI)',
+      'Plumbing trap details not shown or improper venting arrangement',
+      'Shower curb height not meeting ADA or code minimum (typically 4")',
+    ],
+    timelineSteps: [
+      { name: 'Application & digital submittal', range: '1 day', color: '#818cf8' },
+      { name: 'Plan review', range: '3–10 business days', color: '#6366f1' },
+      { name: 'Permit issuance', range: '1–2 days', color: '#10b981' },
+      { name: 'Demolition & rough-in inspections', range: 'Schedule 24 hrs ahead', color: '#f59e0b' },
+      { name: 'Final inspection', range: '1–2 days after completion', color: '#22c55e' },
+    ],
+    inspections: ['Plumbing rough-in', 'Electrical rough-in', 'Framing (if walls moved)', 'Waterproofing pre-tile', 'Final'],
+    feeBase: 320, feePerSqFt: 0.75, stateMult: { CA: 2.1, NY: 1.9, WA: 1.5, CO: 1.3, TX: 0.85, FL: 1.0, AZ: 0.9 },
+    reviewDays: { CA: 18, NY: 22, WA: 12, CO: 10, TX: 7, FL: 9, AZ: 7, default: 9 },
+    passRate: 71,
+  },
+  room_addition: {
+    label: 'Room Addition',
+    permitType: 'Building + Structural + MEP',
+    documents: [
+      { name: 'Building Permit Application', desc: 'Complete application including project valuation and description of work', required: true },
+      { name: 'Site Plan with Setbacks', desc: 'Plot plan showing all existing structures, proposed addition, and all setback distances from property lines', required: true },
+      { name: 'Foundation Plan', desc: 'Engineer-stamped footing details, reinforcement layout, soil bearing capacity', required: true },
+      { name: 'Framing / Structural Plans', desc: 'Floor, wall, and roof framing plans with member sizes, spans, and connection details', required: true },
+      { name: 'Structural Engineer Calculations', desc: 'Signed/stamped calculations for all structural elements', required: true },
+      { name: 'Energy Compliance Report', desc: 'Title 24 (CA), IECC compliance, or state equivalent — mandatory for additions', required: true },
+      { name: 'Electrical, Plumbing & HVAC Plans', desc: 'Mechanical plans showing loads, routing, and equipment specs for new space', required: true },
+      { name: 'Grading & Drainage Plan', desc: 'Site drainage showing how addition affects stormwater runoff', required: false },
+      { name: 'HOA Approval Letter', desc: 'If applicable — city may require proof of HOA approval before permit issuance', required: false },
+    ],
+    rejectionReasons: [
+      'Setback violation — addition encroaches into required side or rear yard setback',
+      'Foundation design doesn\'t match soil conditions (soils report required in some jurisdictions)',
+      'Energy report shows addition doesn\'t meet current code requirements',
+      'Structural calculations missing engineer stamp or incomplete load path analysis',
+      'Site plan missing dimensioned setbacks from all property lines',
+    ],
+    timelineSteps: [
+      { name: 'Pre-application meeting (optional but recommended)', range: '1–2 weeks to schedule', color: '#a78bfa' },
+      { name: 'Application & full plan submittal', range: '1–3 days', color: '#818cf8' },
+      { name: 'Building plan review', range: '10–30 business days', color: '#6366f1' },
+      { name: 'Engineering / fire / zoning review', range: 'Concurrent with building review', color: '#8b5cf6' },
+      { name: 'Corrections & resubmittal', range: '7–21 days', color: '#f59e0b' },
+      { name: 'Permit issuance & fee payment', range: '1–3 days', color: '#10b981' },
+      { name: 'Foundation / framing / rough-in inspections', range: 'Throughout construction', color: '#22c55e' },
+      { name: 'Final inspection & certificate of occupancy', range: '1–5 days after completion', color: '#34d399' },
+    ],
+    inspections: ['Foundation pre-pour', 'Framing rough-in', 'Electrical/plumbing/HVAC rough-in', 'Insulation', 'Drywall nailing', 'Final building + all trades'],
+    feeBase: 1200, feePerSqFt: 2.50, stateMult: { CA: 2.5, NY: 2.3, WA: 1.8, CO: 1.5, TX: 1.0, FL: 1.2, AZ: 1.0 },
+    reviewDays: { CA: 45, NY: 55, WA: 25, CO: 20, TX: 14, FL: 18, AZ: 14, default: 20 },
+    passRate: 55,
+  },
+  solar_installation: {
+    label: 'Solar Installation',
+    permitType: 'Building + Electrical',
+    documents: [
+      { name: 'Building Permit Application', desc: 'Signed application listing all equipment and system output (kW)', required: true },
+      { name: 'Site Plan / Roof Plan', desc: 'To-scale roof layout showing panel placement, setbacks from roof edges (18" min), and fire access pathways', required: true },
+      { name: 'Structural Roof Loading Analysis', desc: 'Engineer-stamped dead load calculations showing roof can support panel weight (typically 3–5 psf)', required: true },
+      { name: 'Single-Line Electrical Diagram', desc: 'Schematic from panels through inverter to utility interconnection point, with equipment specs', required: true },
+      { name: 'Equipment Cut Sheets', desc: 'UL-listed panel, inverter, and racking manufacturer specifications and installation instructions', required: true },
+      { name: 'Utility Interconnection Application', desc: 'Completed NEM (net energy metering) or interconnection agreement with local utility', required: true },
+      { name: 'Electrical Permit Application', desc: 'Separate or combined electrical permit for AC/DC wiring, conduit, and panel work', required: true },
+      { name: 'HOA Approval (if applicable)', desc: 'Many states prohibit HOAs from blocking solar — check state law', required: false },
+    ],
+    rejectionReasons: [
+      'Fire department pathway not shown or does not meet 36" access requirements',
+      'Structural loading analysis missing or not engineer-stamped',
+      'Single-line diagram does not match actual equipment spec sheets',
+      'Utility interconnection agreement not submitted before permit issuance',
+      'String inverter configuration doesn\'t match rapid shutdown requirements (NEC 2017+)',
+    ],
+    timelineSteps: [
+      { name: 'Design & utility pre-application', range: '1–2 weeks', color: '#818cf8' },
+      { name: 'Permit application submittal', range: '1 day', color: '#6366f1' },
+      { name: 'Building & electrical plan review', range: '3–15 business days', color: '#a78bfa' },
+      { name: 'Permit issuance', range: '1–2 days', color: '#10b981' },
+      { name: 'Installation (1–3 days typical)', range: '1–3 days', color: '#f59e0b' },
+      { name: 'Final inspection', range: '1–5 days after installation', color: '#22c55e' },
+      { name: 'Utility meter upgrade & PTO (permission to operate)', range: '2–8 weeks', color: '#34d399' },
+    ],
+    inspections: ['Rough-in electrical (conduit/wire before covering)', 'Final building + electrical', 'Utility meter inspection'],
+    feeBase: 280, feePerSqFt: 0, stateMult: { CA: 1.8, NY: 1.9, WA: 1.5, CO: 1.3, TX: 0.85, FL: 1.0, AZ: 0.9 },
+    reviewDays: { CA: 12, NY: 18, WA: 8, CO: 7, TX: 5, FL: 7, AZ: 5, default: 7 },
+    passRate: 74,
+  },
+  hvac_replacement: {
+    label: 'HVAC Replacement',
+    permitType: 'Mechanical + Electrical',
+    documents: [
+      { name: 'Mechanical Permit Application', desc: 'Signed application with equipment make/model, BTU input/output, and SEER/AFUE ratings', required: true },
+      { name: 'Equipment Cut Sheets', desc: 'Manufacturer specs showing model number, BTU rating, SEER rating, and UL listing', required: true },
+      { name: 'Manual J Heat Loss / Gain Calculation', desc: 'Required to verify equipment is properly sized for the structure — not just matching old unit size', required: true },
+      { name: 'Duct Leakage Test (ACCA Manual D)', desc: 'New or significantly modified duct systems require leakage test (typically < 4% of system airflow)', required: true },
+      { name: 'Electrical Permit (if panel work needed)', desc: 'Required when adding dedicated circuit or upgrading disconnect', required: false },
+      { name: 'Energy Compliance Documentation', desc: 'SEER2 ≥ 14.3 for split systems (Jan 2023 federal minimum) — documentation required', required: true },
+      { name: "Contractor's License", desc: 'HVAC contractor license and EPA 608 certification for refrigerant handling', required: true },
+    ],
+    rejectionReasons: [
+      'Manual J calculation missing or based on outdated software',
+      'Equipment SEER2 rating not meeting current federal minimums',
+      'Duct leakage test not performed on modified duct system',
+      'Refrigerant type not updated from R-22 to R-410A or R-32 (for new equipment)',
+      'Clearance dimensions around unit not shown (24" service access required)',
+    ],
+    timelineSteps: [
+      { name: 'Permit application (often same-day)', range: '1 day', color: '#818cf8' },
+      { name: 'Over-the-counter review', range: '1–5 business days', color: '#6366f1' },
+      { name: 'Permit issuance', range: '1 day', color: '#10b981' },
+      { name: 'Installation (1–2 days)', range: '1–2 days', color: '#f59e0b' },
+      { name: 'Mechanical + electrical final inspection', range: '1–3 days after install', color: '#22c55e' },
+    ],
+    inspections: ['Rough-in (if new ductwork)', 'Final mechanical', 'Final electrical (if panel work)'],
+    feeBase: 180, feePerSqFt: 0, stateMult: { CA: 1.9, NY: 1.8, WA: 1.5, CO: 1.3, TX: 0.8, FL: 0.9, AZ: 0.85 },
+    reviewDays: { CA: 7, NY: 10, WA: 5, CO: 4, TX: 3, FL: 4, AZ: 3, default: 5 },
+    passRate: 79,
+  },
+  electrical_panel: {
+    label: 'Electrical Panel Upgrade',
+    permitType: 'Electrical',
+    documents: [
+      { name: 'Electrical Permit Application', desc: 'Signed application with existing amperage, proposed amperage, and scope of work', required: true },
+      { name: 'Load Calculation Worksheet', desc: 'NEC Article 220 service load calculation showing demand vs. panel capacity', required: true },
+      { name: 'Site Plan / Service Entrance Location', desc: 'Sketch showing meter, panel location, and service entry point on building', required: true },
+      { name: 'Panel Schedule', desc: 'Circuit directory showing all existing and new circuits, amperage, and AFCI/GFCI protection', required: true },
+      { name: 'Utility Company Clearance', desc: 'Most utilities require separate approval before upgrading service — schedule early', required: true },
+      { name: "Electrician's License", desc: 'Licensed electrical contractor required in most jurisdictions', required: true },
+    ],
+    rejectionReasons: [
+      'Load calculation worksheet missing or shows existing service insufficient',
+      'Working clearance in front of panel not meeting 36" minimum (NEC 110.26)',
+      'Service entrance conductor not rated for new panel ampacity',
+      'AFCI/GFCI protection not extended to required circuits on permit',
+      'Utility work order not submitted before permit issuance',
+    ],
+    timelineSteps: [
+      { name: 'Permit application (often same-day)', range: '1 day', color: '#818cf8' },
+      { name: 'Electrical plan review', range: '2–7 business days', color: '#6366f1' },
+      { name: 'Permit issuance', range: '1 day', color: '#10b981' },
+      { name: 'Installation & utility coordination (may require service outage)', range: '1–2 days', color: '#f59e0b' },
+      { name: 'Final electrical inspection', range: '1–2 days after install', color: '#22c55e' },
+    ],
+    inspections: ['Rough-in wiring (before cover)', 'Final electrical'],
+    feeBase: 150, feePerSqFt: 0, stateMult: { CA: 2.0, NY: 2.1, WA: 1.6, CO: 1.3, TX: 0.8, FL: 1.0, AZ: 0.85 },
+    reviewDays: { CA: 7, NY: 10, WA: 5, CO: 4, TX: 3, FL: 4, AZ: 3, default: 5 },
+    passRate: 76,
+  },
+  roof_replacement: {
+    label: 'Roof Replacement',
+    permitType: 'Building',
+    documents: [
+      { name: 'Building Permit Application', desc: 'Signed application with roof area (sq ft), existing and proposed materials', required: true },
+      { name: 'Product Data Sheet', desc: 'Manufacturer spec sheet for new roofing material showing Class A fire rating and wind resistance', required: true },
+      { name: 'Roof Plan', desc: 'Sketch or aerial showing roof shape, slopes, area, and ventilation layout', required: true },
+      { name: 'Deck Condition Assessment', desc: 'Statement on sheathing condition — any rot or structural damage requires structural review', required: true },
+      { name: 'Ventilation Calculation', desc: '1:150 or 1:300 ratio of net free area to attic floor area, per IRC R806', required: true },
+      { name: "Contractor's License & Insurance", desc: 'Roofing contractor license, general liability ($1M+), and workers comp', required: true },
+    ],
+    rejectionReasons: [
+      'Manufacturer specs not showing Class A fire rating',
+      'Ventilation calculation missing or does not meet 1:150 ratio',
+      'Installing over two existing layers (max 2 layers total in most jurisdictions)',
+      'Drip edge installation detail not shown or non-code-compliant',
+      'Valley flashing detail absent or improper material specified',
+    ],
+    timelineSteps: [
+      { name: 'Permit application', range: '1 day', color: '#818cf8' },
+      { name: 'Over-the-counter review (most jurisdictions)', range: '1–5 business days', color: '#6366f1' },
+      { name: 'Permit issuance', range: '1 day', color: '#10b981' },
+      { name: 'Installation (1–3 days typical)', range: '1–3 days', color: '#f59e0b' },
+      { name: 'Final inspection', range: '1–3 days after completion', color: '#22c55e' },
+    ],
+    inspections: ['Sheathing / deck inspection (before new material)', 'Final'],
+    feeBase: 200, feePerSqFt: 0.12, stateMult: { CA: 1.8, NY: 1.7, WA: 1.4, CO: 1.2, TX: 0.85, FL: 1.0, AZ: 0.9 },
+    reviewDays: { CA: 5, NY: 7, WA: 4, CO: 3, TX: 3, FL: 4, AZ: 3, default: 4 },
+    passRate: 82,
+  },
+  deck_patio: {
+    label: 'Deck / Patio',
+    permitType: 'Building + Structural',
+    documents: [
+      { name: 'Building Permit Application', desc: 'Signed application with deck dimensions, elevation from grade, and materials', required: true },
+      { name: 'Site Plan with Setbacks', desc: 'Plot plan showing deck location and distances from all property lines', required: true },
+      { name: 'Structural/Framing Plan', desc: 'Dimensioned plan showing joist size and spacing, beam size, post locations', required: true },
+      { name: 'Footing Detail', desc: 'Footing size, depth below frost line, and concrete specs', required: true },
+      { name: 'Ledger Connection Detail', desc: 'Detail showing how deck attaches to house (lag bolt size, pattern, flashing)', required: true },
+      { name: 'Guardrail & Handrail Detail', desc: 'Required if deck is more than 30" above grade — must meet IBC/IRC specs', required: false },
+    ],
+    rejectionReasons: [
+      'Ledger connection detail missing or lags not meeting span table requirements',
+      'Footing depth not meeting local frost line requirement',
+      'Deck projects into setback — variance or zoning approval required',
+      'Guardrail not required by code but height calculated incorrectly',
+      'No stair detail when stairs are included in scope',
+    ],
+    timelineSteps: [
+      { name: 'Permit application', range: '1 day', color: '#818cf8' },
+      { name: 'Plan review', range: '3–10 business days', color: '#6366f1' },
+      { name: 'Permit issuance', range: '1–2 days', color: '#10b981' },
+      { name: 'Footing inspection (before pouring concrete)', range: 'Call 24 hrs ahead', color: '#f59e0b' },
+      { name: 'Framing inspection', range: 'Before decking installed', color: '#f59e0b' },
+      { name: 'Final inspection', range: '1–3 days after completion', color: '#22c55e' },
+    ],
+    inspections: ['Footing pre-pour', 'Framing / pre-decking', 'Final'],
+    feeBase: 240, feePerSqFt: 0.50, stateMult: { CA: 1.9, NY: 1.8, WA: 1.5, CO: 1.3, TX: 0.85, FL: 1.0, AZ: 0.9 },
+    reviewDays: { CA: 10, NY: 14, WA: 7, CO: 6, TX: 5, FL: 6, AZ: 5, default: 7 },
+    passRate: 69,
+  },
+  new_construction: {
+    label: 'New Construction',
+    permitType: 'Building + All Trades',
+    documents: [
+      { name: 'Building Permit Application', desc: 'Detailed application with project valuation, sq footage, number of stories, occupancy type', required: true },
+      { name: 'Architectural Plans (full set)', desc: 'Site plan, floor plans, elevations, sections, details — all pages stamped by licensed architect', required: true },
+      { name: 'Structural Calculations & Plans', desc: 'Engineer-stamped foundation, framing, and connection details with load calculations', required: true },
+      { name: 'Energy Compliance Report', desc: 'Full Title 24 / IECC / state energy report for entire building envelope', required: true },
+      { name: 'Grading & Drainage Plan', desc: 'Civil engineer plan showing grading, drainage, and stormwater detention if required', required: true },
+      { name: 'Soils Report (Geotechnical)', desc: 'Required in most jurisdictions for new construction — determines foundation type and depth', required: true },
+      { name: 'Mechanical, Electrical, Plumbing Plans', desc: 'Full MEP plans with equipment specs, load calculations, and utility connections', required: true },
+      { name: 'Fire Sprinkler Plans (if required)', desc: 'Required for new residential construction in many jurisdictions (check local code)', required: false },
+      { name: 'School / Impact Fee Calculation', desc: 'Paid before permit issuance in many counties', required: true },
+    ],
+    rejectionReasons: [
+      'Incomplete plan set — all pages (A, S, C, M, E, P sheets) must be submitted together',
+      'Energy report does not match plans (window U-factors, wall R-values must match)',
+      'Grading plan shows drainage toward existing structures',
+      'Soils report recommendations not incorporated into foundation design',
+      'Impact fees not paid before permit issuance',
+    ],
+    timelineSteps: [
+      { name: 'Pre-application meeting / CEQA review', range: '2–6 weeks', color: '#a78bfa' },
+      { name: 'Full plan submittal', range: '1–3 days', color: '#818cf8' },
+      { name: 'Multi-department plan review (building, fire, planning, utilities)', range: '20–90 business days', color: '#6366f1' },
+      { name: 'Corrections & resubmittal (multiple rounds common)', range: '2–8 weeks per round', color: '#f59e0b' },
+      { name: 'Fees paid & permit issued', range: '1–5 days', color: '#10b981' },
+      { name: 'Construction phase inspections (20–40 inspections)', range: 'Throughout construction', color: '#22c55e' },
+      { name: 'Certificate of occupancy', range: '5–30 days after final inspection', color: '#34d399' },
+    ],
+    inspections: ['Foundation', 'Underground utilities', 'Slab pre-pour', 'Framing rough-in', 'All rough-in MEP', 'Insulation', 'Drywall nailing', 'Pre-drywall', 'Final all trades', 'Certificate of occupancy'],
+    feeBase: 3500, feePerSqFt: 3.50, stateMult: { CA: 3.0, NY: 2.8, WA: 2.2, CO: 1.8, TX: 1.0, FL: 1.3, AZ: 1.1 },
+    reviewDays: { CA: 90, NY: 120, WA: 45, CO: 35, TX: 20, FL: 28, AZ: 20, default: 35 },
+    passRate: 42,
+  },
+  garage_conversion: {
+    label: 'Garage Conversion / ADU',
+    permitType: 'Building + MEP',
+    documents: [
+      { name: 'Building Permit Application', desc: 'Application noting conversion to habitable space / ADU, new occupancy type', required: true },
+      { name: 'Floor Plan (existing + proposed)', desc: 'Dimensioned plans showing all walls, doors, windows, and room dimensions', required: true },
+      { name: 'Egress Window Detail', desc: 'At least one sleeping room must have egress window (min 5.7 sq ft, 24" high x 20" wide, sill max 44" AFF)', required: true },
+      { name: 'Insulation Plan', desc: 'Wall, floor, and ceiling R-values meeting current energy code for conditioned space', required: true },
+      { name: 'Electrical Plan', desc: 'New circuits for habitable space: lighting, outlets (15A every 12\'), smoke/CO detectors', required: true },
+      { name: 'Heating / HVAC Plan', desc: 'Conditioned space requires heat source sized per Manual J — garage door not acceptable', required: true },
+      { name: 'Energy Compliance Report', desc: 'Mandatory when converting unconditioned to conditioned space', required: true },
+      { name: 'Parking Replacement Plan', desc: 'Some jurisdictions require showing replacement parking when garage is converted', required: false },
+    ],
+    rejectionReasons: [
+      'Egress window does not meet minimum opening dimensions',
+      'Ceiling height below 7\' minimum for habitable space',
+      'No separation between garage and living area (1-hour fire-rated assembly required if shared wall)',
+      'Insulation not meeting current energy code for new conditioned space',
+      'Missing mechanical ventilation for new rooms (0.35 ACH minimum)',
+    ],
+    timelineSteps: [
+      { name: 'Zoning verification (ADU allowed?)', range: '1–5 days', color: '#a78bfa' },
+      { name: 'Application & plan submittal', range: '1–2 days', color: '#818cf8' },
+      { name: 'Plan review', range: '7–21 business days', color: '#6366f1' },
+      { name: 'Permit issuance', range: '1–3 days', color: '#10b981' },
+      { name: 'Construction & inspections', range: 'Throughout construction', color: '#f59e0b' },
+      { name: 'Final inspection', range: '1–5 days after completion', color: '#22c55e' },
+    ],
+    inspections: ['Framing', 'Insulation', 'Electrical/plumbing rough-in', 'Window / egress', 'Final'],
+    feeBase: 680, feePerSqFt: 1.20, stateMult: { CA: 2.2, NY: 2.0, WA: 1.6, CO: 1.4, TX: 0.9, FL: 1.1, AZ: 0.95 },
+    reviewDays: { CA: 21, NY: 28, WA: 14, CO: 12, TX: 8, FL: 10, AZ: 8, default: 12 },
+    passRate: 62,
+  },
+  pool: {
+    label: 'Swimming Pool',
+    permitType: 'Building + Electrical + Plumbing',
+    documents: [
+      { name: 'Building Permit Application', desc: 'Application with pool dimensions, depth, type (in-ground/above ground), and materials', required: true },
+      { name: 'Site Plan with Setbacks', desc: 'Plot plan showing pool location, setbacks from property lines and structures, equipment pad location', required: true },
+      { name: 'Pool Structural Plans', desc: 'Engineer-stamped plans for shell, beam, and gunite/plaster specs', required: true },
+      { name: 'Barrier / Fencing Plan', desc: 'Detail showing 4\' minimum barrier with self-latching gate — required by Virginia Graeme Baker Act', required: true },
+      { name: 'Electrical Plan', desc: 'Bonding grid plan, GFCI protection, pump circuit, lighting circuit', required: true },
+      { name: 'Plumbing / Filtration Plan', desc: 'Plumbing schematic including drain, supply, filter, heater, and backwash', required: true },
+      { name: 'Drainage Plan', desc: 'Backwash and overflow drainage route and volume', required: true },
+    ],
+    rejectionReasons: [
+      'Barrier / fencing detail missing or non-compliant with Virginia Graeme Baker Act',
+      'Electrical bonding plan absent or doesn\'t show all metallic components',
+      'Pool setback encroaching into required yard setback',
+      'Main drain suction entrapment protection (SVRS) not specified',
+      'Anti-entrapment drain cover not specified (required since 2008 VGBA)',
+    ],
+    timelineSteps: [
+      { name: 'Permit application & full submittal', range: '1–3 days', color: '#818cf8' },
+      { name: 'Plan review (building, electrical, plumbing)', range: '7–21 business days', color: '#6366f1' },
+      { name: 'Permit issuance & fee payment', range: '1–3 days', color: '#10b981' },
+      { name: 'Excavation & steel inspection', range: 'Before gunite/concrete', color: '#f59e0b' },
+      { name: 'Plumbing / electrical rough-in', range: 'Before decking', color: '#f59e0b' },
+      { name: 'Barrier / fencing inspection', range: 'Before filling with water', color: '#f59e0b' },
+      { name: 'Final inspection', range: '1–5 days after completion', color: '#22c55e' },
+    ],
+    inspections: ['Excavation', 'Steel / rebar', 'Plumbing rough-in', 'Electrical bonding', 'Deck/coping', 'Barrier/fence', 'Final'],
+    feeBase: 550, feePerSqFt: 0, stateMult: { CA: 2.1, NY: 1.9, WA: 1.5, CO: 1.3, TX: 0.9, FL: 1.0, AZ: 0.9 },
+    reviewDays: { CA: 18, NY: 25, WA: 12, CO: 10, TX: 8, FL: 9, AZ: 8, default: 12 },
+    passRate: 65,
+  },
+  fence: {
+    label: 'Fence',
+    permitType: 'Building / Zoning',
+    documents: [
+      { name: 'Building Permit Application', desc: 'Signed application with fence height, material, and linear footage', required: true },
+      { name: 'Site Plan', desc: 'Property survey or site sketch showing fence location on all property lines', required: true },
+      { name: "Neighbor Notification (some jurisdictions)", desc: 'Written notice to adjacent property owners — required in many cities before permit is issued', required: false },
+      { name: 'HOA Approval (if applicable)', desc: 'Letter or email approval from HOA board or architectural review committee', required: false },
+      { name: 'Corner Lot Sight Triangle Compliance', desc: 'Fences near street corners must show they do not obstruct line of sight for traffic', required: false },
+    ],
+    rejectionReasons: [
+      'Fence height exceeds maximum allowed (typically 6\' in rear, 4\' in front)',
+      'Fence within sight triangle at corner lot — traffic safety violation',
+      'Fence on or over property line without recorded easement or variance',
+      'Front yard fence exceeding 42" without approved variance',
+      'HOA denial not addressed before city permit submission',
+    ],
+    timelineSteps: [
+      { name: 'Permit application', range: '1 day', color: '#818cf8' },
+      { name: 'Zoning review', range: '1–5 business days', color: '#6366f1' },
+      { name: 'Permit issuance', range: '1 day', color: '#10b981' },
+      { name: 'Installation', range: '1–3 days', color: '#f59e0b' },
+      { name: 'Final inspection (some jurisdictions)', range: '1–2 days', color: '#22c55e' },
+    ],
+    inspections: ['Post-hole inspection (some jurisdictions)', 'Final (if required)'],
+    feeBase: 80, feePerSqFt: 0, stateMult: { CA: 1.6, NY: 1.5, WA: 1.3, CO: 1.1, TX: 0.75, FL: 0.9, AZ: 0.8 },
+    reviewDays: { CA: 5, NY: 7, WA: 4, CO: 3, TX: 2, FL: 3, AZ: 2, default: 3 },
+    passRate: 88,
+  },
+  plumbing_remodel: {
+    label: 'Plumbing Remodel',
+    permitType: 'Plumbing',
+    documents: [
+      { name: 'Plumbing Permit Application', desc: 'Signed application with fixture count, type of work, and contractor info', required: true },
+      { name: 'Plumbing Riser Diagram', desc: 'Schematic showing all supply and drain/vent lines, fixture connections', required: true },
+      { name: 'Fixture Unit Count', desc: 'Table showing all fixtures, DFU values, and total drainage fixture units per IPC/UPC', required: true },
+      { name: 'Water Heater Specs (if replacing)', desc: 'Manufacturer data sheet showing BTU, capacity, energy factor, and T&P relief valve specs', required: false },
+      { name: "Plumber's License", desc: 'Licensed plumbing contractor required in most jurisdictions', required: true },
+    ],
+    rejectionReasons: [
+      'Riser diagram missing vent connections or showing improper trap placement',
+      'Fixture unit count not calculated or exceeds existing stack capacity',
+      'Water heater location not showing required earthquake strapping (seismic zones)',
+      'Backflow prevention not specified where required',
+      'Pressure reducing valve not shown where supply pressure exceeds 80 PSI',
+    ],
+    timelineSteps: [
+      { name: 'Permit application (often same-day)', range: '1 day', color: '#818cf8' },
+      { name: 'Plumbing plan review', range: '2–7 business days', color: '#6366f1' },
+      { name: 'Permit issuance', range: '1 day', color: '#10b981' },
+      { name: 'Rough-in plumbing inspection (before walls closed)', range: 'Call 24 hrs ahead', color: '#f59e0b' },
+      { name: 'Final inspection', range: '1–2 days after completion', color: '#22c55e' },
+    ],
+    inspections: ['Pressure test / rough-in plumbing', 'Final plumbing'],
+    feeBase: 180, feePerSqFt: 0, stateMult: { CA: 1.9, NY: 1.8, WA: 1.5, CO: 1.3, TX: 0.85, FL: 1.0, AZ: 0.9 },
+    reviewDays: { CA: 7, NY: 10, WA: 5, CO: 4, TX: 3, FL: 4, AZ: 3, default: 5 },
+    passRate: 80,
+  },
+  window_door: {
+    label: 'Window / Door Replacement',
+    permitType: 'Building',
+    documents: [
+      { name: 'Building Permit Application', desc: 'Signed application noting replacement of X windows/doors, same rough opening vs. structural change', required: true },
+      { name: 'Product Specifications', desc: 'Manufacturer data sheet showing U-factor, SHGC, and NFRC certification label', required: true },
+      { name: 'Energy Compliance Documentation', desc: 'Window must meet local energy code: U ≤ 0.30 (most climates), SHGC ≤ 0.25 (hot climates)', required: true },
+      { name: 'Flashing Detail', desc: 'Installation detail showing how window is flashed and sealed to the building envelope', required: false },
+      { name: 'Structural Header Detail (if opening enlarged)', desc: 'Engineer detail required if enlarging rough opening — header sizing and support required', required: false },
+    ],
+    rejectionReasons: [
+      'Window U-factor or SHGC not meeting local energy code requirements',
+      'NFRC label or certification missing from product spec sheet',
+      'Egress window replacement with non-compliant opening size (bedroom windows must meet egress)',
+      'Structural header not addressed when opening enlarged',
+      'Tempered glass not specified for hazardous locations (within 18" of floor, near doors)',
+    ],
+    timelineSteps: [
+      { name: 'Permit application', range: '1 day', color: '#818cf8' },
+      { name: 'Over-the-counter review (most jurisdictions)', range: '1–5 business days', color: '#6366f1' },
+      { name: 'Permit issuance', range: '1 day', color: '#10b981' },
+      { name: 'Installation (typically 1 day)', range: '1 day', color: '#f59e0b' },
+      { name: 'Final inspection (some jurisdictions)', range: '1–2 days after install', color: '#22c55e' },
+    ],
+    inspections: ['Final (some jurisdictions skip for like-for-like replacement)'],
+    feeBase: 120, feePerSqFt: 0, stateMult: { CA: 1.7, NY: 1.6, WA: 1.4, CO: 1.2, TX: 0.8, FL: 0.95, AZ: 0.85 },
+    reviewDays: { CA: 5, NY: 7, WA: 4, CO: 3, TX: 2, FL: 3, AZ: 2, default: 3 },
+    passRate: 87,
+  },
+  demolition: {
+    label: 'Demolition',
+    permitType: 'Building / Environmental',
+    documents: [
+      { name: 'Demolition Permit Application', desc: 'Signed application with structure dimensions, materials, and method of demolition', required: true },
+      { name: 'Asbestos Survey Report', desc: 'Accredited inspector report required for pre-1980 structures — must be submitted before permit issuance', required: true },
+      { name: 'Lead Paint Survey (pre-1978)', desc: 'Required for residential demolition — EPA RRP Rule compliance', required: true },
+      { name: 'Utility Disconnection Letters', desc: 'Written confirmation from electric, gas, water, and sewer utilities that services have been terminated', required: true },
+      { name: 'Erosion Control Plan', desc: 'Site plan showing silt fence, inlet protection, and stabilization measures', required: true },
+      { name: 'Demolition Bond (some jurisdictions)', desc: 'Performance bond required to ensure site is properly graded and restored after demolition', required: false },
+      { name: 'Neighbor Notification', desc: 'Some cities require written notice to adjacent properties before demolition permit is issued', required: false },
+    ],
+    rejectionReasons: [
+      'Asbestos survey not performed by accredited inspector or not submitted before permit',
+      'Utility disconnection letters missing — must have all utilities (electric, gas, water, sewer)',
+      'SCAQMD or air district notification not filed for regulated asbestos-containing materials',
+      'Erosion control plan missing or inadequate for site size',
+      'Demolition bond amount insufficient for scope of work',
+    ],
+    timelineSteps: [
+      { name: 'Hazardous materials surveys (asbestos, lead)', range: '5–15 days', color: '#a78bfa' },
+      { name: 'Utility disconnection coordination', range: '5–21 days', color: '#818cf8' },
+      { name: 'Permit application & submittal', range: '1–2 days', color: '#6366f1' },
+      { name: 'Plan review', range: '3–14 business days', color: '#f59e0b' },
+      { name: 'Permit issuance', range: '1–3 days', color: '#10b981' },
+      { name: 'Demolition (varies by structure size)', range: '1–30 days', color: '#ef4444' },
+      { name: 'Site restoration & final inspection', range: '1–5 days after completion', color: '#22c55e' },
+    ],
+    inspections: ['Pre-demolition utility verification', 'During demolition (if required)', 'Site restoration / erosion control final'],
+    feeBase: 350, feePerSqFt: 0.30, stateMult: { CA: 2.0, NY: 1.9, WA: 1.5, CO: 1.3, TX: 0.9, FL: 1.1, AZ: 0.95 },
+    reviewDays: { CA: 14, NY: 18, WA: 10, CO: 8, TX: 6, FL: 8, AZ: 6, default: 10 },
+    passRate: 70,
+  },
+};
+
+// Demo jurisdiction contact info seeded by city
+function getDemoJurisdictionContact(city, state) {
+  const seed = (city + state).toLowerCase().replace(/[^a-z]/g,'').split('').reduce((a,c,i)=>(a+c.charCodeAt(0)*(i+1))&0xFFFFFF,0);
+  const deptNames = ['Community Development Department','Building & Safety Division','Development Services Department','Permitting Services Center','Building Inspection Division','Planning & Development Services'];
+  const dept = deptNames[seed % deptNames.length];
+  const phones = ['(512) 978-4000','(213) 473-3231','(303) 640-2489','(407) 836-5515','(503) 823-1700','(615) 862-6500','(702) 229-6301','(404) 330-6150'];
+  const phone = phones[seed % phones.length];
+  const portals = ['Online permit portal','Accela Citizen Access','CSS Permitting Portal','Energov Online Portal','ePlans review system'];
+  const portal = portals[seed % portals.length];
+  const hours = ['Mon–Fri 7:30am–4:30pm','Mon–Fri 8am–5pm','Mon–Thu 7am–5:30pm','Mon–Fri 7:30am–5pm'][seed % 4];
+  return { dept, phone, portal, hours, reviewType: (seed % 3 === 0) ? 'Digital/online plan review' : (seed % 3 === 1) ? 'Over-the-counter same day' : 'Standard review queue' };
+}
+
+// Generate demo comparable permits for requirements page
+function generateReqComparables(type, city, state) {
+  const data = REQ_DATA[type];
+  if (!data) return [];
+  const seed = (type + city + state).toLowerCase().replace(/[^a-z]/g,'').split('').reduce((a,c,i)=>(a+c.charCodeAt(0)*(i+1))&0xFFFFFF,0);
+  const streets = ['Oak St','Main Ave','Park Blvd','Cedar Ln','Elm Way','Maple Dr','River Rd','Hill Dr','Valley Ct','Lake Blvd'];
+  const displayCity = city || (STATE_NAMES[state] ? ['Austin','Dallas','Houston'][seed%3] : 'Local');
+  const stMult = (data.stateMult||{})[state] || 1.0;
+  return Array.from({length:4},(_, i) => {
+    const s2 = (seed * (i+7) + i*31) & 0xFFFFFF;
+    const num = 100 + (s2 % 9800);
+    const street = streets[s2 % streets.length];
+    const reviewDays = Math.round(((data.reviewDays||{})[state] || (data.reviewDays||{}).default || 10) * (0.7 + (s2%60)/100));
+    const baseFee = data.feeBase * stMult;
+    const fee = Math.round(baseFee * (0.75 + (s2%50)/100));
+    const daysAgo = 15 + (s2 % 180);
+    const d = new Date(); d.setDate(d.getDate()-daysAgo);
+    return { address: `${num} ${street}`, city: displayCity, state: state||'TX', fee, reviewDays, issued: d.toISOString().split('T')[0], status: (s2%7===0) ? 'issued' : 'finaled' };
+  });
+}
+
+function quickRequirements(type, state, city) {
+  document.getElementById('req-project-type').value = type;
+  document.getElementById('req-state').value = state;
+  document.getElementById('req-city').value = city;
+  runRequirementsLookup();
+}
+
+async function runRequirementsLookup() {
+  const type = document.getElementById('req-project-type').value;
+  const state = document.getElementById('req-state').value;
+  const city = document.getElementById('req-city').value.trim();
+  const btn = document.getElementById('req-btn');
+
+  if (!state && !city) { showToast('Select a state or enter a city', 'error'); return; }
+
+  btn.disabled = true; btn.textContent = 'Looking up...';
+  document.getElementById('req-results').style.display = 'none';
+  document.getElementById('req-loading').style.display = '';
+
+  await new Promise(r => setTimeout(r, 900));
+
+  const data = REQ_DATA[type];
+  if (!data) { document.getElementById('req-loading').style.display = 'none'; btn.disabled = false; btn.textContent = 'Look Up Requirements'; return; }
+
+  const stMult = (data.stateMult||{})[state] || 1.0;
+  const reviewDays = Math.round(((data.reviewDays||{})[state] || (data.reviewDays||{}).default || 10));
+  const feeEst = Math.round(data.feeBase * stMult);
+  const feeRange = [Math.round(feeEst * 0.75), Math.round(feeEst * 1.6)];
+  const stateName = STATE_NAMES[state] || state || '';
+  const locationStr = [city, stateName].filter(Boolean).join(', ') || 'your area';
+  const reqDocs = data.documents.filter(d => d.required).length;
+  const optDocs = data.documents.filter(d => !d.required).length;
+  const jx = getDemoJurisdictionContact(city || stateName || 'default', state || 'TX');
+  const comparables = generateReqComparables(type, city || locationStr, state);
+
+  document.getElementById('req-loading').style.display = 'none';
+  document.getElementById('req-results').style.display = '';
+  document.getElementById('req-results').innerHTML = `
+    ${!currentKey ? `<div style="margin-bottom:20px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px"><span>📋 Requirements based on permit data from 7M+ real filings — sign up free for live jurisdiction lookups</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button></div>` : ''}
+
+    <div style="margin-bottom:8px;font-size:13px;color:var(--text3)">Requirements for: <strong style="color:var(--text1)">${esc(data.label)}</strong> in <strong style="color:var(--text1)">${esc(locationStr)}</strong></div>
+
+    <div class="req-summary-grid">
+      <div class="req-stat">
+        <div class="req-stat-icon">📄</div>
+        <div class="req-stat-val" style="color:#818cf8">${reqDocs}</div>
+        <div class="req-stat-label">Required Documents</div>
+      </div>
+      <div class="req-stat">
+        <div class="req-stat-icon">📎</div>
+        <div class="req-stat-val" style="color:#a78bfa">${optDocs}</div>
+        <div class="req-stat-label">Conditional Documents</div>
+      </div>
+      <div class="req-stat">
+        <div class="req-stat-icon">⏱️</div>
+        <div class="req-stat-val" style="color:#f59e0b">${reviewDays}<span style="font-size:14px;font-weight:500"> days</span></div>
+        <div class="req-stat-label">Avg Review Time</div>
+      </div>
+      <div class="req-stat">
+        <div class="req-stat-icon">💰</div>
+        <div class="req-stat-val" style="color:#10b981">$${feeRange[0].toLocaleString()}–$${feeRange[1].toLocaleString()}</div>
+        <div class="req-stat-label">Typical Permit Fee</div>
+      </div>
+    </div>
+
+    <!-- Permit type & inspections row -->
+    <div style="margin-bottom:20px;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);display:flex;gap:24px;flex-wrap:wrap;align-items:center">
+      <div><span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-weight:600">Permit Type</span><div style="font-size:13px;color:var(--text);font-weight:600;margin-top:3px">${esc(data.permitType)}</div></div>
+      <div style="width:1px;height:36px;background:var(--border)"></div>
+      <div><span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-weight:600">Required Inspections</span><div style="font-size:13px;color:var(--text);margin-top:3px">${esc((data.inspections||[]).join(' · '))}</div></div>
+      <div style="width:1px;height:36px;background:var(--border)"></div>
+      <div><span style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-weight:600">First-Submission Pass Rate</span><div style="font-size:13px;font-weight:700;margin-top:3px;color:${data.passRate >= 75 ? '#10b981' : data.passRate >= 60 ? '#f59e0b' : '#ef4444'}">${data.passRate}%</div></div>
+    </div>
+
+    <!-- Documents + Timeline + Rejections -->
+    <div class="req-three-col">
+      <!-- Required Documents -->
+      <div class="req-card">
+        <h4>📄 Required Documents</h4>
+        ${data.documents.map((doc, i) => `
+          <div class="req-doc-item" style="animation-delay:${i*0.05}s">
+            <div class="req-doc-check ${doc.required ? '' : 'optional'}">${doc.required ? '✓' : '?'}</div>
+            <div>
+              <div class="req-doc-name">${esc(doc.name)} <span class="req-doc-tag ${doc.required ? 'required' : 'optional'}">${doc.required ? 'Required' : 'Conditional'}</span></div>
+              <div class="req-doc-desc">${esc(doc.desc)}</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <!-- Review Timeline -->
+      <div class="req-card">
+        <h4>⏱️ Review & Approval Timeline</h4>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          ${(data.timelineSteps||[]).map((step, i) => `
+            <div class="req-timeline-step" style="animation-delay:${i*0.07}s">
+              <div class="req-step-dot" style="background:${step.color}20;border:2px solid ${step.color};color:${step.color}">${i+1}</div>
+              <div class="req-step-body">
+                <div class="req-step-name">${esc(step.name)}</div>
+                <div class="req-step-range">${esc(step.range)}</div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        <div style="margin-top:16px;padding:12px;background:rgba(99,102,241,.06);border-radius:8px;font-size:12px;color:var(--text3);line-height:1.6">
+          <strong style="color:var(--text2)">Pro tip:</strong> Submit digitally and schedule inspections 24 hours in advance. Complex projects benefit from a pre-application meeting with staff before submittal.
+        </div>
+      </div>
+
+      <!-- Common Rejection Reasons -->
+      <div class="req-card">
+        <h4>⚠️ Common Rejection Reasons</h4>
+        ${(data.rejectionReasons||[]).map((r, i) => `
+          <div class="req-rejection-item" style="animation-delay:${i*0.06}s">
+            <div class="req-rejection-icon">✕</div>
+            <div class="req-rejection-text">${esc(r)}</div>
+          </div>
+        `).join('')}
+        <div style="margin-top:14px;padding:12px;background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.15);border-radius:8px;font-size:12px;color:var(--text3);line-height:1.6">
+          <strong style="color:#10b981">First-pass rate: ${data.passRate}%</strong> — ${data.passRate >= 75 ? 'Most applications approved without corrections when complete documentation is submitted.' : data.passRate >= 60 ? 'About 1 in 3 applications requires corrections. Use this checklist to maximize your chances.' : 'This permit type has a high correction rate. Consider a pre-app meeting with staff.'}
+        </div>
+      </div>
+    </div>
+
+    <!-- Jurisdiction Contact -->
+    <div class="req-contact-card">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+        <div style="width:36px;height:36px;border-radius:8px;background:rgba(99,102,241,.12);display:flex;align-items:center;justify-content:center;font-size:18px">🏛️</div>
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--text)">${esc(locationStr)} — Permitting Office</div>
+          <div style="font-size:12px;color:var(--text3)">${esc(jx.dept)}</div>
+        </div>
+        ${!currentKey ? `<span style="margin-left:auto;padding:3px 9px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2);border-radius:10px;font-size:10px;color:#fbbf24;font-weight:700">DEMO</span>` : ''}
+      </div>
+      <div class="req-contact-row"><span class="req-contact-label">📞 Phone</span><span class="req-contact-val">${esc(jx.phone)}</span></div>
+      <div class="req-contact-row"><span class="req-contact-label">⏰ Hours</span><span class="req-contact-val">${esc(jx.hours)}</span></div>
+      <div class="req-contact-row"><span class="req-contact-label">💻 Submittal</span><span class="req-contact-val">${esc(jx.portal)}</span></div>
+      <div class="req-contact-row"><span class="req-contact-label">📝 Review Type</span><span class="req-contact-val">${esc(jx.reviewType)}</span></div>
+    </div>
+
+    <!-- Recent comparable permits -->
+    <div class="req-card" style="margin-bottom:20px">
+      <h4>🏘️ Recent Comparable Permits in ${esc(locationStr)}</h4>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+        ${comparables.map(c => `
+          <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:12px 14px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:6px">${esc(c.address)}, ${esc(c.city)}, ${esc(c.state)}</div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--text3)">
+              <span>💰 Permit fee: $${c.fee.toLocaleString()}</span>
+              <span>⏱️ ${c.reviewDays} day review</span>
+              <span>📅 ${c.issued}</span>
+              <span style="color:${c.status==='finaled'?'#10b981':'#818cf8'}">${c.status === 'finaled' ? '✓ Finaled' : '✓ Issued'}</span>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+      ${!currentKey ? `<div style="margin-top:12px;font-size:12px;color:var(--text3);text-align:center">Search 7M+ real permits — <a href="#" onclick="openSignup();return false" style="color:var(--accent)">sign up free</a> to view live data</div>` : ''}
+    </div>
+
+    <div class="req-cta">
+      <div style="font-size:22px;margin-bottom:10px">📋</div>
+      <h3 style="font-size:18px;font-weight:700;margin-bottom:8px">Ready to file your ${esc(data.label.toLowerCase())} permit?</h3>
+      <p style="font-size:14px;color:var(--text2);margin-bottom:16px;max-width:480px;margin-left:auto;margin-right:auto">Search our database of ${esc(data.label.toLowerCase())} permits to see what similar projects paid, how long approval took, and which contractors file the most.</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <button onclick="showPage('estimator')" style="padding:10px 22px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer">Get Cost Estimate</button>
+        <button onclick="showPage('home')" style="padding:10px 22px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-weight:600;color:var(--text);cursor:pointer">Search Permits</button>
+        ${!currentKey ? `<button onclick="openSignup()" style="padding:10px 22px;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);border-radius:var(--radius-sm);font-size:14px;font-weight:600;color:#818cf8;cursor:pointer">Get Free API Access</button>` : ''}
+      </div>
+    </div>
+  `;
+  btn.disabled = false; btn.textContent = 'Look Up Requirements';
 }
 </script>
 </body>
