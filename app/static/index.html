@@ -1040,6 +1040,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
           <a href="#passport" onclick="showPage('passport');closeNavDropdown();return false">Property Passport</a>
           <a href="#momentum" onclick="showPage('momentum');closeNavDropdown();return false">Market Momentum</a>
           <a href="#compare" onclick="showPage('compare');closeNavDropdown();return false">Property Compare</a>
+          <a href="#jurisdiction" onclick="showPage('jurisdiction');closeNavDropdown();return false">Jurisdiction Intel</a>
         </div>
       </div>
       <a href="/docs" target="_blank">API Docs</a>
@@ -1718,6 +1719,51 @@ results.forEach(p =>
         </div>
       </div>
       <div id="hotspot-results" style="display:none"></div>
+    </div>
+  </section>
+</div>
+
+<!-- JURISDICTION INTELLIGENCE PAGE -->
+<div class="page" id="page-jurisdiction">
+  <section>
+    <div class="container">
+      <h2>Jurisdiction Intelligence <span style="background:var(--accent-glow);color:var(--accent2);padding:3px 10px;border-radius:4px;font-size:13px;vertical-align:middle;margin-left:8px">New</span></h2>
+      <p class="subtitle">Approval timelines, permit queues, fee schedules, and seasonal patterns — by city or county.</p>
+
+      <!-- Lookup panel -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:24px">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
+          <div style="flex:1;min-width:160px">
+            <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">City / Jurisdiction</label>
+            <input type="text" id="jur-city" placeholder="e.g. Austin, Denver, Miami" style="width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none" onkeydown="if(event.key==='Enter')loadJurisdiction()">
+          </div>
+          <div>
+            <label style="font-size:12px;color:var(--text3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">State</label>
+            <select id="jur-state" style="width:90px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px">
+              <option value="">Any</option>
+              <option value="AL">AL</option><option value="AZ">AZ</option><option value="CA">CA</option><option value="CO">CO</option><option value="CT">CT</option><option value="FL">FL</option><option value="GA">GA</option><option value="IL">IL</option><option value="IN">IN</option><option value="KY">KY</option><option value="LA">LA</option><option value="MA">MA</option><option value="MD">MD</option><option value="MI">MI</option><option value="MN">MN</option><option value="NC">NC</option><option value="NJ">NJ</option><option value="NY">NY</option><option value="OH">OH</option><option value="OR">OR</option><option value="PA">PA</option><option value="TN">TN</option><option value="TX">TX</option><option value="VA">VA</option><option value="WA">WA</option>
+            </select>
+          </div>
+          <button onclick="loadJurisdiction()" style="padding:10px 24px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer">Analyze</button>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div id="jur-results" style="display:none;margin-bottom:32px"></div>
+
+      <!-- Top Cities Leaderboard (always visible) -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:24px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+          <h3 style="font-size:16px;font-weight:600;margin:0">Fastest Approval Cities</h3>
+          <div style="display:flex;gap:8px">
+            <button id="jur-rank-fastest" onclick="showJurRanking('fastest')" style="padding:6px 14px;background:var(--accent);color:#fff;border:none;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer">⚡ Fastest</button>
+            <button id="jur-rank-cheapest" onclick="showJurRanking('cheapest')" style="padding:6px 14px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:20px;font-size:12px;font-weight:600;cursor:pointer">💵 Cheapest</button>
+            <button id="jur-rank-highest" onclick="showJurRanking('highest')" style="padding:6px 14px;background:var(--surface2);color:var(--text2);border:1px solid var(--border);border-radius:20px;font-size:12px;font-weight:600;cursor:pointer">📈 Most Active</button>
+          </div>
+        </div>
+        <div id="jur-ranking-table"></div>
+      </div>
+
     </div>
   </section>
 </div>
@@ -3436,7 +3482,7 @@ function showPage(page) {
   // Update active nav link
   document.querySelectorAll('nav .links a, .nav-dropdown-menu a').forEach(a => a.classList.remove('active'));
   document.getElementById('nav-tools-btn')?.classList.remove('has-active');
-  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements', reports: '#reports', watchlist: '#watchlist', playground: '#playground', owners: '#owners', value: '#value', passport: '#passport', momentum: '#momentum', compare: '#compare' };
+  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements', reports: '#reports', watchlist: '#watchlist', playground: '#playground', owners: '#owners', value: '#value', passport: '#passport', momentum: '#momentum', compare: '#compare', jurisdiction: '#jurisdiction' };
   const activeHash = hashMap[page] || '#search';
   const activeLink = document.querySelector(`a[href="${activeHash}"]`);
   if (activeLink) {
@@ -3467,6 +3513,7 @@ function showPage(page) {
   if (page === 'risk') { initRiskPage(); }
   if (page === 'momentum') { initMomentum(); }
   if (page === 'compare') { initComparePage(); }
+  if (page === 'jurisdiction') { initJurisdictionPage(); }
   if (page === 'contractors') {
     showContractorSearch();
     const results = document.getElementById('contractor-results');
@@ -3493,7 +3540,7 @@ function showPage(page) {
 function routeFromHash() {
   const raw = location.hash.replace('#','') || 'home';
   const h = raw.split('?')[0]; // strip query params (e.g. #passport?addr=...)
-  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', risk: 'risk', trends: 'trends', properties: 'properties', market: 'market', feed: 'feed', estimator: 'estimator', requirements: 'requirements', reports: 'reports', watchlist: 'watchlist', playground: 'playground', owners: 'owners', value: 'value', passport: 'passport', momentum: 'momentum', compare: 'compare' };
+  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', risk: 'risk', trends: 'trends', properties: 'properties', market: 'market', feed: 'feed', estimator: 'estimator', requirements: 'requirements', reports: 'reports', watchlist: 'watchlist', playground: 'playground', owners: 'owners', value: 'value', passport: 'passport', momentum: 'momentum', compare: 'compare', jurisdiction: 'jurisdiction' };
   showPage(map[h] || 'home');
 }
 window.addEventListener('hashchange', routeFromHash);
@@ -3619,6 +3666,27 @@ async function doSearch() {
     const area = document.getElementById('results-area');
     if (area) {
       area.classList.add('visible');
+      // Detect nonsense queries — show empty state instead of fabricated results
+      const _US_STATES = new Set(['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY']);
+      const _qWords = (q||'').toUpperCase().split(/\W+/);
+      // "looks real" = has state abbrev, 5-digit ZIP, or starts with a street number
+      const _looksReal = !q || hasFilters || filterState || /\b\d{5}\b/.test(q||'') || /^\d+\s+\w/.test(q||'') || _qWords.some(w => _US_STATES.has(w)) || (q||'').length < 5;
+      if (!_looksReal) {
+        const list = document.getElementById('results-list');
+        const count = document.getElementById('results-count');
+        if (count) count.textContent = '0 results';
+        if (list) list.innerHTML = `<div style="text-align:center;padding:48px 24px;color:var(--text3)">
+          <div style="font-size:32px;margin-bottom:12px">🔍</div>
+          <div style="font-size:16px;font-weight:600;color:var(--text2);margin-bottom:8px">No matching permits found</div>
+          <div style="font-size:13px;margin-bottom:20px">Try a real US city, state, address, or ZIP code.<br>Example: <em>"Austin TX"</em>, <em>"5601 Monterey Oaks Blvd"</em>, or <em>"78701"</em></div>
+          <button onclick="openSignup()" style="padding:8px 20px;background:var(--accent);border:none;border-radius:var(--radius-sm);color:#fff;font-size:13px;font-weight:600;cursor:pointer">Sign Up Free to Search 7M+ Permits →</button>
+        </div>`;
+        const loadMoreArea = document.getElementById('load-more-area');
+        if (loadMoreArea) loadMoreArea.style.display = 'none';
+        const vt = document.getElementById('view-toggle');
+        if (vt) vt.style.display = 'none';
+        return;
+      }
       // Show seeded demo results — update only results-list to preserve export/save/toggle buttons
       // Incorporate state filter into the query so demo results respect the selected state
       const demoPermits = generateDemoPermits(filterState ? (q ? q + ' ' + filterState : filterState) : (q || 'demo search'));
@@ -4566,10 +4634,17 @@ async function viewContractor(name) {
     const hash = name.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
     const jurs = new Set(demoPermits.map(p => p.jurisdiction));
     const types = new Set(demoPermits.map(p => p.permit_type));
+    const licNum = 'LIC-' + (100000 + (hash * 7919) % 899999);
+    const areaCode = ['512','713','972','210','817','214'][hash % 6];
+    const phone = `(${areaCode}) ${String(200 + (hash * 17) % 800).padStart(3,'0')}-${String((hash * 31) % 10000).padStart(4,'0')}`;
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/-+$/,'');
     document.getElementById('contractor-profile-stats').innerHTML = `
       <div class="profile-stat"><div class="num">${demoPermits.length + 40 + (hash % 200)}</div><div class="lbl">Total Permits</div></div>
       <div class="profile-stat"><div class="num">${jurs.size}</div><div class="lbl">Jurisdictions</div></div>
       <div class="profile-stat"><div class="num">${types.size}</div><div class="lbl">Specialties</div></div>
+      <div class="profile-stat"><div class="num" style="font-size:14px">${licNum}</div><div class="lbl">License #</div></div>
+      <div class="profile-stat"><div class="num" style="font-size:14px">${phone}</div><div class="lbl">Phone</div></div>
+      <div class="profile-stat"><div class="num" style="font-size:13px"><a href="#" onclick="return false" style="color:var(--accent);text-decoration:none">${slug}.example.com</a></div><div class="lbl">Website</div></div>
     `;
     const list = document.getElementById('contractor-permits-list');
     list.innerHTML = `<div style="margin-bottom:16px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px"><span>📊 Demo permit history — sign up free for real contractor data from 7M+ permits</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button></div>` +
@@ -5299,9 +5374,16 @@ function generateDemoMarketActivity(city, state, months) {
   const mo = parseInt(months) || 6;
   const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const now = new Date();
+  // Seeded RNG so values are stable across renders
+  const seedStr = (city || '') + (state || '') + mo;
+  let seed = 0;
+  for (let k = 0; k < seedStr.length; k++) seed = (seed * 31 + seedStr.charCodeAt(k)) >>> 0;
+  const rng = (n) => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed % n; };
+  const rngF = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; };
+
   const monthly = Array.from({ length: mo }, (_, i) => {
     const d = new Date(now.getFullYear(), now.getMonth() - (mo - 1 - i), 1);
-    return { month: monthNames[d.getMonth()] + ' ' + String(d.getFullYear()).slice(2), count: Math.floor(80 + Math.random() * 320) };
+    return { month: monthNames[d.getMonth()] + ' ' + String(d.getFullYear()).slice(2), count: Math.floor(80 + rng(320)) };
   });
   const contractors = [
     { contractor: 'Apex Construction', count: 47 },
@@ -5312,7 +5394,7 @@ function generateDemoMarketActivity(city, state, months) {
   ];
   const types = { Residential: 142, Commercial: 87, Electrical: 63, Plumbing: 44, Mechanical: 31, Solar: 28 };
   const total = monthly.reduce((s, m) => s + m.count, 0);
-  return { monthly_volume: monthly, monthly, total_permits: total, avg_valuation: 85000 + Math.random() * 120000, top_contractors: contractors, permit_type_breakdown: types };
+  return { monthly_volume: monthly, monthly, total_permits: total, avg_valuation: 85000 + Math.floor(rngF() * 120000), top_contractors: contractors, permit_type_breakdown: types };
 }
 
 async function loadMarketActivity() {
@@ -5430,8 +5512,12 @@ async function loadHotspots() {
   if (!currentKey) {
     results.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3)">Loading demo hotspots...</div>';
     await new Promise(r => setTimeout(r, 400));
+    const _hstate = state || 'TX';
+    let _hseed = 0;
+    for (let k = 0; k < _hstate.length; k++) _hseed = (_hseed * 31 + _hstate.charCodeAt(k)) >>> 0;
+    const _hrng = (n) => { _hseed = (_hseed * 1664525 + 1013904223) >>> 0; return _hseed % n; };
     const demoZips = ['78701','78702','78703','78704','78705','78706','78707','78708'].map((z, i) => ({
-      zip: z, total_permits: Math.floor(200 - i * 18 + Math.random() * 40), recent_permits: Math.floor(35 - i * 3 + Math.random() * 15), growth_pct: parseFloat((15 - i * 2 + Math.random() * 8).toFixed(1))
+      zip: z, total_permits: Math.floor(200 - i * 18 + _hrng(40)), recent_permits: Math.floor(35 - i * 3 + _hrng(15)), growth_pct: parseFloat((15 - i * 2 + _hrng(80) / 10).toFixed(1))
     }));
     results.innerHTML = `<div style="margin-bottom:12px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px"><span>📊 Demo hotspots — sign up free to see real growth data</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button></div>
     <table style="width:100%;border-collapse:collapse;font-size:13px">
@@ -6646,27 +6732,34 @@ function generateFeedMockData(state, type, minVal, count) {
   const cityByState = {TX:['Austin','Houston','Dallas','San Antonio'],CA:['Los Angeles','San Diego','San Jose','Sacramento'],FL:['Miami','Tampa','Orlando','Jacksonville'],NY:['New York','Buffalo','Rochester','Albany'],AZ:['Phoenix','Tucson','Scottsdale','Mesa'],CO:['Denver','Boulder','Colorado Springs','Fort Collins'],WA:['Seattle','Tacoma','Bellevue','Spokane'],GA:['Atlanta','Savannah','Augusta','Macon'],NC:['Charlotte','Raleigh','Durham','Greensboro'],OH:['Columbus','Cleveland','Cincinnati','Dayton']};
   const typeDescriptions = {residential:['New single family dwelling','Addition to existing residence','Residential remodel','New construction SFR','Detached garage addition'],commercial:['Commercial office tenant improvement','Retail store build-out','New commercial building','Restaurant renovation','Warehouse construction'],electrical:['Electrical panel upgrade','EV charger installation','Service entrance replacement','New electrical service','Commercial electrical work'],plumbing:['Water heater replacement','Bathroom remodel plumbing','New plumbing rough-in','Gas line installation','Sewer lateral replacement'],mechanical:['HVAC replacement','New AC installation','Furnace replacement','Mini-split installation','Commercial HVAC'],solar:['Rooftop solar PV installation','Solar battery storage system','Commercial solar array','Solar panel addition','Ground-mounted solar'],demolition:['Structure demolition','Partial demolition','Demo of existing structure','Building demolition permit','Pool demolition']};
 
+  // Seeded RNG — stable values for the same filter combo
+  const seedStr = (state || 'ALL') + (type || 'ALL') + (minVal || 0) + count;
+  let _fseed = 0;
+  for (let k = 0; k < seedStr.length; k++) _fseed = (_fseed * 31 + seedStr.charCodeAt(k)) >>> 0;
+  const _frng = (n) => { _fseed = (_fseed * 1664525 + 1013904223) >>> 0; return _fseed % n; };
+  const _frngF = () => { _fseed = (_fseed * 1664525 + 1013904223) >>> 0; return _fseed / 4294967296; };
+  // Deterministic timestamps spread over past 24h based on index
   const now = Date.now();
   const items = [];
   for (let i = 0; i < count; i++) {
-    const st = states[Math.floor(Math.random() * states.length)];
-    const tp = types[Math.floor(Math.random() * types.length)];
+    const st = states[_frng(states.length)];
+    const tp = types[_frng(types.length)];
     const cities = cityByState[st] || ['Unknown'];
-    const city = cities[Math.floor(Math.random() * cities.length)];
+    const city = cities[_frng(cities.length)];
     let val = 0;
-    if (tp === 'residential') val = 80000 + Math.random() * 420000;
-    else if (tp === 'commercial') val = 150000 + Math.random() * 2000000;
-    else if (tp === 'electrical') val = 1500 + Math.random() * 18000;
-    else if (tp === 'plumbing') val = 2000 + Math.random() * 15000;
-    else if (tp === 'mechanical') val = 5000 + Math.random() * 30000;
-    else if (tp === 'solar') val = 15000 + Math.random() * 60000;
-    else if (tp === 'demolition') val = 8000 + Math.random() * 40000;
+    if (tp === 'residential') val = 80000 + _frngF() * 420000;
+    else if (tp === 'commercial') val = 150000 + _frngF() * 2000000;
+    else if (tp === 'electrical') val = 1500 + _frngF() * 18000;
+    else if (tp === 'plumbing') val = 2000 + _frngF() * 15000;
+    else if (tp === 'mechanical') val = 5000 + _frngF() * 30000;
+    else if (tp === 'solar') val = 15000 + _frngF() * 60000;
+    else if (tp === 'demolition') val = 8000 + _frngF() * 40000;
     if (val < minVal) { i--; if (i < -100) break; continue; }
-    const street = Math.floor(100 + Math.random() * 9900) + ' ' + streetNames[Math.floor(Math.random() * streetNames.length)] + ' ' + streetSuffix[Math.floor(Math.random() * streetSuffix.length)];
-    const contractor = Math.random() > 0.2 ? contractors[Math.floor(Math.random() * contractors.length)] : null;
+    const street = Math.floor(100 + _frng(9900)) + ' ' + streetNames[_frng(streetNames.length)] + ' ' + streetSuffix[_frng(streetSuffix.length)];
+    const contractor = _frngF() > 0.2 ? contractors[_frng(contractors.length)] : null;
     const desc = typeDescriptions[tp];
-    const msAgo = Math.floor(Math.random() * 86400000);
-    items.push({ id: 'P' + (100000 + Math.floor(Math.random() * 899999)), address: street, city, state: st, type: tp, value: Math.round(val), contractor, description: desc[Math.floor(Math.random() * desc.length)], color: typeColors[tp], ts: now - msAgo });
+    const msAgo = Math.floor(_frngF() * 86400000);
+    items.push({ id: 'P' + (100000 + _frng(899999)), address: street, city, state: st, type: tp, value: Math.round(val), contractor, description: desc[_frng(desc.length)], color: typeColors[tp], ts: now - msAgo });
   }
   items.sort((a,b) => b.ts - a.ts);
   return items;
@@ -9939,6 +10032,299 @@ function shareCompareReport() {
   showToast('Comparison link copied to clipboard!', 'success');
 }
 // ─── END PROPERTY COMPARISON ────────────────────────────────────────────────
+
+// ─── JURISDICTION INTELLIGENCE ───────────────────────────────────────────────
+
+function seedForStr(s) {
+  let seed = 0;
+  for (let k = 0; k < s.length; k++) seed = (seed * 31 + s.charCodeAt(k)) >>> 0;
+  return seed;
+}
+
+function makeRng(seed) {
+  let s = seed >>> 0;
+  return {
+    int: (n) => { s = (s * 1664525 + 1013904223) >>> 0; return s % n; },
+    frac: () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }
+  };
+}
+
+function generateJurisdictionData(city, state) {
+  const key = (city + '|' + state).toLowerCase();
+  const rng = makeRng(seedForStr(key));
+
+  const avgDays = {
+    residential: 8 + rng.int(28),
+    commercial:  25 + rng.int(60),
+    electrical:  3 + rng.int(12),
+    plumbing:    4 + rng.int(10),
+    mechanical:  5 + rng.int(14),
+    solar:       6 + rng.int(20),
+    demolition:  5 + rng.int(18)
+  };
+  const backlog = 80 + rng.int(620);
+  const approvalRate = 78 + rng.int(20);
+  const avgFee = 350 + rng.int(1200);
+  const volMonth = 200 + rng.int(800);
+  const yoyChange = -5 + rng.int(30);
+
+  // Fee schedule
+  const feeSchedule = [
+    { type: 'Residential (New)', base: 200 + rng.int(400), perThousand: 2 + rng.int(8) },
+    { type: 'Commercial (TI)',   base: 400 + rng.int(800), perThousand: 3 + rng.int(10) },
+    { type: 'Electrical',        base:  80 + rng.int(150), perThousand: 1 + rng.int(4) },
+    { type: 'Plumbing',          base: 100 + rng.int(180), perThousand: 1 + rng.int(4) },
+    { type: 'Mechanical / HVAC', base: 120 + rng.int(200), perThousand: 1 + rng.int(5) },
+    { type: 'Solar PV',          base: 150 + rng.int(300), perThousand: 1 + rng.int(3) },
+    { type: 'Demolition',        base: 200 + rng.int(500), perThousand: 0 },
+  ];
+
+  // Seasonal volume (index 0 = Jan)
+  const seasonal = Array.from({ length: 12 }, (_, i) => {
+    const base = [0.7, 0.65, 0.85, 1.0, 1.1, 1.15, 1.2, 1.15, 1.1, 0.95, 0.8, 0.7][i];
+    return Math.round(volMonth * base * (0.85 + rng.frac() * 0.3));
+  });
+
+  // Top contractors by submission success rate
+  const contractorNames = ['Apex Construction','BuildRight Co','Summit Builders','ProBuild Inc','Horizon Contractors','Eagle Build Group','Legacy Build Co','Premier Works','Atlas Group','Pinnacle Builders'];
+  const topContractors = Array.from({ length: 5 }, (_, i) => ({
+    name: contractorNames[rng.int(contractorNames.length)],
+    submissions: 12 + rng.int(88),
+    passRate: 82 + rng.int(17)
+  }));
+  // Deduplicate names
+  const seen = new Set();
+  topContractors.forEach((c, i) => {
+    while (seen.has(c.name)) c.name = contractorNames[rng.int(contractorNames.length)];
+    seen.add(c.name);
+  });
+
+  return { avgDays, backlog, approvalRate, avgFee, volMonth, yoyChange, feeSchedule, seasonal, topContractors };
+}
+
+function loadJurisdiction() {
+  const city = document.getElementById('jur-city').value.trim();
+  const state = document.getElementById('jur-state').value;
+  if (!city && !state) { showToast('Enter a city or select a state', 'error'); return; }
+  const results = document.getElementById('jur-results');
+  results.style.display = '';
+  results.innerHTML = '<div style="text-align:center;padding:32px;color:var(--text3)">Loading jurisdiction data...</div>';
+  setTimeout(() => {
+    const data = generateJurisdictionData(city || state, state || city);
+    renderJurisdiction(data, city || state, state);
+    if (!currentKey) {
+      results.insertAdjacentHTML('afterbegin', `<div style="margin-bottom:16px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px"><span>📊 Demo data — sign up free to access real approval timelines from 7M+ permits</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button></div>`);
+    }
+  }, 500);
+}
+
+function renderJurisdiction(d, city, state) {
+  const results = document.getElementById('jur-results');
+  const label = [city, state].filter(Boolean).join(', ');
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const maxSeasonal = Math.max(...d.seasonal);
+  const minSeasonal = Math.min(...d.seasonal);
+
+  // Approval days bar chart
+  const maxDays = Math.max(...Object.values(d.avgDays));
+  const typeColors = { residential:'#22c55e', commercial:'#3b82f6', electrical:'#f59e0b', plumbing:'#06b6d4', mechanical:'#a855f7', solar:'#fbbf24', demolition:'#ef4444' };
+  const daysRows = Object.entries(d.avgDays).map(([tp, days]) => {
+    const pct = Math.round(days / maxDays * 100);
+    const col = typeColors[tp] || 'var(--accent)';
+    return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <div style="width:96px;font-size:13px;color:var(--text2);text-align:right;text-transform:capitalize">${tp}</div>
+      <div style="flex:1;background:var(--surface2);border-radius:4px;height:22px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:${col};border-radius:4px;display:flex;align-items:center;padding-left:8px;font-size:12px;font-weight:600;color:#fff;white-space:nowrap;transition:width .6s ease">${days}d</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Seasonal heatmap
+  const seasonalCells = d.seasonal.map((v, i) => {
+    const normalized = (v - minSeasonal) / (maxSeasonal - minSeasonal + 1);
+    const r = Math.round(34 + normalized * (250 - 34));
+    const g = Math.round(197 - normalized * (197 - 85));
+    const b = Math.round(94 + normalized * (220 - 94));
+    const bg = `rgba(${r},${g},${b},0.25)`;
+    const border = `rgba(${r},${g},${b},0.5)`;
+    const isBest = v === maxSeasonal;
+    const isWorst = v === minSeasonal;
+    return `<div style="flex:1;min-width:60px;background:${bg};border:1px solid ${border};border-radius:8px;padding:10px 6px;text-align:center;position:relative">
+      ${isBest ? '<div style="position:absolute;top:4px;right:4px;font-size:9px;color:#22c55e;font-weight:700">BEST</div>' : ''}
+      ${isWorst ? '<div style="position:absolute;top:4px;right:4px;font-size:9px;color:#ef4444;font-weight:700">SLOW</div>' : ''}
+      <div style="font-size:11px;color:var(--text3);margin-bottom:4px">${monthNames[i]}</div>
+      <div style="font-size:14px;font-weight:600;color:var(--text)">${v}</div>
+    </div>`;
+  }).join('');
+
+  // Contractor table
+  const contractorRows = d.topContractors.map(c => {
+    const barW = Math.round(c.passRate);
+    const col = c.passRate >= 95 ? '#22c55e' : c.passRate >= 88 ? '#f59e0b' : '#ef4444';
+    return `<tr style="border-top:1px solid var(--border)">
+      <td style="padding:8px 6px;font-size:13px">${esc(c.name)}</td>
+      <td style="padding:8px 6px;font-size:13px;text-align:right">${c.submissions}</td>
+      <td style="padding:8px 6px;min-width:140px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="flex:1;background:var(--surface2);border-radius:4px;height:8px">
+            <div style="width:${barW}%;height:8px;background:${col};border-radius:4px"></div>
+          </div>
+          <span style="font-size:12px;font-weight:600;color:${col};width:36px">${c.passRate}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Fee schedule table
+  const feeRows = d.feeSchedule.map(f => `<tr style="border-top:1px solid var(--border)">
+    <td style="padding:8px 6px;font-size:13px">${esc(f.type)}</td>
+    <td style="padding:8px 6px;font-size:13px;text-align:right">$${f.base.toLocaleString()}</td>
+    <td style="padding:8px 6px;font-size:13px;text-align:right">${f.perThousand > 0 ? '$'+f.perThousand+'/$1K' : '—'}</td>
+  </tr>`).join('');
+
+  const yoyColor = d.yoyChange >= 0 ? '#22c55e' : '#ef4444';
+  const yoySign = d.yoyChange >= 0 ? '+' : '';
+
+  results.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:20px">
+      <h3 style="font-size:18px;font-weight:700;margin:0 0 20px">${esc(label)} Building Department</h3>
+
+      <!-- KPI row -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin-bottom:24px">
+        <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:16px;text-align:center">
+          <div style="font-size:28px;font-weight:700;color:var(--accent2)">${d.avgDays.residential}</div>
+          <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Avg Residential Days</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:16px;text-align:center">
+          <div style="font-size:28px;font-weight:700;color:#f59e0b">${d.backlog.toLocaleString()}</div>
+          <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Active Queue</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:16px;text-align:center">
+          <div style="font-size:28px;font-weight:700;color:#22c55e">${d.approvalRate}%</div>
+          <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Approval Rate</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:16px;text-align:center">
+          <div style="font-size:28px;font-weight:700;color:var(--text)">$${d.avgFee.toLocaleString()}</div>
+          <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Avg Permit Fee</div>
+        </div>
+        <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:16px;text-align:center">
+          <div style="font-size:28px;font-weight:700;color:${yoyColor}">${yoySign}${d.yoyChange}%</div>
+          <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">YoY Volume Change</div>
+        </div>
+      </div>
+
+      <!-- Two-column layout -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px;margin-bottom:20px">
+        <!-- Approval times by type -->
+        <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:16px">
+          <h4 style="font-size:14px;font-weight:600;margin:0 0 14px;color:var(--text2)">⏱ Avg Approval Days by Type</h4>
+          ${daysRows}
+        </div>
+        <!-- Fee schedule -->
+        <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:16px">
+          <h4 style="font-size:14px;font-weight:600;margin:0 0 14px;color:var(--text2)">💵 Fee Schedule</h4>
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead><tr style="color:var(--text3)">
+              <th style="text-align:left;padding:4px 6px">Type</th>
+              <th style="text-align:right;padding:4px 6px">Base Fee</th>
+              <th style="text-align:right;padding:4px 6px">Per $1K</th>
+            </tr></thead>
+            <tbody>${feeRows}</tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Seasonal filing calendar -->
+      <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:16px;margin-bottom:20px">
+        <h4 style="font-size:14px;font-weight:600;margin:0 0 14px;color:var(--text2)">📅 Seasonal Filing Volume — Best Months to Submit</h4>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">${seasonalCells}</div>
+        <div style="margin-top:12px;font-size:12px;color:var(--text3)">Tip: Filing in <strong style="color:#22c55e">${monthNames[d.seasonal.indexOf(maxSeasonal)]}</strong> has the highest permit activity. For faster approvals, consider <strong style="color:#ef4444">${monthNames[d.seasonal.indexOf(minSeasonal)]}</strong> when queues are shorter.</div>
+      </div>
+
+      <!-- Contractor pass rates -->
+      <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:16px">
+        <h4 style="font-size:14px;font-weight:600;margin:0 0 14px;color:var(--text2)">🏆 Top Contractors by Approval Rate</h4>
+        <table style="width:100%;border-collapse:collapse;font-size:13px">
+          <thead><tr style="color:var(--text3)">
+            <th style="text-align:left;padding:4px 6px">Contractor</th>
+            <th style="text-align:right;padding:4px 6px">Submissions</th>
+            <th style="padding:4px 6px">Pass Rate</th>
+          </tr></thead>
+          <tbody>${contractorRows}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// Jurisdiction city rankings
+const _JUR_CITIES = [
+  ['Austin','TX'],['Houston','TX'],['Dallas','TX'],['San Antonio','TX'],['Denver','CO'],
+  ['Seattle','WA'],['Portland','OR'],['Miami','FL'],['Tampa','FL'],['Atlanta','GA'],
+  ['Charlotte','NC'],['Phoenix','AZ'],['Scottsdale','AZ'],['Nashville','TN'],['Raleigh','NC'],
+  ['Columbus','OH'],['Indianapolis','IN'],['Louisville','KY'],['New Orleans','LA'],['Richmond','VA'],
+  ['Sacramento','CA'],['San Diego','CA'],['Tucson','AZ'],['Albuquerque','AZ'],['Oklahoma City','OK']
+];
+
+function showJurRanking(mode) {
+  ['fastest','cheapest','highest'].forEach(m => {
+    const btn = document.getElementById('jur-rank-' + m);
+    if (btn) {
+      btn.style.background = m === mode ? 'var(--accent)' : 'var(--surface2)';
+      btn.style.color = m === mode ? '#fff' : 'var(--text2)';
+      btn.style.border = m === mode ? 'none' : '1px solid var(--border)';
+    }
+  });
+  const cities = _JUR_CITIES.map(([city, state]) => {
+    const d = generateJurisdictionData(city, state);
+    return { city, state, ...d };
+  });
+
+  let sorted, colLabel, colVal, colColor;
+  if (mode === 'fastest') {
+    sorted = cities.sort((a, b) => a.avgDays.residential - b.avgDays.residential);
+    colLabel = 'Res. Approval';
+    colVal = c => c.avgDays.residential + ' days';
+    colColor = c => c.avgDays.residential <= 12 ? '#22c55e' : c.avgDays.residential <= 22 ? '#f59e0b' : '#ef4444';
+  } else if (mode === 'cheapest') {
+    sorted = cities.sort((a, b) => a.avgFee - b.avgFee);
+    colLabel = 'Avg Fee';
+    colVal = c => '$' + c.avgFee.toLocaleString();
+    colColor = c => c.avgFee <= 600 ? '#22c55e' : c.avgFee <= 1000 ? '#f59e0b' : '#ef4444';
+  } else {
+    sorted = cities.sort((a, b) => b.volMonth - a.volMonth);
+    colLabel = 'Monthly Vol.';
+    colVal = c => c.volMonth.toLocaleString() + '/mo';
+    colColor = () => 'var(--accent2)';
+  }
+
+  const top10 = sorted.slice(0, 10);
+  const tableEl = document.getElementById('jur-ranking-table');
+  if (!tableEl) return;
+  tableEl.innerHTML = `<table style="width:100%;border-collapse:collapse;font-size:13px">
+    <thead><tr style="color:var(--text3)">
+      <th style="text-align:left;padding:8px 6px">#</th>
+      <th style="text-align:left;padding:8px 6px">City</th>
+      <th style="text-align:right;padding:8px 6px">${esc(colLabel)}</th>
+      <th style="text-align:right;padding:8px 6px">Queue</th>
+      <th style="text-align:right;padding:8px 6px">Approval %</th>
+    </tr></thead>
+    <tbody>${top10.map((c, i) => `<tr style="border-top:1px solid var(--border);cursor:pointer" onclick="document.getElementById('jur-city').value='${esc(c.city)}';document.getElementById('jur-state').value='${esc(c.state)}';loadJurisdiction()">
+      <td style="padding:8px 6px;color:var(--text3);font-weight:700">${i+1}</td>
+      <td style="padding:8px 6px;font-weight:600">${esc(c.city)}, <span style="color:var(--text3)">${esc(c.state)}</span></td>
+      <td style="padding:8px 6px;text-align:right;font-weight:600;color:${colColor(c)}">${colVal(c)}</td>
+      <td style="padding:8px 6px;text-align:right;color:var(--text2)">${c.backlog}</td>
+      <td style="padding:8px 6px;text-align:right;color:#22c55e">${c.approvalRate}%</td>
+    </tr>`).join('')}
+    </tbody>
+  </table>`;
+}
+
+function initJurisdictionPage() {
+  showJurRanking('fastest');
+}
+
+// ─── END JURISDICTION INTELLIGENCE ───────────────────────────────────────────
 
 // ─── END API PLAYGROUND ────────────────────────────────────────────────────────
 </script>
