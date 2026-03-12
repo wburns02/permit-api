@@ -912,6 +912,60 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
   .owners-leader-row>*:nth-child(4),.owners-leader-row>*:nth-child(5),.owners-leader-row>*:nth-child(6){display:none}
   .owner-profile-stats{grid-template-columns:repeat(2,1fr)}
 }
+/* Market Momentum */
+.mm-grid{display:grid;gap:16px}
+.mm-grid-2{grid-template-columns:1fr 1fr}
+.mm-grid-3{grid-template-columns:1fr 1fr 1fr}
+.mm-grid-4{grid-template-columns:repeat(4,1fr)}
+.mm-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px;transition:border-color .2s,box-shadow .2s}
+.mm-card[onclick]:hover,.mm-card[style*="cursor:pointer"]:hover{border-color:rgba(99,102,241,.4);box-shadow:0 4px 20px rgba(0,0,0,.2)}
+.mm-card h3{font-size:14px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.05em;margin:0 0 16px}
+.mm-stat-val{font-size:28px;font-weight:800;line-height:1;margin-bottom:4px}
+.mm-stat-lbl{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-weight:600}
+.mm-stat-delta{font-size:12px;font-weight:700;margin-top:6px}
+.mm-stat-delta.up{color:#22c55e}
+.mm-stat-delta.down{color:#ef4444}
+.mm-city-row{display:flex;align-items:center;gap:12px;padding:10px 6px;border-bottom:1px solid var(--border);border-radius:4px;transition:background .15s}
+.mm-city-row:hover{background:var(--surface2)}
+.mm-city-row:last-child{border-bottom:none}
+.mm-city-rank{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0}
+.mm-city-name{flex:1;font-size:13px;font-weight:600}
+.mm-city-bar-wrap{width:120px;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;flex-shrink:0}
+.mm-city-bar{height:100%;border-radius:3px;transition:width .6s ease}
+.mm-city-count{font-size:12px;color:var(--text3);min-width:50px;text-align:right;font-weight:600}
+.mm-city-delta{font-size:11px;font-weight:700;min-width:40px;text-align:right}
+.mm-city-delta.up{color:#22c55e}
+.mm-city-delta.down{color:#ef4444}
+.mm-project-row{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;border-radius:4px}
+.mm-project-row:hover{background:var(--surface2)}
+.mm-project-row:last-child{border-bottom:none}
+.mm-project-icon{width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.mm-project-name{font-size:13px;font-weight:600;margin-bottom:2px;line-height:1.3}
+.mm-project-meta{font-size:11px;color:var(--text3)}
+.mm-project-value{font-size:14px;font-weight:800;color:var(--accent2);text-align:right;flex-shrink:0}
+.mm-heat-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:4px}
+.mm-heat-cell{aspect-ratio:1;border-radius:3px;transition:transform .15s;cursor:default}
+.mm-heat-cell:hover{transform:scale(1.2)}
+.mm-heat-label{font-size:10px;color:var(--text3);text-align:center;margin-top:6px}
+.mm-sparkline{display:flex;align-items:flex-end;gap:2px;height:48px}
+.mm-spark-bar{flex:1;border-radius:2px 2px 0 0;transition:height .4s ease,background .3s}
+.mm-category-row{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.mm-category-row:last-child{margin-bottom:0}
+.mm-cat-icon{font-size:16px;width:24px;text-align:center;flex-shrink:0}
+.mm-cat-name{font-size:12px;font-weight:600;flex:1;min-width:0}
+.mm-cat-track{flex:1;height:6px;background:var(--surface2);border-radius:3px;overflow:hidden;min-width:80px}
+.mm-cat-fill{height:100%;border-radius:3px;transition:width .6s ease}
+.mm-cat-pct{font-size:11px;font-weight:700;min-width:36px;text-align:right;color:var(--text2)}
+.mm-cat-delta{font-size:11px;font-weight:700;min-width:36px;text-align:right}
+.mm-cat-delta.up{color:#22c55e}
+.mm-cat-delta.down{color:#ef4444}
+.mm-filter-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:24px}
+.mm-filter-row select{padding:9px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;font-family:var(--font);outline:none;transition:border-color .2s}
+.mm-filter-row select:focus{border-color:var(--accent)}
+.mm-pulse{animation:mm-pulse-anim 2s infinite}
+@keyframes mm-pulse-anim{0%,100%{opacity:1}50%{opacity:.4}}
+.mm-live-dot{width:8px;height:8px;border-radius:50%;background:#22c55e;box-shadow:0 0 6px rgba(34,197,94,.6);display:inline-block;margin-right:6px;animation:mm-pulse-anim 1.5s infinite}
+@media(max-width:768px){.mm-grid-2,.mm-grid-3,.mm-grid-4{grid-template-columns:1fr!important}}
 </style>
 </head>
 <body>
@@ -947,6 +1001,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
           <a href="#owners" onclick="showPage('owners');closeNavDropdown();return false">Owner Intelligence</a>
           <a href="#value" onclick="showPage('value');closeNavDropdown();return false">Value Analytics</a>
           <a href="#passport" onclick="showPage('passport');closeNavDropdown();return false">Property Passport</a>
+          <a href="#momentum" onclick="showPage('momentum');closeNavDropdown();return false">Market Momentum</a>
         </div>
       </div>
       <a href="/docs" target="_blank">API Docs</a>
@@ -1188,6 +1243,18 @@ results.forEach(p =>
             <li>Shareable link for realtors &amp; buyers</li>
           </ul>
           <button onclick="showPage('passport')" style="margin-top:16px;padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600">View Passport →</button>
+        </div>
+        <div class="feature-card">
+          <div style="font-size:36px;margin-bottom:12px">⚡</div>
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:8px">Market Momentum</h3>
+          <p style="color:var(--text2);font-size:14px;line-height:1.6">Real-time permit velocity dashboard. Track surging markets, category momentum, and top projects before the competition notices.</p>
+          <ul>
+            <li>City permit surge rankings with week-over-week delta</li>
+            <li>Category momentum (which types are accelerating)</li>
+            <li>Activity heatmap &amp; velocity sparklines</li>
+            <li>Market health index for any metro</li>
+          </ul>
+          <button onclick="showPage('momentum')" style="margin-top:16px;padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600">View Momentum →</button>
         </div>
       </div>
     </div>
@@ -1848,7 +1915,7 @@ results.forEach(p =>
       <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
         <div style="display:flex;flex-direction:column;gap:4px">
           <label style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">State</label>
-          <select id="feed-state" style="background:var(--card);border:1px solid var(--border);color:var(--text1);padding:10px 14px;border-radius:8px;font-size:14px;min-width:140px">
+          <select id="feed-state" onchange="loadFeed()" style="background:var(--card);border:1px solid var(--border);color:var(--text1);padding:10px 14px;border-radius:8px;font-size:14px;min-width:140px">
             <option value="">All States</option>
             <option value="TX">Texas</option>
             <option value="CA">California</option>
@@ -1864,7 +1931,7 @@ results.forEach(p =>
         </div>
         <div style="display:flex;flex-direction:column;gap:4px">
           <label style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Type</label>
-          <select id="feed-type" style="background:var(--card);border:1px solid var(--border);color:var(--text1);padding:10px 14px;border-radius:8px;font-size:14px;min-width:160px">
+          <select id="feed-type" onchange="loadFeed()" style="background:var(--card);border:1px solid var(--border);color:var(--text1);padding:10px 14px;border-radius:8px;font-size:14px;min-width:160px">
             <option value="">All Types</option>
             <option value="residential">Residential</option>
             <option value="commercial">Commercial</option>
@@ -1877,7 +1944,7 @@ results.forEach(p =>
         </div>
         <div style="display:flex;flex-direction:column;gap:4px">
           <label style="font-size:12px;color:var(--text2);text-transform:uppercase;letter-spacing:.05em">Min Value</label>
-          <select id="feed-minval" style="background:var(--card);border:1px solid var(--border);color:var(--text1);padding:10px 14px;border-radius:8px;font-size:14px;min-width:140px">
+          <select id="feed-minval" onchange="loadFeed()" style="background:var(--card);border:1px solid var(--border);color:var(--text1);padding:10px 14px;border-radius:8px;font-size:14px;min-width:140px">
             <option value="0">Any value</option>
             <option value="10000">$10k+</option>
             <option value="50000">$50k+</option>
@@ -2722,6 +2789,141 @@ results.forEach(p =>
   </section>
 </div>
 
+<!-- MARKET MOMENTUM PAGE -->
+<div class="page" id="page-momentum">
+  <section class="container" style="padding:40px 0 80px">
+    <!-- Header -->
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:24px">
+      <div>
+        <div style="display:inline-flex;align-items:center;padding:6px 16px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:20px;font-size:12px;font-weight:600;color:#22c55e;margin-bottom:14px;letter-spacing:.04em">
+          <span class="mm-live-dot"></span>MARKET MOMENTUM
+        </div>
+        <h2 style="font-size:32px;font-weight:800;margin-bottom:8px">Permit Velocity Dashboard</h2>
+        <p style="color:var(--text2);font-size:15px;max-width:640px">Track permit surges, category momentum, and top projects in real time. Spot markets before the competition.</p>
+      </div>
+      <div id="momentum-demo-badge" style="padding:8px 16px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:var(--radius-sm);font-size:12px;color:#fbbf24;font-weight:600;white-space:nowrap;align-self:flex-start">Demo Data — <a href="#" onclick="openSignup();return false" style="color:#fbbf24">Sign up free</a> for live data</div>
+    </div>
+
+    <!-- Filters -->
+    <div class="mm-filter-row">
+      <div>
+        <label style="display:block;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">State</label>
+        <select id="mm-state" onchange="loadMomentum()">
+          <option value="">All States</option>
+          <option value="TX">Texas</option>
+          <option value="CA">California</option>
+          <option value="FL">Florida</option>
+          <option value="AZ">Arizona</option>
+          <option value="CO">Colorado</option>
+          <option value="GA">Georgia</option>
+          <option value="NC">North Carolina</option>
+          <option value="WA">Washington</option>
+          <option value="NY">New York</option>
+          <option value="IL">Illinois</option>
+          <option value="OR">Oregon</option>
+          <option value="NV">Nevada</option>
+          <option value="OH">Ohio</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Period</label>
+        <select id="mm-period" onchange="loadMomentum()">
+          <option value="7">Last 7 Days</option>
+          <option value="30" selected>Last 30 Days</option>
+          <option value="90">Last 90 Days</option>
+        </select>
+      </div>
+      <div>
+        <label style="display:block;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Category</label>
+        <select id="mm-category" onchange="loadMomentum()">
+          <option value="">All Categories</option>
+          <option value="residential">Residential</option>
+          <option value="commercial">Commercial</option>
+          <option value="electrical">Electrical</option>
+          <option value="mechanical">Mechanical</option>
+          <option value="plumbing">Plumbing</option>
+          <option value="roofing">Roofing</option>
+        </select>
+      </div>
+      <div style="align-self:flex-end">
+        <button onclick="loadMomentum()" style="padding:9px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:var(--text);cursor:pointer;transition:border-color .2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">↻ Refresh</button>
+      </div>
+    </div>
+
+    <!-- KPI Bar -->
+    <div class="mm-grid mm-grid-4" id="mm-kpi-bar" style="margin-bottom:24px"></div>
+
+    <!-- Row 1: City Rankings + Heatmap -->
+    <div class="mm-grid mm-grid-2" style="margin-bottom:20px">
+      <!-- City velocity rankings -->
+      <div class="mm-card">
+        <h3>🏙️ Surging Markets</h3>
+        <div id="mm-city-list"></div>
+      </div>
+
+      <!-- Weekly heatmap -->
+      <div class="mm-card">
+        <h3>📅 Permit Activity Heatmap</h3>
+        <div style="display:flex;gap:4px;font-size:10px;color:var(--text3);margin-bottom:8px">
+          <span style="flex:1">Mon</span><span style="flex:1">Tue</span><span style="flex:1">Wed</span><span style="flex:1">Thu</span><span style="flex:1">Fri</span><span style="flex:1">Sat</span><span style="flex:1">Sun</span>
+        </div>
+        <div id="mm-heatmap"></div>
+        <div style="display:flex;align-items:center;gap:6px;margin-top:12px;font-size:11px;color:var(--text3)">
+          <span>Less</span>
+          <div style="display:flex;gap:3px">
+            <div style="width:10px;height:10px;border-radius:2px;background:rgba(99,102,241,.1)"></div>
+            <div style="width:10px;height:10px;border-radius:2px;background:rgba(99,102,241,.3)"></div>
+            <div style="width:10px;height:10px;border-radius:2px;background:rgba(99,102,241,.6)"></div>
+            <div style="width:10px;height:10px;border-radius:2px;background:rgba(99,102,241,.8)"></div>
+            <div style="width:10px;height:10px;border-radius:2px;background:rgb(99,102,241)"></div>
+          </div>
+          <span>More</span>
+        </div>
+        <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
+          <h3 style="margin-bottom:12px">⚡ Velocity Sparkline</h3>
+          <div id="mm-sparkline" class="mm-sparkline"></div>
+          <div id="mm-spark-labels" style="display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:var(--text3)"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Row 2: Category Momentum + Top Projects -->
+    <div class="mm-grid mm-grid-2" style="margin-bottom:20px">
+      <!-- Category breakdown with momentum arrows -->
+      <div class="mm-card">
+        <h3>📊 Category Momentum</h3>
+        <div id="mm-categories"></div>
+      </div>
+
+      <!-- Top projects this period -->
+      <div class="mm-card">
+        <h3>🏆 Biggest Projects This Period</h3>
+        <div id="mm-top-projects"></div>
+      </div>
+    </div>
+
+    <!-- Row 3: Market health scores -->
+    <div class="mm-card" style="margin-bottom:20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <h3 style="margin:0">🌡️ Market Health Index</h3>
+        <span style="font-size:11px;color:var(--text3)">Based on permit volume, value, and growth velocity</span>
+      </div>
+      <div id="mm-health-grid" class="mm-grid mm-grid-3"></div>
+    </div>
+
+    <!-- CTA for non-authenticated users -->
+    <div style="background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(6,182,212,.05));border:1px solid rgba(99,102,241,.2);border-radius:var(--radius);padding:32px;text-align:center">
+      <div style="font-size:32px;margin-bottom:12px">⚡</div>
+      <h3 style="font-size:20px;font-weight:800;margin-bottom:8px">Get Live Momentum Alerts</h3>
+      <p style="color:var(--text2);font-size:14px;max-width:480px;margin:0 auto 20px">Sign up free to get real-time permit velocity alerts for your target markets, weekly market reports, and API access to 7M+ permits.</p>
+      <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <button onclick="openSignup()" style="padding:12px 32px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer">Get Free API Key →</button>
+        <button onclick="showPage('alerts')" style="padding:12px 32px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-weight:600;color:var(--text);cursor:pointer">Set Up Alerts</button>
+      </div>
+    </div>
+  </section>
+</div>
+
 <!-- PROPERTY PASSPORT PAGE -->
 <div class="page" id="page-passport">
   <section class="container" style="padding:40px 0 80px">
@@ -3086,7 +3288,7 @@ function showPage(page) {
   // Update active nav link
   document.querySelectorAll('nav .links a, .nav-dropdown-menu a').forEach(a => a.classList.remove('active'));
   document.getElementById('nav-tools-btn')?.classList.remove('has-active');
-  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements', reports: '#reports', watchlist: '#watchlist', playground: '#playground', owners: '#owners', value: '#value', passport: '#passport' };
+  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements', reports: '#reports', watchlist: '#watchlist', playground: '#playground', owners: '#owners', value: '#value', passport: '#passport', momentum: '#momentum' };
   const activeHash = hashMap[page] || '#search';
   const activeLink = document.querySelector(`a[href="${activeHash}"]`);
   if (activeLink) {
@@ -3114,6 +3316,7 @@ function showPage(page) {
   if (page === 'owners') { initOwnersPage(); }
   if (page === 'value') { initValueAnalytics(); }
   if (page === 'passport') { initPassportPage(); }
+  if (page === 'momentum') { initMomentum(); }
   if (page === 'contractors') {
     showContractorSearch();
     const results = document.getElementById('contractor-results');
@@ -3138,8 +3341,9 @@ function showPage(page) {
 
 // Hash routing
 function routeFromHash() {
-  const h = location.hash.replace('#','') || 'home';
-  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', risk: 'risk', trends: 'trends', properties: 'properties', market: 'market', feed: 'feed', estimator: 'estimator', requirements: 'requirements', reports: 'reports', watchlist: 'watchlist', playground: 'playground', owners: 'owners', value: 'value', passport: 'passport' };
+  const raw = location.hash.replace('#','') || 'home';
+  const h = raw.split('?')[0]; // strip query params (e.g. #passport?addr=...)
+  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', risk: 'risk', trends: 'trends', properties: 'properties', market: 'market', feed: 'feed', estimator: 'estimator', requirements: 'requirements', reports: 'reports', watchlist: 'watchlist', playground: 'playground', owners: 'owners', value: 'value', passport: 'passport', momentum: 'momentum' };
   showPage(map[h] || 'home');
 }
 window.addEventListener('hashchange', routeFromHash);
@@ -3270,7 +3474,7 @@ async function doSearch() {
       const demoPermits = generateDemoPermits(filterState ? (q ? q + ' ' + filterState : filterState) : (q || 'demo search'));
       const demoSlice = demoPermits.slice(0, 5);
       const count = document.getElementById('results-count');
-      if (count) count.textContent = `5 demo results`;
+      if (count) count.textContent = `${demoSlice.length} demo result${demoSlice.length !== 1 ? 's' : ''}`;
       // Prepare map markers so map view shows permit locations
       prepareMapMarkers(demoSlice);
       // Show view toggle in demo mode
@@ -3284,6 +3488,11 @@ async function doSearch() {
       const expJson = document.getElementById('export-json-btn');
       if (expCsv) { expCsv.disabled = false; expCsv.onclick = () => { showToast('Sign up free to export results', 'info'); openSignup(); }; }
       if (expJson) { expJson.disabled = false; expJson.onclick = () => { showToast('Sign up free to export results', 'info'); openSignup(); }; }
+      // Show load-more button in demo mode (prompts signup on click)
+      const loadMoreArea = document.getElementById('load-more-area');
+      const loadMoreBtn = document.getElementById('load-more-btn');
+      if (loadMoreArea) loadMoreArea.style.display = '';
+      if (loadMoreBtn) loadMoreBtn.textContent = 'Load More Results (7M+ available)';
       const list = document.getElementById('results-list');
       if (list) {
         list.innerHTML = `<div style="margin-bottom:16px;padding:12px 18px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:var(--radius-sm);font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
@@ -3461,7 +3670,7 @@ function renderResultCard(p) {
 }
 
 async function loadMoreResults() {
-  if (!currentKey) return;
+  if (!currentKey) { showToast('Sign up free to load more results and search the full database', 'info'); openSignup(); return; }
   const btn = document.getElementById('load-more-btn');
   btn.disabled = true; btn.textContent = 'Loading...';
   try {
@@ -7948,10 +8157,10 @@ function renderSparkline(data, color) {
 }
 
 function quickPropertyLookup(addr) {
-  showPage('properties');
+  showPage('home');
   setTimeout(() => {
-    const input = document.getElementById('property-address');
-    if (input) { input.value = addr; lookupProperty(); }
+    const input = document.getElementById('search-input');
+    if (input) { input.value = addr; doSearch(); }
   }, 200);
 }
 
@@ -8422,7 +8631,7 @@ function initPassportPage() {
   const hash = location.hash;
   const m = hash.match(/[?&]addr=([^&]+)/);
   if (m) {
-    const addr = decodeURIComponent(m[1]);
+    const addr = decodeURIComponent(m[1].replace(/\+/g, ' '));
     const inp = document.getElementById('passport-address-input');
     if (inp) { inp.value = addr; lookupPassport(); }
   }
@@ -8462,6 +8671,267 @@ function goToContractor(name) {
     const inp = document.getElementById('contractor-input');
     if (inp) { inp.value = name; doContractorSearch(); }
   }, 200);
+}
+
+// ============ MARKET MOMENTUM ============
+const MM_CITIES = [
+  {city:'Austin',state:'TX',pop:961},
+  {city:'Phoenix',state:'AZ',pop:1608},
+  {city:'Dallas',state:'TX',pop:1304},
+  {city:'Denver',state:'CO',pop:715},
+  {city:'Charlotte',state:'NC',pop:874},
+  {city:'Las Vegas',state:'NV',pop:641},
+  {city:'Nashville',state:'TN',pop:689},
+  {city:'San Antonio',state:'TX',pop:1434},
+  {city:'Jacksonville',state:'FL',pop:949},
+  {city:'Fort Worth',state:'TX',pop:935},
+  {city:'Portland',state:'OR',pop:652},
+  {city:'Columbus',state:'OH',pop:905},
+  {city:'Seattle',state:'WA',pop:737},
+  {city:'Atlanta',state:'GA',pop:498},
+  {city:'Tampa',state:'FL',pop:387},
+  {city:'Miami',state:'FL',pop:442},
+  {city:'Houston',state:'TX',pop:2304},
+  {city:'San Diego',state:'CA',pop:1386},
+  {city:'Raleigh',state:'NC',pop:467},
+  {city:'Sacramento',state:'CA',pop:513},
+];
+const MM_CATEGORIES = [
+  {key:'residential',label:'Residential',icon:'🏠',color:'#6366f1'},
+  {key:'commercial',label:'Commercial',icon:'🏢',color:'#3b82f6'},
+  {key:'electrical',label:'Electrical',icon:'⚡',color:'#f59e0b'},
+  {key:'mechanical',label:'Mechanical',icon:'❄️',color:'#10b981'},
+  {key:'plumbing',label:'Plumbing',icon:'🔧',color:'#06b6d4'},
+  {key:'roofing',label:'Roofing',icon:'🏡',color:'#8b5cf6'},
+  {key:'demolition',label:'Demolition',icon:'🔨',color:'#ef4444'},
+];
+
+function mmRng(seed) {
+  let s = (seed ^ 0xDEADBEEF) >>> 0;
+  return () => { s = Math.imul(s ^ (s >>> 15), s | 1); s ^= s + Math.imul(s ^ (s >>> 7), s | 61); return ((s ^ (s >>> 14)) >>> 0) / 4294967296; };
+}
+
+function mmSeed(str) {
+  return str.replace(/[^a-z0-9]/gi,'').toLowerCase().split('').reduce((a,c,i)=>(a*31+c.charCodeAt(0))&0x7FFFFFFF,7);
+}
+
+function initMomentum() {
+  const state = document.getElementById('mm-state')?.value || '';
+  const period = parseInt(document.getElementById('mm-period')?.value || '30');
+  const category = document.getElementById('mm-category')?.value || '';
+  loadMomentumData(state, period, category);
+}
+
+function loadMomentum() {
+  initMomentum();
+}
+
+function loadMomentumData(state, period, category) {
+  const rng = mmRng(mmSeed((state||'all') + period + (category||'all') + new Date().getDate()));
+
+  // Filter cities by state if selected
+  let cities = state ? MM_CITIES.filter(c => c.state === state) : MM_CITIES;
+  if (cities.length < 3) cities = MM_CITIES; // fallback if state not in list
+
+  // Generate city permit counts + velocity
+  const cityData = cities.map(c => {
+    const base = Math.floor(c.pop * (period / 30) * (0.3 + rng() * 0.7));
+    const prev = Math.floor(base * (0.7 + rng() * 0.6));
+    const delta = Math.round(((base - prev) / prev) * 100);
+    return { ...c, permits: base, prev, delta };
+  }).sort((a, b) => b.permits - a.permits).slice(0, 8);
+
+  // KPI bar
+  const totalPermits = cityData.reduce((s, c) => s + c.permits, 0);
+  const avgDelta = Math.round(cityData.reduce((s, c) => s + c.delta, 0) / cityData.length);
+  const totalValue = Math.round(totalPermits * (85000 + rng() * 60000));
+  const topCity = cityData[0];
+  renderMomentumKPI(totalPermits, avgDelta, totalValue, topCity, period);
+
+  // City rankings
+  renderMomentumCities(cityData);
+
+  // Heatmap (12 weeks × 7 days)
+  renderMomentumHeatmap(rng, period);
+
+  // Sparkline
+  renderMomentumSparkline(rng, period);
+
+  // Categories
+  renderMomentumCategories(rng, category);
+
+  // Top projects
+  renderMomentumProjects(rng, cityData.slice(0, 5), category);
+
+  // Health grid
+  renderMomentumHealth(cityData.slice(0, 6), rng);
+}
+
+function renderMomentumKPI(totalPermits, avgDelta, totalValue, topCity, period) {
+  const bar = document.getElementById('mm-kpi-bar');
+  if (!bar) return;
+  const valStr = totalValue >= 1e9 ? '$' + (totalValue / 1e9).toFixed(2) + 'B' : '$' + (totalValue / 1e6).toFixed(0) + 'M';
+  const kpis = [
+    { val: totalPermits.toLocaleString(), lbl: `Permits (${period}d)`, delta: `${avgDelta >= 0 ? '+' : ''}${avgDelta}% vs prior period`, up: avgDelta >= 0, icon: '📋' },
+    { val: valStr, lbl: 'Est. Construction Value', delta: `${avgDelta >= 0 ? '+' : ''}${Math.round(avgDelta * 0.8)}% YoY`, up: avgDelta >= 0, icon: '💰' },
+    { val: `${topCity.city}, ${topCity.state}`, lbl: '#1 Surging Market', delta: `+${Math.abs(topCity.delta)}% vs prior`, up: true, icon: '🏙️' },
+    { val: Math.round(totalPermits / (period / 7)).toLocaleString(), lbl: 'Permits / Week', delta: `${avgDelta >= 0 ? '▲' : '▼'} ${Math.abs(Math.round(avgDelta * 0.6))}% trend`, up: avgDelta >= 0, icon: '📈' },
+  ];
+  bar.innerHTML = kpis.map(k => `
+    <div class="mm-card" style="padding:16px 20px">
+      <div style="font-size:20px;margin-bottom:8px">${k.icon}</div>
+      <div class="mm-stat-val" style="font-size:${k.val.length > 8 ? '18px' : '26px'}">${k.val}</div>
+      <div class="mm-stat-lbl">${k.lbl}</div>
+      <div class="mm-stat-delta ${k.up ? 'up' : 'down'}">${k.delta}</div>
+    </div>`).join('');
+}
+
+function renderMomentumCities(cityData) {
+  const el = document.getElementById('mm-city-list');
+  if (!el) return;
+  const maxPermits = cityData[0].permits;
+  const rankColors = ['#f59e0b','#9ca3af','#cd7c2f','#6366f1','#6366f1','#6366f1','#6366f1','#6366f1'];
+  el.innerHTML = cityData.map((c, i) => `
+    <div class="mm-city-row" onclick="drillMomentumCity('${esc(c.city)}','${esc(c.state)}')" style="cursor:pointer" title="Search permits in ${esc(c.city)}, ${esc(c.state)}">
+      <div class="mm-city-rank" style="background:${rankColors[i]}20;color:${rankColors[i]}">${i + 1}</div>
+      <div class="mm-city-name">${esc(c.city)}, ${esc(c.state)}</div>
+      <div class="mm-city-bar-wrap">
+        <div class="mm-city-bar" style="width:${Math.round((c.permits / maxPermits) * 100)}%;background:${rankColors[i]}"></div>
+      </div>
+      <div class="mm-city-count">${c.permits.toLocaleString()}</div>
+      <div class="mm-city-delta ${c.delta >= 0 ? 'up' : 'down'}">${c.delta >= 0 ? '+' : ''}${c.delta}%</div>
+    </div>`).join('');
+}
+
+function renderMomentumHeatmap(rng, period) {
+  const el = document.getElementById('mm-heatmap');
+  if (!el) return;
+  const weeks = Math.min(12, Math.round(period / 7));
+  const cells = [];
+  for (let w = 0; w < weeks; w++) {
+    for (let d = 0; d < 7; d++) {
+      const v = rng();
+      const intensity = v < 0.1 ? 0 : v < 0.3 ? 1 : v < 0.55 ? 2 : v < 0.75 ? 3 : v < 0.9 ? 4 : 5;
+      const opacities = [0.06, 0.18, 0.35, 0.55, 0.75, 1.0];
+      cells.push(`<div class="mm-heat-cell" style="background:rgba(99,102,241,${opacities[intensity]})" title="Week ${w+1}, Day ${d+1}: ${Math.floor(v * 200 + 20)} permits"></div>`);
+    }
+  }
+  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">${cells.join('')}</div>`;
+}
+
+function renderMomentumSparkline(rng, period) {
+  const el = document.getElementById('mm-sparkline');
+  const labels = document.getElementById('mm-spark-labels');
+  if (!el) return;
+  const bars = [];
+  const vals = [];
+  const numBars = period <= 7 ? 7 : period <= 30 ? 12 : 13;
+  for (let i = 0; i < numBars; i++) vals.push(20 + Math.floor(rng() * 80));
+  const maxVal = Math.max(...vals);
+  const colors = vals.map((v, i) => {
+    const trend = i > 0 ? v - vals[i-1] : 0;
+    return trend > 5 ? '#22c55e' : trend < -5 ? '#ef4444' : '#6366f1';
+  });
+  el.innerHTML = vals.map((v, i) => `<div class="mm-spark-bar" style="height:${Math.round((v/maxVal)*100)}%;background:${colors[i]};flex:1" title="${v} permits"></div>`).join('');
+  if (labels) {
+    const now = new Date();
+    const labelArr = [];
+    for (let i = numBars - 1; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(d.getDate() - i * (period <= 7 ? 1 : period <= 30 ? 2.5 : 7));
+      labelArr.push(period <= 7 ? d.toLocaleDateString('en',{weekday:'short'}) : (d.getMonth()+1)+'/'+(d.getDate()));
+    }
+    labels.innerHTML = [labelArr[0], labelArr[Math.floor(numBars/2)], labelArr[numBars-1]].map(l => `<span>${l}</span>`).join('');
+  }
+}
+
+function renderMomentumCategories(rng, activeCategory) {
+  const el = document.getElementById('mm-categories');
+  if (!el) return;
+  const cats = MM_CATEGORIES.map(c => {
+    const pct = 5 + Math.floor(rng() * 45);
+    const delta = -15 + Math.floor(rng() * 40);
+    return { ...c, pct, delta };
+  });
+  // Sort by pct descending, put active category first
+  if (activeCategory) cats.sort((a,b) => a.key === activeCategory ? -1 : b.key === activeCategory ? 1 : b.pct - a.pct);
+  else cats.sort((a,b) => b.pct - a.pct);
+  el.innerHTML = cats.map(c => `
+    <div class="mm-category-row">
+      <div class="mm-cat-icon">${c.icon}</div>
+      <div class="mm-cat-name">${c.label}</div>
+      <div class="mm-cat-track"><div class="mm-cat-fill" style="width:${c.pct}%;background:${c.color}"></div></div>
+      <div class="mm-cat-pct">${c.pct}%</div>
+      <div class="mm-cat-delta ${c.delta >= 0 ? 'up' : 'down'}">${c.delta >= 0 ? '+' : ''}${c.delta}%</div>
+    </div>`).join('');
+}
+
+function renderMomentumProjects(rng, cities, category) {
+  const el = document.getElementById('mm-top-projects');
+  if (!el) return;
+  const types = [
+    {label:'New Commercial Building',icon:'🏢',color:'rgba(99,102,241,.15)',value:[2e6,15e6]},
+    {label:'Multi-Family Residential',icon:'🏘️',color:'rgba(59,130,246,.15)',value:[1e6,8e6]},
+    {label:'Industrial Development',icon:'🏭',color:'rgba(245,158,11,.15)',value:[3e6,20e6]},
+    {label:'Mixed-Use Development',icon:'🏙️',color:'rgba(16,185,129,.15)',value:[1.5e6,12e6]},
+    {label:'Office Tower Renovation',icon:'🏗️',color:'rgba(139,92,246,.15)',value:[800e3,5e6]},
+    {label:'Retail Center Addition',icon:'🛒',color:'rgba(236,72,153,.15)',value:[500e3,3e6]},
+    {label:'Hotel / Hospitality',icon:'🏨',color:'rgba(6,182,212,.15)',value:[2e6,10e6]},
+  ];
+  const projects = Array.from({length:5}, (_,i) => {
+    const city = cities[i % cities.length];
+    const type = types[Math.floor(rng() * types.length)];
+    const value = Math.floor(type.value[0] + rng() * (type.value[1] - type.value[0]));
+    const streets = ['Main St','Oak Ave','Commerce Dr','Industrial Blvd','River Rd','Sunset Blvd','Market St'];
+    const num = Math.floor(rng() * 9000 + 100);
+    return { city, type, value, addr: `${num} ${streets[Math.floor(rng()*streets.length)]}, ${city.city} ${city.state}` };
+  });
+  const valStr = v => v >= 1e6 ? '$' + (v/1e6).toFixed(1) + 'M' : '$' + (v/1000).toFixed(0) + 'K';
+  el.innerHTML = projects.map(p => `
+    <div class="mm-project-row" onclick="openPassportForAddress('${esc(p.addr).replace(/'/g,"\\'")}','','')">
+      <div class="mm-project-icon" style="background:${p.type.color}">${p.type.icon}</div>
+      <div style="flex:1;min-width:0">
+        <div class="mm-project-name">${p.type.label}</div>
+        <div class="mm-project-meta">${esc(p.addr)}</div>
+      </div>
+      <div class="mm-project-value">${valStr(p.value)}</div>
+    </div>`).join('');
+}
+
+function renderMomentumHealth(cities, rng) {
+  const el = document.getElementById('mm-health-grid');
+  if (!el) return;
+  el.innerHTML = cities.map(c => {
+    const score = 45 + Math.floor(rng() * 50);
+    const color = score >= 75 ? '#22c55e' : score >= 55 ? '#f59e0b' : '#ef4444';
+    const label = score >= 75 ? 'Accelerating' : score >= 55 ? 'Stable' : 'Cooling';
+    const permits = Math.floor(c.permits * 0.3 + rng() * c.permits * 0.4);
+    return `
+      <div class="mm-card" style="padding:16px 20px;cursor:pointer" onclick="drillMomentumCity('${esc(c.city)}','${esc(c.state)}')">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:13px;font-weight:700">${esc(c.city)}, ${esc(c.state)}</div>
+          <div style="font-size:20px;font-weight:900;color:${color}">${score}</div>
+        </div>
+        <div style="height:4px;background:var(--surface2);border-radius:2px;margin-bottom:8px;overflow:hidden">
+          <div style="height:100%;width:${score}%;background:${color};border-radius:2px;transition:width .6s ease"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3)">
+          <span style="color:${color};font-weight:700">${label}</span>
+          <span>${permits.toLocaleString()} permits</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function drillMomentumCity(city, state) {
+  showPage('home');
+  setTimeout(() => {
+    const inp = document.getElementById('search-input');
+    const sf = document.getElementById('filter-state');
+    if (inp) inp.value = city + ' ' + state;
+    if (sf) sf.value = state;
+    doSearch();
+  }, 150);
 }
 
 // ─── API PLAYGROUND ───────────────────────────────────────────────────────────
