@@ -40,6 +40,16 @@ nav .links a:hover, nav .links button:hover{color:var(--text);background:var(--s
 nav .links a.active{color:var(--text);background:var(--surface2)}
 nav .links .btn-primary{background:var(--accent);color:#fff;padding:6px 16px;flex-shrink:0}
 nav .links .btn-primary:hover{background:var(--accent2)}
+.nav-dropdown{position:relative;flex-shrink:0}
+.nav-dropdown-toggle{padding:6px 11px;border-radius:var(--radius-sm);color:var(--text2);font-size:12.5px;font-weight:500;transition:all .2s;border:none;background:none;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:4px}
+.nav-dropdown-toggle:hover,.nav-dropdown-toggle.open{color:var(--text);background:var(--surface2)}
+.nav-dropdown-toggle.has-active{color:var(--text);background:var(--surface2)}
+.nav-dropdown-arrow{font-size:9px;transition:transform .2s;opacity:.6}
+.nav-dropdown-toggle.open .nav-dropdown-arrow{transform:rotate(180deg)}
+.nav-dropdown-menu{display:none;position:absolute;top:calc(100% + 6px);left:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:6px;min-width:180px;z-index:1000;box-shadow:0 8px 32px rgba(0,0,0,.4);animation:fadeIn .15s ease}
+.nav-dropdown-menu.open{display:block}
+.nav-dropdown-menu a{display:block;padding:8px 12px;border-radius:var(--radius-sm);color:var(--text2);font-size:13px;font-weight:500;text-decoration:none;transition:all .15s;white-space:nowrap}
+.nav-dropdown-menu a:hover,.nav-dropdown-menu a.active{color:var(--text);background:var(--surface2)}
 
 /* Hero */
 .hero{padding:80px 0 60px;text-align:center;position:relative}
@@ -299,6 +309,7 @@ section .subtitle{color:var(--text2);font-size:16px;margin-bottom:40px}
 .toast.visible{transform:translateY(0);opacity:1}
 .toast.success{border-color:var(--green)}
 .toast.error{border-color:var(--red)}
+.toast.info{border-color:var(--accent)}
 
 /* Permit Trend Charts */
 .trends-hero{text-align:center;padding:48px 0 36px;position:relative}
@@ -433,7 +444,8 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
   .risk-score-card{position:static}
   .risk-use-cases{grid-template-columns:1fr}
   .risk-search-row{flex-direction:column}
-  nav .links a:not(.btn-primary){display:none}
+  nav .links a:not(.btn-primary):not(.nav-dropdown-menu a){display:none}
+  .nav-dropdown-menu a{display:block}
   .stats-row{gap:24px}
   .stat .number{font-size:28px}
   .pricing-grid{grid-template-columns:1fr}
@@ -807,6 +819,52 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
   .pg-param-grid{grid-template-columns:1fr}
 }
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+
+/* Owner/Developer Intelligence */
+.owners-search-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:28px}
+.owners-search-row .form-group{display:flex;flex-direction:column;gap:6px;flex:1;min-width:140px}
+.owners-search-row .form-group label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em}
+.owners-search-row input,.owners-search-row select{padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;font-family:var(--font)}
+.owners-search-row input:focus,.owners-search-row select:focus{outline:none;border-color:var(--accent)}
+.owners-leader-header{display:grid;grid-template-columns:40px 1fr 90px 110px 120px 120px;gap:0;padding:10px 20px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm) var(--radius-sm) 0 0;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.04em;cursor:default}
+.owners-leader-header span{padding:2px 4px}
+.owners-leader-header span.sortable{cursor:pointer;user-select:none;transition:color .15s}
+.owners-leader-header span.sortable:hover{color:var(--accent2)}
+.owners-leader-header span.sorted{color:var(--accent2)}
+.owners-leader-row{display:grid;grid-template-columns:40px 1fr 90px 110px 120px 120px;gap:0;padding:14px 20px;border:1px solid var(--border);border-top:none;align-items:center;transition:background .15s,border-color .15s;cursor:pointer}
+.owners-leader-row:hover{background:var(--surface2);border-color:var(--border2)}
+.owners-leader-row:last-child{border-radius:0 0 var(--radius-sm) var(--radius-sm)}
+.owners-rank{font-size:18px;font-weight:800;color:var(--text3);text-align:center}
+.owners-rank.top1{color:#f59e0b}
+.owners-rank.top2{color:#94a3b8}
+.owners-rank.top3{color:#cd7c3b}
+.owners-owner-name{font-size:14px;font-weight:700;color:var(--text)}
+.owners-owner-sub{font-size:12px;color:var(--text3);margin-top:2px}
+.owners-count{font-size:15px;font-weight:700;color:var(--accent2);text-align:right}
+.owners-value{font-size:13px;color:var(--text2);text-align:right}
+.owners-markets{display:flex;flex-wrap:wrap;gap:4px}
+.owners-market-tag{font-size:11px;padding:2px 8px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:10px;color:var(--accent2);white-space:nowrap}
+.owners-type{font-size:12px;padding:3px 10px;border-radius:10px;font-weight:600;text-align:center}
+.owners-type.residential{background:rgba(16,185,129,.1);color:#10b981}
+.owners-type.commercial{background:rgba(59,130,246,.1);color:#3b82f6}
+.owners-type.mixed{background:rgba(245,158,11,.1);color:#f59e0b}
+.owners-type.industrial{background:rgba(239,68,68,.1);color:#ef4444}
+.owners-sparkline{display:inline-block;vertical-align:middle}
+.owner-profile-header{display:flex;align-items:flex-start;gap:24px;padding:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:24px}
+.owner-avatar{width:64px;height:64px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff;flex-shrink:0}
+.owner-profile-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.owner-stat-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;text-align:center}
+.owner-stat-box .osb-num{font-size:26px;font-weight:800;color:var(--accent2);margin-bottom:4px;font-variant-numeric:tabular-nums}
+.owner-stat-box .osb-label{font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.owner-type-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:24px}
+.owner-type-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;text-align:center}
+.owner-type-bar{height:6px;border-radius:3px;background:var(--accent);margin-top:8px;transition:width .5s ease}
+@media(max-width:768px){
+  .owners-leader-header,.owners-leader-row{grid-template-columns:36px 1fr 70px;gap:0}
+  .owners-leader-header span:nth-child(4),.owners-leader-header span:nth-child(5),.owners-leader-header span:nth-child(6),
+  .owners-leader-row>*:nth-child(4),.owners-leader-row>*:nth-child(5),.owners-leader-row>*:nth-child(6){display:none}
+  .owner-profile-stats{grid-template-columns:repeat(2,1fr)}
+}
 </style>
 </head>
 <body>
@@ -822,18 +880,26 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
       <a href="#contractors" onclick="showPage('contractors');return false">Contractors</a>
       <a href="#alerts" onclick="showPage('alerts');return false">Alerts</a>
       <a href="#leads" onclick="showPage('leads');return false">Leads</a>
-      <a href="#risk" onclick="showPage('risk');return false">Risk Score</a>
-      <a href="#properties" onclick="showPage('properties');return false">Properties</a>
-      <a href="#feed" onclick="showPage('feed');return false">Activity Feed</a>
-      <a href="#trends" onclick="showPage('trends');return false">Trends</a>
-      <a href="#market" onclick="showPage('market');return false">Market</a>
-      <a href="#estimator" onclick="showPage('estimator');return false">Estimator</a>
-      <a href="#requirements" onclick="showPage('requirements');return false">Requirements</a>
-      <a href="#reports" onclick="showPage('reports');return false">Reports</a>
-      <a href="#watchlist" onclick="showPage('watchlist');return false">Watchlist</a>
-      <a href="#coverage" onclick="showPage('coverage');return false">Coverage</a>
-      <a href="#pricing" onclick="showPage('pricing');return false">Pricing</a>
       <a href="#playground" onclick="showPage('playground');return false">Playground</a>
+      <a href="#pricing" onclick="showPage('pricing');return false">Pricing</a>
+      <div class="nav-dropdown" id="nav-tools-dropdown">
+        <button class="nav-dropdown-toggle" id="nav-tools-btn" onclick="toggleNavDropdown()" type="button">
+          Tools <span class="nav-dropdown-arrow">▼</span>
+        </button>
+        <div class="nav-dropdown-menu" id="nav-tools-menu">
+          <a href="#risk" onclick="showPage('risk');closeNavDropdown();return false">Risk Score</a>
+          <a href="#properties" onclick="showPage('properties');closeNavDropdown();return false">Properties</a>
+          <a href="#trends" onclick="showPage('trends');closeNavDropdown();return false">Trends</a>
+          <a href="#market" onclick="showPage('market');closeNavDropdown();return false">Market</a>
+          <a href="#feed" onclick="showPage('feed');closeNavDropdown();return false">Activity Feed</a>
+          <a href="#estimator" onclick="showPage('estimator');closeNavDropdown();return false">Estimator</a>
+          <a href="#requirements" onclick="showPage('requirements');closeNavDropdown();return false">Requirements</a>
+          <a href="#reports" onclick="showPage('reports');closeNavDropdown();return false">Reports</a>
+          <a href="#watchlist" onclick="showPage('watchlist');closeNavDropdown();return false">Watchlist</a>
+          <a href="#coverage" onclick="showPage('coverage');closeNavDropdown();return false">Coverage</a>
+          <a href="#owners" onclick="showPage('owners');closeNavDropdown();return false">Owner Intelligence</a>
+        </div>
+      </div>
       <a href="/docs" target="_blank">API Docs</a>
       <button class="btn-primary" onclick="openSignup()" id="nav-signup">Get API Key</button>
     </div>
@@ -940,8 +1006,8 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
         </div>
         <button type="button" id="save-search-quick-btn" onclick="openQuickSaveSearch()" style="display:none;padding:6px 14px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);color:var(--text2);font-size:12px;font-weight:600;transition:all .2s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">&#9733; Save Search</button>
         <div class="export-bar">
-          <button type="button" class="export-btn" onclick="exportResults('csv')" id="export-csv-btn" disabled>Export CSV</button>
-          <button type="button" class="export-btn" onclick="exportResults('json')" id="export-json-btn" disabled>Export JSON</button>
+          <button type="button" class="export-btn" onclick="exportResults('csv')" id="export-csv-btn" disabled title="Sign up free to export real results as CSV">Export CSV</button>
+          <button type="button" class="export-btn" onclick="exportResults('json')" id="export-json-btn" disabled title="Sign up free to export real results as JSON">Export JSON</button>
         </div>
       </div>
     </div>
@@ -1037,6 +1103,18 @@ results.forEach(p =>
             <li>Saved searches with re-run</li>
           </ul>
           <button onclick="showPage('market')" style="margin-top:16px;padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600">Market Intelligence →</button>
+        </div>
+        <div class="feature-card">
+          <div style="font-size:36px;margin-bottom:12px">🏗️</div>
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:8px">Owner &amp; Developer Intelligence</h3>
+          <p style="color:var(--text2);font-size:14px;line-height:1.6">Discover who's building where. Rank the most active property owners and developers in any market by permit volume and investment value.</p>
+          <ul>
+            <li>Top 20 owners ranked by permits + value</li>
+            <li>Market concentration metrics</li>
+            <li>Owner profiles with permit history</li>
+            <li>Annual activity trends per developer</li>
+          </ul>
+          <button onclick="showPage('owners')" style="margin-top:16px;padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600">Explore Owners →</button>
         </div>
       </div>
     </div>
@@ -2263,6 +2341,140 @@ results.forEach(p =>
   </section>
 </div>
 
+<!-- OWNER/DEVELOPER INTELLIGENCE PAGE -->
+<div class="page" id="page-owners">
+  <section class="container" style="padding:40px 0 80px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:8px">
+      <div>
+        <div style="display:inline-block;padding:6px 16px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);border-radius:20px;font-size:12px;font-weight:600;color:#f59e0b;margin-bottom:14px;letter-spacing:.04em">OWNER & DEVELOPER INTELLIGENCE</div>
+        <h2 style="font-size:32px;font-weight:800;margin-bottom:8px">Who's Building Where</h2>
+        <p style="color:var(--text2);font-size:15px;max-width:580px">Identify the most active property owners and developers in any market. Track investment patterns, project types, and market concentration.</p>
+      </div>
+      <div id="owners-demo-badge" style="padding:8px 16px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:var(--radius-sm);font-size:12px;color:#fbbf24;font-weight:600;white-space:nowrap;align-self:flex-start">Demo Data — <a href="#" onclick="openSignup();return false" style="color:#fbbf24">Sign up free</a> for live data</div>
+    </div>
+
+    <!-- Search controls -->
+    <div class="owners-search-row" style="margin-top:24px">
+      <div class="form-group">
+        <label>City</label>
+        <input type="text" id="owners-city" placeholder="e.g. Austin" value="Austin">
+      </div>
+      <div class="form-group" style="max-width:160px">
+        <label>State</label>
+        <select id="owners-state">
+          <option value="">All States</option>
+          <option value="TX" selected>TX — Texas</option>
+          <option value="CA">CA — California</option>
+          <option value="FL">FL — Florida</option>
+          <option value="NY">NY — New York</option>
+          <option value="AZ">AZ — Arizona</option>
+          <option value="CO">CO — Colorado</option>
+          <option value="WA">WA — Washington</option>
+          <option value="OR">OR — Oregon</option>
+          <option value="GA">GA — Georgia</option>
+          <option value="NC">NC — North Carolina</option>
+        </select>
+      </div>
+      <div class="form-group" style="max-width:180px">
+        <label>Permit Type</label>
+        <select id="owners-permit-type">
+          <option value="">All Types</option>
+          <option value="residential">Residential</option>
+          <option value="commercial">Commercial</option>
+          <option value="industrial">Industrial</option>
+          <option value="mixed">Mixed Use</option>
+        </select>
+      </div>
+      <div class="form-group" style="max-width:160px">
+        <label>Sort By</label>
+        <select id="owners-sort">
+          <option value="permits">Permit Count</option>
+          <option value="value">Total Value</option>
+          <option value="recent">Most Recent</option>
+        </select>
+      </div>
+      <button onclick="loadOwners()" style="padding:10px 24px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;white-space:nowrap;align-self:flex-end">Search Owners</button>
+    </div>
+
+    <!-- Summary stats bar -->
+    <div id="owners-stats-bar" style="display:none;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 18px">
+        <div style="font-size:22px;font-weight:800;color:var(--text)" id="owners-stat-total">—</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Total Owners Found</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 18px">
+        <div style="font-size:22px;font-weight:800;color:var(--accent2)" id="owners-stat-permits">—</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Permits in Area</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 18px">
+        <div style="font-size:22px;font-weight:800;color:#10b981" id="owners-stat-value">—</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Total Est. Value</div>
+      </div>
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px 18px">
+        <div style="font-size:22px;font-weight:800;color:#f59e0b" id="owners-stat-top-share">—</div>
+        <div style="font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em">Top-10 Market Share</div>
+      </div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div id="owners-leaderboard-wrap" style="display:none">
+      <div class="owners-leader-header">
+        <span>#</span>
+        <span>Owner / Developer</span>
+        <span class="sortable sorted" id="owners-sort-count" onclick="sortOwners('permits')">Permits ↓</span>
+        <span class="sortable" id="owners-sort-value" onclick="sortOwners('value')">Est. Value</span>
+        <span>Markets</span>
+        <span>Focus</span>
+      </div>
+      <div id="owners-list"></div>
+    </div>
+
+    <!-- Empty/loading states -->
+    <div id="owners-loading" style="display:none;text-align:center;padding:60px 0">
+      <div style="width:40px;height:40px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 16px"></div>
+      <p style="color:var(--text2)">Analyzing permit data…</p>
+    </div>
+    <div id="owners-empty" style="text-align:center;padding:60px 0">
+      <div style="font-size:48px;margin-bottom:16px">🏗️</div>
+      <h3>Discover Who's Building in Your Market</h3>
+      <p style="color:var(--text2);max-width:420px;margin:8px auto 24px">Enter a city and state above to see the top property owners and developers by permit activity, investment value, and market concentration.</p>
+      <button onclick="loadOwners()" style="padding:12px 28px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600">Load Austin, TX Demo</button>
+    </div>
+
+    <!-- Owner profile (drill-down) -->
+    <div id="owners-profile" style="display:none">
+      <button onclick="closeOwnerProfile()" style="display:flex;align-items:center;gap:6px;background:none;border:none;color:var(--text2);font-size:13px;cursor:pointer;padding:0;margin-bottom:20px">← Back to leaderboard</button>
+      <div class="owner-profile-header">
+        <div class="owner-avatar" id="op-avatar">?</div>
+        <div style="flex:1">
+          <h3 style="font-size:22px;font-weight:800;margin-bottom:4px" id="op-name">—</h3>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:10px" id="op-sub">—</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap" id="op-tags"></div>
+        </div>
+      </div>
+      <div class="owner-profile-stats">
+        <div class="owner-stat-box"><div class="osb-num" id="op-total-permits">—</div><div class="osb-label">Total Permits</div></div>
+        <div class="owner-stat-box"><div class="osb-num" id="op-total-value">—</div><div class="osb-label">Est. Investment</div></div>
+        <div class="owner-stat-box"><div class="osb-num" id="op-active-years">—</div><div class="osb-label">Years Active</div></div>
+        <div class="owner-stat-box"><div class="osb-num" id="op-avg-value">—</div><div class="osb-label">Avg. Permit Value</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px">
+        <div>
+          <h4 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--text2)">PERMIT TYPE BREAKDOWN</h4>
+          <div id="op-type-breakdown" class="owner-type-grid"></div>
+        </div>
+        <div>
+          <h4 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--text2)">ANNUAL ACTIVITY</h4>
+          <div id="op-annual-chart" style="display:flex;align-items:flex-end;gap:6px;height:80px"></div>
+          <div id="op-annual-labels" style="display:flex;gap:6px;margin-top:4px"></div>
+        </div>
+      </div>
+      <h4 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--text2)">RECENT PERMITS</h4>
+      <div id="op-permits-list"></div>
+    </div>
+  </section>
+</div>
+
 <!-- API PLAYGROUND PAGE -->
 <div class="page" id="page-playground">
   <section class="container" style="padding:40px 0 80px">
@@ -2543,6 +2755,25 @@ const API = '';
 let currentKey = localStorage.getItem('pl_api_key') || '';
 let currentPage = 'home';
 
+// Nav dropdown
+function toggleNavDropdown() {
+  const menu = document.getElementById('nav-tools-menu');
+  const btn = document.getElementById('nav-tools-btn');
+  if (!menu || !btn) return;
+  const isOpen = menu.classList.contains('open');
+  menu.classList.toggle('open', !isOpen);
+  btn.classList.toggle('open', !isOpen);
+}
+function closeNavDropdown() {
+  document.getElementById('nav-tools-menu')?.classList.remove('open');
+  document.getElementById('nav-tools-btn')?.classList.remove('open');
+}
+// Close dropdown when clicking outside
+document.addEventListener('click', e => {
+  const dropdown = document.getElementById('nav-tools-dropdown');
+  if (dropdown && !dropdown.contains(e.target)) closeNavDropdown();
+});
+
 // Init
 document.addEventListener('DOMContentLoaded', () => {
   loadStats();
@@ -2573,10 +2804,19 @@ function showPage(page) {
   if (!el) { showPage('home'); return; }
   el.classList.add('visible');
   // Update active nav link
-  document.querySelectorAll('nav .links a').forEach(a => a.classList.remove('active'));
-  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements', reports: '#reports', watchlist: '#watchlist', playground: '#playground' };
-  const activeLink = document.querySelector(`nav .links a[href="${hashMap[page] || '#search'}"]`);
-  if (activeLink) activeLink.classList.add('active');
+  document.querySelectorAll('nav .links a, .nav-dropdown-menu a').forEach(a => a.classList.remove('active'));
+  document.getElementById('nav-tools-btn')?.classList.remove('has-active');
+  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements', reports: '#reports', watchlist: '#watchlist', playground: '#playground', owners: '#owners' };
+  const activeHash = hashMap[page] || '#search';
+  const activeLink = document.querySelector(`a[href="${activeHash}"]`);
+  if (activeLink) {
+    activeLink.classList.add('active');
+    // If active link is inside the dropdown, highlight the toggle button too
+    if (activeLink.closest('.nav-dropdown-menu')) {
+      document.getElementById('nav-tools-btn')?.classList.add('has-active');
+    }
+  }
+  closeNavDropdown();
   currentPage = page;
   if (page === 'home') {
     setTimeout(() => document.getElementById('search-input')?.focus(), 100);
@@ -2591,6 +2831,7 @@ function showPage(page) {
   if (page === 'trends') { loadTrendsPageDefaults(); }
   if (page === 'watchlist') { loadWatchlistPage(); }
   if (page === 'playground') { initPlayground(); }
+  if (page === 'owners') { initOwnersPage(); }
   if (page === 'contractors') {
     showContractorSearch();
     const results = document.getElementById('contractor-results');
@@ -2616,7 +2857,7 @@ function showPage(page) {
 // Hash routing
 function routeFromHash() {
   const h = location.hash.replace('#','') || 'home';
-  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', risk: 'risk', trends: 'trends', properties: 'properties', market: 'market', feed: 'feed', estimator: 'estimator', requirements: 'requirements', reports: 'reports', watchlist: 'watchlist', playground: 'playground' };
+  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', risk: 'risk', trends: 'trends', properties: 'properties', market: 'market', feed: 'feed', estimator: 'estimator', requirements: 'requirements', reports: 'reports', watchlist: 'watchlist', playground: 'playground', owners: 'owners' };
   showPage(map[h] || 'home');
 }
 window.addEventListener('hashchange', routeFromHash);
@@ -2747,6 +2988,14 @@ async function doSearch() {
       const demoSlice = demoPermits.slice(0, 5);
       const count = document.getElementById('results-count');
       if (count) count.textContent = `5 demo results`;
+      // Show view toggle in demo mode (map won't have markers but shows the feature exists)
+      const vt = document.getElementById('view-toggle');
+      if (vt) vt.style.display = 'flex';
+      // Export buttons: enable with signup prompt in demo mode
+      const expCsv = document.getElementById('export-csv-btn');
+      const expJson = document.getElementById('export-json-btn');
+      if (expCsv) { expCsv.disabled = false; expCsv.onclick = () => { showToast('Sign up free to export results', 'info'); openSignup(); }; }
+      if (expJson) { expJson.disabled = false; expJson.onclick = () => { showToast('Sign up free to export results', 'info'); openSignup(); }; }
       const list = document.getElementById('results-list');
       if (list) {
         list.innerHTML = `<div style="margin-bottom:16px;padding:12px 18px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:var(--radius-sm);font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
@@ -2796,6 +3045,9 @@ async function doSearch() {
     const hasResults = lastSearchResults.length > 0;
     document.getElementById('export-csv-btn').disabled = !hasResults;
     document.getElementById('export-json-btn').disabled = !hasResults;
+    // Restore onclick (may have been overridden in demo mode)
+    document.getElementById('export-csv-btn').onclick = () => exportResults('csv');
+    document.getElementById('export-json-btn').onclick = () => exportResults('json');
     renderResults(d);
   } catch(e) {
     showToast('Search failed: ' + e.message, 'error');
@@ -7435,7 +7687,7 @@ const PG_ENDPOINTS = [
     path: '/v1/permits/search',
     name: 'Search Permits',
     description: 'Search building permits by address, city, state, or keyword. Supports fuzzy matching across 3.5M+ records.',
-    auth: false,
+    auth: true,
     params: [
       { name: 'q', label: 'Query', type: 'text', placeholder: 'e.g. 123 Main St Austin TX', full: true },
       { name: 'state', label: 'State', type: 'select', options: ['', ...PG_STATES] },
@@ -7647,35 +7899,48 @@ function updatePgCode() {
   if (!ep) return;
   const params = getPgParamValues(ep);
   const url = buildPgUrl(ep, ep.isBody ? {} : params);
+  // Only include X-API-Key for auth-required endpoints
   const key = currentKey || 'YOUR_API_KEY';
+  const needsAuth = ep.auth;
+  const authHeaderCurl = needsAuth ? ` \\\n  -H "X-API-Key: ${key}"` : '';
+  const authHeaderPy = needsAuth ? `    headers={"X-API-Key": "${key}"}\n` : '';
+  const authHeaderNode = needsAuth ? `    "X-API-Key": "${key}",\n    ` : '';
   let code = '';
 
   if (pgLang === 'curl') {
     if (ep.method === 'GET') {
-      code = `curl -X GET "${url}" \\\n  -H "X-API-Key: ${key}"`;
+      code = `curl "${url}"${authHeaderCurl}`;
     } else if (ep.isBody) {
       const body = ep.method === 'POST' && ep.id === 'bulk'
         ? `{"addresses": ["${(params.addresses || '').split('\n').filter(Boolean).join('", "')}"]}`
         : JSON.stringify(params, null, 2).replace(/\n/g, '\n  ');
-      code = `curl -X ${ep.method} "${url}" \\\n  -H "X-API-Key: ${key}" \\\n  -H "Content-Type: application/json" \\\n  -d '${body}'`;
+      const authPart = needsAuth ? ` \\\n  -H "X-API-Key: ${key}"` : '';
+      code = `curl -X ${ep.method} "${url}"${authPart} \\\n  -H "Content-Type: application/json" \\\n  -d '${body}'`;
     }
   } else if (pgLang === 'python') {
     const importLine = 'import requests\n\n';
     if (ep.method === 'GET') {
-      const paramsStr = Object.keys(params).length
-        ? '\nparams = ' + JSON.stringify(params, null, 4).replace(/\n/g, '\n') + '\n\nresponse = requests.get(\n    "' + ep.path.replace('/v1', 'https://permits.ecbtx.com/v1') + '",\n    params=params,\n    headers={"X-API-Key": "' + key + '"}\n)'
-        : '\nresponse = requests.get(\n    "' + url + '",\n    headers={"X-API-Key": "' + key + '"}\n)';
+      const hasParams = Object.keys(params).length > 0;
+      const headersStr = needsAuth ? `    headers={"X-API-Key": "${key}"}\n` : '';
+      const paramsStr = hasParams
+        ? 'params = ' + JSON.stringify(params, null, 4) + '\n\nresponse = requests.get(\n    "' + ep.path.replace('/v1', 'https://permits.ecbtx.com/v1') + '",\n    params=params,\n' + (needsAuth ? `    headers={"X-API-Key": "${key}"}\n` : '') + ')'
+        : 'response = requests.get(\n    "' + url + '"' + (needsAuth ? `,\n    headers={"X-API-Key": "${key}"}` : '') + '\n)';
       code = importLine + paramsStr + '\nprint(response.json())';
     } else {
       const body = { ...params };
-      code = importLine + 'body = ' + JSON.stringify(body, null, 4) + '\n\nresponse = requests.post(\n    "' + url + '",\n    json=body,\n    headers={"X-API-Key": "' + key + '"}\n)\nprint(response.json())';
+      const headersStr = needsAuth ? `,\n    headers={"X-API-Key": "${key}"}` : '';
+      code = importLine + 'body = ' + JSON.stringify(body, null, 4) + '\n\nresponse = requests.post(\n    "' + url + '",\n    json=body' + headersStr + '\n)\nprint(response.json())';
     }
   } else if (pgLang === 'node') {
     if (ep.method === 'GET') {
-      code = `const response = await fetch(\n  "${url}",\n  { headers: { "X-API-Key": "${key}" } }\n);\nconst data = await response.json();\nconsole.log(data);`;
+      const headersObj = needsAuth ? `{ headers: { "X-API-Key": "${key}" } }` : `{}`;
+      code = `const response = await fetch(\n  "${url}",\n  ${headersObj}\n);\nconst data = await response.json();\nconsole.log(data);`;
     } else {
       const body = { ...params };
-      code = `const response = await fetch("${url}", {\n  method: "${ep.method}",\n  headers: {\n    "X-API-Key": "${key}",\n    "Content-Type": "application/json"\n  },\n  body: JSON.stringify(${JSON.stringify(body, null, 4).replace(/\n/g, '\n  ')})\n});\nconst data = await response.json();\nconsole.log(data);`;
+      const headersStr = needsAuth
+        ? `  headers: {\n    "X-API-Key": "${key}",\n    "Content-Type": "application/json"\n  },`
+        : `  headers: { "Content-Type": "application/json" },`;
+      code = `const response = await fetch("${url}", {\n  method: "${ep.method}",\n${headersStr}\n  body: JSON.stringify(${JSON.stringify(body, null, 4).replace(/\n/g, '\n  ')})\n});\nconst data = await response.json();\nconsole.log(data);`;
     }
   }
 
@@ -7778,6 +8043,239 @@ async function runPlayground() {
     btn.innerHTML = '<span>&#9654;</span> Run Request';
   }
 }
+// ─── END API PLAYGROUND ────────────────────────────────────────────────────────
+
+// ─── OWNER/DEVELOPER INTELLIGENCE ────────────────────────────────────────────
+const OWNER_NAMES = [
+  'Greystar Real Estate Partners','Lennar Corporation','D.R. Horton','NVR Inc.','PulteGroup',
+  'Toll Brothers','KB Home','Taylor Morrison','Meritage Homes','Smith Capital Development',
+  'Westfield Properties LLC','Apex Construction Group','Meridian Development Partners','Cornerstone Builders Inc.',
+  'Horizon Real Estate Group','Pinnacle Development Co.','Summit Construction LLC','Landmark Properties',
+  'Arcadia Development Group','Blue Ridge Capital LLC','Redstone Development Partners','Ironwood Properties',
+  'Granite Peak Builders','Sterling Development Corp','Atlas Real Estate Partners','Vanguard Construction',
+  'Harbor View Development','Lone Star Development LLC','Riverbend Properties','Desert Sky Builders',
+  'Pacific Coast Development','Sunstone Properties','Clearwater Construction','Ridgeline Builders',
+  'Canyon Creek Development','Prairie Land Properties','Timber Creek Construction','Golden Gate Development',
+  'Riverside Development Group','Crossroads Capital LLC'
+];
+
+const PERMIT_TYPES_DIST = ['Residential - New Construction','Residential - Addition','Commercial - Tenant Improvement','Commercial - New Construction','Electrical','Plumbing','HVAC','Mechanical','Demolition','Mixed Use'];
+const CITIES_BY_STATE = {
+  TX: ['Austin','Houston','Dallas','San Antonio','Fort Worth'],
+  CA: ['Los Angeles','San Diego','San Jose','San Francisco','Fresno'],
+  FL: ['Miami','Tampa','Orlando','Jacksonville','Fort Lauderdale'],
+  NY: ['New York','Buffalo','Albany','Rochester','Syracuse'],
+  AZ: ['Phoenix','Tucson','Scottsdale','Tempe','Mesa'],
+  CO: ['Denver','Colorado Springs','Aurora','Fort Collins','Boulder'],
+  WA: ['Seattle','Spokane','Tacoma','Bellevue','Kirkland'],
+  OR: ['Portland','Eugene','Salem','Bend','Hillsboro'],
+  GA: ['Atlanta','Savannah','Augusta','Columbus','Macon'],
+  NC: ['Charlotte','Raleigh','Greensboro','Durham','Winston-Salem'],
+};
+
+let ownersData = [];
+let ownersSortBy = 'permits';
+
+function generateOwnerData(city, state, permitTypeFilter) {
+  const seed = (city + state).split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+  const rng = (n, offset = 0) => {
+    const x = Math.sin(seed + n + offset) * 10000;
+    return Math.abs(x - Math.floor(x));
+  };
+  const count = 20;
+  const typeColors = { residential: '#10b981', commercial: '#3b82f6', industrial: '#ef4444', mixed: '#f59e0b' };
+  const owners = [];
+  for (let i = 0; i < count; i++) {
+    const nameIdx = Math.floor(rng(i, 1) * OWNER_NAMES.length);
+    const permitCount = Math.floor(40 + rng(i, 2) * 420);
+    const avgVal = 50000 + rng(i, 3) * 950000;
+    const totalValue = Math.floor(permitCount * avgVal);
+    const cities = CITIES_BY_STATE[state] || [city];
+    const marketCount = 1 + Math.floor(rng(i, 4) * Math.min(3, cities.length));
+    const markets = cities.slice(0, marketCount);
+    const typeRng = rng(i, 5);
+    let focus, focusClass;
+    if (permitTypeFilter && permitTypeFilter !== '') {
+      focus = permitTypeFilter.charAt(0).toUpperCase() + permitTypeFilter.slice(1);
+      focusClass = permitTypeFilter;
+    } else if (typeRng < 0.5) { focus = 'Residential'; focusClass = 'residential'; }
+    else if (typeRng < 0.78) { focus = 'Commercial'; focusClass = 'commercial'; }
+    else if (typeRng < 0.92) { focus = 'Mixed'; focusClass = 'mixed'; }
+    else { focus = 'Industrial'; focusClass = 'industrial'; }
+    const startYear = 2018 + Math.floor(rng(i, 6) * 4);
+    const yearsActive = 2026 - startYear;
+    const ptCount = 3 + Math.floor(rng(i, 7) * 5);
+    const permitTypes = PERMIT_TYPES_DIST.slice(0, ptCount).map((t, j) => ({
+      type: t,
+      count: Math.floor(8 + rng(i * 13 + j, 9) * (permitCount * 0.6 / ptCount)),
+    }));
+    const annualData = [];
+    for (let y = 0; y < 6; y++) {
+      annualData.push(Math.floor(2 + rng(i, 10 + y) * (permitCount / 4)));
+    }
+    owners.push({ name: OWNER_NAMES[nameIdx], permitCount, totalValue, markets, focus, focusClass, yearsActive, startYear, avgValue: Math.floor(avgVal), city, state, permitTypes, annualData });
+  }
+  return owners;
+}
+
+function initOwnersPage() {
+  const leaderWrap = document.getElementById('owners-leaderboard-wrap');
+  const statsBar = document.getElementById('owners-stats-bar');
+  // Auto-load demo on first visit
+  if (!leaderWrap.style.display || leaderWrap.style.display === 'none') {
+    loadOwners();
+  }
+}
+
+function loadOwners() {
+  const city = document.getElementById('owners-city').value.trim() || 'Austin';
+  const state = document.getElementById('owners-state').value || 'TX';
+  const permitType = document.getElementById('owners-permit-type').value;
+  ownersSortBy = document.getElementById('owners-sort').value || 'permits';
+
+  document.getElementById('owners-empty').style.display = 'none';
+  document.getElementById('owners-leaderboard-wrap').style.display = 'none';
+  document.getElementById('owners-stats-bar').style.display = 'none';
+  document.getElementById('owners-profile').style.display = 'none';
+  document.getElementById('owners-loading').style.display = 'block';
+
+  setTimeout(() => {
+    ownersData = generateOwnerData(city, state, permitType);
+    sortOwners(ownersSortBy, false);
+    renderOwnersLeaderboard(city, state);
+    document.getElementById('owners-loading').style.display = 'none';
+    document.getElementById('owners-leaderboard-wrap').style.display = 'block';
+    renderOwnersStatsBar();
+    document.getElementById('owners-stats-bar').style.display = 'grid';
+  }, 600);
+}
+
+function sortOwners(by, rerender = true) {
+  ownersSortBy = by;
+  document.querySelectorAll('.owners-leader-header .sortable').forEach(s => s.classList.remove('sorted'));
+  if (by === 'permits') {
+    ownersData.sort((a, b) => b.permitCount - a.permitCount);
+    document.getElementById('owners-sort-count')?.classList.add('sorted');
+    document.getElementById('owners-sort-count').textContent = 'Permits ↓';
+    document.getElementById('owners-sort-value').textContent = 'Est. Value';
+  } else if (by === 'value') {
+    ownersData.sort((a, b) => b.totalValue - a.totalValue);
+    document.getElementById('owners-sort-value')?.classList.add('sorted');
+    document.getElementById('owners-sort-value').textContent = 'Est. Value ↓';
+    document.getElementById('owners-sort-count').textContent = 'Permits';
+  } else {
+    ownersData.sort((a, b) => b.permitCount - a.permitCount);
+  }
+  if (rerender) renderOwnersLeaderboard(document.getElementById('owners-city').value || 'Austin', document.getElementById('owners-state').value || 'TX');
+}
+
+function renderOwnersStatsBar() {
+  const totalPermits = ownersData.reduce((s, o) => s + o.permitCount, 0);
+  const totalValue = ownersData.reduce((s, o) => s + o.totalValue, 0);
+  const top10Permits = ownersData.slice(0, 10).reduce((s, o) => s + o.permitCount, 0);
+  const shareStr = totalPermits > 0 ? Math.round((top10Permits / totalPermits) * 100) + '%' : '—';
+  document.getElementById('owners-stat-total').textContent = ownersData.length;
+  document.getElementById('owners-stat-permits').textContent = totalPermits.toLocaleString();
+  document.getElementById('owners-stat-value').textContent = '$' + (totalValue / 1e6).toFixed(1) + 'M';
+  document.getElementById('owners-stat-top-share').textContent = shareStr;
+}
+
+function renderOwnersLeaderboard(city, state) {
+  const list = document.getElementById('owners-list');
+  if (!ownersData.length) { list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text2)">No owner data found</div>'; return; }
+  list.innerHTML = ownersData.map((o, i) => {
+    const rankClass = i === 0 ? 'top1' : i === 1 ? 'top2' : i === 2 ? 'top3' : '';
+    const markets = o.markets.map(m => `<span class="owners-market-tag">${esc(m)}</span>`).join('');
+    const valStr = o.totalValue >= 1e9 ? '$' + (o.totalValue / 1e9).toFixed(1) + 'B' : o.totalValue >= 1e6 ? '$' + (o.totalValue / 1e6).toFixed(1) + 'M' : '$' + (o.totalValue / 1000).toFixed(0) + 'K';
+    return `<div class="owners-leader-row" onclick="openOwnerProfile(${i})">
+      <div class="owners-rank ${rankClass}">${i + 1}</div>
+      <div>
+        <div class="owners-owner-name">${esc(o.name)}</div>
+        <div class="owners-owner-sub">${esc(o.city)}, ${esc(o.state)} · Active since ${o.startYear}</div>
+      </div>
+      <div class="owners-count">${o.permitCount.toLocaleString()}</div>
+      <div class="owners-value">${valStr}</div>
+      <div class="owners-markets">${markets}</div>
+      <div><span class="owners-type ${o.focusClass}">${esc(o.focus)}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function openOwnerProfile(idx) {
+  const o = ownersData[idx];
+  document.getElementById('owners-leaderboard-wrap').style.display = 'none';
+  document.getElementById('owners-stats-bar').style.display = 'none';
+  document.getElementById('owners-profile').style.display = 'block';
+
+  // Avatar initials
+  const initials = o.name.split(' ').slice(0, 2).map(w => w[0]).join('');
+  document.getElementById('op-avatar').textContent = initials;
+
+  document.getElementById('op-name').textContent = o.name;
+  document.getElementById('op-sub').textContent = `${o.city}, ${o.state} · Primary developer since ${o.startYear}`;
+
+  // Tags
+  const tags = [o.focus, ...o.markets].map(t => `<span style="padding:4px 12px;background:rgba(99,102,241,.1);border:1px solid rgba(99,102,241,.2);border-radius:12px;font-size:12px;font-weight:600;color:var(--accent2)">${esc(t)}</span>`).join('');
+  document.getElementById('op-tags').innerHTML = tags;
+
+  // Stats
+  const valStr = o.totalValue >= 1e9 ? '$' + (o.totalValue / 1e9).toFixed(2) + 'B' : '$' + (o.totalValue / 1e6).toFixed(1) + 'M';
+  const avgStr = o.avgValue >= 1e6 ? '$' + (o.avgValue / 1e6).toFixed(1) + 'M' : '$' + (o.avgValue / 1000).toFixed(0) + 'K';
+  document.getElementById('op-total-permits').textContent = o.permitCount.toLocaleString();
+  document.getElementById('op-total-value').textContent = valStr;
+  document.getElementById('op-active-years').textContent = o.yearsActive + ' yrs';
+  document.getElementById('op-avg-value').textContent = avgStr;
+
+  // Type breakdown
+  const totalTypeCount = o.permitTypes.reduce((s, t) => s + t.count, 0);
+  document.getElementById('op-type-breakdown').innerHTML = o.permitTypes.map(t => {
+    const pct = Math.round((t.count / totalTypeCount) * 100);
+    return `<div class="owner-type-item">
+      <div style="font-size:11px;color:var(--text2);margin-bottom:4px;font-weight:600">${esc(t.type)}</div>
+      <div style="font-size:16px;font-weight:800;color:var(--text)">${t.count}</div>
+      <div style="font-size:11px;color:var(--text3)">${pct}%</div>
+      <div class="owner-type-bar" style="width:${pct}%"></div>
+    </div>`;
+  }).join('');
+
+  // Annual chart
+  const maxAnn = Math.max(...o.annualData, 1);
+  const years = [2021, 2022, 2023, 2024, 2025, 2026];
+  document.getElementById('op-annual-chart').innerHTML = o.annualData.map((v, i) => {
+    const h = Math.round((v / maxAnn) * 72);
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px">
+      <div style="font-size:10px;color:var(--text3)">${v}</div>
+      <div style="width:100%;height:${h}px;background:var(--accent);border-radius:3px 3px 0 0;min-height:4px"></div>
+    </div>`;
+  }).join('');
+  document.getElementById('op-annual-labels').innerHTML = years.map(y => `<div style="flex:1;font-size:10px;color:var(--text3);text-align:center">${y}</div>`).join('');
+
+  // Recent permits (fake based on owner data)
+  const permits = generateDemoPermits(o.city + ' ' + o.state).slice(0, 5).map(p => ({
+    ...p, owner_name: o.name
+  }));
+  document.getElementById('op-permits-list').innerHTML = permits.map(p => `
+    <div class="result-card">
+      <div class="address">${esc(p.address)}, ${esc(p.city)} ${esc(p.state)}</div>
+      <div class="meta">
+        <span><strong>#</strong> ${esc(p.permit_number)}</span>
+        ${p.permit_type ? `<span class="badge badge-blue">${esc(p.permit_type)}</span>` : ''}
+        <span class="badge ${statusBadge(p.status || 'issued')}">${esc(p.status || 'Issued')}</span>
+        <span>Issued: ${p.issue_date}</span>
+        ${p.estimated_value ? `<span>$${Number(p.estimated_value).toLocaleString()}</span>` : ''}
+      </div>
+    </div>`).join('');
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function closeOwnerProfile() {
+  document.getElementById('owners-profile').style.display = 'none';
+  document.getElementById('owners-leaderboard-wrap').style.display = 'block';
+  document.getElementById('owners-stats-bar').style.display = 'grid';
+}
+// ─── END OWNER/DEVELOPER INTELLIGENCE ────────────────────────────────────────
+
 // ─── END API PLAYGROUND ────────────────────────────────────────────────────────
 </script>
 </body>
