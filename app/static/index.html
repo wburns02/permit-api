@@ -153,6 +153,40 @@ section .subtitle{color:var(--text2);font-size:16px;margin-bottom:40px}
 .contractor-card .tags{display:flex;flex-wrap:wrap;gap:6px}
 .contractor-card .tags .tag{padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600;background:var(--surface2);color:var(--text2);border:1px solid var(--border)}
 .contractor-card .date-range{font-size:12px;color:var(--text3);margin-top:8px}
+.contractor-card.selected{border-color:var(--accent);background:rgba(109,40,217,.06)}
+.contractor-card .compare-check{position:absolute;top:14px;right:16px;width:20px;height:20px;border:2px solid var(--border);border-radius:4px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+.contractor-card{position:relative}
+.contractor-card.selected .compare-check{background:var(--accent);border-color:var(--accent);color:#fff}
+/* Compare Bar */
+.compare-bar{position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(10,10,12,.96);border-top:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1)}
+.compare-bar.visible{transform:translateY(0)}
+.compare-bar-slots{display:flex;gap:8px;flex:1;flex-wrap:wrap}
+.compare-slot{padding:6px 14px;border:1px dashed var(--border);border-radius:20px;font-size:13px;color:var(--text3);min-width:140px;display:flex;align-items:center;justify-content:space-between;gap:8px;transition:all .2s}
+.compare-slot.filled{border-color:var(--accent);color:var(--text1);border-style:solid}
+.compare-slot .slot-remove{cursor:pointer;opacity:.6;font-size:16px;line-height:1}
+.compare-slot .slot-remove:hover{opacity:1}
+.compare-bar-cta{display:flex;gap:8px;align-items:center}
+/* Comparison View */
+.compare-view{display:none}
+.compare-view.visible{display:block}
+.compare-header{text-align:center;padding:40px 0 24px}
+.compare-table{width:100%;border-collapse:collapse;margin-bottom:32px}
+.compare-table th{padding:16px 12px;text-align:center;font-size:14px;font-weight:700;border-bottom:2px solid var(--border)}
+.compare-table th:first-child{text-align:left;font-size:13px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;font-weight:500;width:160px}
+.compare-table td{padding:12px;text-align:center;border-bottom:1px solid var(--border);font-size:14px;vertical-align:middle}
+.compare-table td:first-child{text-align:left;color:var(--text2);font-size:13px}
+.compare-table tr:last-child td{border-bottom:none}
+.compare-col-header{text-align:center}
+.compare-col-name{font-size:16px;font-weight:700;margin-bottom:4px}
+.compare-col-sub{font-size:12px;color:var(--text3)}
+.compare-best{color:#22c55e;font-weight:700}
+.compare-bar-cell{display:flex;align-items:center;gap:8px;justify-content:center}
+.cbar-track{height:8px;background:var(--surface2);border-radius:4px;flex:1;max-width:80px;overflow:hidden}
+.cbar-fill{height:8px;border-radius:4px;background:var(--accent);transition:width .6s cubic-bezier(.4,0,.2,1)}
+.compare-type-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;padding:4px 0}
+.compare-type-chip{padding:3px 8px;border-radius:10px;font-size:11px;font-weight:600;background:var(--surface2);border:1px solid var(--border);text-align:center}
+.compare-winner-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.3);border-radius:20px;padding:3px 10px;font-size:11px;color:#22c55e;font-weight:600;margin-top:8px}
+@media(max-width:768px){.compare-bar{padding:10px 16px}.compare-bar-slots{flex-direction:row;overflow-x:auto}.compare-table th,.compare-table td{padding:8px 6px;font-size:12px}}
 .contractor-detail{display:none}
 .contractor-detail.visible{display:block}
 .contractor-detail .back-btn{padding:8px 16px;border-radius:var(--radius-sm);background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-size:13px;margin-bottom:24px;transition:all .2s}
@@ -863,6 +897,20 @@ results.forEach(p =>
         </div>
       </div>
 
+      <!-- Comparison View -->
+      <div class="compare-view" id="compare-view">
+        <button type="button" class="back-btn" onclick="exitCompareView()" style="position:relative;z-index:10;margin-bottom:24px">&#8592; Back to search</button>
+        <div class="compare-header">
+          <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(109,40,217,.1);border:1px solid rgba(109,40,217,.3);border-radius:24px;padding:5px 16px;font-size:12px;color:var(--accent2);margin-bottom:12px">⚖️ Contractor Comparison</div>
+          <h2 style="font-size:32px;font-weight:800;margin-bottom:8px">Side-by-Side Comparison</h2>
+          <p style="color:var(--text2);font-size:16px;margin-bottom:0">Comparing permit history, specialties, and market reach</p>
+        </div>
+        <div id="compare-table-container"></div>
+        <div id="compare-demo-note" style="display:none;text-align:center;margin-top:8px;padding:10px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24">
+          Demo data — <a href="#" onclick="openSignup();return false" style="color:#fbbf24;text-decoration:underline">Sign up free</a> to compare real contractor records
+        </div>
+      </div>
+
       <!-- Detail View -->
       <div class="contractor-detail" id="contractor-detail">
         <button type="button" class="back-btn" onclick="showContractorSearch()" style="position:relative;z-index:10">&#8592; Back to search</button>
@@ -875,6 +923,20 @@ results.forEach(p =>
       </div>
     </div>
   </section>
+</div>
+
+<!-- COMPARE BAR (floating) -->
+<div class="compare-bar" id="compare-bar">
+  <div style="font-size:13px;color:var(--text2);white-space:nowrap">Compare contractors:</div>
+  <div class="compare-bar-slots" id="compare-slots">
+    <div class="compare-slot" id="cslot-0"><span class="slot-name">Select contractor</span></div>
+    <div class="compare-slot" id="cslot-1"><span class="slot-name">Select contractor</span></div>
+    <div class="compare-slot" id="cslot-2"><span class="slot-name">Select contractor</span></div>
+  </div>
+  <div class="compare-bar-cta">
+    <button id="compare-go-btn" class="btn-full" onclick="openCompareView()" style="padding:10px 24px;white-space:nowrap" disabled>Compare (0)</button>
+    <button onclick="clearCompareSelection()" style="padding:10px 14px;background:none;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;color:var(--text2)">Clear</button>
+  </div>
 </div>
 
 <!-- ALERTS PAGE -->
@@ -1466,7 +1528,7 @@ results.forEach(p =>
           <h3 id="risk-result-address" style="font-size:18px;font-weight:700"></h3>
           <p id="risk-result-subtitle" style="font-size:13px;color:var(--text3);margin-top:2px"></p>
         </div>
-        <button onclick="runRiskScore()" style="padding:8px 18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:var(--text2)">Re-analyze</button>
+        <button id="risk-reanalyze-btn" onclick="runRiskScore()" style="padding:8px 18px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:var(--text2)">Re-analyze</button>
       </div>
 
       <div class="risk-result-grid">
@@ -1756,6 +1818,10 @@ function showPage(page) {
     showContractorSearch();
     const results = document.getElementById('contractor-results');
     if (!results.innerHTML.trim()) document.getElementById('contractor-empty').style.display = '';
+  } else {
+    // Hide compare bar when navigating away from contractors
+    const cbar = document.getElementById('compare-bar');
+    if (cbar) cbar.classList.remove('visible');
   }
   window.scrollTo({ top: 0, behavior: 'smooth' });
   // Update hash without triggering hashchange
@@ -1888,7 +1954,20 @@ async function doSearch() {
 
   const hasFilters = filterType || filterStatus || filterDateFrom || filterDateTo || filterState || filterJurisdiction;
   if (!q && !hasFilters) { showToast('Enter an address or select filters to search.', 'error'); return; }
-  if (!currentKey) { openSignup(); return; }
+  if (!currentKey) {
+    const area = document.getElementById('results-area');
+    if (area) {
+      area.classList.add('visible');
+      area.innerHTML = `<div style="text-align:center;padding:48px 24px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)">
+        <div style="font-size:40px;margin-bottom:12px">🔒</div>
+        <h3 style="font-size:20px;font-weight:700;margin-bottom:8px">Free API key required</h3>
+        <p style="color:var(--text2);font-size:15px;margin-bottom:20px;max-width:480px;margin-left:auto;margin-right:auto">Sign up free to search <strong>7M+ permit records</strong> across 17 states. Takes 10 seconds — no credit card.</p>
+        <button class="btn-full" style="max-width:240px;margin:0 auto" onclick="openSignup()">Get Free API Key →</button>
+        <p style="color:var(--text3);font-size:12px;margin-top:16px">Already have a key? Enter it in the dashboard.</p>
+      </div>`;
+    }
+    openSignup(); return;
+  }
 
   const btn = document.getElementById('search-btn');
   btn.disabled = true; btn.textContent = 'Searching...';
@@ -2335,10 +2414,46 @@ function showToast(msg, type) {
 }
 
 // Contractors
+function generateDemoContractors(q) {
+  const bases = ['Apex','Summit','Eagle','Premier','Horizon','Legacy','Atlas','Pinnacle','Sunbelt','Metro','ProBuild','BuildRight'];
+  const types = ['Construction','Contractors','Building','Roofing','Electric','Plumbing','HVAC','Services'];
+  const states = ['TX','CA','FL','AZ','CO','NC','GA','WA'];
+  const permitTypes = ['Residential','Commercial','Electrical','Plumbing','Mechanical','Roofing','Solar'];
+  return Array.from({ length: 6 }, (_, i) => {
+    const name = bases[(i * 3 + 1) % bases.length] + ' ' + types[(i * 2) % types.length];
+    const stateSet = states.slice(i % 4, i % 4 + (i % 3 + 1));
+    return {
+      contractor: name,
+      total_permits: Math.floor(80 + Math.random() * 920),
+      jurisdictions: Math.floor(2 + Math.random() * 18),
+      states: stateSet.length,
+      permit_types: permitTypes.slice(i % 3, i % 3 + 3),
+      active_states: stateSet,
+      first_active: '2018-0' + (i+1) + '-01',
+      last_active: '2026-02-01'
+    };
+  });
+}
+
 async function doContractorSearch() {
   const q = document.getElementById('contractor-input').value.trim();
   if (!q) { showToast('Enter a contractor name to search.', 'error'); return; }
-  if (!currentKey) { openSignup(); return; }
+  if (!currentKey) {
+    const btn = document.getElementById('contractor-search-btn');
+    btn.disabled = true; btn.textContent = 'Loading...';
+    await new Promise(r => setTimeout(r, 400));
+    btn.disabled = false; btn.textContent = 'Search';
+    document.getElementById('contractor-empty').style.display = 'none';
+    const demoData = { results: generateDemoContractors(q) };
+    renderContractors(demoData);
+    // Add demo banner
+    const list = document.getElementById('contractor-results');
+    const banner = document.createElement('div');
+    banner.style.cssText = 'margin-bottom:16px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px';
+    banner.innerHTML = '<span>📊 Demo results — sign up free to search real contractor data from 7M+ permits</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button>';
+    list.insertBefore(banner, list.firstChild);
+    return;
+  }
 
   const btn = document.getElementById('contractor-search-btn');
   btn.disabled = true; btn.textContent = 'Searching...';
@@ -2360,6 +2475,9 @@ async function doContractorSearch() {
   }
 }
 
+// Store last search results for comparison
+let lastContractorResults = [];
+
 function renderContractors(data) {
   const list = document.getElementById('contractor-results');
   const emptyEl = document.getElementById('contractor-empty');
@@ -2372,9 +2490,21 @@ function renderContractors(data) {
     return;
   }
   if (emptyEl) emptyEl.style.display = 'none';
+  lastContractorResults = data.results;
 
-  list.innerHTML = data.results.map(c => `
-    <div class="contractor-card" onclick="viewContractor('${esc(c.contractor).replace(/'/g, "\\'")}')">
+  // Add compare hint above results
+  const hintId = 'compare-hint-row';
+  if (!document.getElementById(hintId)) {
+    const hint = document.createElement('div');
+    hint.id = hintId;
+    hint.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm)';
+    hint.innerHTML = '<span style="font-size:13px;color:var(--text2)">⚖️ <strong>Tip:</strong> Click cards to select up to 3 contractors to compare side-by-side</span><span style="font-size:12px;color:var(--text3)">' + data.results.length + ' results</span>';
+    list.insertAdjacentElement('beforebegin', hint);
+  }
+
+  list.innerHTML = data.results.map((c, idx) => `
+    <div class="contractor-card" id="ccard-${idx}" onclick="toggleContractorCompare(${idx}, event)" data-idx="${idx}">
+      <div class="compare-check" id="ccheck-${idx}"></div>
       <div class="contractor-name">${esc(c.contractor)}</div>
       <div class="contractor-stats">
         <div class="stat-item">
@@ -2395,8 +2525,213 @@ function renderContractors(data) {
         ${c.active_states.map(s => `<span class="tag" style="border-color:var(--accent);color:var(--accent2)">${esc(s)}</span>`).join('')}
       </div>
       ${(c.first_active||c.first_permit) && (c.last_active||c.last_permit) ? `<div class="date-range">Active: ${c.first_active||c.first_permit} — ${c.last_active||c.last_permit}</div>` : ''}
+      <div style="margin-top:10px;font-size:12px;color:var(--accent2);display:flex;gap:10px;align-items:center">
+        <span onclick="event.stopPropagation();viewContractor('${esc(c.contractor).replace(/'/g, "\\'")}');" style="cursor:pointer;text-decoration:underline;text-underline-offset:2px">View permits →</span>
+      </div>
     </div>
   `).join('');
+}
+
+// ============ CONTRACTOR COMPARISON ============
+let compareSelection = []; // array of data indices
+
+function toggleContractorCompare(idx, event) {
+  // If clicking view permits link, don't toggle
+  if (event && event.target.tagName === 'SPAN' && event.target.style.cursor === 'pointer') return;
+  const selIdx = compareSelection.indexOf(idx);
+  if (selIdx === -1) {
+    if (compareSelection.length >= 3) { showToast('Max 3 contractors to compare', 'error'); return; }
+    compareSelection.push(idx);
+  } else {
+    compareSelection.splice(selIdx, 1);
+  }
+  updateCompareUI();
+}
+
+function updateCompareUI() {
+  // Update card states
+  document.querySelectorAll('.contractor-card').forEach((card, i) => {
+    const idx = parseInt(card.getAttribute('data-idx'));
+    const selected = compareSelection.includes(idx);
+    card.classList.toggle('selected', selected);
+    const check = document.getElementById('ccheck-' + idx);
+    if (check) check.textContent = selected ? '✓' : '';
+  });
+  // Update compare bar
+  const bar = document.getElementById('compare-bar');
+  const goBtn = document.getElementById('compare-go-btn');
+  if (compareSelection.length > 0) {
+    bar.classList.add('visible');
+  } else {
+    bar.classList.remove('visible');
+  }
+  // Update slots
+  for (let i = 0; i < 3; i++) {
+    const slot = document.getElementById('cslot-' + i);
+    if (!slot) continue;
+    if (compareSelection[i] !== undefined) {
+      const c = lastContractorResults[compareSelection[i]];
+      slot.classList.add('filled');
+      slot.innerHTML = `<span style="font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px">${esc(c.contractor)}</span><span class="slot-remove" onclick="removeFromCompare(${compareSelection[i]})">×</span>`;
+    } else {
+      slot.classList.remove('filled');
+      slot.innerHTML = '<span class="slot-name" style="font-size:12px">Add contractor</span>';
+    }
+  }
+  if (goBtn) {
+    goBtn.disabled = compareSelection.length < 2;
+    goBtn.textContent = 'Compare (' + compareSelection.length + ')';
+  }
+}
+
+function removeFromCompare(idx) {
+  compareSelection = compareSelection.filter(i => i !== idx);
+  updateCompareUI();
+}
+
+function clearCompareSelection() {
+  compareSelection = [];
+  updateCompareUI();
+}
+
+function exitCompareView() {
+  document.getElementById('compare-view').classList.remove('visible');
+  document.getElementById('contractors-search-view').style.display = '';
+  const bar = document.getElementById('compare-bar');
+  if (compareSelection.length > 0) bar.classList.add('visible');
+}
+
+function openCompareView() {
+  if (compareSelection.length < 2) { showToast('Select at least 2 contractors', 'error'); return; }
+  const contractors = compareSelection.map(i => lastContractorResults[i]);
+  document.getElementById('contractors-search-view').style.display = 'none';
+  document.getElementById('contractor-detail').classList.remove('visible');
+  document.getElementById('compare-bar').classList.remove('visible');
+  document.getElementById('compare-view').classList.add('visible');
+  window.scrollTo(0, 0);
+  renderCompareTable(contractors, !currentKey);
+}
+
+function renderCompareTable(contractors, isDemo) {
+  const container = document.getElementById('compare-table-container');
+  const demoNote = document.getElementById('compare-demo-note');
+  if (demoNote) demoNote.style.display = isDemo ? 'block' : 'none';
+
+  const n = contractors.length;
+  const cols = contractors.map((c, ci) => {
+    const years = (() => {
+      const first = c.first_active || c.first_permit || '';
+      const last = c.last_active || c.last_permit || '';
+      if (!first) return '—';
+      const y1 = parseInt(first.substring(0,4));
+      const y2 = last ? parseInt(last.substring(0,4)) : new Date().getFullYear();
+      return isNaN(y1) ? '—' : (y2 - y1) + ' yrs';
+    })();
+    return { ...c, years_active: years, ci };
+  });
+
+  // Find best values for highlighting
+  const maxPermits = Math.max(...cols.map(c => c.total_permits));
+  const maxJur = Math.max(...cols.map(c => c.jurisdictions));
+  const maxStates = Math.max(...cols.map(c => c.states));
+
+  const colors = ['#818cf8','#22c55e','#f59e0b'];
+
+  container.innerHTML = `
+    <table class="compare-table">
+      <thead>
+        <tr>
+          <th></th>
+          ${cols.map((c, ci) => `
+            <th>
+              <div class="compare-col-header">
+                <div style="width:12px;height:12px;border-radius:50%;background:${colors[ci]};margin:0 auto 8px"></div>
+                <div class="compare-col-name">${esc(c.contractor)}</div>
+                <div class="compare-col-sub">${c.active_states && c.active_states.length ? c.active_states.join(', ') : '—'}</div>
+                ${c.total_permits === maxPermits ? '<div class="compare-winner-badge">⭐ Most Active</div>' : ''}
+              </div>
+            </th>
+          `).join('')}
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Total Permits</td>
+          ${cols.map(c => `<td class="${c.total_permits === maxPermits ? 'compare-best' : ''}">
+            <div class="compare-bar-cell">
+              ${c.total_permits.toLocaleString()}
+              <div class="cbar-track"><div class="cbar-fill" style="width:${Math.round((c.total_permits/maxPermits)*100)}%;background:${colors[c.ci]}"></div></div>
+            </div>
+          </td>`).join('')}
+        </tr>
+        <tr>
+          <td>Jurisdictions</td>
+          ${cols.map(c => `<td class="${c.jurisdictions === maxJur ? 'compare-best' : ''}">
+            <div class="compare-bar-cell">
+              ${c.jurisdictions}
+              <div class="cbar-track"><div class="cbar-fill" style="width:${Math.round((c.jurisdictions/maxJur)*100)}%;background:${colors[c.ci]}"></div></div>
+            </div>
+          </td>`).join('')}
+        </tr>
+        <tr>
+          <td>States Active</td>
+          ${cols.map(c => `<td class="${c.states === maxStates ? 'compare-best' : ''}">${c.states}</td>`).join('')}
+        </tr>
+        <tr>
+          <td>Years Active</td>
+          ${cols.map(c => `<td>${c.years_active}</td>`).join('')}
+        </tr>
+        <tr>
+          <td>Last Active</td>
+          ${cols.map(c => `<td style="font-size:13px">${c.last_active || c.last_permit || '—'}</td>`).join('')}
+        </tr>
+        <tr>
+          <td>Specialties</td>
+          ${cols.map(c => `<td>
+            <div class="compare-type-grid">
+              ${(c.permit_types || []).slice(0,6).map(t => `<div class="compare-type-chip">${esc(t)}</div>`).join('')}
+            </div>
+          </td>`).join('')}
+        </tr>
+      </tbody>
+    </table>
+
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:24px">
+      <h3 style="font-size:17px;font-weight:700;margin-bottom:16px">Permit Volume Comparison</h3>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        ${cols.map((c, ci) => `
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:140px;font-size:13px;font-weight:600;color:${colors[ci]};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(c.contractor)}</div>
+            <div style="flex:1;height:28px;background:var(--surface2);border-radius:4px;overflow:hidden;position:relative">
+              <div style="height:28px;width:${Math.round((c.total_permits/maxPermits)*100)}%;background:${colors[ci]};opacity:.8;border-radius:4px;transition:width .8s cubic-bezier(.4,0,.2,1);display:flex;align-items:center;justify-content:flex-end;padding-right:8px;min-width:40px">
+                <span style="font-size:12px;font-weight:700;color:#fff">${c.total_permits.toLocaleString()}</span>
+              </div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(${n},1fr);gap:16px;margin-bottom:32px">
+      ${cols.map((c, ci) => `
+        <div style="background:var(--surface);border:1px solid ${colors[ci]}33;border-radius:var(--radius);padding:20px">
+          <div style="font-size:14px;font-weight:700;color:${colors[ci]};margin-bottom:12px">${esc(c.contractor)}</div>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:8px">Permit types:</div>
+          ${(c.permit_types || []).slice(0,4).map(t => `<div style="font-size:12px;padding:4px 0;border-bottom:1px solid var(--border)">${esc(t)}</div>`).join('')}
+          <button onclick="clearCompareSelection();exitCompareView();viewContractor('${esc(c.contractor).replace(/'/g,"\\'")}');" style="margin-top:14px;width:100%;padding:8px;background:${colors[ci]}22;border:1px solid ${colors[ci]}44;border-radius:var(--radius-sm);font-size:13px;font-weight:600;color:${colors[ci]};cursor:pointer">View Permit History →</button>
+        </div>
+      `).join('')}
+    </div>
+  `;
+
+  // Animate bars after render
+  setTimeout(() => {
+    container.querySelectorAll('.cbar-fill').forEach(el => {
+      const w = el.style.width;
+      el.style.width = '0';
+      setTimeout(() => { el.style.width = w; }, 50);
+    });
+  }, 100);
 }
 
 async function viewContractor(name) {
@@ -2454,6 +2789,8 @@ async function viewContractor(name) {
 function showContractorSearch() {
   document.getElementById('contractors-search-view').style.display = '';
   document.getElementById('contractor-detail').classList.remove('visible');
+  document.getElementById('compare-view').classList.remove('visible');
+  if (compareSelection.length > 0) document.getElementById('compare-bar').classList.add('visible');
 }
 
 // Init contractor page
@@ -3023,8 +3360,27 @@ async function uploadBulkReport(file) {
 }
 
 // ============ MARKET ============
+function generateDemoMarketActivity(city, state, months) {
+  const mo = parseInt(months) || 6;
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const now = new Date();
+  const monthly = Array.from({ length: mo }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (mo - 1 - i), 1);
+    return { month: monthNames[d.getMonth()] + ' ' + String(d.getFullYear()).slice(2), count: Math.floor(80 + Math.random() * 320) };
+  });
+  const contractors = [
+    { contractor: 'Apex Construction', count: 47 },
+    { contractor: 'Summit Builders', count: 38 },
+    { contractor: 'ProBuild Inc', count: 31 },
+    { contractor: 'Horizon Contractors', count: 24 },
+    { contractor: 'Eagle Build Group', count: 19 }
+  ];
+  const types = { Residential: 142, Commercial: 87, Electrical: 63, Plumbing: 44, Mechanical: 31, Solar: 28 };
+  const total = monthly.reduce((s, m) => s + m.count, 0);
+  return { monthly, total_permits: total, avg_valuation: 85000 + Math.random() * 120000, top_contractors: contractors, permit_type_breakdown: types };
+}
+
 async function loadMarketActivity() {
-  if (!currentKey) { openSignup(); return; }
   const zip = document.getElementById('market-zip').value.trim();
   const city = document.getElementById('market-city').value.trim();
   const state = document.getElementById('market-state').value;
@@ -3032,6 +3388,13 @@ async function loadMarketActivity() {
   if (!zip && !city && !state) { showToast('Enter a ZIP, city, or state', 'error'); return; }
   const results = document.getElementById('market-activity-results');
   results.style.display = '';
+  if (!currentKey) {
+    results.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3)">Loading demo data...</div>';
+    await new Promise(r => setTimeout(r, 500));
+    renderMarketActivity(generateDemoMarketActivity(city, state, months));
+    results.insertAdjacentHTML('afterbegin', `<div style="margin-bottom:16px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px"><span>📊 Demo data — sign up free to analyze real market activity</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button></div>`);
+    return;
+  }
   results.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Loading market data...</div>';
   const params = new URLSearchParams({ months });
   if (zip) params.set('zip', zip);
@@ -3091,11 +3454,23 @@ function renderMarketActivity(d) {
 }
 
 async function loadHotspots() {
-  if (!currentKey) { openSignup(); return; }
   const state = document.getElementById('hotspot-state').value;
   if (!state) { showToast('Select a state', 'error'); return; }
   const results = document.getElementById('hotspot-results');
   results.style.display = '';
+  if (!currentKey) {
+    results.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3)">Loading demo hotspots...</div>';
+    await new Promise(r => setTimeout(r, 400));
+    const demoZips = ['78701','78702','78703','78704','78705','78706','78707','78708'].map((z, i) => ({
+      zip: z, total_permits: Math.floor(200 - i * 18 + Math.random() * 40), recent_permits: Math.floor(35 - i * 3 + Math.random() * 15), growth_pct: parseFloat((15 - i * 2 + Math.random() * 8).toFixed(1))
+    }));
+    results.innerHTML = `<div style="margin-bottom:12px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px"><span>📊 Demo hotspots — sign up free to see real growth data</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button></div>
+    <table style="width:100%;border-collapse:collapse;font-size:13px">
+      <thead><tr style="color:var(--text3)"><th style="text-align:left;padding:6px">ZIP</th><th style="text-align:right;padding:6px">Permits</th><th style="text-align:right;padding:6px">Recent</th><th style="text-align:right;padding:6px">Growth</th></tr></thead>
+      <tbody>${demoZips.map(h=>`<tr style="border-top:1px solid var(--border)"><td style="padding:6px;font-weight:600">${h.zip}</td><td style="text-align:right;padding:6px">${h.total_permits}</td><td style="text-align:right;padding:6px">${h.recent_permits}</td><td style="text-align:right;padding:6px;color:${h.growth_pct>0?'#22c55e':'#ef4444'}">${h.growth_pct>0?'▲':'▼'} ${Math.abs(h.growth_pct)}%</td></tr>`).join('')}</tbody>
+    </table>`;
+    return;
+  }
   results.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Finding hotspots...</div>';
   try {
     const r = await fetch(`${API}/v1/market/hotspots?state=${state}`, { headers: { 'X-API-Key': currentKey } });
@@ -3533,7 +3908,9 @@ async function runRiskScore() {
   if (!addr) { showToast('Enter a property address', 'error'); return; }
 
   const btn = document.getElementById('risk-analyze-btn');
+  const reBtn = document.getElementById('risk-reanalyze-btn');
   btn.disabled = true; btn.textContent = 'Analyzing...';
+  if (reBtn) { reBtn.disabled = true; reBtn.textContent = 'Analyzing...'; }
   document.getElementById('risk-result').style.display = 'none';
   document.getElementById('risk-empty').style.display = 'none';
   document.getElementById('risk-loading').style.display = '';
@@ -3572,6 +3949,7 @@ async function runRiskScore() {
     showToast('Analysis failed: ' + e.message, 'error');
   } finally {
     btn.disabled = false; btn.textContent = 'Analyze Property';
+    if (reBtn) { reBtn.disabled = false; reBtn.textContent = 'Re-analyze'; }
   }
 }
 
@@ -4246,9 +4624,20 @@ function toggleFeedAuto() {
       el.innerHTML = `<div class="feed-item-header"><span class="feed-type-dot" style="background:${item.color}"></span><span class="feed-item-type" style="color:${item.color};font-weight:600;font-size:13px;text-transform:capitalize">${item.type}</span><span class="feed-item-id" style="color:var(--text2);font-size:12px;margin-left:8px">#${item.id}</span><span style="margin-left:8px;font-size:11px;padding:2px 8px;background:rgba(34,197,94,.15);border-radius:20px;color:#22c55e">NEW</span><span style="margin-left:auto;font-size:12px;color:var(--text2)">just now</span></div><div class="feed-item-body"><div class="feed-item-addr">${item.address}, ${item.city}, ${item.state}</div><div class="feed-item-desc" style="font-size:13px;color:var(--text2);margin-top:2px">${item.description}</div></div><div class="feed-item-meta">${item.contractor ? '<span style="font-size:13px;color:var(--text1)">🔨 '+item.contractor+'</span>' : '<span style="font-size:13px;color:var(--text2)">Contractor unknown</span>'}<span class="feed-item-val" style="margin-left:auto;font-size:15px;font-weight:700;color:var(--text1)">${val}</span></div>`;
       listEl.insertBefore(el, listEl.firstChild);
       setTimeout(() => { el.style.background = ''; el.style.borderColor = ''; }, 3000);
-      // update total count
+      // update all stats
       const totalEl = document.getElementById('feed-stat-total');
       if (totalEl) totalEl.textContent = feedItems.length.toLocaleString();
+      const totalVal = feedItems.reduce((s, fi) => s + (fi.value||0), 0);
+      const avgVal = totalVal / feedItems.length;
+      const typeCounts = {};
+      feedItems.forEach(fi => typeCounts[fi.type] = (typeCounts[fi.type]||0) + 1);
+      const topType = Object.entries(typeCounts).sort((a,b)=>b[1]-a[1])[0];
+      const valEl = document.getElementById('feed-stat-value');
+      const avgEl = document.getElementById('feed-stat-avg');
+      const topEl = document.getElementById('feed-stat-top');
+      if (valEl) valEl.textContent = '$' + (totalVal>=1000000 ? (totalVal/1000000).toFixed(1)+'M' : (totalVal/1000).toFixed(0)+'K');
+      if (avgEl) avgEl.textContent = '$' + (avgVal>=1000 ? (avgVal/1000).toFixed(0)+'K' : Math.round(avgVal).toLocaleString());
+      if (topEl && topType) topEl.textContent = topType[0].charAt(0).toUpperCase()+topType[0].slice(1);
     }, 4000);
   }
 }
