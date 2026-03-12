@@ -827,7 +827,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
 .value-stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px}
 .value-stat-val{font-size:26px;font-weight:800;color:var(--text);line-height:1;margin-bottom:6px}
 .value-stat-lbl{font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
-.value-market-row{border-bottom:1px solid var(--border);transition:background .15s;cursor:default}
+.value-market-row{border-bottom:1px solid var(--border);transition:background .15s;cursor:pointer}
 .value-market-row:hover{background:var(--surface2)}
 .value-market-row td{padding:11px 16px;vertical-align:middle}
 .value-type-bar-row{margin-bottom:12px}
@@ -3108,11 +3108,14 @@ async function doSearch() {
     if (area) {
       area.classList.add('visible');
       // Show seeded demo results — update only results-list to preserve export/save/toggle buttons
-      const demoPermits = generateDemoPermits(q || 'demo search');
+      // Incorporate state filter into the query so demo results respect the selected state
+      const demoPermits = generateDemoPermits(filterState ? (q ? q + ' ' + filterState : filterState) : (q || 'demo search'));
       const demoSlice = demoPermits.slice(0, 5);
       const count = document.getElementById('results-count');
       if (count) count.textContent = `5 demo results`;
-      // Show view toggle in demo mode (map won't have markers but shows the feature exists)
+      // Prepare map markers so map view shows permit locations
+      prepareMapMarkers(demoSlice);
+      // Show view toggle in demo mode
       const vt = document.getElementById('view-toggle');
       if (vt) vt.style.display = 'flex';
       // Show Save Search button in demo mode (opens SS modal → signup)
@@ -3129,7 +3132,7 @@ async function doSearch() {
           <span>🔒 Demo results — <strong>sign up free</strong> to search 7M+ real permit records across 17 states</span>
           <button onclick="openSignup()" style="padding:7px 18px;background:rgba(251,191,36,.2);border:1px solid rgba(251,191,36,.4);border-radius:var(--radius-sm);color:#fbbf24;font-size:13px;font-weight:700;white-space:nowrap">Get Free API Key →</button>
         </div>
-        ${demoSlice.map(p => `<div class="result-card"><div class="address">${esc(p.address)}, ${esc(p.city)} ${esc(p.state)}</div><div class="meta"><span><strong>#</strong> ${esc(p.permit_number)}</span>${p.permit_type?`<span class="badge badge-blue">${esc(p.permit_type)}</span>`:''}<span class="badge ${statusBadge(p.status||'issued')}">${esc(p.status||'Issued')}</span><span>Issued: ${p.issue_date}</span>${p.estimated_value?`<span>$${Number(p.estimated_value).toLocaleString()}</span>`:''}<span>${esc(p.jurisdiction||p.city+' '+p.state)}</span></div>${p.description?`<div style="margin-top:8px;font-size:13px;color:var(--text2)">${esc(p.description)}</div>`:''}<div style="margin-top:8px"><button onclick="addSearchResultToWatchlist('${esc(p.address||'').replace(/'/g,"\\'")}','${esc(p.city||'').replace(/'/g,"\\'")}','${esc(p.state||'')}')" style="padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='#22c55e';this.style.color='#22c55e'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">+ Watchlist</button></div></div>`).join('')}
+        ${demoSlice.map(p => `<div class="result-card"><div class="address">${esc(p.address)}, ${esc(p.city)} ${esc(p.state)}</div><div class="meta"><span><strong>#</strong> ${esc(p.permit_number)}</span>${p.permit_type?`<span class="badge badge-blue">${esc(p.permit_type)}</span>`:''}<span class="badge ${statusBadge(p.status||'issued')}">${esc(p.status||'Issued')}</span><span>Issued: ${p.issue_date}</span>${p.estimated_value?`<span>$${Number(p.estimated_value).toLocaleString()}</span>`:''}<span>${esc(p.jurisdiction||p.city+' '+p.state)}</span></div>${p.description?`<div style="margin-top:8px;font-size:13px;color:var(--text2)">${esc(p.description)}</div>`:''}<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button onclick="addSearchResultToWatchlist('${esc(p.address||'').replace(/'/g,"\\'")}','${esc(p.city||'').replace(/'/g,"\\'")}','${esc(p.state||'')}')" style="padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='#22c55e';this.style.color='#22c55e'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">+ Watchlist</button><button onclick="openRiskForAddress('${esc(p.address||'').replace(/'/g,"\\'")}','${esc(p.city||'').replace(/'/g,"\\'")}','${esc(p.state||'')}')" style="padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--accent2)';this.style.color='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">Risk Score →</button></div></div>`).join('')}
         <div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">Sign up free to see all results and access the full database →</div>`;
       }
     }
@@ -3265,7 +3268,7 @@ function renderResults(data) {
       </div>
       ${p.description ? `<div style="margin-top:8px;font-size:13px;color:var(--text2)">${esc(p.description).substring(0,200)}${p.description.length > 200 ? '...' : ''}</div>` : ''}
       ${p.contractor_name || p.contractor_company ? `<div style="margin-top:6px;font-size:13px;color:var(--text3)">Contractor: ${esc(p.contractor_name || '')} ${p.contractor_company ? '(' + esc(p.contractor_company) + ')' : ''}</div>` : ''}
-      <div style="margin-top:8px"><button onclick="addSearchResultToWatchlist('${esc(p.address||'').replace(/'/g,"\\'")}','${esc(p.city||'').replace(/'/g,"\\'")}','${esc(p.state||'')}')" style="padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='#22c55e';this.style.color='#22c55e'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">+ Watchlist</button></div>
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button onclick="addSearchResultToWatchlist('${esc(p.address||'').replace(/'/g,"\\'")}','${esc(p.city||'').replace(/'/g,"\\'")}','${esc(p.state||'')}')" style="padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='#22c55e';this.style.color='#22c55e'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">+ Watchlist</button><button onclick="openRiskForAddress('${esc(p.address||'').replace(/'/g,"\\'")}','${esc(p.city||'').replace(/'/g,"\\'")}','${esc(p.state||'')}')" style="padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--accent2)';this.style.color='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">Risk Score →</button></div>
     </div>
   `).join('');
 
@@ -4289,7 +4292,7 @@ async function loadAlerts() {
     loading.style.display = 'none';
     empty.style.display = 'none';
     createBtn.style.display = '';
-    createBtn.onclick = () => openSignup();
+    createBtn.onclick = () => openAlertForm();
     // Show demo alerts with amber banner
     let demoNote = document.getElementById('alerts-demo-note');
     if (!demoNote) {
@@ -7802,6 +7805,16 @@ function quickRiskCheck(addr) {
   }, 200);
 }
 
+// Navigate to risk score page pre-filled with address from search result
+function openRiskForAddress(address, city, state) {
+  const addr = address + (city ? ', ' + city : '') + (state ? ' ' + state : '');
+  showPage('risk');
+  setTimeout(() => {
+    const input = document.getElementById('risk-address-input');
+    if (input) { input.value = addr; runRiskScore(); }
+  }, 150);
+}
+
 // Allow adding to watchlist from search results (no navigation — toast feedback only)
 function addSearchResultToWatchlist(address, city, state) {
   const addr = address + (city ? ', ' + city : '') + (state ? ' ' + state : '');
@@ -7948,7 +7961,7 @@ function loadValueAnalytics() {
     const h = 24, w = 50;
     const pts = m.sparkline.map((v,j)=>`${Math.round(j*(w/4))},${Math.round(h - (v/maxSpark)*h)}`).join(' ');
     const sparkSvg = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block"><polyline points="${pts}" fill="none" stroke="${m.yoy>=0?'#22c55e':'#ef4444'}" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
-    return `<tr class="value-market-row">
+    return `<tr class="value-market-row" onclick="drillValueMarket('${esc(m.city)}','${esc(m.state)}')" title="Search permits in ${esc(m.city)}, ${esc(m.state)}">
       <td style="color:var(--text3);font-weight:700">${i+1}</td>
       <td><div style="font-weight:600">${esc(m.city)}</div><div style="font-size:11px;color:var(--text3)">${esc(m.state)}</div></td>
       <td style="text-align:right;font-weight:600">${m.permits.toLocaleString()}</td>
@@ -7986,6 +7999,17 @@ function loadValueAnalytics() {
     </div>`;
   }).join('');
   if (annualLabels) annualLabels.innerHTML = annualData.map(d=>`<span>${d.year}</span>`).join('');
+}
+
+function drillValueMarket(city, state) {
+  showPage('home');
+  setTimeout(() => {
+    const input = document.getElementById('search-input');
+    const stateFilter = document.getElementById('filter-state');
+    if (input) input.value = city + ' ' + state;
+    if (stateFilter) stateFilter.value = state;
+    doSearch();
+  }, 150);
 }
 
 // ─── API PLAYGROUND ───────────────────────────────────────────────────────────
