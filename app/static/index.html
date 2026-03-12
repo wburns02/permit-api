@@ -106,8 +106,8 @@ section .subtitle{color:var(--text2);font-size:16px;margin-bottom:40px}
 
 /* Coverage Map */
 .coverage-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
-.state-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;transition:border-color .2s}
-.state-card:hover{border-color:var(--accent)}
+.state-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:16px;transition:border-color .2s,transform .15s;cursor:pointer}
+.state-card:hover{border-color:var(--accent);transform:translateY(-1px)}
 .state-card .state-name{font-weight:600;font-size:15px;margin-bottom:4px}
 .state-card .state-count{font-size:24px;font-weight:700;color:var(--accent2);font-variant-numeric:tabular-nums}
 .state-card .state-label{font-size:12px;color:var(--text3)}
@@ -901,6 +901,10 @@ results.forEach(p =>
     <div class="container">
       <h2>Coverage</h2>
       <p class="subtitle">Permit data from <span id="cov-states">17+</span> states and <span id="cov-jurisdictions">180+</span> jurisdictions</p>
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap">
+        <input type="text" id="coverage-search" placeholder="Filter by state..." oninput="filterCoverageCards(this.value)" autocomplete="off" style="padding:9px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;transition:border-color .2s;min-width:200px" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+        <span style="font-size:13px;color:var(--text3)">Click any state to search permits</span>
+      </div>
       <div class="coverage-grid" id="coverage-grid">
         <div class="state-card" style="animation:pulse 1.5s ease infinite"><div style="height:14px;background:var(--surface2);border-radius:4px;width:40%;margin-bottom:8px"></div><div style="height:28px;background:var(--surface2);border-radius:4px;width:70%"></div></div>
         <div class="state-card" style="animation:pulse 1.5s ease infinite .1s"><div style="height:14px;background:var(--surface2);border-radius:4px;width:40%;margin-bottom:8px"></div><div style="height:28px;background:var(--surface2);border-radius:4px;width:70%"></div></div>
@@ -925,10 +929,13 @@ results.forEach(p =>
           <div class="price">$0</div>
           <div class="limits">100 lookups / day</div>
           <ul>
-            <li>Address search</li>
-            <li>Filter by type, status, date</li>
-            <li>1 API key</li>
-            <li>Swagger documentation</li>
+            <li>Permit search (7M+ records)</li>
+            <li>Contractor Intelligence + Compare</li>
+            <li>Activity Feed (live demo)</li>
+            <li>Risk Score + Trend Charts</li>
+            <li>Cost Estimator + Requirements</li>
+            <li>Lead Intelligence Board</li>
+            <li>1 API key · Swagger docs</li>
           </ul>
           <a class="btn" href="#" onclick="openSignup();return false">Get Free API Key</a>
         </div>
@@ -939,7 +946,9 @@ results.forEach(p =>
           <ul>
             <li>Everything in Free</li>
             <li>Bulk CSV search (500/req)</li>
-            <li>25 alerts</li>
+            <li>Property Intelligence drill-down</li>
+            <li>25 permit monitoring alerts</li>
+            <li>Saved searches + email digests</li>
             <li>Priority support</li>
           </ul>
           <a class="btn" href="#" onclick="subscribe('starter');return false">Subscribe</a>
@@ -950,9 +959,11 @@ results.forEach(p =>
           <div class="limits">10,000 lookups / day</div>
           <ul>
             <li>Everything in Starter</li>
-            <li>Property Intelligence</li>
-            <li>Market analytics</li>
+            <li>Market Intelligence analytics</li>
+            <li>Live Permit Activity Feed</li>
+            <li>Permit Trend Charts (any market)</li>
             <li>Webhook alerts (100)</li>
+            <li>Full Lead Pipeline CRM</li>
           </ul>
           <a class="btn" href="#" onclick="subscribe('pro');return false">Subscribe</a>
         </div>
@@ -962,9 +973,10 @@ results.forEach(p =>
           <div class="limits">Unlimited lookups</div>
           <ul>
             <li>Everything in Pro</li>
-            <li>Dedicated support</li>
-            <li>Custom data exports</li>
-            <li>SLA guarantee</li>
+            <li>Jurisdiction Requirements API</li>
+            <li>Custom data exports + webhooks</li>
+            <li>Dedicated support + SLA</li>
+            <li>White-label options</li>
           </ul>
           <a class="btn" href="#" onclick="subscribe('enterprise');return false">Contact Sales</a>
         </div>
@@ -1209,9 +1221,9 @@ results.forEach(p =>
             <h4 style="margin-bottom:0">Monthly Detail</h4>
             <div class="subtitle" style="margin-bottom:0">Full permit counts by month</div>
           </div>
-          <span id="trends-table-toggle" style="color:var(--text3);font-size:20px">+</span>
+          <span id="trends-table-toggle" style="color:var(--text3);font-size:20px">−</span>
         </div>
-        <div id="trends-table" style="display:none;margin-top:16px">
+        <div id="trends-table" style="margin-top:16px">
           <table style="width:100%;border-collapse:collapse;font-size:13px">
             <thead><tr style="color:var(--text3);border-bottom:1px solid var(--border)">
               <th style="text-align:left;padding:8px 4px">Month</th>
@@ -2482,19 +2494,63 @@ async function loadCoverage() {
     document.getElementById('cov-jurisdictions').textContent = d.total_jurisdictions.toLocaleString();
 
     const grid = document.getElementById('coverage-grid');
-    grid.innerHTML = Object.entries(d.states)
-      .sort((a, b) => b[1] - a[1])
-      .map(([st, ct]) => `
-        <div class="state-card">
-          <div class="state-name">${esc(st)}</div>
-          <div class="state-count">${ct.toLocaleString()}</div>
-          <div class="state-label">records</div>
-        </div>
-      `).join('');
+    // Store for filter
+    window._coverageStates = Object.entries(d.states).sort((a, b) => b[1] - a[1]);
+    renderCoverageCards(window._coverageStates);
     coverageLoaded = true;
   } catch(e) {
     // Coverage fetch aborted on navigation — silently retry next time
   }
+}
+
+const STATE_FULL_NAMES = {TX:'Texas',CA:'California',FL:'Florida',NY:'New York',AZ:'Arizona',CO:'Colorado',WA:'Washington',GA:'Georgia',NC:'North Carolina',OH:'Ohio',IL:'Illinois',PA:'Pennsylvania',TN:'Tennessee',NV:'Nevada',OR:'Oregon',MN:'Minnesota',VA:'Virginia',NJ:'New Jersey',MA:'Massachusetts',MI:'Michigan'};
+
+function renderCoverageCards(states) {
+  const grid = document.getElementById('coverage-grid');
+  if (!grid) return;
+  grid.innerHTML = states.map(([st, ct]) => `
+    <div class="state-card" data-state="${esc(st)}" onclick="coverageCardClick('${esc(st)}')" style="cursor:pointer" title="Search ${esc(STATE_FULL_NAMES[st]||st)} permits">
+      <div class="state-name">${esc(st)} <span style="font-size:11px;color:var(--text3);font-weight:400">${esc(STATE_FULL_NAMES[st]||'')}</span></div>
+      <div class="state-count">${ct.toLocaleString()}</div>
+      <div class="state-label" style="display:flex;align-items:center;justify-content:space-between">
+        <span>records</span>
+        <span style="font-size:11px;color:var(--accent);font-weight:600">Search →</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function filterCoverageCards(q) {
+  if (!window._coverageStates) return;
+  const lq = q.toLowerCase();
+  const filtered = lq ? window._coverageStates.filter(([st]) =>
+    st.toLowerCase().includes(lq) || (STATE_FULL_NAMES[st]||'').toLowerCase().includes(lq)
+  ) : window._coverageStates;
+  renderCoverageCards(filtered);
+}
+
+function coverageCardClick(state) {
+  document.getElementById('coverage-search').value = '';
+  showPage('home');
+  setTimeout(() => {
+    const stateFilter = document.getElementById('filter-state');
+    if (stateFilter) stateFilter.value = state;
+    const input = document.getElementById('search-input');
+    if (input) { input.value = STATE_FULL_NAMES[state] || state; input.focus(); }
+    if (currentKey) doSearch();
+    else {
+      const area = document.getElementById('results-area');
+      if (area) {
+        area.classList.add('visible');
+        area.innerHTML = `<div style="text-align:center;padding:48px 24px;border:1px solid var(--border);border-radius:var(--radius);background:var(--surface)">
+          <div style="font-size:40px;margin-bottom:12px">📍</div>
+          <h3 style="font-size:20px;font-weight:700;margin-bottom:8px">${esc(STATE_FULL_NAMES[state]||state)} Permits</h3>
+          <p style="color:var(--text2);font-size:15px;margin-bottom:20px;max-width:480px;margin-left:auto;margin-right:auto">Sign up free to search all ${(window._coverageStates||[]).find(s=>s[0]===state)?.[1]?.toLocaleString()||''} permit records in ${esc(STATE_FULL_NAMES[state]||state)}.</p>
+          <button class="btn-full" style="max-width:240px;margin:0 auto" onclick="openSignup()">Get Free API Key →</button>
+        </div>`;
+      }
+    }
+  }, 200);
 }
 
 function signOut() {
@@ -3322,14 +3378,44 @@ async function loadAlerts() {
   const createBtn = document.getElementById('create-alert-btn');
 
   if (!currentKey) {
-    authGate.style.display = '';
+    authGate.style.display = 'none';
     loading.style.display = 'none';
     empty.style.display = 'none';
-    list.innerHTML = '';
     createBtn.style.display = '';
-    createBtn.onclick = () => openAlertForm();
+    createBtn.onclick = () => openSignup();
+    // Show demo alerts with amber banner
+    let demoNote = document.getElementById('alerts-demo-note');
+    if (!demoNote) {
+      demoNote = document.createElement('div');
+      demoNote.id = 'alerts-demo-note';
+      demoNote.style.cssText = 'margin-bottom:16px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px';
+      demoNote.innerHTML = '<span>🔔 Demo alerts — sign up free to create real permit monitoring alerts</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button>';
+      list.parentNode.insertBefore(demoNote, list);
+    }
+    list.innerHTML = [
+      { name: 'Roofing permits — Austin TX', filters: 'TX · roofing · $10K+', lastMatch: '2 hours ago', count: 47, color: '#10b981' },
+      { name: 'New construction — Houston area', filters: 'TX · Houston · new construction', lastMatch: '5 hours ago', count: 12, color: '#6366f1' },
+      { name: 'Solar permits — Travis County', filters: 'TX · Travis County · solar', lastMatch: '1 day ago', count: 83, color: '#f59e0b' },
+    ].map((a, i) => `
+      <div class="alert-card" style="animation:fadeIn .3s ease ${i*.08}s both;cursor:default">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px">
+          <div style="flex:1">
+            <div style="font-size:14px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px">
+              <span style="width:8px;height:8px;border-radius:50%;background:${a.color};flex-shrink:0;display:inline-block"></span>
+              ${esc(a.name)}
+            </div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:8px">Filters: ${esc(a.filters)}</div>
+            <div style="display:flex;gap:16px;font-size:12px;color:var(--text3)">
+              <span>Last match: <strong style="color:var(--text2)">${esc(a.lastMatch)}</strong></span>
+              <span>Total matches: <strong style="color:var(--text2)">${a.count}</strong></span>
+            </div>
+          </div>
+          <button onclick="openSignup()" style="padding:6px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:12px;font-weight:600;color:var(--text2);white-space:nowrap">Sign up to edit</button>
+        </div>
+      </div>`).join('');
     return;
   }
+  document.getElementById('alerts-demo-note')?.remove();
 
   authGate.style.display = 'none';
   createBtn.onclick = () => openAlertForm();
@@ -4138,7 +4224,61 @@ function permitToLead(p) {
 }
 
 async function importLeads() {
-  if (!currentKey) { openSignup(); return; }
+  if (!currentKey) {
+    // In demo mode, show a preview of what they'd get
+    const state = document.getElementById('leads-state').value;
+    const type = document.getElementById('leads-type').value;
+    const minVal = parseInt(document.getElementById('leads-min-val').value) || 0;
+    const btn = document.getElementById('leads-import-btn');
+    btn.disabled = true; btn.textContent = 'Loading preview...';
+    await new Promise(r => setTimeout(r, 600));
+    btn.disabled = false; btn.textContent = 'Fetch Leads';
+    // Generate 5 seeded demo leads for the current filter
+    const seed = (state + type + minVal).split('').reduce((a,c,i)=>(a+c.charCodeAt(0)*(i+1))&0xFFFFFF, 0);
+    const streets = ['Oak St','Main Ave','Park Blvd','Cedar Ln','Elm Dr','River Rd','Hill Dr','Maple Way'];
+    const cities = { TX: ['Austin','Houston','Dallas','San Antonio'], CA: ['Los Angeles','San Diego','Sacramento'], FL: ['Miami','Tampa','Orlando'], '': ['Austin','Denver','Atlanta','Seattle','Phoenix'] };
+    const cityList = cities[state] || cities[''];
+    const previewLeads = Array.from({length:5},(_,i)=>{
+      const s2 = (seed*(i+7)+i*31)&0xFFFFFF;
+      const city = cityList[s2%cityList.length];
+      const types = type ? [type] : ['roofing','electrical','plumbing','addition','solar'];
+      const leadType = types[s2%types.length];
+      const val = Math.max(minVal||5000, 5000 + (s2%195000));
+      const d = new Date(); d.setDate(d.getDate()-(s2%14));
+      return { address:`${100+(s2%9800)} ${streets[s2%streets.length]}`,city,state:state||'TX',permit_type:leadType,valuation:val,issue_date:d.toISOString().split('T')[0] };
+    });
+    // Show preview toast with count
+    showToast(`Preview: ${previewLeads.length} leads found — sign up free to import`, 'success');
+    // Show in a styled overlay
+    const existingPrev = document.getElementById('leads-fetch-preview');
+    if (existingPrev) existingPrev.remove();
+    const prev = document.createElement('div');
+    prev.id = 'leads-fetch-preview';
+    prev.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px';
+    prev.innerHTML = `
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:28px;max-width:520px;width:100%;max-height:80vh;overflow-y:auto">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+          <h3 style="font-size:18px;font-weight:700">Preview: Matching Leads</h3>
+          <button onclick="document.getElementById('leads-fetch-preview').remove()" style="background:none;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:4px">×</button>
+        </div>
+        <div style="margin-bottom:14px;padding:10px 14px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24">
+          🔒 Sign up free to import these leads into your pipeline. No credit card required.
+        </div>
+        ${previewLeads.map(l=>`
+          <div style="padding:12px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;opacity:.85">
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px">${esc(l.address)}, ${esc(l.city)}, ${esc(l.state)}</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--text3)">
+              <span class="badge badge-blue" style="font-size:10px">${esc(l.permit_type)}</span>
+              <span>💰 $${l.valuation.toLocaleString()}</span>
+              <span>📅 ${esc(l.issue_date)}</span>
+            </div>
+          </div>`).join('')}
+        <button onclick="document.getElementById('leads-fetch-preview').remove();openSignup()" class="btn-full" style="margin-top:16px">Get Free Access — Import All Leads →</button>
+      </div>`;
+    document.body.appendChild(prev);
+    prev.addEventListener('click', e => { if (e.target === prev) prev.remove(); });
+    return;
+  }
   const state = document.getElementById('leads-state').value;
   const type = document.getElementById('leads-type').value;
   const minVal = document.getElementById('leads-min-val').value;
@@ -4933,9 +5073,11 @@ function toggleTrendsTable() {
   const tbl = document.getElementById('trends-table');
   const tog = document.getElementById('trends-table-toggle');
   if (!tbl) return;
-  const isOpen = tbl.style.display !== 'none';
-  tbl.style.display = isOpen ? 'none' : '';
-  if (tog) tog.textContent = isOpen ? '+' : '−';
+  const isOpen = tbl.style.display !== 'none' && tbl.style.display !== '';
+  // When style is empty string (default visible), treat as open
+  const open = tbl.style.display !== 'none';
+  tbl.style.display = open ? 'none' : '';
+  if (tog) tog.textContent = open ? '+' : '−';
 }
 
 // ============ ACTIVITY FEED ============
