@@ -2093,7 +2093,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === e.currentTarget) closeSignup();
   });
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeSignup(); closeAlertForm(); closeSavedSearchForm(); document.getElementById('feed-detail-modal')?.classList.remove('visible'); if (document.getElementById('compare-view')?.classList.contains('visible')) exitCompareView(); }
+    if (e.key === 'Escape') { closeSignup(); closeAlertForm(); closeSavedSearchForm(); document.getElementById('feed-detail-modal')?.classList.remove('visible'); document.getElementById('leads-fetch-preview')?.remove(); if (document.getElementById('compare-view')?.classList.contains('visible')) exitCompareView(); }
   });
   // Populate state filter dropdown
   populateStateFilter();
