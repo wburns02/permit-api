@@ -2210,11 +2210,54 @@ results.forEach(p =>
         <button id="signout-btn" onclick="signOut()" style="padding:8px 18px;border-radius:var(--radius-sm);background:none;border:1px solid var(--border);color:var(--text3);font-size:13px;font-weight:600;transition:all .2s;display:none" onmouseover="this.style.borderColor='var(--red)';this.style.color='var(--red)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">Sign Out</button>
       </div>
 
-      <div id="dash-auth-gate" style="text-align:center;padding:60px 20px;display:none">
-        <div style="font-size:48px;margin-bottom:16px;opacity:.3">&#128274;</div>
-        <h3 style="font-size:20px;margin-bottom:8px">Sign in to view your dashboard</h3>
-        <p style="color:var(--text2);font-size:14px;margin-bottom:24px;max-width:400px;margin-left:auto;margin-right:auto">Create a free account to get your API key and start searching building permits.</p>
-        <button class="btn-full" style="max-width:240px;margin:0 auto" onclick="openSignup()">Get Free API Key</button>
+      <div id="dash-auth-gate" style="display:none">
+        <!-- Demo dashboard preview -->
+        <div style="margin-bottom:20px;padding:12px 18px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:var(--radius-sm);font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <span>🔒 Preview mode — create a free account to get your personal API key and live usage stats</span>
+          <button onclick="openSignup()" style="padding:7px 18px;background:rgba(251,191,36,.2);border:1px solid rgba(251,191,36,.4);border-radius:var(--radius-sm);color:#fbbf24;font-size:13px;font-weight:700;white-space:nowrap">Get Free API Key →</button>
+        </div>
+        <div class="dash-grid" style="margin-bottom:20px">
+          <div class="dash-card">
+            <div class="dash-label">Plan</div>
+            <div class="dash-value" style="color:#6366f1">Free</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:4px">100 lookups/day</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-label">Today's Usage</div>
+            <div class="dash-value">47 <span style="font-size:14px;color:var(--text3);font-weight:400">/ 100</span></div>
+            <div class="dash-bar-wrap" style="margin-top:8px"><div class="fill warning" style="width:47%"></div></div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-label">Remaining Today</div>
+            <div class="dash-value" style="color:#22c55e">53</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:4px">lookups left</div>
+          </div>
+          <div class="dash-card">
+            <div class="dash-label">Monthly Total</div>
+            <div class="dash-value">1,284</div>
+            <div style="font-size:12px;color:var(--text3);margin-top:4px">this month</div>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+            <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:14px;text-transform:uppercase;letter-spacing:.05em">Your API Key</div>
+            <div style="font-family:monospace;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:12px;font-size:13px;color:var(--text3);letter-spacing:.05em">pl_live_••••••••••••••••••••••••••</div>
+            <button onclick="openSignup()" style="margin-top:12px;width:100%;padding:8px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer">Create Account to Reveal Key</button>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+            <div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:14px;text-transform:uppercase;letter-spacing:.05em">What You Get</div>
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="font-size:13px;color:var(--text2)">✓ Search 7M+ building permits</div>
+              <div style="font-size:13px;color:var(--text2)">✓ 179 jurisdictions, 17 states</div>
+              <div style="font-size:13px;color:var(--text2)">✓ 100 lookups/day free</div>
+              <div style="font-size:13px;color:var(--text2)">✓ Contractor intelligence</div>
+              <div style="font-size:13px;color:var(--text2)">✓ Property risk scoring</div>
+            </div>
+          </div>
+        </div>
+        <div style="text-align:center;padding:20px">
+          <button onclick="openSignup()" class="btn-primary" style="padding:14px 40px;font-size:16px;font-weight:700">Create Free Account — No Credit Card Required</button>
+        </div>
       </div>
 
       <div id="dash-content" style="display:none">
@@ -2403,6 +2446,7 @@ function showPage(page) {
   if (page === 'properties') updatePropertyPage();
   if (page === 'feed') { if (!feedItems.length) loadFeed(); }
   if (page === 'market') { loadMarketPageDefaults(); }
+  if (page === 'trends') { loadTrendsPageDefaults(); }
   if (page === 'watchlist') { loadWatchlistPage(); }
   if (page === 'contractors') {
     showContractorSearch();
@@ -2555,15 +2599,20 @@ async function doSearch() {
     const area = document.getElementById('results-area');
     if (area) {
       area.classList.add('visible');
-      // Show seeded demo results with CTA banner
+      // Show seeded demo results — update only results-list to preserve export/save/toggle buttons
       const demoPermits = generateDemoPermits(q || 'demo search');
       const demoSlice = demoPermits.slice(0, 5);
-      area.innerHTML = `<div style="margin-bottom:16px;padding:12px 18px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:var(--radius-sm);font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-        <span>🔒 Demo results — <strong>sign up free</strong> to search 7M+ real permit records across 17 states</span>
-        <button onclick="openSignup()" style="padding:7px 18px;background:rgba(251,191,36,.2);border:1px solid rgba(251,191,36,.4);border-radius:var(--radius-sm);color:#fbbf24;font-size:13px;font-weight:700;white-space:nowrap">Get Free API Key →</button>
-      </div>
-      <div id="results-list">${demoSlice.map(p => `<div class="result-card"><div class="address">${esc(p.address)}, ${esc(p.city)} ${esc(p.state)}</div><div class="meta"><span><strong>#</strong> ${esc(p.permit_number)}</span>${p.permit_type?`<span class="badge badge-blue">${esc(p.permit_type)}</span>`:''}<span class="badge ${statusBadge(p.status||'issued')}">${esc(p.status||'Issued')}</span><span>Issued: ${p.issue_date}</span>${p.estimated_value?`<span>$${Number(p.estimated_value).toLocaleString()}</span>`:''}<span>${esc(p.jurisdiction||p.city+' '+p.state)}</span></div>${p.description?`<div style="margin-top:8px;font-size:13px;color:var(--text2)">${esc(p.description)}</div>`:''}<div style="margin-top:8px"><button onclick="addSearchResultToWatchlist('${esc(p.address||'').replace(/'/g,"\\'")}','${esc(p.city||'').replace(/'/g,"\\'")}','${esc(p.state||'')}')" style="padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='#22c55e';this.style.color='#22c55e'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">+ Watchlist</button></div></div>`).join('')}
-      <div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">Sign up free to see all results and access the full database →</div></div>`;
+      const count = document.getElementById('results-count');
+      if (count) count.textContent = `5 demo results`;
+      const list = document.getElementById('results-list');
+      if (list) {
+        list.innerHTML = `<div style="margin-bottom:16px;padding:12px 18px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:var(--radius-sm);font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <span>🔒 Demo results — <strong>sign up free</strong> to search 7M+ real permit records across 17 states</span>
+          <button onclick="openSignup()" style="padding:7px 18px;background:rgba(251,191,36,.2);border:1px solid rgba(251,191,36,.4);border-radius:var(--radius-sm);color:#fbbf24;font-size:13px;font-weight:700;white-space:nowrap">Get Free API Key →</button>
+        </div>
+        ${demoSlice.map(p => `<div class="result-card"><div class="address">${esc(p.address)}, ${esc(p.city)} ${esc(p.state)}</div><div class="meta"><span><strong>#</strong> ${esc(p.permit_number)}</span>${p.permit_type?`<span class="badge badge-blue">${esc(p.permit_type)}</span>`:''}<span class="badge ${statusBadge(p.status||'issued')}">${esc(p.status||'Issued')}</span><span>Issued: ${p.issue_date}</span>${p.estimated_value?`<span>$${Number(p.estimated_value).toLocaleString()}</span>`:''}<span>${esc(p.jurisdiction||p.city+' '+p.state)}</span></div>${p.description?`<div style="margin-top:8px;font-size:13px;color:var(--text2)">${esc(p.description)}</div>`:''}<div style="margin-top:8px"><button onclick="addSearchResultToWatchlist('${esc(p.address||'').replace(/'/g,"\\'")}','${esc(p.city||'').replace(/'/g,"\\'")}','${esc(p.state||'')}')" style="padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='#22c55e';this.style.color='#22c55e'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">+ Watchlist</button></div></div>`).join('')}
+        <div style="text-align:center;padding:24px;color:var(--text3);font-size:13px">Sign up free to see all results and access the full database →</div>`;
+      }
     }
     return;
   }
@@ -2694,6 +2743,7 @@ function renderResults(data) {
       </div>
       ${p.description ? `<div style="margin-top:8px;font-size:13px;color:var(--text2)">${esc(p.description).substring(0,200)}${p.description.length > 200 ? '...' : ''}</div>` : ''}
       ${p.contractor_name || p.contractor_company ? `<div style="margin-top:6px;font-size:13px;color:var(--text3)">Contractor: ${esc(p.contractor_name || '')} ${p.contractor_company ? '(' + esc(p.contractor_company) + ')' : ''}</div>` : ''}
+      <div style="margin-top:8px"><button onclick="addSearchResultToWatchlist('${esc(p.address||'').replace(/'/g,"\\'")}','${esc(p.city||'').replace(/'/g,"\\'")}','${esc(p.state||'')}')" style="padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='#22c55e';this.style.color='#22c55e'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">+ Watchlist</button></div>
     </div>
   `).join('');
 
@@ -4164,6 +4214,23 @@ async function uploadBulkReport(file) {
 }
 
 // ============ MARKET ============
+let _trendsDefaultsLoaded = false;
+function loadTrendsPageDefaults() {
+  if (_trendsDefaultsLoaded) return;
+  _trendsDefaultsLoaded = true;
+  // Pre-fill Austin TX and auto-run demo trends analysis
+  const cityInput = document.getElementById('trends-city');
+  const stateInput = document.getElementById('trends-state');
+  if (cityInput && !cityInput.value) cityInput.value = 'Austin';
+  if (stateInput && !stateInput.value) stateInput.value = 'TX';
+  setTimeout(() => {
+    const resultEl = document.getElementById('trends-result');
+    if (resultEl && resultEl.style.display === 'none' || !resultEl?.innerHTML?.trim()) {
+      runTrendsAnalysis('Austin', 'TX', 12);
+    }
+  }, 400);
+}
+
 let _marketDefaultsLoaded = false;
 function loadMarketPageDefaults() {
   if (_marketDefaultsLoaded) return;
@@ -4911,12 +4978,32 @@ function generateDemoPermits(addr) {
     'Garage conversion to living space'
   ];
   const vals = [4200, 6800, 8500, 12000, 15500, 18000, 22000, 28000, 35000, 42000, 55000, 68000];
+  const streetNames = ['Oak','Maple','Pine','Cedar','Elm','Main','Park','Hill','Lake','River','Forest','Sunset','Highland','Valley','Spring'];
+  const streetSuffix = ['St','Ave','Blvd','Dr','Ln','Way','Ct','Rd'];
+  const cityByState = {TX:['Austin','Houston','Dallas','San Antonio','Fort Worth'],CA:['Los Angeles','San Diego','San Jose','Sacramento','Oakland'],FL:['Miami','Tampa','Orlando','Jacksonville','Ft Lauderdale'],NY:['New York','Buffalo','Rochester','Albany','Syracuse'],AZ:['Phoenix','Tucson','Scottsdale','Mesa','Tempe'],CO:['Denver','Boulder','Colorado Springs','Fort Collins','Aurora'],WA:['Seattle','Tacoma','Bellevue','Spokane','Olympia'],GA:['Atlanta','Savannah','Augusta','Macon','Columbus'],NC:['Charlotte','Raleigh','Durham','Greensboro','Winston-Salem'],OH:['Columbus','Cleveland','Cincinnati','Dayton','Akron']};
+
+  // Parse city/state from query
+  const parts = addr.trim().split(/[\s,]+/);
+  let queryState = '', queryCity = '';
+  const stateAbbrs = Object.keys(cityByState);
+  const lastPart = parts[parts.length - 1].toUpperCase();
+  if (stateAbbrs.includes(lastPart)) {
+    queryState = lastPart;
+    queryCity = parts.slice(0, -1).join(' ') || pick(cityByState[queryState], 5);
+  } else {
+    queryState = pick(stateAbbrs, 3);
+    queryCity = addr.split(',')[0].trim() || pick(cityByState[queryState], 5);
+  }
+  if (!queryCity || queryCity.length < 2) queryCity = pick(cityByState[queryState] || ['Austin'], 5);
+
   const count = 3 + ((seed * 7) & 0xF) % 5;
   const baseYear = 2017 + ((seed * 13) & 0xF) % 7;
   return Array.from({length: count}, (_, i) => {
     const yr = baseYear + Math.floor(i / 2);
     const mo = String(1 + Math.abs((seed * 31 + i * 13) & 0xFF) % 12).padStart(2, '0');
     const day = String(1 + Math.abs((seed * 17 + i * 7) & 0xFF) % 28).padStart(2, '0');
+    const streetNum = 100 + Math.abs((seed * 41 + i * 57) & 0xFFFF) % 9900;
+    const street = streetNum + ' ' + pick(streetNames, i * 3) + ' ' + pick(streetSuffix, i * 5);
     return {
       permit_number: `BP-${yr}-${String(10000 + Math.abs((seed * 17 + i * 113) & 0xFFFF) % 90000).substring(0,5)}`,
       permit_type: pick(types, i * 7),
@@ -4925,6 +5012,10 @@ function generateDemoPermits(addr) {
       issue_date: `${yr}-${mo}-${day}`,
       contractor_name: pick(contractors, i * 11),
       estimated_value: pick(vals, i * 19),
+      address: street,
+      city: queryCity,
+      state: queryState,
+      jurisdiction: queryCity + ' ' + queryState,
     };
   });
 }
