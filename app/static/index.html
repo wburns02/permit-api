@@ -294,8 +294,8 @@ section .subtitle{color:var(--text2);font-size:16px;margin-bottom:40px}
 .modal .close:hover{background:var(--surface2);color:var(--text)}
 .form-group{margin-bottom:16px}
 .form-group label{display:block;font-size:13px;font-weight:600;color:var(--text2);margin-bottom:6px}
-.form-group input{width:100%;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;transition:border-color .2s}
-.form-group input:focus{border-color:var(--accent)}
+.form-group input,.form-group select{width:100%;padding:10px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;transition:border-color .2s;font-family:var(--font)}
+.form-group input:focus,.form-group select:focus{border-color:var(--accent)}
 .btn-full{width:100%;padding:12px;border-radius:var(--radius-sm);font-size:15px;font-weight:600;border:none;background:var(--accent);color:#fff;transition:background .2s}
 .btn-full:hover{background:var(--accent2)}
 .btn-full:disabled{opacity:.5;cursor:not-allowed}
@@ -821,6 +821,18 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
 @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
 
 /* Owner/Developer Intelligence */
+.value-two-col{grid-template-columns:1fr 340px}
+@media(max-width:860px){.value-two-col{grid-template-columns:1fr}}
+.value-stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px 24px}
+.value-stat-val{font-size:26px;font-weight:800;color:var(--text);line-height:1;margin-bottom:6px}
+.value-stat-lbl{font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.value-market-row{border-bottom:1px solid var(--border);transition:background .15s;cursor:default}
+.value-market-row:hover{background:var(--surface2)}
+.value-market-row td{padding:11px 16px;vertical-align:middle}
+.value-type-bar-row{margin-bottom:12px}
+.value-type-bar-label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;color:var(--text2)}
+.value-type-bar-track{height:8px;background:var(--surface2);border-radius:4px;overflow:hidden}
+.value-type-bar-fill{height:100%;border-radius:4px;transition:width .6s ease}
 .owners-search-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:28px}
 .owners-search-row .form-group{display:flex;flex-direction:column;gap:6px;flex:1;min-width:140px}
 .owners-search-row .form-group label{font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.04em}
@@ -898,6 +910,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
           <a href="#watchlist" onclick="showPage('watchlist');closeNavDropdown();return false">Watchlist</a>
           <a href="#coverage" onclick="showPage('coverage');closeNavDropdown();return false">Coverage</a>
           <a href="#owners" onclick="showPage('owners');closeNavDropdown();return false">Owner Intelligence</a>
+          <a href="#value" onclick="showPage('value');closeNavDropdown();return false">Value Analytics</a>
         </div>
       </div>
       <a href="/docs" target="_blank">API Docs</a>
@@ -1115,6 +1128,18 @@ results.forEach(p =>
             <li>Annual activity trends per developer</li>
           </ul>
           <button onclick="showPage('owners')" style="margin-top:16px;padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600">Explore Owners →</button>
+        </div>
+        <div class="feature-card">
+          <div style="font-size:36px;margin-bottom:12px">💰</div>
+          <h3 style="font-size:18px;font-weight:700;margin-bottom:8px">Construction Value Analytics</h3>
+          <p style="color:var(--text2);font-size:14px;line-height:1.6">Track estimated construction investment by market, permit type, and year. Identify where capital is flowing and spot emerging growth markets.</p>
+          <ul>
+            <li>Top markets ranked by total construction value</li>
+            <li>Value breakdown by permit type</li>
+            <li>Year-over-year growth trends (2020–2024)</li>
+            <li>Average permit value by city &amp; state</li>
+          </ul>
+          <button onclick="showPage('value')" style="margin-top:16px;padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600">Explore Value Analytics →</button>
         </div>
       </div>
     </div>
@@ -2552,6 +2577,103 @@ results.forEach(p =>
   </section>
 </div>
 
+<!-- VALUE ANALYTICS PAGE -->
+<div class="page" id="page-value">
+  <section class="container" style="padding:40px 0 80px">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-bottom:8px">
+      <div>
+        <div style="display:inline-block;padding:6px 16px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);border-radius:20px;font-size:12px;font-weight:600;color:#22c55e;margin-bottom:14px;letter-spacing:.04em">CONSTRUCTION VALUE ANALYTICS</div>
+        <h2 style="font-size:32px;font-weight:800;margin-bottom:8px">Where Capital Is Flowing</h2>
+        <p style="color:var(--text2);font-size:15px;max-width:600px">Track estimated construction investment by market, permit type, and year. Spot growth trends before the competition.</p>
+      </div>
+      <div id="value-demo-badge" style="padding:8px 16px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:var(--radius-sm);font-size:12px;color:#fbbf24;font-weight:600;white-space:nowrap;align-self:flex-start">Demo Data — <a href="#" onclick="openSignup();return false" style="color:#fbbf24">Sign up free</a> for live data</div>
+    </div>
+
+    <!-- Filter controls -->
+    <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:24px;margin-bottom:28px;align-items:flex-end">
+      <div class="form-group" style="max-width:160px">
+        <label>State</label>
+        <select id="value-state" onchange="loadValueAnalytics()">
+          <option value="">All States</option>
+          <option value="TX">TX — Texas</option>
+          <option value="CA">CA — California</option>
+          <option value="FL">FL — Florida</option>
+          <option value="AZ">AZ — Arizona</option>
+          <option value="CO">CO — Colorado</option>
+          <option value="GA">GA — Georgia</option>
+          <option value="NC">NC — North Carolina</option>
+          <option value="WA">WA — Washington</option>
+          <option value="NY">NY — New York</option>
+          <option value="IL">IL — Illinois</option>
+        </select>
+      </div>
+      <div class="form-group" style="max-width:150px">
+        <label>Year</label>
+        <select id="value-year" onchange="loadValueAnalytics()">
+          <option value="2024">2024</option>
+          <option value="2023">2023</option>
+          <option value="2022">2022</option>
+          <option value="2021">2021</option>
+          <option value="2020">2020</option>
+        </select>
+      </div>
+      <div class="form-group" style="max-width:180px">
+        <label>Permit Type</label>
+        <select id="value-permit-type" onchange="loadValueAnalytics()">
+          <option value="">All Types</option>
+          <option value="residential">Residential</option>
+          <option value="commercial">Commercial</option>
+          <option value="building">Building</option>
+          <option value="electrical">Electrical</option>
+          <option value="mechanical">Mechanical</option>
+          <option value="plumbing">Plumbing</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Stats bar -->
+    <div id="value-stats-bar" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:32px"></div>
+
+    <!-- Two-column layout: markets table + type breakdown -->
+    <div style="display:grid;grid-template-columns:1fr 340px;gap:24px;margin-bottom:32px" class="value-two-col">
+      <!-- Top markets table -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+        <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+          <h3 style="font-size:15px;font-weight:700;margin:0">Top Markets by Construction Value</h3>
+          <span style="font-size:11px;color:var(--text3);font-weight:600">SORTED BY TOTAL VALUE</span>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:13px">
+            <thead>
+              <tr style="border-bottom:1px solid var(--border)">
+                <th style="padding:10px 16px;text-align:left;color:var(--text3);font-weight:600;font-size:11px;white-space:nowrap">#</th>
+                <th style="padding:10px 16px;text-align:left;color:var(--text3);font-weight:600;font-size:11px">MARKET</th>
+                <th style="padding:10px 16px;text-align:right;color:var(--text3);font-weight:600;font-size:11px;white-space:nowrap">PERMITS</th>
+                <th style="padding:10px 16px;text-align:right;color:var(--text3);font-weight:600;font-size:11px;white-space:nowrap">TOTAL VALUE</th>
+                <th style="padding:10px 16px;text-align:right;color:var(--text3);font-weight:600;font-size:11px;white-space:nowrap">AVG VALUE</th>
+                <th style="padding:10px 16px;text-align:right;color:var(--text3);font-weight:600;font-size:11px">YoY</th>
+                <th style="padding:10px 16px;text-align:center;color:var(--text3);font-weight:600;font-size:11px">TREND</th>
+              </tr>
+            </thead>
+            <tbody id="value-markets-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Value by permit type -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+        <h3 style="font-size:15px;font-weight:700;margin:0 0 16px">Value by Permit Type</h3>
+        <div id="value-type-bars"></div>
+        <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border)">
+          <h3 style="font-size:15px;font-weight:700;margin:0 0 14px">Annual Trend</h3>
+          <div id="value-annual-chart" style="display:flex;align-items:flex-end;gap:4px;height:80px"></div>
+          <div id="value-annual-labels" style="display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:var(--text3)"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
 <!-- DASHBOARD PAGE -->
 <div class="page" id="page-dashboard">
   <section>
@@ -2806,7 +2928,7 @@ function showPage(page) {
   // Update active nav link
   document.querySelectorAll('nav .links a, .nav-dropdown-menu a').forEach(a => a.classList.remove('active'));
   document.getElementById('nav-tools-btn')?.classList.remove('has-active');
-  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements', reports: '#reports', watchlist: '#watchlist', playground: '#playground', owners: '#owners' };
+  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements', reports: '#reports', watchlist: '#watchlist', playground: '#playground', owners: '#owners', value: '#value' };
   const activeHash = hashMap[page] || '#search';
   const activeLink = document.querySelector(`a[href="${activeHash}"]`);
   if (activeLink) {
@@ -2832,6 +2954,7 @@ function showPage(page) {
   if (page === 'watchlist') { loadWatchlistPage(); }
   if (page === 'playground') { initPlayground(); }
   if (page === 'owners') { initOwnersPage(); }
+  if (page === 'value') { initValueAnalytics(); }
   if (page === 'contractors') {
     showContractorSearch();
     const results = document.getElementById('contractor-results');
@@ -2857,7 +2980,7 @@ function showPage(page) {
 // Hash routing
 function routeFromHash() {
   const h = location.hash.replace('#','') || 'home';
-  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', risk: 'risk', trends: 'trends', properties: 'properties', market: 'market', feed: 'feed', estimator: 'estimator', requirements: 'requirements', reports: 'reports', watchlist: 'watchlist', playground: 'playground', owners: 'owners' };
+  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', risk: 'risk', trends: 'trends', properties: 'properties', market: 'market', feed: 'feed', estimator: 'estimator', requirements: 'requirements', reports: 'reports', watchlist: 'watchlist', playground: 'playground', owners: 'owners', value: 'value' };
   showPage(map[h] || 'home');
 }
 window.addEventListener('hashchange', routeFromHash);
@@ -7707,6 +7830,161 @@ function addSearchResultToWatchlist(address, city, state) {
   watchlistData.unshift(entry);
   if (currentKey) saveWatchlistToStorage();
   showToast(`${address} added to watchlist`, 'success');
+}
+
+// ─── VALUE ANALYTICS ──────────────────────────────────────────────────────────
+const VALUE_MARKETS = [
+  {city:'Austin',state:'TX'},{city:'Houston',state:'TX'},{city:'Dallas',state:'TX'},
+  {city:'San Antonio',state:'TX'},{city:'Fort Worth',state:'TX'},
+  {city:'Los Angeles',state:'CA'},{city:'San Diego',state:'CA'},{city:'San Jose',state:'CA'},
+  {city:'Phoenix',state:'AZ'},{city:'Tucson',state:'AZ'},
+  {city:'Denver',state:'CO'},{city:'Colorado Springs',state:'CO'},
+  {city:'Atlanta',state:'GA'},{city:'Savannah',state:'GA'},
+  {city:'Charlotte',state:'NC'},{city:'Raleigh',state:'NC'},
+  {city:'Seattle',state:'WA'},{city:'Spokane',state:'WA'},
+  {city:'Miami',state:'FL'},{city:'Tampa',state:'FL'},
+  {city:'Chicago',state:'IL'},{city:'New York',state:'NY'},
+];
+const VALUE_TYPE_CONFIG = [
+  {type:'Residential Building',color:'#3b82f6',base:0.42},
+  {type:'Commercial Building',color:'#8b5cf6',base:0.22},
+  {type:'Electrical',color:'#f59e0b',base:0.12},
+  {type:'Mechanical/HVAC',color:'#10b981',base:0.09},
+  {type:'Plumbing',color:'#ef4444',base:0.07},
+  {type:'Demolition/Other',color:'#6b7280',base:0.08},
+];
+
+function rngV(seed) { const x = Math.sin(seed * 9301 + 49297) * 233280; return x - Math.floor(x); }
+function fmtVal(v) {
+  if (v >= 1e9) return '$' + (v/1e9).toFixed(2) + 'B';
+  if (v >= 1e6) return '$' + (v/1e6).toFixed(1) + 'M';
+  return '$' + Math.round(v/1000) + 'K';
+}
+
+function generateValueMarkets(state, year, permitType) {
+  year = parseInt(year) || 2024;
+  const yrOffset = (year - 2024) * 0.07; // each earlier year ~7% less
+  return VALUE_MARKETS
+    .filter(m => !state || m.state === state)
+    .map((m, i) => {
+      const seed = m.city.split('').reduce((a,c,j)=>a+c.charCodeAt(0)*(j+1),0) + m.state.charCodeAt(0)*17;
+      const base = 800 + rngV(seed) * 5200;
+      const permits = Math.round(base * (1 + yrOffset));
+      const avgV = Math.round((95000 + rngV(seed+1)*310000) * (1 + yrOffset));
+      const total = permits * avgV;
+      const yoy = -8 + rngV(seed+2) * 30;
+      const sparkline = Array.from({length:5}, (_,k) => {
+        const ySeed = seed + k * 31 + year;
+        return Math.round(total * (0.65 + rngV(ySeed) * 0.7));
+      });
+      return { ...m, permits, avgVal: avgV, total, yoy, sparkline };
+    })
+    .sort((a,b) => b.total - a.total)
+    .slice(0, 20);
+}
+
+function generateValueByType(state, year) {
+  year = parseInt(year) || 2024;
+  const stateSeed = (state||'ALL').split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+  const yearSeed = year * 7;
+  const totalBase = 2.8e9 + rngV(stateSeed + yearSeed) * 4e9;
+  return VALUE_TYPE_CONFIG.map((tc, i) => {
+    const share = tc.base * (0.8 + rngV(stateSeed + i * 37 + yearSeed) * 0.4);
+    return { ...tc, value: Math.round(totalBase * share) };
+  }).sort((a,b) => b.value - a.value);
+}
+
+function generateAnnualTrend(state) {
+  const stateSeed = (state||'ALL').split('').reduce((a,c)=>a+c.charCodeAt(0),0);
+  return [2020,2021,2022,2023,2024].map((yr,i) => {
+    const base = 3.2e9 + rngV(stateSeed + yr) * 3e9;
+    const growth = 1 + i * 0.08 + rngV(stateSeed + yr + 99) * 0.12;
+    return { year: yr, value: Math.round(base * growth) };
+  });
+}
+
+let _valueInitialized = false;
+function initValueAnalytics() {
+  if (!_valueInitialized) {
+    _valueInitialized = true;
+    loadValueAnalytics();
+  }
+}
+
+function loadValueAnalytics() {
+  const state = document.getElementById('value-state')?.value || '';
+  const year = document.getElementById('value-year')?.value || '2024';
+  const permitType = document.getElementById('value-permit-type')?.value || '';
+
+  const markets = generateValueMarkets(state, year, permitType);
+  const typeData = generateValueByType(state, year);
+  const annualData = generateAnnualTrend(state);
+
+  // Stats bar
+  const totalValue = markets.reduce((s,m)=>s+m.total,0);
+  const totalPermits = markets.reduce((s,m)=>s+m.permits,0);
+  const avgPerPermit = totalPermits ? Math.round(totalValue/totalPermits) : 0;
+  const avgYoY = markets.length ? markets.reduce((s,m)=>s+m.yoy,0)/markets.length : 0;
+  const topMarket = markets[0] ? markets[0].city + ', ' + markets[0].state : '—';
+  const statsBar = document.getElementById('value-stats-bar');
+  if (statsBar) statsBar.innerHTML = [
+    {val: fmtVal(totalValue), lbl: 'Total Construction Value', color:'#3b82f6'},
+    {val: fmtVal(avgPerPermit), lbl: 'Avg Value Per Permit', color:'#8b5cf6'},
+    {val: totalPermits.toLocaleString(), lbl: 'Total Permits', color:'#10b981'},
+    {val: (avgYoY>=0?'+':'')+avgYoY.toFixed(1)+'%', lbl: 'Avg YoY Growth', color: avgYoY>=0?'#22c55e':'#ef4444'},
+  ].map(s=>`<div class="value-stat-card">
+    <div class="value-stat-val" style="color:${s.color}">${esc(s.val)}</div>
+    <div class="value-stat-lbl">${esc(s.lbl)}</div>
+  </div>`).join('');
+
+  // Markets table
+  const tbody = document.getElementById('value-markets-tbody');
+  if (tbody) tbody.innerHTML = markets.map((m,i) => {
+    const yoyColor = m.yoy >= 0 ? '#22c55e' : '#ef4444';
+    const yoySign = m.yoy >= 0 ? '+' : '';
+    // Mini sparkline SVG
+    const maxSpark = Math.max(...m.sparkline);
+    const h = 24, w = 50;
+    const pts = m.sparkline.map((v,j)=>`${Math.round(j*(w/4))},${Math.round(h - (v/maxSpark)*h)}`).join(' ');
+    const sparkSvg = `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" style="display:block"><polyline points="${pts}" fill="none" stroke="${m.yoy>=0?'#22c55e':'#ef4444'}" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+    return `<tr class="value-market-row">
+      <td style="color:var(--text3);font-weight:700">${i+1}</td>
+      <td><div style="font-weight:600">${esc(m.city)}</div><div style="font-size:11px;color:var(--text3)">${esc(m.state)}</div></td>
+      <td style="text-align:right;font-weight:600">${m.permits.toLocaleString()}</td>
+      <td style="text-align:right;font-weight:700;color:var(--text)">${fmtVal(m.total)}</td>
+      <td style="text-align:right;color:var(--text2)">${fmtVal(m.avgVal)}</td>
+      <td style="text-align:right;font-weight:700;color:${yoyColor}">${yoySign}${m.yoy.toFixed(1)}%</td>
+      <td style="text-align:center">${sparkSvg}</td>
+    </tr>`;
+  }).join('');
+
+  // Type bars
+  const maxTypeVal = typeData[0]?.value || 1;
+  const typeBars = document.getElementById('value-type-bars');
+  if (typeBars) typeBars.innerHTML = typeData.map(t => `
+    <div class="value-type-bar-row">
+      <div class="value-type-bar-label">
+        <span>${esc(t.type)}</span>
+        <span style="font-weight:700;color:var(--text)">${fmtVal(t.value)}</span>
+      </div>
+      <div class="value-type-bar-track">
+        <div class="value-type-bar-fill" style="width:${Math.round(t.value/maxTypeVal*100)}%;background:${t.color}"></div>
+      </div>
+    </div>`).join('');
+
+  // Annual trend bars
+  const maxAnnual = Math.max(...annualData.map(d=>d.value));
+  const annualChart = document.getElementById('value-annual-chart');
+  const annualLabels = document.getElementById('value-annual-labels');
+  if (annualChart) annualChart.innerHTML = annualData.map((d,i) => {
+    const pct = Math.round(d.value/maxAnnual*100);
+    const isLast = i === annualData.length - 1;
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px">
+      <div style="font-size:9px;color:var(--text3);font-weight:600">${fmtVal(d.value)}</div>
+      <div style="width:100%;height:${pct}%;background:${isLast?'#3b82f6':'var(--border2,#334155)'};border-radius:3px 3px 0 0;transition:height .4s ease;min-height:4px"></div>
+    </div>`;
+  }).join('');
+  if (annualLabels) annualLabels.innerHTML = annualData.map(d=>`<span>${d.year}</span>`).join('');
 }
 
 // ─── API PLAYGROUND ───────────────────────────────────────────────────────────
