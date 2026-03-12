@@ -1081,7 +1081,7 @@ results.forEach(p =>
             <input type="text" id="contractor-input" placeholder="Search contractors... e.g. Johnson Electric" autocomplete="off">
             <button onclick="doContractorSearch()" id="contractor-search-btn">Search</button>
           </div>
-          <div id="contractor-sort-row" style="display:none;margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div id="contractor-sort-row" style="display:none;margin-top:12px;align-items:center;gap:10px;flex-wrap:wrap">
             <span style="font-size:13px;color:var(--text3)">Sort by:</span>
             <select id="contractor-sort" onchange="sortContractorResults()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text1);padding:6px 12px;border-radius:var(--radius-sm);font-size:13px">
               <option value="permits">Most Permits</option>
@@ -2035,7 +2035,7 @@ results.forEach(p =>
       <p style="color:var(--text2);font-size:16px;margin:0 auto 28px;max-width:520px">Monitor permit activity at your key properties. Get instant visibility into renovations, new construction, and risk signals across your entire portfolio.</p>
     </div>
 
-    <div id="wl-demo-note" style="display:none;margin-bottom:20px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px">
+    <div id="wl-demo-note" style="display:none;margin-bottom:20px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;align-items:center;justify-content:space-between;gap:12px">
       <span>🏠 Demo portfolio — sign up free to track real permit activity at any property</span>
       <button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button>
     </div>
@@ -7013,7 +7013,7 @@ function loadWatchlistPage() {
   if (!currentKey && !watchlistData.length) {
     // Demo mode: show demo portfolio
     watchlistData = DEMO_WATCHLIST;
-    document.getElementById('wl-demo-note').style.display = '';
+    document.getElementById('wl-demo-note').style.display = 'flex';
   }
   renderWatchlist();
 }
@@ -7066,7 +7066,7 @@ async function addToWatchlist() {
     // Remove demo data and add real entry
     if (watchlistData === DEMO_WATCHLIST || watchlistData[0]?.id?.startsWith('wl_demo')) {
       watchlistData = [];
-      document.getElementById('wl-demo-note').style.display = '';
+      document.getElementById('wl-demo-note').style.display = 'flex';
     }
   }
 
@@ -7097,7 +7097,7 @@ function renderWatchlist() {
     return;
   }
   empty.style.display = 'none';
-  summaryBar.style.display = '';
+  summaryBar.style.display = 'grid';
 
   // Update summary bar
   const totalPermits = watchlistData.reduce((s,w) => s + (w.permits||0), 0);
