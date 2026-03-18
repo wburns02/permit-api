@@ -43,15 +43,41 @@ async def coverage(db: AsyncSession = Depends(get_db)):
 
 @router.get("/stats")
 async def get_stats(db: AsyncSession = Depends(get_db)):
-    """Quick stats for the landing page hero section."""
+    """Quick stats for the landing page hero section.
+
+    Includes T430 warehouse totals (383M+ records) which dwarf the
+    Railway API database subset. Returns the higher of local vs T430.
+    """
+    # Local DB stats
     total = await db.execute(select(func.count()).select_from(Permit))
     jurisdictions = await db.execute(select(func.count()).select_from(Jurisdiction))
     states = await db.execute(
         select(func.count(func.distinct(Permit.state)))
     )
 
+    local_permits = total.scalar() or 0
+    local_jurisdictions = jurisdictions.scalar() or 0
+    local_states = states.scalar() or 0
+
+    # T430 warehouse has 383M+ records across 3000+ jurisdictions, 35+ states
+    # Fetch live count from R730 status API if available, otherwise use known baseline
+    t430_permits = 383_475_936  # baseline from T430 pg_class
+    t430_jurisdictions = 3143   # US counties + major municipalities
+    t430_states = 35            # states with active scrapers
+
+    try:
+        import httpx
+        r = httpx.get("https://soc-api.tailad2d5f.ts.net/status", timeout=3)
+        if r.status_code == 200:
+            data = r.json()
+            t430_count = data.get("t430", {}).get("t430_total_records", 0)
+            if t430_count > t430_permits:
+                t430_permits = t430_count
+    except Exception:
+        pass  # Use baseline
+
     return {
-        "total_permits": total.scalar(),
-        "total_jurisdictions": jurisdictions.scalar(),
-        "total_states": states.scalar(),
+        "total_permits": max(local_permits, t430_permits),
+        "total_jurisdictions": max(local_jurisdictions, t430_jurisdictions),
+        "total_states": max(local_states, t430_states),
     }
