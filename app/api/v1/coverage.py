@@ -61,7 +61,7 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
 
     # T430 warehouse has 383M+ records across 3000+ jurisdictions, 35+ states
     # Fetch live count from R730 status API if available, otherwise use known baseline
-    t430_permits = 383_475_936  # baseline from T430 pg_class
+    t430_permits = 743_705_373  # exact count from T430
     t430_jurisdictions = 3143   # US counties + major municipalities
     t430_states = 35            # states with active scrapers
 
