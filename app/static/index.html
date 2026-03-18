@@ -10768,12 +10768,14 @@ async function loadAdmin() {
   if (!currentKey) { showPage('home'); openSignup(); return; }
   const hdrs = { 'X-API-Key': currentKey };
 
-  // Fetch dashboard + scrapers + coverage + schedules in parallel
-  const [dashRes, scrapersRes, coverageRes, schedulesRes] = await Promise.allSettled([
+  // Fetch dashboard + scrapers + coverage + schedules + R730 live status in parallel
+  const R730_STATUS = 'https://soc-api.tailad2d5f.ts.net/status';
+  const [dashRes, scrapersRes, coverageRes, schedulesRes, r730Res] = await Promise.allSettled([
     fetch(API + '/v1/admin/dashboard', { headers: hdrs }),
     fetch(API + '/v1/admin/scrapers', { headers: hdrs }),
     fetch(API + '/v1/admin/coverage', { headers: hdrs }),
     fetch(API + '/v1/admin/schedules', { headers: hdrs }),
+    fetch(R730_STATUS).catch(() => null),
   ]);
 
   // Handle auth errors
@@ -10814,6 +10816,87 @@ async function loadAdmin() {
   if (schedulesRes.status === 'fulfilled' && schedulesRes.value.ok) {
     adminSchedulesData = await schedulesRes.value.json();
     renderAdminSchedules(adminSchedulesData);
+  }
+
+  // R730 Live Status (direct from scraper server)
+  if (r730Res.status === 'fulfilled' && r730Res.value && r730Res.value.ok) {
+    const r730 = await r730Res.value.json();
+    window._r730Live = r730;
+
+    // Override scraper list with LIVE data from R730
+    if (r730.scrapers && r730.scrapers.length) {
+      adminScrapers = r730.scrapers.map(s => ({
+        filename: s.filename,
+        category: s.filename.includes('socrata') ? 'permit' : s.filename.includes('b2b') ? 'b2b' : 'parcel',
+        target_state: (s.filename.match(/scrape_([a-z]{2})_/) || [])[1]?.toUpperCase() || null,
+        last_run_time: s.last_run,
+        success: s.success,
+        records_count: s.records || 0,
+        file_size: s.file_size || 0,
+        log_lines: s.log_lines || 0,
+      }));
+      populateAdminStateFilter();
+      renderAdminScraperTable(adminScrapers);
+      document.getElementById('admin-scraper-count').textContent = `(${adminScrapers.length} live from R730)`;
+    }
+
+    // Show running scrapers as a live banner
+    if (r730.running && r730.running.length > 0) {
+      const alertArea = document.getElementById('admin-alerts');
+      if (alertArea) {
+        const runningHtml = r730.running.map(r =>
+          `<span style="display:inline-flex;align-items:center;gap:6px;background:rgba(59,130,246,.15);border:1px solid rgba(59,130,246,.3);border-radius:8px;padding:4px 10px;font-size:12px;color:#60a5fa">
+            <span style="width:8px;height:8px;border-radius:50%;background:#3b82f6;animation:pulse 1.5s infinite"></span>
+            PID ${esc(r.pid)}: ${esc(r.command.split('/').pop())}
+          </span>`
+        ).join(' ');
+        alertArea.insertAdjacentHTML('afterbegin',
+          `<div style="background:rgba(59,130,246,.08);border:1px solid rgba(59,130,246,.2);border-radius:12px;padding:14px 18px;margin-bottom:12px">
+            <div style="font-weight:700;color:#60a5fa;margin-bottom:8px;font-size:14px">🔄 ${r730.running.length} Scrapers Running on R730</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px">${runningHtml}</div>
+          </div>`
+        );
+      }
+    }
+
+    // Show schedule from R730 cron
+    if (r730.schedule && r730.schedule.length > 0) {
+      const schedEl = document.getElementById('admin-schedules');
+      if (schedEl) {
+        const rows = r730.schedule.map(s =>
+          `<tr>
+            <td style="padding:8px 12px;color:var(--text2);font-size:13px"><code style="background:var(--surface2);padding:2px 6px;border-radius:4px;font-size:11px">${esc(s.cron)}</code></td>
+            <td style="padding:8px 12px;color:var(--text1);font-weight:600;font-size:13px">${esc(s.scraper)}</td>
+            <td style="padding:8px 12px;color:#22c55e;font-size:12px">✓ Active</td>
+          </tr>`
+        ).join('');
+        schedEl.innerHTML = `
+          <div style="font-weight:700;color:var(--text1);margin-bottom:12px;font-size:16px">📅 Daily Schedule (R730 Cron) — ${r730.schedule.length} jobs</div>
+          <div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">
+            <thead><tr style="border-bottom:1px solid var(--border)">
+              <th style="padding:8px 12px;text-align:left;color:var(--text3);font-size:11px;text-transform:uppercase">Cron</th>
+              <th style="padding:8px 12px;text-align:left;color:var(--text3);font-size:11px;text-transform:uppercase">Scraper</th>
+              <th style="padding:8px 12px;text-align:left;color:var(--text3);font-size:11px;text-transform:uppercase">Status</th>
+            </tr></thead>
+            <tbody>${rows}</tbody>
+          </table></div>`;
+      }
+    }
+
+    // Show R730 system info
+    if (r730.system) {
+      const sys = r730.system;
+      const healthBar = document.getElementById('admin-health-bar');
+      if (healthBar) {
+        healthBar.insertAdjacentHTML('beforeend', `
+          <div class="admin-health-card" style="border-color:rgba(59,130,246,.3)">
+            <div class="ahc-label" style="color:#60a5fa">R730 Server</div>
+            <div class="ahc-value" style="font-size:14px;color:#60a5fa">${sys.cores} cores · ${sys.gpu.split(',')[0]}</div>
+            <div class="ahc-sub">Load: ${sys.load_avg.map(l => l.toFixed(1)).join(', ')} · ${sys.uptime}</div>
+          </div>
+        `);
+      }
+    }
   }
 }
 
