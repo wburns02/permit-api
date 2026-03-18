@@ -3661,6 +3661,11 @@ results.forEach(p =>
             <option value="import">Import</option>
             <option value="utility">Utility</option>
           </select>
+          <select id="admin-filter-source" onchange="filterAdminScrapers()">
+            <option value="">All Sources</option>
+            <option value="active">Active (86)</option>
+            <option value="generated">Generated (226)</option>
+          </select>
           <select id="admin-filter-state" onchange="filterAdminScrapers()">
             <option value="">All States</option>
           </select>
@@ -10852,7 +10857,8 @@ async function loadAdmin() {
     if (r730.scrapers && r730.scrapers.length) {
       adminScrapers = r730.scrapers.map(s => ({
         filename: s.filename,
-        category: s.filename.includes('socrata') ? 'permit' : s.filename.includes('b2b') ? 'b2b' : 'parcel',
+        category: s.filename.includes('socrata') ? 'permit' : s.filename.includes('b2b') ? 'b2b' : s.filename.includes('arcgis') ? 'arcgis' : s.filename.includes('_scraper') ? 'specialty' : 'parcel',
+        source: s.source || 'active',
         target_state: (s.filename.match(/scrape_([a-z]{2})_/) || [])[1]?.toUpperCase() || null,
         last_run_time: s.last_run,
         success: s.success,
@@ -10862,7 +10868,11 @@ async function loadAdmin() {
       }));
       populateAdminStateFilter();
       renderAdminScraperTable(adminScrapers);
-      document.getElementById('admin-scraper-count').textContent = `(${adminScrapers.length} live from R730)`;
+      // Summary by source
+      const bySrc = {};
+      adminScrapers.forEach(s => { bySrc[s.source] = (bySrc[s.source]||0) + 1; });
+      const srcText = Object.entries(bySrc).map(([k,v]) => `${v} ${k}`).join(' · ');
+      document.getElementById('admin-scraper-count').textContent = `(${adminScrapers.length} total: ${srcText})`;
     }
 
     // Show running scrapers as a live banner
@@ -11147,7 +11157,7 @@ function renderAdminScraperTable(scrapers) {
 
     return `<tr style="background:${rowBg}" data-cat="${s.category}" data-state="${s.target_state||''}" data-status="${statusLabel.toLowerCase()}" data-name="${s.filename.toLowerCase()}">
       <td class="at-name" title="${esc(s.filename)}">${esc(s.filename.replace('.py',''))}</td>
-      <td><span class="admin-cat-badge admin-cat-${s.category}">${esc(s.category)}</span></td>
+      <td><span class="admin-cat-badge admin-cat-${s.category}">${esc(s.category)}</span>${s.source && s.source !== 'active' ? `<span style="font-size:9px;padding:1px 5px;border-radius:4px;margin-left:4px;background:${s.source==='generated'?'rgba(139,92,246,.15);color:#a78bfa':'rgba(6,182,212,.15);color:#22d3ee'}">${s.source}</span>` : ''}</td>
       <td style="font-weight:600;color:var(--text2)">${s.target_state || '—'}</td>
       <td style="color:var(--text3);font-size:12px" title="${s.last_run_time||''}">${ago}</td>
       <td><span class="admin-status-dot ${statusDot}"></span>${statusLabel}</td>
@@ -11179,8 +11189,10 @@ function filterAdminScrapers() {
   const WEEK = 7 * DAY;
 
   const filtered = adminScrapers.filter(s => {
+    const sourceFilter = document.getElementById('admin-filter-source')?.value || '';
     if (cat && s.category !== cat) return false;
     if (state && s.target_state !== state) return false;
+    if (sourceFilter && s.source !== sourceFilter) return false;
     if (search && !s.filename.toLowerCase().includes(search)) return false;
 
     if (status) {
