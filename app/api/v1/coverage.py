@@ -63,7 +63,7 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
     # Fetch live count from R730 status API if available, otherwise use known baseline
     t430_permits = 743_705_373  # exact count from T430
     t430_jurisdictions = 3143   # US counties + major municipalities
-    t430_states = 35            # states with active scrapers
+    t430_states = 54            # 50 US states + DC + 3 Canadian provinces
 
     try:
         import httpx
