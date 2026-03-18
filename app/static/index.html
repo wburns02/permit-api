@@ -10918,6 +10918,30 @@ async function loadAdmin() {
         `);
       }
     }
+
+    // Show T430 total records (the REAL number)
+    if (r730.t430 && r730.t430.t430_total_records > 0) {
+      const totalEl = document.querySelector('.ahc-value'); // First health card value
+      // Find the "Total Records" card and override it
+      const allCards = document.querySelectorAll('.admin-health-card');
+      allCards.forEach(card => {
+        if (card.textContent.includes('Total Records') || card.textContent.includes('Records')) {
+          const valEl = card.querySelector('.ahc-value');
+          if (valEl) valEl.textContent = r730.t430.t430_total_records.toLocaleString();
+        }
+      });
+      // Also add a T430 card
+      const healthBar = document.getElementById('admin-health-bar');
+      if (healthBar) {
+        healthBar.insertAdjacentHTML('beforeend', `
+          <div class="admin-health-card" style="border-color:rgba(16,185,129,.3)">
+            <div class="ahc-label" style="color:#10b981">T430 Database</div>
+            <div class="ahc-value" style="font-size:20px;color:#10b981;font-weight:800">${r730.t430.t430_total_records.toLocaleString()}</div>
+            <div class="ahc-sub">Total permit records across all states</div>
+          </div>
+        `);
+      }
+    }
   }
 }
 
