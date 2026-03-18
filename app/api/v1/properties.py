@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
-from app.models.api_key import ApiUser, PlanTier, UsageLog
+from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
 from app.models.permit import Permit
 from app.services.search_service import normalize_address, PERMIT_COLUMNS, row_to_dict
 from app.services.risk_service import compute_risk_signals
@@ -18,9 +18,13 @@ router = APIRouter(prefix="/properties", tags=["Properties"])
 
 BULK_LIMITS = {
     PlanTier.FREE: 0,
+    PlanTier.EXPLORER: 100,
+    PlanTier.PRO_LEADS: 1000,
+    PlanTier.REALTIME: 5000,
+    PlanTier.ENTERPRISE: 10000,
+    # Legacy aliases
     PlanTier.STARTER: 100,
     PlanTier.PRO: 1000,
-    PlanTier.ENTERPRISE: 10000,
 }
 
 
@@ -82,10 +86,10 @@ async def bulk_property_report(
     db: AsyncSession = Depends(get_db),
 ):
     """Upload CSV of addresses, get per-property permit history and risk signals."""
-    plan = user.plan or PlanTier.FREE
+    plan = resolve_plan(user.plan)
     limit = BULK_LIMITS.get(plan, 0)
     if limit == 0:
-        raise HTTPException(status_code=403, detail="Bulk reports require a Starter plan or higher.")
+        raise HTTPException(status_code=403, detail="Bulk reports require an Explorer plan or higher.")
 
     content = await file.read()
     try:
@@ -139,10 +143,10 @@ async def portfolio_analysis(
     db: AsyncSession = Depends(get_db),
 ):
     """Aggregate risk analysis across a portfolio of properties."""
-    plan = user.plan or PlanTier.FREE
+    plan = resolve_plan(user.plan)
     limit = BULK_LIMITS.get(plan, 0)
     if limit == 0:
-        raise HTTPException(status_code=403, detail="Portfolio analysis requires a Starter plan or higher.")
+        raise HTTPException(status_code=403, detail="Portfolio analysis requires an Explorer plan or higher.")
 
     content = await file.read()
     try:

@@ -7,16 +7,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
-from app.models.api_key import ApiUser, PlanTier, UsageLog
+from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
 from app.models.permit import Permit
 
 router = APIRouter(prefix="/market", tags=["Market Intelligence"])
 
 
 def _require_pro(user: ApiUser):
-    plan = user.plan or PlanTier.FREE
-    if plan in (PlanTier.FREE, PlanTier.STARTER):
-        raise HTTPException(status_code=403, detail="Market intelligence requires a Pro plan or higher.")
+    plan = resolve_plan(user.plan)
+    if plan in (PlanTier.FREE, PlanTier.EXPLORER):
+        raise HTTPException(status_code=403, detail="Market intelligence requires a Pro Leads plan or higher.")
 
 
 @router.get("/activity")

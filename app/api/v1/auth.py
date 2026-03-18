@@ -1,6 +1,7 @@
 """API key management and signup endpoints."""
 
 import hashlib
+from datetime import date, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -8,7 +9,8 @@ from pydantic import BaseModel, EmailStr
 
 from app.database import get_db
 from app.middleware.api_key_auth import get_current_user, hash_api_key
-from app.models.api_key import ApiUser, ApiKey, PlanTier
+from app.models.api_key import ApiUser, ApiKey, PlanTier, resolve_plan
+from app.services.stripe_service import get_freshness_limit, get_daily_limit, get_alert_limit
 
 router = APIRouter(tags=["Auth"])
 
@@ -23,7 +25,25 @@ class SignupResponse(BaseModel):
     user_id: str
     email: str
     plan: str
+    freshness_limit_days: int
+    daily_limit: int
     message: str
+
+
+def _build_freshness_info(plan: PlanTier) -> dict:
+    """Build freshness tier info dict for a resolved plan."""
+    limit = get_freshness_limit(plan)
+    return {
+        "plan": plan.value,
+        "freshness_limit_days": limit,
+        "daily_limit": get_daily_limit(plan),
+        "alert_limit": get_alert_limit(plan),
+        "can_access_hot": limit == 0,
+        "can_access_warm": limit <= 30,
+        "can_access_mild": limit <= 90,
+        "can_access_cold": True,
+        "oldest_accessible_date": (date.today() - timedelta(days=limit)).isoformat() if limit > 0 else None,
+    }
 
 
 @router.post("/signup", response_model=SignupResponse)
@@ -31,7 +51,7 @@ async def signup(body: SignupRequest, db: AsyncSession = Depends(get_db)):
     """
     Create a free account and get an API key.
 
-    No credit card required. Free tier: 100 lookups/day.
+    No credit card required. Free tier: 100 lookups/day, COLD data only (180+ days old).
     """
     # Normalize email: lowercase, strip whitespace
     email = body.email.strip().lower()
@@ -63,13 +83,34 @@ async def signup(body: SignupRequest, db: AsyncSession = Depends(get_db)):
     db.add(api_key)
     await db.commit()
 
+    plan = resolve_plan(user.plan)
     return SignupResponse(
         api_key=raw_key,
         user_id=str(user.id),
         email=user.email,
-        plan=user.plan.value,
-        message="Save your API key — it won't be shown again. Include it as X-API-Key header.",
+        plan=plan.value,
+        freshness_limit_days=get_freshness_limit(plan),
+        daily_limit=get_daily_limit(plan),
+        message="Save your API key — it won't be shown again. Include it as X-API-Key header. "
+                "Free tier: COLD data only (permits 180+ days old). Upgrade for fresher data.",
     )
+
+
+@router.get("/me")
+async def get_profile(
+    request: Request,
+    user: ApiUser = Depends(get_current_user),
+):
+    """Get current user profile with plan details and freshness tier info."""
+    plan = resolve_plan(user.plan)
+    return {
+        "user_id": str(user.id),
+        "email": user.email,
+        "company_name": user.company_name,
+        "is_active": user.is_active,
+        "created_at": user.created_at.isoformat() if user.created_at else None,
+        **_build_freshness_info(plan),
+    }
 
 
 @router.get("/api-keys")

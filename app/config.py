@@ -32,19 +32,38 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: str | None = None
     STRIPE_PUBLISHABLE_KEY: str | None = None
     STRIPE_WEBHOOK_SECRET: str | None = None
-    STRIPE_PRICE_STARTER: str | None = None  # Stripe Price ID for $49/mo
-    STRIPE_PRICE_PRO: str | None = None  # Stripe Price ID for $149/mo
-    STRIPE_PRICE_ENTERPRISE: str | None = None  # Stripe Price ID for $499/mo
+    STRIPE_PRICE_STARTER: str | None = None  # legacy alias for Explorer
+    STRIPE_PRICE_PRO: str | None = None  # legacy alias for Pro Leads
+    STRIPE_PRICE_EXPLORER: str | None = None  # Stripe Price ID for $79/mo
+    STRIPE_PRICE_PRO_LEADS: str | None = None  # Stripe Price ID for $249/mo
+    STRIPE_PRICE_REALTIME: str | None = None  # Stripe Price ID for $599/mo
+    STRIPE_PRICE_ENTERPRISE: str | None = None  # Stripe Price ID for $1,499/mo
 
     # Redis (rate limiting + caching)
     REDIS_URL: str | None = None
 
-    # Rate limits (lookups per day)
+    # Rate limits (lookups per day) — tiered by data freshness plan
     RATE_LIMIT_FREE: int = 100
-    RATE_LIMIT_STARTER: int = 1000
-    RATE_LIMIT_PRO: int = 10000
+    RATE_LIMIT_STARTER: int = 500       # legacy, mapped to Explorer
+    RATE_LIMIT_PRO: int = 2000          # legacy, mapped to Pro Leads
+    RATE_LIMIT_EXPLORER: int = 500
+    RATE_LIMIT_PRO_LEADS: int = 2000
+    RATE_LIMIT_REALTIME: int = 10000
     RATE_LIMIT_ENTERPRISE: int = 1000000  # effectively unlimited
     OVERAGE_COST_CENTS: int = 5  # $0.05 per lookup over limit
+
+    # Data freshness limits (days) — how old permits must be for each plan
+    DATA_FRESHNESS_FREE: int = 180          # 6 months old
+    DATA_FRESHNESS_EXPLORER: int = 90       # 3 months old
+    DATA_FRESHNESS_PRO_LEADS: int = 30      # 1 month old
+    DATA_FRESHNESS_REALTIME: int = 0        # All data, no restriction
+    DATA_FRESHNESS_ENTERPRISE: int = 0      # All data
+
+    # Per-lead enrichment costs (cents)
+    ENRICHMENT_PHONE_CENTS: int = 200       # $2
+    ENRICHMENT_EMAIL_CENTS: int = 100       # $1
+    ENRICHMENT_PROPERTY_CENTS: int = 300    # $3
+    ENRICHMENT_FULL_CENTS: int = 500        # $5
 
     # Environment
     ENVIRONMENT: str = "development"

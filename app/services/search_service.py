@@ -1,6 +1,7 @@
 """Address normalization and permit search logic."""
 
 import re
+from datetime import date, timedelta
 from sqlalchemy import select, func, text, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.permit import Permit, Jurisdiction
@@ -113,6 +114,13 @@ def build_filter_conditions(filters: dict) -> list:
     if date_to:
         conditions.append(Permit.issue_date <= date_to)
 
+    # Data freshness enforcement — restrict how recent the data can be
+    freshness_limit_days = filters.get("freshness_limit_days")
+    if freshness_limit_days is not None and freshness_limit_days > 0:
+        cutoff = date.today() - timedelta(days=freshness_limit_days)
+        # User can only see permits with issue_date AT OR BEFORE the cutoff
+        conditions.append(Permit.issue_date <= cutoff)
+
     return conditions
 
 
@@ -130,12 +138,19 @@ async def search_permits(
     date_to: str | None = None,
     page: int = 1,
     page_size: int = 25,
+    freshness_limit_days: int | None = None,
 ) -> dict:
-    """Search permits with full-text and trigram matching."""
+    """Search permits with full-text and trigram matching.
+
+    Args:
+        freshness_limit_days: If >0, only return permits with issue_date
+            at least this many days old. 0 or None = no restriction.
+    """
     conditions = build_filter_conditions({
         "address": address, "city": city, "state": state, "zip_code": zip_code,
         "permit_type": permit_type, "status": status, "jurisdiction": jurisdiction,
         "contractor": contractor, "date_from": date_from, "date_to": date_to,
+        "freshness_limit_days": freshness_limit_days,
     })
 
     if not conditions:
@@ -193,8 +208,14 @@ async def geo_search_permits(
     permit_type: str | None = None,
     page: int = 1,
     page_size: int = 25,
+    freshness_limit_days: int | None = None,
 ) -> dict:
-    """Search permits within a radius of lat/lng using Haversine approximation."""
+    """Search permits within a radius of lat/lng using Haversine approximation.
+
+    Args:
+        freshness_limit_days: If >0, only return permits with issue_date
+            at least this many days old. 0 or None = no restriction.
+    """
     deg_per_mile = 0.0145
     lat_range = radius_miles * deg_per_mile
     lng_range = radius_miles * deg_per_mile * 1.2
@@ -208,6 +229,11 @@ async def geo_search_permits(
 
     if permit_type:
         conditions.append(func.upper(Permit.permit_type) == permit_type.upper())
+
+    # Data freshness enforcement
+    if freshness_limit_days is not None and freshness_limit_days > 0:
+        cutoff = date.today() - timedelta(days=freshness_limit_days)
+        conditions.append(Permit.issue_date <= cutoff)
 
     where_clause = and_(*conditions)
 

@@ -124,22 +124,61 @@ section .subtitle{color:var(--text2);font-size:16px;margin-bottom:40px}
 .state-card .state-label{font-size:12px;color:var(--text3)}
 
 /* Pricing */
-.pricing-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px}
-.price-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:32px 24px;text-align:center;transition:border-color .2s,transform .2s}
+.pricing-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px}
+.price-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 20px;text-align:center;transition:border-color .2s,transform .2s}
 .price-card:hover{transform:translateY(-2px)}
-.price-card.featured{border-color:var(--accent);position:relative}
-.price-card.featured::before{content:'POPULAR';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;padding:4px 16px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.5px}
-.price-card .plan-name{font-size:18px;font-weight:700;margin-bottom:8px}
-.price-card .price{font-size:42px;font-weight:800;margin-bottom:4px}
-.price-card .price span{font-size:16px;font-weight:400;color:var(--text2)}
-.price-card .limits{color:var(--text2);font-size:14px;margin-bottom:24px}
-.price-card ul{list-style:none;text-align:left;margin-bottom:28px}
-.price-card ul li{padding:6px 0;font-size:14px;color:var(--text2);display:flex;align-items:center;gap:8px}
+.price-card.featured{border-color:var(--accent);position:relative;background:linear-gradient(180deg,rgba(99,102,241,.06) 0%,var(--surface) 100%)}
+.price-card.featured::before{content:'MOST POPULAR';position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(135deg,var(--accent),#a855f7);color:#fff;padding:4px 16px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.5px}
+.price-card .plan-name{font-size:17px;font-weight:700;margin-bottom:8px}
+.price-card .plan-tagline{font-size:12px;color:var(--text3);margin-bottom:12px;font-style:italic}
+.price-card .price{font-size:36px;font-weight:800;margin-bottom:4px}
+.price-card .price span{font-size:15px;font-weight:400;color:var(--text2)}
+.price-card .limits{color:var(--text2);font-size:13px;margin-bottom:20px}
+.price-card .freshness-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:700;margin-bottom:16px;letter-spacing:.3px}
+.price-card ul{list-style:none;text-align:left;margin-bottom:24px}
+.price-card ul li{padding:5px 0;font-size:13px;color:var(--text2);display:flex;align-items:center;gap:8px}
 .price-card ul li::before{content:'✓';color:var(--green);font-weight:700}
-.price-card .btn{display:block;padding:12px;border-radius:var(--radius-sm);font-size:15px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text);transition:all .2s;text-align:center}
+.price-card .btn{display:block;padding:12px;border-radius:var(--radius-sm);font-size:14px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--text);transition:all .2s;text-align:center}
 .price-card .btn:hover{border-color:var(--accent);text-decoration:none}
 .price-card.featured .btn{background:var(--accent);border-color:var(--accent);color:#fff}
 .price-card.featured .btn:hover{background:var(--accent2)}
+
+/* Data Freshness Visual */
+.freshness-visual{max-width:800px;margin:0 auto 48px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:32px;position:relative;overflow:hidden}
+.freshness-visual h3{text-align:center;font-size:20px;font-weight:700;margin-bottom:8px}
+.freshness-visual .fv-subtitle{text-align:center;font-size:14px;color:var(--text2);margin-bottom:28px}
+.freshness-bar{display:flex;gap:4px;margin-bottom:24px;border-radius:var(--radius-sm);overflow:hidden}
+.freshness-bar .fb-segment{flex:1;padding:14px 12px;text-align:center;position:relative;min-height:80px;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:4px}
+.freshness-bar .fb-segment .fb-icon{font-size:24px}
+.freshness-bar .fb-segment .fb-label{font-size:13px;font-weight:700;letter-spacing:.5px}
+.freshness-bar .fb-segment .fb-days{font-size:11px;opacity:.8}
+.fb-hot{background:linear-gradient(135deg,#ef4444,#f97316)}
+.fb-warm{background:linear-gradient(135deg,#f59e0b,#eab308)}
+.fb-mild{background:linear-gradient(135deg,#06b6d4,#3b82f6)}
+.fb-cold{background:linear-gradient(135deg,#6b7280,#475569)}
+.freshness-tiers{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.freshness-tier{text-align:center;padding:12px 8px;border-radius:var(--radius-sm);background:var(--surface2);border:1px solid var(--border)}
+.freshness-tier .ft-plan{font-size:13px;font-weight:700;margin-bottom:6px}
+.freshness-tier .ft-access{display:flex;gap:4px;justify-content:center;flex-wrap:wrap}
+.freshness-tier .ft-dot{width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px}
+.ft-dot.active{opacity:1}
+.ft-dot.inactive{opacity:.15}
+
+/* Per-Lead Enrichment */
+.enrichment-section{max-width:700px;margin:0 auto;padding:32px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)}
+.enrichment-section h3{font-size:20px;font-weight:700;margin-bottom:8px;text-align:center}
+.enrichment-section .enrich-subtitle{font-size:14px;color:var(--text2);margin-bottom:24px;text-align:center}
+.enrichment-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.enrichment-item{display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm)}
+.enrichment-item .ei-name{font-size:14px;font-weight:600;color:var(--text)}
+.enrichment-item .ei-price{font-size:18px;font-weight:800;color:var(--accent2)}
+.enrichment-item.featured-item{border-color:var(--accent);background:rgba(99,102,241,.08)}
+.enrichment-item.featured-item .ei-price{color:var(--green)}
+.enrichment-note{text-align:center;font-size:13px;color:var(--text3);font-style:italic}
+
+/* Dashboard freshness */
+.dash-freshness{display:flex;gap:6px;margin-top:8px}
+.dash-freshness-dot{padding:3px 8px;border-radius:10px;font-size:10px;font-weight:700;letter-spacing:.3px}
 
 /* Code Example */
 .code-section{max-width:720px;margin:0 auto}
@@ -439,6 +478,14 @@ section .subtitle{color:var(--text2);font-size:16px;margin-bottom:40px}
 footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color:var(--text3);font-size:13px}
 
 /* Responsive */
+@media(max-width:1200px){
+  .pricing-grid{grid-template-columns:repeat(3,1fr)}
+  .freshness-tiers{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:900px){
+  .pricing-grid{grid-template-columns:repeat(2,1fr)}
+  .freshness-tiers{grid-template-columns:repeat(2,1fr)}
+}
 @media(max-width:768px){
   .risk-result-grid{grid-template-columns:1fr}
   .risk-score-card{position:static}
@@ -449,6 +496,11 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
   .stats-row{gap:24px}
   .stat .number{font-size:28px}
   .pricing-grid{grid-template-columns:1fr}
+  .freshness-tiers{grid-template-columns:repeat(3,1fr)}
+  .freshness-bar .fb-segment{padding:10px 6px;min-height:60px}
+  .freshness-bar .fb-segment .fb-icon{font-size:18px}
+  .freshness-bar .fb-segment .fb-label{font-size:11px}
+  .enrichment-grid{grid-template-columns:1fr}
   .coverage-grid{grid-template-columns:repeat(2,1fr)}
   .hero{padding:48px 0 40px;overflow-x:hidden}
   .hero h1{font-size:32px}
@@ -1339,63 +1391,188 @@ results.forEach(p =>
   <section>
     <div class="container">
       <h2 style="text-align:center">Simple, Transparent Pricing</h2>
-      <p class="subtitle" style="text-align:center">Start free. Scale as you grow. No long-term contracts.</p>
+      <p class="subtitle" style="text-align:center">Start free. Scale as you grow. Pay for the data freshness you need. No long-term contracts.</p>
+
+      <!-- Data Freshness Visual -->
+      <div class="freshness-visual">
+        <h3>Data Freshness Tiers</h3>
+        <p class="fv-subtitle">Higher plans unlock fresher permit data — get leads before your competitors</p>
+        <div class="freshness-bar">
+          <div class="fb-segment fb-hot" style="color:#fff">
+            <div class="fb-icon">&#x1F525;</div>
+            <div class="fb-label">HOT</div>
+            <div class="fb-days">0-30 days</div>
+          </div>
+          <div class="fb-segment fb-warm" style="color:#fff">
+            <div class="fb-icon">&#x2600;&#xFE0F;</div>
+            <div class="fb-label">WARM</div>
+            <div class="fb-days">30-90 days</div>
+          </div>
+          <div class="fb-segment fb-mild" style="color:#fff">
+            <div class="fb-icon">&#x1F324;&#xFE0F;</div>
+            <div class="fb-label">MILD</div>
+            <div class="fb-days">90-180 days</div>
+          </div>
+          <div class="fb-segment fb-cold" style="color:#fff">
+            <div class="fb-icon">&#x2744;&#xFE0F;</div>
+            <div class="fb-label">COLD</div>
+            <div class="fb-days">180+ days</div>
+          </div>
+        </div>
+        <div class="freshness-tiers">
+          <div class="freshness-tier">
+            <div class="ft-plan">Free</div>
+            <div class="ft-access">
+              <span class="ft-dot inactive" style="background:linear-gradient(135deg,#ef4444,#f97316)"></span>
+              <span class="ft-dot inactive" style="background:linear-gradient(135deg,#f59e0b,#eab308)"></span>
+              <span class="ft-dot inactive" style="background:linear-gradient(135deg,#06b6d4,#3b82f6)"></span>
+              <span class="ft-dot active" style="background:linear-gradient(135deg,#6b7280,#475569);color:#fff" title="Cold">&#x2744;&#xFE0F;</span>
+            </div>
+          </div>
+          <div class="freshness-tier">
+            <div class="ft-plan">Explorer</div>
+            <div class="ft-access">
+              <span class="ft-dot inactive" style="background:linear-gradient(135deg,#ef4444,#f97316)"></span>
+              <span class="ft-dot inactive" style="background:linear-gradient(135deg,#f59e0b,#eab308)"></span>
+              <span class="ft-dot active" style="background:linear-gradient(135deg,#06b6d4,#3b82f6);color:#fff" title="Mild">&#x1F324;&#xFE0F;</span>
+              <span class="ft-dot active" style="background:linear-gradient(135deg,#6b7280,#475569);color:#fff" title="Cold">&#x2744;&#xFE0F;</span>
+            </div>
+          </div>
+          <div class="freshness-tier" style="border-color:var(--accent)">
+            <div class="ft-plan" style="color:var(--accent2)">Pro Leads</div>
+            <div class="ft-access">
+              <span class="ft-dot inactive" style="background:linear-gradient(135deg,#ef4444,#f97316)"></span>
+              <span class="ft-dot active" style="background:linear-gradient(135deg,#f59e0b,#eab308);color:#fff" title="Warm">&#x2600;&#xFE0F;</span>
+              <span class="ft-dot active" style="background:linear-gradient(135deg,#06b6d4,#3b82f6);color:#fff" title="Mild">&#x1F324;&#xFE0F;</span>
+              <span class="ft-dot active" style="background:linear-gradient(135deg,#6b7280,#475569);color:#fff" title="Cold">&#x2744;&#xFE0F;</span>
+            </div>
+          </div>
+          <div class="freshness-tier">
+            <div class="ft-plan">Real-Time</div>
+            <div class="ft-access">
+              <span class="ft-dot active" style="background:linear-gradient(135deg,#ef4444,#f97316);color:#fff" title="Hot">&#x1F525;</span>
+              <span class="ft-dot active" style="background:linear-gradient(135deg,#f59e0b,#eab308);color:#fff" title="Warm">&#x2600;&#xFE0F;</span>
+              <span class="ft-dot active" style="background:linear-gradient(135deg,#06b6d4,#3b82f6);color:#fff" title="Mild">&#x1F324;&#xFE0F;</span>
+              <span class="ft-dot active" style="background:linear-gradient(135deg,#6b7280,#475569);color:#fff" title="Cold">&#x2744;&#xFE0F;</span>
+            </div>
+          </div>
+          <div class="freshness-tier">
+            <div class="ft-plan">Enterprise</div>
+            <div class="ft-access">
+              <span class="ft-dot active" style="background:linear-gradient(135deg,#ef4444,#f97316);color:#fff" title="Hot">&#x1F525;</span>
+              <span class="ft-dot active" style="background:linear-gradient(135deg,#f59e0b,#eab308);color:#fff" title="Warm">&#x2600;&#xFE0F;</span>
+              <span class="ft-dot active" style="background:linear-gradient(135deg,#06b6d4,#3b82f6);color:#fff" title="Mild">&#x1F324;&#xFE0F;</span>
+              <span class="ft-dot active" style="background:linear-gradient(135deg,#6b7280,#475569);color:#fff" title="Cold">&#x2744;&#xFE0F;</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pricing Cards -->
       <div class="pricing-grid">
         <div class="price-card">
           <div class="plan-name">Free</div>
+          <div class="plan-tagline">Perfect for research &amp; analytics</div>
           <div class="price">$0</div>
           <div class="limits">100 lookups / day</div>
+          <div class="freshness-badge" style="background:linear-gradient(135deg,rgba(107,114,128,.2),rgba(71,85,105,.2));color:#94a3b8;border:1px solid rgba(107,114,128,.3)">&#x2744;&#xFE0F; Cold data only (180+ days)</div>
           <ul>
             <li>Permit search (7M+ records)</li>
+            <li>Basic search</li>
+            <li>2 monitoring alerts</li>
             <li>Contractor Intelligence + Compare</li>
-            <li>Activity Feed (live demo)</li>
             <li>Risk Score + Trend Charts</li>
-            <li>Cost Estimator + Requirements</li>
-            <li>Lead Intelligence Board</li>
-            <li>1 API key · Swagger docs</li>
+            <li>1 API key</li>
           </ul>
           <a class="btn" href="#" onclick="openSignup();return false">Get Free API Key</a>
         </div>
         <div class="price-card">
-          <div class="plan-name">Starter</div>
-          <div class="price">$49<span>/mo</span></div>
-          <div class="limits">1,000 lookups / day</div>
+          <div class="plan-name">Explorer</div>
+          <div class="plan-tagline">Great for market research</div>
+          <div class="price">$79<span>/mo</span></div>
+          <div class="limits">500 lookups / day</div>
+          <div class="freshness-badge" style="background:linear-gradient(135deg,rgba(6,182,212,.15),rgba(59,130,246,.15));color:#38bdf8;border:1px solid rgba(6,182,212,.3)">&#x1F324;&#xFE0F; Mild + Cold (90+ days)</div>
           <ul>
             <li>Everything in Free</li>
-            <li>Bulk CSV search (500/req)</li>
-            <li>Property Intelligence drill-down</li>
-            <li>25 permit monitoring alerts</li>
+            <li>25 monitoring alerts</li>
             <li>Saved searches + email digests</li>
-            <li>Priority support</li>
+            <li>Contractor profiles</li>
+            <li>Property Intelligence drill-down</li>
           </ul>
-          <a class="btn" href="#" onclick="subscribe('starter');return false">Subscribe</a>
+          <a class="btn" href="#" onclick="subscribe('explorer');return false">Subscribe</a>
         </div>
         <div class="price-card featured">
-          <div class="plan-name">Pro</div>
-          <div class="price">$149<span>/mo</span></div>
-          <div class="limits">10,000 lookups / day</div>
+          <div class="plan-name">Pro Leads</div>
+          <div class="plan-tagline">Best for active prospecting</div>
+          <div class="price">$249<span>/mo</span></div>
+          <div class="limits">2,000 lookups / day</div>
+          <div class="freshness-badge" style="background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(234,179,8,.15));color:#fbbf24;border:1px solid rgba(245,158,11,.3)">&#x2600;&#xFE0F; Warm + Mild + Cold (30+ days)</div>
           <ul>
-            <li>Everything in Starter</li>
-            <li>Market Intelligence analytics</li>
-            <li>Live Permit Activity Feed</li>
-            <li>Permit Trend Charts (any market)</li>
-            <li>Webhook alerts (100)</li>
+            <li>Everything in Explorer</li>
+            <li>100 alerts + webhooks</li>
+            <li>Market analytics dashboard</li>
+            <li>Bulk CSV export</li>
+            <li>Lead scoring</li>
             <li>Full Lead Pipeline CRM</li>
           </ul>
-          <a class="btn" href="#" onclick="subscribe('pro');return false">Subscribe</a>
+          <a class="btn" href="#" onclick="subscribe('pro_leads');return false">Subscribe</a>
+        </div>
+        <div class="price-card">
+          <div class="plan-name">Real-Time</div>
+          <div class="plan-tagline">For sales teams that need leads FIRST</div>
+          <div class="price">$599<span>/mo</span></div>
+          <div class="limits">10,000 lookups / day</div>
+          <div class="freshness-badge" style="background:linear-gradient(135deg,rgba(239,68,68,.15),rgba(249,115,22,.15));color:#f87171;border:1px solid rgba(239,68,68,.3)">&#x1F525; ALL data including HOT (0-30 days)</div>
+          <ul>
+            <li>Everything in Pro Leads</li>
+            <li>500 alerts + instant notifications</li>
+            <li>Contact enrichment (phone + email)</li>
+            <li>Priority API access</li>
+            <li>Live Permit Activity Feed</li>
+          </ul>
+          <a class="btn" href="#" onclick="subscribe('realtime');return false">Subscribe</a>
         </div>
         <div class="price-card">
           <div class="plan-name">Enterprise</div>
-          <div class="price">$499<span>/mo</span></div>
+          <div class="plan-tagline">Full power, no limits</div>
+          <div class="price">$1,499<span>/mo</span></div>
           <div class="limits">Unlimited lookups</div>
+          <div class="freshness-badge" style="background:linear-gradient(135deg,rgba(239,68,68,.15),rgba(249,115,22,.15));color:#f87171;border:1px solid rgba(239,68,68,.3)">&#x1F525; Everything in Real-Time</div>
           <ul>
-            <li>Everything in Pro</li>
-            <li>Jurisdiction Requirements API</li>
-            <li>Custom data exports + webhooks</li>
+            <li>Everything in Real-Time</li>
+            <li>Custom data feeds</li>
             <li>Dedicated support + SLA</li>
-            <li>White-label options</li>
+            <li>White-label option</li>
+            <li>Unlimited lookups</li>
           </ul>
           <a class="btn" href="#" onclick="subscribe('enterprise');return false">Contact Sales</a>
+        </div>
+      </div>
+
+      <!-- Per-Lead Enrichment Pricing -->
+      <div style="margin-top:56px">
+        <div class="enrichment-section">
+          <h3>Per-Lead Enrichment</h3>
+          <p class="enrich-subtitle">Add contact details to any permit lead. Available on Pro Leads and above.</p>
+          <div class="enrichment-grid">
+            <div class="enrichment-item">
+              <span class="ei-name">Phone Number</span>
+              <span class="ei-price">$2<span style="font-size:12px;font-weight:400;color:var(--text3)">/lead</span></span>
+            </div>
+            <div class="enrichment-item">
+              <span class="ei-name">Email Address</span>
+              <span class="ei-price">$1<span style="font-size:12px;font-weight:400;color:var(--text3)">/lead</span></span>
+            </div>
+            <div class="enrichment-item">
+              <span class="ei-name">Property + Owner Details</span>
+              <span class="ei-price">$3<span style="font-size:12px;font-weight:400;color:var(--text3)">/lead</span></span>
+            </div>
+            <div class="enrichment-item featured-item">
+              <span class="ei-name">Full Contact Package</span>
+              <span class="ei-price">$5<span style="font-size:12px;font-weight:400;color:var(--text3)">/lead</span></span>
+            </div>
+          </div>
+          <p class="enrichment-note">Available on Pro Leads ($249/mo) and above. Enrichment credits are pay-as-you-go.</p>
         </div>
       </div>
     </div>
@@ -1536,7 +1713,7 @@ results.forEach(p =>
       <!-- Bulk upload (auth gated) -->
       <div id="property-bulk-section" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:24px;display:none">
         <h3 style="font-size:16px;font-weight:600;margin-bottom:6px">Bulk Property Report</h3>
-        <p style="color:var(--text3);font-size:13px;margin-bottom:16px">Upload a CSV with an "address" column. Each address = 1 lookup. Requires Starter plan or higher.</p>
+        <p style="color:var(--text3);font-size:13px;margin-bottom:16px">Upload a CSV with an "address" column. Each address = 1 lookup. Requires Explorer plan or higher.</p>
         <div id="bulk-drop" style="border:2px dashed var(--border);border-radius:var(--radius-sm);padding:32px;text-align:center;cursor:pointer;transition:border-color .2s" onclick="document.getElementById('bulk-csv-input').click()" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
           <div style="font-size:32px;margin-bottom:8px">📄</div>
           <p style="color:var(--text2);font-size:14px">Click to upload CSV or drag &amp; drop</p>
@@ -3251,6 +3428,7 @@ results.forEach(p =>
             <div class="dash-label">Plan</div>
             <div class="dash-value" style="color:#6366f1">Free</div>
             <div style="font-size:12px;color:var(--text3);margin-top:4px">100 lookups/day</div>
+            <div class="dash-freshness" style="margin-top:6px"><span class="dash-freshness-dot" style="background:rgba(107,114,128,.15);color:#94a3b8;border:1px solid rgba(107,114,128,.25)">&#x2744;&#xFE0F; Cold data only</span></div>
           </div>
           <div class="dash-card">
             <div class="dash-label">Today's Usage</div>
@@ -4046,7 +4224,27 @@ async function loadDashboard() {
     const usage = await usageR.json();
     const keys = await keysR.json();
 
-    document.getElementById('dash-plan').textContent = usage.plan.charAt(0).toUpperCase() + usage.plan.slice(1);
+    const planDisplayNames = { free: 'Free', explorer: 'Explorer', pro_leads: 'Pro Leads', realtime: 'Real-Time', enterprise: 'Enterprise', starter: 'Explorer', pro: 'Pro Leads' };
+    const planFreshness = {
+      free: { label: 'Cold only', icon: '&#x2744;&#xFE0F;', color: '#94a3b8', bg: 'rgba(107,114,128,.15)' },
+      explorer: { label: 'Mild + Cold', icon: '&#x1F324;&#xFE0F;', color: '#38bdf8', bg: 'rgba(6,182,212,.15)' },
+      starter: { label: 'Mild + Cold', icon: '&#x1F324;&#xFE0F;', color: '#38bdf8', bg: 'rgba(6,182,212,.15)' },
+      pro_leads: { label: 'Warm+', icon: '&#x2600;&#xFE0F;', color: '#fbbf24', bg: 'rgba(245,158,11,.15)' },
+      pro: { label: 'Warm+', icon: '&#x2600;&#xFE0F;', color: '#fbbf24', bg: 'rgba(245,158,11,.15)' },
+      realtime: { label: 'All (HOT)', icon: '&#x1F525;', color: '#f87171', bg: 'rgba(239,68,68,.15)' },
+      enterprise: { label: 'All (HOT)', icon: '&#x1F525;', color: '#f87171', bg: 'rgba(239,68,68,.15)' }
+    };
+    const pName = planDisplayNames[usage.plan] || usage.plan.charAt(0).toUpperCase() + usage.plan.slice(1);
+    document.getElementById('dash-plan').textContent = pName;
+    const freshInfo = planFreshness[usage.plan] || planFreshness.free;
+    let freshEl = document.getElementById('dash-freshness-indicator');
+    if (!freshEl) {
+      freshEl = document.createElement('div');
+      freshEl.id = 'dash-freshness-indicator';
+      freshEl.className = 'dash-freshness';
+      document.getElementById('dash-plan').parentElement.appendChild(freshEl);
+    }
+    freshEl.innerHTML = '<span class="dash-freshness-dot" style="background:' + freshInfo.bg + ';color:' + freshInfo.color + ';border:1px solid ' + freshInfo.color + '33">' + freshInfo.icon + ' ' + freshInfo.label + '</span>';
     document.getElementById('dash-used').textContent = usage.daily_used;
     document.getElementById('dash-limit').textContent = usage.daily_limit.toLocaleString();
     document.getElementById('dash-monthly').textContent = usage.monthly_used.toLocaleString();
@@ -4126,7 +4324,7 @@ function openSignup(plan) {
   // Show plan badge if coming from a paid plan CTA
   let planBadge = document.getElementById('signup-plan-badge');
   if (plan && plan !== 'enterprise') {
-    const planInfo = { starter: { name: 'Starter', price: '$49/mo', color: '#6366f1' }, pro: { name: 'Pro', price: '$149/mo', color: '#a855f7' } };
+    const planInfo = { explorer: { name: 'Explorer', price: '$79/mo', color: '#6366f1' }, pro_leads: { name: 'Pro Leads', price: '$249/mo', color: '#a855f7' }, realtime: { name: 'Real-Time', price: '$599/mo', color: '#f59e0b' }, enterprise: { name: 'Enterprise', price: '$1,499/mo', color: '#ef4444' } };
     const info = planInfo[plan];
     if (info) {
       if (!planBadge) {
@@ -4213,7 +4411,7 @@ async function subscribe(plan) {
     return;
   }
   try {
-    const r = await fetch(API + '/v1/subscribe?plan=' + plan, {
+    const r = await fetch(API + '/v1/subscribe?plan=' + encodeURIComponent(plan), {
       method: 'POST',
       headers: { 'X-API-Key': currentKey }
     });
@@ -5250,7 +5448,7 @@ async function lookupProperty() {
     });
     const d = await r.json();
     if (r.status === 402 || r.status === 403) {
-      results.innerHTML = `<div style="text-align:center;padding:40px"><p style="color:var(--red)">${esc(d.detail||'Upgrade required')}</p><button class="btn-primary" onclick="showPage('pricing')" style="margin-top:12px">View Plans</button></div>`;
+      results.innerHTML = `<div style="text-align:center;padding:40px"><p style="color:var(--red)">${esc(d.detail||'Upgrade required for fresher data')}</p><button class="btn-primary" onclick="showPage('pricing')" style="margin-top:12px">View Plans</button></div>`;
       return;
     }
     if (!r.ok) { results.innerHTML = `<div style="text-align:center;padding:40px;color:var(--red)">${esc(d.detail||'Lookup failed')}</div>`; return; }
@@ -5421,7 +5619,7 @@ async function loadMarketActivity() {
     const r = await fetch(`${API}/v1/market/activity?${params}`, { headers: { 'X-API-Key': currentKey } });
     const d = await r.json();
     if (r.status === 403) {
-      results.innerHTML = `<div style="text-align:center;padding:40px"><p style="color:var(--text2)">${esc(d.detail||'Pro plan required')}</p><button class="btn-primary" onclick="showPage('pricing')" style="margin-top:12px">Upgrade to Pro</button></div>`;
+      results.innerHTML = `<div style="text-align:center;padding:40px"><p style="color:var(--text2)">${esc(d.detail||'Pro Leads plan or higher required')}</p><button class="btn-primary" onclick="showPage('pricing')" style="margin-top:12px">Upgrade Plan</button></div>`;
       return;
     }
     if (!r.ok) { results.innerHTML = `<div style="text-align:center;padding:40px;color:var(--red)">${esc(d.detail||'Failed')}</div>`; return; }
@@ -5531,7 +5729,7 @@ async function loadHotspots() {
     const r = await fetch(`${API}/v1/market/hotspots?state=${state}`, { headers: { 'X-API-Key': currentKey } });
     const d = await r.json();
     if (r.status === 403) {
-      results.innerHTML = `<div style="text-align:center;padding:40px"><p style="color:var(--text2)">${esc(d.detail||'Pro plan required')}</p><button class="btn-primary" onclick="showPage('pricing')" style="margin-top:12px">Upgrade to Pro</button></div>`;
+      results.innerHTML = `<div style="text-align:center;padding:40px"><p style="color:var(--text2)">${esc(d.detail||'Pro Leads plan or higher required')}</p><button class="btn-primary" onclick="showPage('pricing')" style="margin-top:12px">Upgrade Plan</button></div>`;
       return;
     }
     if (!r.ok) { results.innerHTML = `<div style="text-align:center;padding:40px;color:var(--red)">${esc(d.detail||'Failed')}</div>`; return; }

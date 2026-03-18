@@ -9,9 +9,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
 from app.middleware.api_key_auth import get_current_user
-from app.models.api_key import ApiUser
+from app.models.api_key import ApiUser, resolve_plan
 from app.models.alert import PermitAlert, AlertFrequency
 from app.models.alert_history import AlertExecutionHistory
+from app.services.stripe_service import get_alert_limit
 
 router = APIRouter(prefix="/alerts", tags=["Alerts"])
 
@@ -82,8 +83,8 @@ async def create_alert(
         select(func.count()).select_from(PermitAlert).where(PermitAlert.user_id == user.id)
     )
     count = count_result.scalar() or 0
-    max_alerts = {"free": 2, "starter": 25, "pro": 100, "enterprise": 10000}
-    limit = max_alerts.get(user.plan.value, 2)
+    plan = resolve_plan(user.plan)
+    limit = get_alert_limit(plan)
     if count >= limit:
         raise HTTPException(status_code=403, detail=f"Alert limit reached ({limit}). Upgrade your plan for more alerts.")
 

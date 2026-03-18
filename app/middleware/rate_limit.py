@@ -4,7 +4,7 @@ import logging
 from datetime import datetime, timezone
 from fastapi import Request, HTTPException
 from app.config import settings
-from app.models.api_key import PlanTier
+from app.models.api_key import PlanTier, resolve_plan
 from app.services.stripe_service import get_daily_limit
 
 logger = logging.getLogger(__name__)
@@ -36,7 +36,7 @@ async def check_rate_limit(request: Request, lookup_count: int = 1) -> dict:
     """
     user = request.state.user
     user_id = str(user.id)
-    plan = user.plan or PlanTier.FREE
+    plan = resolve_plan(user.plan)
     daily_limit = get_daily_limit(plan)
 
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
