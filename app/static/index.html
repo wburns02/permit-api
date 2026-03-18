@@ -1055,6 +1055,102 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
 .cmp-skeleton{height:24px;background:var(--surface2);border-radius:4px;margin-bottom:10px;animation:pulse 1.5s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
 @media(max-width:640px){.cmp-input-row{grid-template-columns:1fr}.cmp-vs{display:none}.cmp-cols{grid-template-columns:1fr}}
+
+/* ─── Admin Dashboard ────────────────────────────────────────────────────── */
+.admin-health-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:24px}
+.admin-health-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px}
+.admin-health-card .ahc-label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:4px}
+.admin-health-card .ahc-value{font-size:22px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums}
+.admin-health-card .ahc-sub{font-size:12px;color:var(--text3);margin-top:2px}
+.admin-disk-bar{height:8px;background:var(--surface2);border-radius:4px;margin-top:8px;overflow:hidden}
+.admin-disk-bar .adb-fill{height:100%;border-radius:4px;transition:width .5s}
+
+.admin-section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:20px}
+.admin-section h3{font-size:16px;font-weight:700;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.admin-section h3 .as-count{font-size:12px;color:var(--text3);font-weight:500}
+
+.admin-alert-banner{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:var(--radius);padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.admin-alert-banner .aab-icon{font-size:20px}
+.admin-alert-banner .aab-text{flex:1;font-size:13px;color:var(--red)}
+.admin-alert-banner .aab-text strong{color:var(--text)}
+.admin-alert-banner button{padding:6px 16px;border-radius:var(--radius-sm);background:var(--red);color:#fff;border:none;font-size:12px;font-weight:600;white-space:nowrap}
+
+.admin-toolbar{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.admin-toolbar select,.admin-toolbar input{padding:7px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:12px;outline:none}
+.admin-toolbar select:focus,.admin-toolbar input:focus{border-color:var(--accent)}
+.admin-toolbar .at-spacer{flex:1}
+
+.admin-table{width:100%;border-collapse:collapse;font-size:13px}
+.admin-table thead th{text-align:left;padding:10px 8px;color:var(--text3);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap}
+.admin-table thead th:hover{color:var(--text)}
+.admin-table tbody tr{border-bottom:1px solid rgba(42,42,58,.4);transition:background .15s}
+.admin-table tbody tr:hover{background:var(--surface2)}
+.admin-table tbody td{padding:10px 8px;vertical-align:middle}
+.admin-table .at-name{font-weight:600;white-space:nowrap;max-width:260px;overflow:hidden;text-overflow:ellipsis}
+
+.admin-cat-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.admin-cat-parcel{background:rgba(34,197,94,.12);color:#22c55e}
+.admin-cat-permit{background:rgba(99,102,241,.12);color:#818cf8}
+.admin-cat-b2b{background:rgba(245,158,11,.12);color:#f59e0b}
+.admin-cat-enrichment{background:rgba(168,85,247,.12);color:#a855f7}
+.admin-cat-ai{background:rgba(236,72,153,.12);color:#ec4899}
+.admin-cat-import{background:rgba(6,182,212,.12);color:#06b6d4}
+.admin-cat-utility{background:rgba(107,114,128,.12);color:#9ca3af}
+
+.admin-status-dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
+.admin-status-ok{background:#22c55e;box-shadow:0 0 6px rgba(34,197,94,.4)}
+.admin-status-fail{background:#ef4444;box-shadow:0 0 6px rgba(239,68,68,.4)}
+.admin-status-stale{background:#f59e0b;box-shadow:0 0 6px rgba(245,158,11,.4)}
+.admin-status-never{background:#4b5563}
+.admin-status-running{background:#6366f1;animation:admin-pulse 1s infinite}
+@keyframes admin-pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.admin-run-btn{padding:4px 12px;border-radius:var(--radius-sm);background:var(--accent);color:#fff;border:none;font-size:11px;font-weight:600;transition:all .15s;white-space:nowrap}
+.admin-run-btn:hover{background:var(--accent2)}
+.admin-run-btn:disabled{opacity:.4;cursor:not-allowed}
+.admin-log-btn{padding:4px 12px;border-radius:var(--radius-sm);background:var(--surface2);color:var(--text2);border:1px solid var(--border);font-size:11px;font-weight:600;transition:all .15s;white-space:nowrap}
+.admin-log-btn:hover{border-color:var(--accent);color:var(--accent2)}
+
+.admin-coverage-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(80px,1fr));gap:6px}
+.admin-state-cell{padding:10px 4px;text-align:center;border-radius:var(--radius-sm);font-size:12px;font-weight:700;transition:transform .15s;cursor:default}
+.admin-state-cell:hover{transform:scale(1.08)}
+.admin-state-cell .asc-abbr{font-size:14px;font-weight:800}
+.admin-state-cell .asc-count{font-size:10px;opacity:.8;margin-top:1px}
+.admin-state-green{background:rgba(34,197,94,.15);color:#22c55e;border:1px solid rgba(34,197,94,.25)}
+.admin-state-yellow{background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.2)}
+.admin-state-red{background:rgba(239,68,68,.08);color:#ef4444;border:1px solid rgba(239,68,68,.15)}
+
+.admin-activity{max-height:400px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
+.admin-activity-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(42,42,58,.3)}
+.admin-activity-item:last-child{border-bottom:none}
+.admin-activity-item .aai-name{font-weight:600;font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-activity-item .aai-time{font-size:11px;color:var(--text3);white-space:nowrap}
+.admin-activity-item .aai-records{font-size:11px;color:var(--text2);white-space:nowrap}
+
+.admin-schedule-row{display:grid;grid-template-columns:1fr 80px 80px 60px 80px;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid rgba(42,42,58,.3);font-size:13px}
+.admin-schedule-row:last-child{border-bottom:none}
+.admin-schedule-name{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.admin-schedule-toggle{position:relative;width:36px;height:20px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .2s}
+.admin-schedule-toggle.active{background:var(--accent);border-color:var(--accent)}
+.admin-schedule-toggle::after{content:'';position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .2s}
+.admin-schedule-toggle.active::after{transform:translateX(16px)}
+
+.admin-log-modal{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:10000;display:none;align-items:center;justify-content:center;padding:24px}
+.admin-log-modal.visible{display:flex}
+.admin-log-modal .alm-content{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);max-width:900px;width:100%;max-height:80vh;display:flex;flex-direction:column}
+.admin-log-modal .alm-header{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--border)}
+.admin-log-modal .alm-header h3{font-size:15px;font-weight:700}
+.admin-log-modal .alm-close{background:none;border:none;color:var(--text3);font-size:24px;cursor:pointer;padding:0 4px}
+.admin-log-modal .alm-close:hover{color:var(--text)}
+.admin-log-modal .alm-body{flex:1;overflow:auto;padding:16px 20px;font-family:var(--mono);font-size:12px;line-height:1.6;color:var(--text2);white-space:pre-wrap;word-break:break-all}
+
+@media(max-width:768px){
+  .admin-table{font-size:11px}
+  .admin-table thead th,.admin-table tbody td{padding:8px 4px}
+  .admin-health-bar{grid-template-columns:repeat(2,1fr)}
+  .admin-coverage-grid{grid-template-columns:repeat(6,1fr)}
+  .admin-schedule-row{grid-template-columns:1fr 60px 60px 50px 60px;font-size:11px}
+}
 </style>
 </head>
 <body>
@@ -1096,6 +1192,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
         </div>
       </div>
       <a href="/docs" target="_blank">API Docs</a>
+      <a href="#admin" onclick="showPage('admin');return false" id="nav-admin-link" style="display:none">Admin</a>
       <button class="btn-primary" onclick="openSignup()" id="nav-signup">Get API Key</button>
     </div>
   </div>
@@ -3513,6 +3610,120 @@ results.forEach(p =>
   </section>
 </div>
 
+<!-- ADMIN PAGE -->
+<div class="page" id="page-admin">
+  <section>
+    <div class="container" style="max-width:1400px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+        <div>
+          <h2 style="display:flex;align-items:center;gap:10px">Scraper Operations <span style="font-size:13px;font-weight:500;color:var(--accent2);background:var(--accent-glow);padding:3px 10px;border-radius:20px">ADMIN</span></h2>
+          <p class="subtitle" style="margin-bottom:0">Monitor and manage 100 data scrapers across the pipeline</p>
+        </div>
+        <button onclick="loadAdmin()" style="padding:8px 18px;border-radius:var(--radius-sm);background:var(--surface2);border:1px solid var(--border);color:var(--text2);font-size:13px;font-weight:600;transition:all .2s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">Refresh</button>
+      </div>
+
+      <!-- System Health Bar -->
+      <div class="admin-health-bar" id="admin-health-bar">
+        <div class="admin-health-card"><div class="ahc-label">Loading...</div><div class="ahc-value" style="height:28px;background:var(--surface2);border-radius:4px;animation:pulse 1.5s infinite"></div></div>
+      </div>
+
+      <!-- Stale / Failing Alert Banner -->
+      <div id="admin-alerts-area"></div>
+
+      <!-- Scraper Grid -->
+      <div class="admin-section">
+        <h3>Scrapers <span class="as-count" id="admin-scraper-count"></span></h3>
+        <div class="admin-toolbar">
+          <select id="admin-filter-cat" onchange="filterAdminScrapers()">
+            <option value="">All Categories</option>
+            <option value="parcel">Parcel</option>
+            <option value="permit">Permit</option>
+            <option value="b2b">B2B</option>
+            <option value="enrichment">Enrichment</option>
+            <option value="ai">AI</option>
+            <option value="import">Import</option>
+            <option value="utility">Utility</option>
+          </select>
+          <select id="admin-filter-state" onchange="filterAdminScrapers()">
+            <option value="">All States</option>
+          </select>
+          <select id="admin-filter-status" onchange="filterAdminScrapers()">
+            <option value="">All Status</option>
+            <option value="success">Success</option>
+            <option value="failed">Failed</option>
+            <option value="stale">Stale (7d+)</option>
+            <option value="never">Never Run</option>
+          </select>
+          <input type="text" id="admin-search" placeholder="Search scrapers..." oninput="filterAdminScrapers()" style="min-width:160px">
+          <div class="at-spacer"></div>
+          <select id="admin-sort" onchange="sortAdminScrapers()">
+            <option value="category">Sort: Category</option>
+            <option value="last_run">Sort: Last Run</option>
+            <option value="status">Sort: Status</option>
+            <option value="state">Sort: State</option>
+            <option value="name">Sort: Name</option>
+          </select>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="admin-table" id="admin-scraper-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Category</th>
+                <th>State</th>
+                <th>Last Run</th>
+                <th>Status</th>
+                <th>Records</th>
+                <th>Duration</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="admin-scraper-tbody">
+              <tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text3)">Loading scrapers...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Coverage Map + Recent Activity side-by-side -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+        <div class="admin-section">
+          <h3>State Coverage</h3>
+          <div class="admin-coverage-grid" id="admin-coverage-grid">
+            <div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--text3)">Loading...</div>
+          </div>
+        </div>
+        <div class="admin-section">
+          <h3>Recent Activity <span class="as-count" id="admin-activity-count"></span></h3>
+          <div class="admin-activity" id="admin-activity-feed">
+            <div style="text-align:center;padding:20px;color:var(--text3)">Loading...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Schedule Manager -->
+      <div class="admin-section">
+        <h3>Schedule Manager</h3>
+        <div id="admin-schedules">
+          <div style="text-align:center;padding:20px;color:var(--text3)">Loading schedules...</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+</div>
+
+<!-- Admin Log Modal -->
+<div class="admin-log-modal" id="admin-log-modal">
+  <div class="alm-content">
+    <div class="alm-header">
+      <h3 id="admin-log-title">Scraper Log</h3>
+      <button class="alm-close" onclick="closeAdminLogModal()">&times;</button>
+    </div>
+    <div class="alm-body" id="admin-log-body">Loading...</div>
+  </div>
+</div>
+
 <!-- SAVED SEARCH MODAL -->
 <!-- FEED DETAIL MODAL -->
 <div class="modal-overlay" id="feed-detail-modal">
@@ -3631,6 +3842,7 @@ document.addEventListener('click', e => {
 // Init
 document.addEventListener('DOMContentLoaded', () => {
   loadStats();
+  checkAdminAccess();
   if (currentKey) {
     document.getElementById('nav-signup').textContent = 'Dashboard';
     document.getElementById('nav-signup').onclick = () => showPage('dashboard');
@@ -3660,7 +3872,7 @@ function showPage(page) {
   // Update active nav link
   document.querySelectorAll('nav .links a, .nav-dropdown-menu a').forEach(a => a.classList.remove('active'));
   document.getElementById('nav-tools-btn')?.classList.remove('has-active');
-  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements', reports: '#reports', watchlist: '#watchlist', playground: '#playground', owners: '#owners', value: '#value', passport: '#passport', momentum: '#momentum', compare: '#compare', jurisdiction: '#jurisdiction' };
+  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements', reports: '#reports', watchlist: '#watchlist', playground: '#playground', owners: '#owners', value: '#value', passport: '#passport', momentum: '#momentum', compare: '#compare', jurisdiction: '#jurisdiction', admin: '#admin' };
   const activeHash = hashMap[page] || '#search';
   const activeLink = document.querySelector(`a[href="${activeHash}"]`);
   if (activeLink) {
@@ -3692,6 +3904,7 @@ function showPage(page) {
   if (page === 'momentum') { initMomentum(); }
   if (page === 'compare') { initComparePage(); }
   if (page === 'jurisdiction') { initJurisdictionPage(); }
+  if (page === 'admin') { loadAdmin(); }
   if (page === 'contractors') {
     showContractorSearch();
     const results = document.getElementById('contractor-results');
@@ -4193,10 +4406,12 @@ function signOut() {
   if (!confirm('Sign out? Your API key will be cleared from this browser.')) return;
   currentKey = '';
   localStorage.removeItem('pl_api_key');
+  localStorage.removeItem('pl_user_email');
   document.getElementById('nav-signup').textContent = 'Get API Key';
   document.getElementById('nav-signup').onclick = openSignup;
   const signoutBtn = document.getElementById('signout-btn');
   if (signoutBtn) signoutBtn.style.display = 'none';
+  checkAdminAccess();
   showPage('home');
   showToast('Signed out successfully.', 'success');
 }
@@ -4214,15 +4429,17 @@ async function loadDashboard() {
   document.getElementById('dash-content').style.display = '';
   if (signoutBtn) signoutBtn.style.display = '';
   try {
-    const [usageR, keysR] = await Promise.all([
+    const [usageR, keysR, meR] = await Promise.all([
       fetch(API + '/v1/usage', { headers: { 'X-API-Key': currentKey } }),
-      fetch(API + '/v1/api-keys', { headers: { 'X-API-Key': currentKey } })
+      fetch(API + '/v1/api-keys', { headers: { 'X-API-Key': currentKey } }),
+      fetch(API + '/v1/me', { headers: { 'X-API-Key': currentKey } })
     ]);
 
     if (usageR.status === 401) { currentKey = ''; localStorage.removeItem('pl_api_key'); showPage('home'); openSignup(); return; }
 
     const usage = await usageR.json();
     const keys = await keysR.json();
+    if (meR.ok) { const me = await meR.json(); if (me.email) { localStorage.setItem('pl_user_email', me.email); checkAdminAccess(); } }
 
     const planDisplayNames = { free: 'Free', explorer: 'Explorer', pro_leads: 'Pro Leads', realtime: 'Real-Time', enterprise: 'Enterprise', starter: 'Explorer', pro: 'Pro Leads' };
     const planFreshness = {
@@ -4364,6 +4581,8 @@ async function doSignup() {
 
     currentKey = d.api_key;
     localStorage.setItem('pl_api_key', currentKey);
+    localStorage.setItem('pl_user_email', d.email || email);
+    checkAdminAccess();
 
     document.getElementById('signup-form-view').style.display = 'none';
     document.getElementById('signup-success-view').style.display = '';
@@ -10525,6 +10744,526 @@ function initJurisdictionPage() {
 // ─── END JURISDICTION INTELLIGENCE ───────────────────────────────────────────
 
 // ─── END API PLAYGROUND ────────────────────────────────────────────────────────
+
+// ─── ADMIN DASHBOARD ────────────────────────────────────────────────────────
+const ADMIN_EMAILS = ['will@ecbtx.com', 'admin@ecbtx.com'];
+let adminScrapers = [];
+let adminDashData = null;
+let adminCoverageData = null;
+let adminSchedulesData = null;
+
+function checkAdminAccess() {
+  // Show admin nav link if user email matches
+  const link = document.getElementById('nav-admin-link');
+  if (!link) return;
+  const email = localStorage.getItem('pl_user_email') || '';
+  if (ADMIN_EMAILS.includes(email.toLowerCase())) {
+    link.style.display = '';
+  } else {
+    link.style.display = 'none';
+  }
+}
+
+async function loadAdmin() {
+  if (!currentKey) { showPage('home'); openSignup(); return; }
+  const hdrs = { 'X-API-Key': currentKey };
+
+  // Fetch dashboard + scrapers + coverage + schedules in parallel
+  const [dashRes, scrapersRes, coverageRes, schedulesRes] = await Promise.allSettled([
+    fetch(API + '/v1/admin/dashboard', { headers: hdrs }),
+    fetch(API + '/v1/admin/scrapers', { headers: hdrs }),
+    fetch(API + '/v1/admin/coverage', { headers: hdrs }),
+    fetch(API + '/v1/admin/schedules', { headers: hdrs }),
+  ]);
+
+  // Handle auth errors
+  for (const r of [dashRes, scrapersRes]) {
+    if (r.status === 'fulfilled' && r.value.status === 403) {
+      showToast('Admin access required', 'error');
+      showPage('home');
+      return;
+    }
+    if (r.status === 'fulfilled' && r.value.status === 401) {
+      showToast('Please sign in first', 'error');
+      showPage('home');
+      openSignup();
+      return;
+    }
+  }
+
+  if (dashRes.status === 'fulfilled' && dashRes.value.ok) {
+    adminDashData = await dashRes.value.json();
+    renderAdminHealth(adminDashData);
+    renderAdminAlerts(adminDashData);
+    renderAdminActivity(adminDashData);
+  }
+
+  if (scrapersRes.status === 'fulfilled' && scrapersRes.value.ok) {
+    const d = await scrapersRes.value.json();
+    adminScrapers = d.scrapers || [];
+    populateAdminStateFilter();
+    renderAdminScraperTable(adminScrapers);
+    document.getElementById('admin-scraper-count').textContent = `(${adminScrapers.length})`;
+  }
+
+  if (coverageRes.status === 'fulfilled' && coverageRes.value.ok) {
+    adminCoverageData = await coverageRes.value.json();
+    renderAdminCoverage(adminCoverageData);
+  }
+
+  if (schedulesRes.status === 'fulfilled' && schedulesRes.value.ok) {
+    adminSchedulesData = await schedulesRes.value.json();
+    renderAdminSchedules(adminSchedulesData);
+  }
+}
+
+function renderAdminHealth(d) {
+  const bar = document.getElementById('admin-health-bar');
+  if (!bar) return;
+  const si = d.system_info || {};
+  const du = d.disk_usage || {};
+  const pct = du.fs_used_pct || 0;
+  const barColor = pct > 90 ? 'var(--red)' : pct > 70 ? 'var(--orange)' : 'var(--green)';
+
+  bar.innerHTML = `
+    <div class="admin-health-card">
+      <div class="ahc-label">Hostname</div>
+      <div class="ahc-value" style="font-size:16px">${esc(si.hostname || 'N/A')}</div>
+      <div class="ahc-sub">${esc(si.uptime || 'N/A')} uptime</div>
+    </div>
+    <div class="admin-health-card">
+      <div class="ahc-label">Load Average</div>
+      <div class="ahc-value" style="font-size:18px">${(si.load_average||[0,0,0]).map(l => l.toFixed(2)).join(' / ')}</div>
+      <div class="ahc-sub">1m / 5m / 15m</div>
+    </div>
+    <div class="admin-health-card">
+      <div class="ahc-label">Total Records</div>
+      <div class="ahc-value">${(d.total_records||0).toLocaleString()}</div>
+      <div class="ahc-sub">in permits table</div>
+    </div>
+    <div class="admin-health-card">
+      <div class="ahc-label">Total Scrapers</div>
+      <div class="ahc-value">${d.total_scrapers||0}</div>
+      <div class="ahc-sub">${Object.keys(d.scrapers_by_category||{}).length} categories</div>
+    </div>
+    <div class="admin-health-card">
+      <div class="ahc-label">Last 24h Runs</div>
+      <div class="ahc-value">${(d.last_24h_runs||[]).length}</div>
+      <div class="ahc-sub">${(d.failing_scrapers||[]).length} failing</div>
+    </div>
+    <div class="admin-health-card">
+      <div class="ahc-label">Disk Usage</div>
+      <div class="ahc-value" style="font-size:16px">${esc(du.fs_used_human||'?')} / ${esc(du.fs_total_human||'?')}</div>
+      <div class="admin-disk-bar"><div class="adb-fill" style="width:${pct}%;background:${barColor}"></div></div>
+      <div class="ahc-sub">${pct}% used &middot; ${esc(du.fs_free_human||'?')} free</div>
+    </div>
+  `;
+}
+
+function renderAdminAlerts(d) {
+  const area = document.getElementById('admin-alerts-area');
+  if (!area) return;
+  area.innerHTML = '';
+
+  const stale = d.stale_scrapers || [];
+  const failing = d.failing_scrapers || [];
+
+  if (failing.length > 0) {
+    area.innerHTML += `
+      <div class="admin-alert-banner">
+        <div class="aab-icon">&#x26A0;</div>
+        <div class="aab-text"><strong>${failing.length} Failing Scraper${failing.length > 1 ? 's' : ''}</strong> &mdash; ${failing.map(f => esc(f.filename.replace('.py',''))).join(', ')}</div>
+      </div>
+    `;
+  }
+
+  if (stale.length > 0) {
+    area.innerHTML += `
+      <div class="admin-alert-banner" style="background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.2)">
+        <div class="aab-icon">&#x23F0;</div>
+        <div class="aab-text" style="color:var(--orange)"><strong>${stale.length} Stale Scraper${stale.length > 1 ? 's' : ''}</strong> &mdash; haven't run in 7+ days</div>
+        <button onclick="runAllStale()" style="background:var(--orange)">Run All Stale</button>
+      </div>
+    `;
+  }
+}
+
+function renderAdminScraperTable(scrapers) {
+  const tbody = document.getElementById('admin-scraper-tbody');
+  if (!tbody) return;
+
+  if (!scrapers.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text3)">No scrapers match filters</td></tr>';
+    return;
+  }
+
+  const now = Date.now();
+  const DAY = 86400000;
+
+  tbody.innerHTML = scrapers.map(s => {
+    const lastRun = s.last_run_time ? new Date(s.last_run_time) : null;
+    const ago = lastRun ? adminTimeAgo(lastRun, now) : 'Never';
+    const daysSince = lastRun ? (now - lastRun.getTime()) / DAY : Infinity;
+
+    // Status determination
+    let statusDot, statusLabel;
+    if (s.success === true && daysSince <= 1) {
+      statusDot = 'admin-status-ok'; statusLabel = 'OK';
+    } else if (s.success === true && daysSince <= 7) {
+      statusDot = 'admin-status-stale'; statusLabel = 'Stale';
+    } else if (s.success === false) {
+      statusDot = 'admin-status-fail'; statusLabel = 'Failed';
+    } else if (!lastRun) {
+      statusDot = 'admin-status-never'; statusLabel = 'Never';
+    } else {
+      statusDot = 'admin-status-stale'; statusLabel = 'Old';
+    }
+
+    // Row color
+    let rowBg = '';
+    if (s.success === true && daysSince <= 1) rowBg = 'rgba(34,197,94,.03)';
+    else if (s.success === true && daysSince > 1) rowBg = 'rgba(245,158,11,.03)';
+    else if (s.success === false) rowBg = 'rgba(239,68,68,.03)';
+
+    const records = s.records_count != null ? s.records_count.toLocaleString() : '—';
+    const duration = s.duration_seconds != null ? (s.duration_seconds < 60 ? s.duration_seconds + 's' : Math.round(s.duration_seconds / 60) + 'm') : '—';
+
+    return `<tr style="background:${rowBg}" data-cat="${s.category}" data-state="${s.target_state||''}" data-status="${statusLabel.toLowerCase()}" data-name="${s.filename.toLowerCase()}">
+      <td class="at-name" title="${esc(s.filename)}">${esc(s.filename.replace('.py',''))}</td>
+      <td><span class="admin-cat-badge admin-cat-${s.category}">${esc(s.category)}</span></td>
+      <td style="font-weight:600;color:var(--text2)">${s.target_state || '—'}</td>
+      <td style="color:var(--text3);font-size:12px" title="${s.last_run_time||''}">${ago}</td>
+      <td><span class="admin-status-dot ${statusDot}"></span>${statusLabel}</td>
+      <td style="font-variant-numeric:tabular-nums">${records}</td>
+      <td style="color:var(--text3)">${duration}</td>
+      <td style="white-space:nowrap">
+        <button class="admin-run-btn" onclick="runScraper('${esc(s.filename)}',this)">Run</button>
+        ${s.log_file ? `<button class="admin-log-btn" onclick="viewLogs('${esc(s.filename)}')">Logs</button>` : ''}
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function populateAdminStateFilter() {
+  const sel = document.getElementById('admin-filter-state');
+  if (!sel) return;
+  const states = [...new Set(adminScrapers.map(s => s.target_state).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">All States</option>' + states.map(st => `<option value="${st}">${st}</option>`).join('');
+}
+
+function filterAdminScrapers() {
+  const cat = document.getElementById('admin-filter-cat')?.value || '';
+  const state = document.getElementById('admin-filter-state')?.value || '';
+  const status = document.getElementById('admin-filter-status')?.value || '';
+  const search = (document.getElementById('admin-search')?.value || '').toLowerCase();
+
+  const now = Date.now();
+  const DAY = 86400000;
+  const WEEK = 7 * DAY;
+
+  const filtered = adminScrapers.filter(s => {
+    if (cat && s.category !== cat) return false;
+    if (state && s.target_state !== state) return false;
+    if (search && !s.filename.toLowerCase().includes(search)) return false;
+
+    if (status) {
+      const lastRun = s.last_run_time ? new Date(s.last_run_time) : null;
+      const daysSince = lastRun ? (now - lastRun.getTime()) / DAY : Infinity;
+      if (status === 'success' && !(s.success === true)) return false;
+      if (status === 'failed' && !(s.success === false)) return false;
+      if (status === 'stale' && !(lastRun && daysSince >= 7)) return false;
+      if (status === 'never' && lastRun) return false;
+    }
+    return true;
+  });
+
+  renderAdminScraperTable(filtered);
+  document.getElementById('admin-scraper-count').textContent = `(${filtered.length}/${adminScrapers.length})`;
+}
+
+function sortAdminScrapers() {
+  const sortBy = document.getElementById('admin-sort')?.value || 'category';
+  const catOrder = { parcel: 0, permit: 1, b2b: 2, enrichment: 3, ai: 4, import: 5, utility: 6 };
+
+  adminScrapers.sort((a, b) => {
+    if (sortBy === 'name') return a.filename.localeCompare(b.filename);
+    if (sortBy === 'state') return (a.target_state||'ZZ').localeCompare(b.target_state||'ZZ');
+    if (sortBy === 'last_run') {
+      const ta = a.last_run_time ? new Date(a.last_run_time).getTime() : 0;
+      const tb = b.last_run_time ? new Date(b.last_run_time).getTime() : 0;
+      return tb - ta;
+    }
+    if (sortBy === 'status') {
+      const sv = s => s.success === true ? 0 : s.success === false ? 1 : s.last_run_time ? 2 : 3;
+      return sv(a) - sv(b);
+    }
+    // category default
+    return (catOrder[a.category]||99) - (catOrder[b.category]||99);
+  });
+
+  filterAdminScrapers();
+}
+
+async function runScraper(filename, btnEl) {
+  if (!currentKey) return;
+  if (btnEl) { btnEl.disabled = true; btnEl.textContent = '...'; }
+
+  try {
+    const res = await fetch(API + `/v1/admin/scrapers/${encodeURIComponent(filename)}/run`, {
+      method: 'POST',
+      headers: { 'X-API-Key': currentKey },
+    });
+    const d = await res.json();
+    if (res.ok) {
+      showToast(`Queued ${filename} (job ${d.job_id})`, 'success');
+      if (btnEl) { btnEl.textContent = 'Running'; btnEl.style.background = 'var(--orange)'; }
+      // Refresh after a short delay
+      setTimeout(loadAdmin, 5000);
+    } else {
+      showToast(d.detail || 'Failed to start scraper', 'error');
+      if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'Run'; }
+    }
+  } catch (e) {
+    showToast('Network error', 'error');
+    if (btnEl) { btnEl.disabled = false; btnEl.textContent = 'Run'; }
+  }
+}
+
+async function runAllStale() {
+  if (!adminDashData || !currentKey) return;
+  const stale = adminDashData.stale_scrapers || [];
+  if (!stale.length) return;
+  if (!confirm(`Run ${stale.length} stale scrapers? This will queue them all.`)) return;
+
+  for (const s of stale) {
+    await runScraper(s.filename, null);
+    // Slight delay to avoid hammering
+    await new Promise(r => setTimeout(r, 200));
+  }
+  showToast(`Queued ${stale.length} stale scrapers`, 'success');
+}
+
+async function viewLogs(filename) {
+  const modal = document.getElementById('admin-log-modal');
+  const title = document.getElementById('admin-log-title');
+  const body = document.getElementById('admin-log-body');
+  if (!modal || !title || !body) return;
+
+  title.textContent = `Logs: ${filename}`;
+  body.textContent = 'Loading...';
+  modal.classList.add('visible');
+
+  try {
+    const res = await fetch(API + `/v1/admin/scrapers/${encodeURIComponent(filename)}/logs`, {
+      headers: { 'X-API-Key': currentKey },
+    });
+    if (res.ok) {
+      const d = await res.json();
+      const lines = d.lines || [];
+      body.textContent = (d.truncated ? `[Showing last 200 of ${d.total_lines} lines]\n\n` : '') + lines.join('\n');
+      // Scroll to bottom
+      body.scrollTop = body.scrollHeight;
+    } else {
+      const d = await res.json();
+      body.textContent = d.detail || 'Error loading logs';
+    }
+  } catch (e) {
+    body.textContent = 'Network error: ' + e.message;
+  }
+}
+
+function closeAdminLogModal() {
+  document.getElementById('admin-log-modal')?.classList.remove('visible');
+}
+
+function renderAdminCoverage(data) {
+  const grid = document.getElementById('admin-coverage-grid');
+  if (!grid || !data) return;
+
+  const states = data.states || [];
+  const now = Date.now();
+  const WEEK = 7 * 86400000;
+
+  grid.innerHTML = states.map(s => {
+    let cls;
+    if (!s.has_scraper) {
+      cls = 'admin-state-red';
+    } else if (s.last_run && (now - new Date(s.last_run).getTime()) < WEEK) {
+      cls = 'admin-state-green';
+    } else {
+      cls = 'admin-state-yellow';
+    }
+
+    const count = s.total_records > 0 ? (s.total_records > 999999 ? (s.total_records / 1000000).toFixed(1) + 'M' : s.total_records > 999 ? Math.round(s.total_records / 1000) + 'K' : s.total_records) : (s.has_scraper ? '0' : 'N/A');
+
+    return `<div class="admin-state-cell ${cls}" title="${s.state}: ${s.scraper_count} scraper${s.scraper_count!==1?'s':''}, ${s.total_records.toLocaleString()} records">
+      <div class="asc-abbr">${s.state}</div>
+      <div class="asc-count">${count}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderAdminActivity(d) {
+  const feed = document.getElementById('admin-activity-feed');
+  const countEl = document.getElementById('admin-activity-count');
+  if (!feed) return;
+
+  const runs = d.last_24h_runs || [];
+  if (countEl) countEl.textContent = `(${runs.length} in 24h)`;
+
+  if (!runs.length) {
+    feed.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)">No runs in the last 24 hours</div>';
+    return;
+  }
+
+  feed.innerHTML = runs.slice(0, 20).map(r => {
+    const dot = r.success === true ? 'admin-status-ok' : r.success === false ? 'admin-status-fail' : 'admin-status-stale';
+    const time = r.last_run_time ? adminTimeAgo(new Date(r.last_run_time), Date.now()) : '?';
+    const records = r.records_count != null ? r.records_count.toLocaleString() + ' records' : '';
+    return `<div class="admin-activity-item">
+      <span class="admin-status-dot ${dot}"></span>
+      <span class="aai-name">${esc(r.filename.replace('.py',''))}</span>
+      <span class="aai-records">${records}</span>
+      <span class="aai-time">${time}</span>
+    </div>`;
+  }).join('');
+}
+
+function renderAdminSchedules(data) {
+  const el = document.getElementById('admin-schedules');
+  if (!el) return;
+
+  const saved = data.saved_schedules || {};
+  const cron = data.system_crontab || [];
+
+  if (Object.keys(saved).length === 0 && cron.length === 0) {
+    el.innerHTML = `
+      <div style="text-align:center;padding:24px;color:var(--text3)">
+        <div style="font-size:14px;margin-bottom:8px">No schedules configured yet</div>
+        <div style="font-size:12px">Click the schedule icon on any scraper to set up automated runs</div>
+      </div>
+    `;
+    return;
+  }
+
+  // Build schedule list from scrapers that have schedules
+  const rows = [];
+
+  // Saved schedules
+  for (const [filename, sched] of Object.entries(saved)) {
+    rows.push({
+      filename,
+      hour: sched.hour,
+      minute: sched.minute,
+      enabled: sched.enabled,
+      source: 'config',
+    });
+  }
+
+  // Cron entries that match scripts
+  for (const c of cron) {
+    if (c.command && c.command.includes('scripts/')) {
+      const match = c.command.match(/scripts\/([a-z_]+\.py)/);
+      if (match && !saved[match[1]]) {
+        rows.push({
+          filename: match[1],
+          hour: c.hour,
+          minute: c.minute,
+          enabled: true,
+          source: 'crontab',
+        });
+      }
+    }
+  }
+
+  if (!rows.length) {
+    el.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)">No schedules found</div>';
+    return;
+  }
+
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 80px 80px 60px 80px;gap:8px;padding-bottom:8px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px">
+      <div>Scraper</div><div>Hour</div><div>Minute</div><div>Active</div><div>Source</div>
+    </div>
+    ${rows.map(r => `
+      <div class="admin-schedule-row">
+        <div class="admin-schedule-name" title="${esc(r.filename)}">${esc(r.filename.replace('.py',''))}</div>
+        <div><input type="number" min="0" max="23" value="${r.hour}" style="width:60px;padding:4px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:12px;text-align:center" onchange="updateSchedule('${esc(r.filename)}',this.value,this.parentElement.nextElementSibling.querySelector('input').value)"></div>
+        <div><input type="number" min="0" max="59" value="${r.minute}" style="width:60px;padding:4px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:12px;text-align:center" onchange="updateSchedule('${esc(r.filename)}',this.parentElement.previousElementSibling.querySelector('input').value,this.value)"></div>
+        <div><div class="admin-schedule-toggle ${r.enabled ? 'active' : ''}" onclick="toggleSchedule('${esc(r.filename)}',this)"></div></div>
+        <div style="font-size:11px;color:var(--text3)">${r.source}</div>
+      </div>
+    `).join('')}
+  `;
+}
+
+async function updateSchedule(filename, hour, minute) {
+  if (!currentKey) return;
+  try {
+    const res = await fetch(API + '/v1/admin/schedules', {
+      method: 'POST',
+      headers: { 'X-API-Key': currentKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename, hour: parseInt(hour), minute: parseInt(minute), enabled: true }),
+    });
+    if (res.ok) {
+      showToast(`Schedule updated for ${filename}`, 'success');
+    } else {
+      const d = await res.json();
+      showToast(d.detail || 'Failed to update schedule', 'error');
+    }
+  } catch (e) {
+    showToast('Network error', 'error');
+  }
+}
+
+async function toggleSchedule(filename, toggleEl) {
+  if (!currentKey) return;
+  const isActive = toggleEl.classList.contains('active');
+  const newState = !isActive;
+  toggleEl.classList.toggle('active', newState);
+
+  // Get current hour/minute from the row
+  const row = toggleEl.closest('.admin-schedule-row');
+  const inputs = row ? row.querySelectorAll('input[type=number]') : [];
+  const hour = inputs[0] ? parseInt(inputs[0].value) : 0;
+  const minute = inputs[1] ? parseInt(inputs[1].value) : 0;
+
+  try {
+    const res = await fetch(API + '/v1/admin/schedules', {
+      method: 'POST',
+      headers: { 'X-API-Key': currentKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename, hour, minute, enabled: newState }),
+    });
+    if (res.ok) {
+      showToast(`${filename} schedule ${newState ? 'enabled' : 'disabled'}`, 'success');
+    }
+  } catch (e) {
+    toggleEl.classList.toggle('active', !newState);
+  }
+}
+
+function adminTimeAgo(date, now) {
+  const diff = now - date.getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return m + 'm ago';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + 'h ago';
+  const d = Math.floor(h / 24);
+  if (d < 30) return d + 'd ago';
+  return Math.floor(d / 30) + 'mo ago';
+}
+
+// Close admin log modal on Escape
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeAdminLogModal();
+});
+// Close on backdrop click
+document.getElementById('admin-log-modal')?.addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeAdminLogModal();
+});
+
+// ─── END ADMIN DASHBOARD ────────────────────────────────────────────────────
 </script>
 </body>
 </html>

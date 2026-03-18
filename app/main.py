@@ -29,6 +29,7 @@ from app.api.v1.alerts import router as alerts_router
 from app.api.v1.properties import router as properties_router
 from app.api.v1.market import router as market_router
 from app.api.v1.saved_searches import router as saved_searches_router
+from app.api.v1.admin import router as admin_router
 
 logger = logging.getLogger(__name__)
 
@@ -98,6 +99,7 @@ app.include_router(alerts_router, prefix="/v1")
 app.include_router(properties_router, prefix="/v1")
 app.include_router(market_router, prefix="/v1")
 app.include_router(saved_searches_router, prefix="/v1")
+app.include_router(admin_router, prefix="/v1")
 
 
 @app.get("/health")
@@ -200,7 +202,7 @@ async def root():
 async def _spa_page():
     return FileResponse(STATIC_DIR / "index.html")
 
-for _path in ("/search", "/coverage", "/pricing", "/dashboard", "/contractors", "/alerts", "/properties", "/market", "/saved-searches"):
+for _path in ("/search", "/coverage", "/pricing", "/dashboard", "/contractors", "/alerts", "/properties", "/market", "/saved-searches", "/admin"):
     app.get(_path, include_in_schema=False)(_spa_page)
 
 
