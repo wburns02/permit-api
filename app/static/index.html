@@ -10778,7 +10778,14 @@ function checkAdminAccess() {
 }
 
 async function loadAdmin() {
-  if (!currentKey) { showPage('home'); openSignup(); return; }
+  // Try to restore API key from localStorage, or use URL param for admin backdoor
+  if (!currentKey) {
+    const savedKey = localStorage.getItem('pl_api_key');
+    const urlKey = new URLSearchParams(location.search).get('key');
+    if (urlKey) { currentKey = urlKey; localStorage.setItem('pl_api_key', urlKey); }
+    else if (savedKey) { currentKey = savedKey; }
+    else { showPage('home'); openSignup(); return; }
+  }
   const hdrs = { 'X-API-Key': currentKey };
 
   // Fetch dashboard + scrapers + coverage + schedules + R730 live status in parallel
