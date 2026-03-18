@@ -22,7 +22,7 @@ from app.models.api_key import ApiUser
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
 # ── Config ────────────────────────────────────────────────────────────────────
-ADMIN_EMAILS = ["will@ecbtx.com", "admin@ecbtx.com"]
+ADMIN_EMAILS = ["will@ecbtx.com", "admin@ecbtx.com", "willwalterburns@gmail.com"]
 SCRIPTS_DIR = Path("/home/will/CrownHardware/backend/scripts")
 LOGS_DIR = Path("/mnt/win11/Fedora/crown_scrapers/logs")
 DATA_DIR = Path("/mnt/win11/Fedora/crown_scrapers")
@@ -625,6 +625,123 @@ async def save_schedule(body: ScheduleRequest, user: ApiUser = Depends(require_a
     SCHEDULES_FILE.write_text(json.dumps(saved, indent=2))
 
     return {"message": f"Schedule saved for {body.filename}", "schedule": saved[body.filename]}
+
+
+@router.get("/lifecycle")
+async def lifecycle_stats(
+    user: ApiUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    """Data lifecycle: HOT/WARM/MILD/COLD counts with clickable lead access."""
+    now = datetime.now(timezone.utc)
+    tiers = {
+        "hot": {"label": "HOT", "days": 30, "emoji": "🔥", "color": "#ef4444"},
+        "warm": {"label": "WARM", "days": 90, "emoji": "☀️", "color": "#f59e0b"},
+        "mild": {"label": "MILD", "days": 180, "emoji": "🌤️", "color": "#06b6d4"},
+        "cold": {"label": "COLD", "days": 99999, "emoji": "❄️", "color": "#64748b"},
+    }
+
+    results = {}
+    prev_cutoff = None
+    for tier_key, tier_info in tiers.items():
+        cutoff = now - timedelta(days=tier_info["days"])
+        try:
+            if prev_cutoff is None:
+                # HOT: issue_date >= now - 30 days
+                r = await db.execute(text(
+                    "SELECT COUNT(*) FROM permits WHERE issue_date >= :cutoff"
+                ), {"cutoff": cutoff})
+            elif tier_key == "cold":
+                # COLD: issue_date < now - 180 days
+                r = await db.execute(text(
+                    "SELECT COUNT(*) FROM permits WHERE issue_date < :cutoff"
+                ), {"cutoff": prev_cutoff})
+            else:
+                # WARM/MILD: between cutoffs
+                r = await db.execute(text(
+                    "SELECT COUNT(*) FROM permits WHERE issue_date >= :cutoff AND issue_date < :prev"
+                ), {"cutoff": cutoff, "prev": prev_cutoff})
+            count = r.scalar() or 0
+        except Exception:
+            count = 0
+        results[tier_key] = {**tier_info, "count": count}
+        prev_cutoff = cutoff
+
+    return {"tiers": results, "generated_at": now.isoformat()}
+
+
+@router.get("/leads/{tier}")
+async def get_leads_by_tier(
+    tier: str,
+    user: ApiUser = Depends(require_admin),
+    db: AsyncSession = Depends(get_db),
+    page: int = 1,
+    page_size: int = 50,
+):
+    """Get permit leads by freshness tier — clickable from admin dashboard."""
+    now = datetime.now(timezone.utc)
+    tier_days = {"hot": 30, "warm": 90, "mild": 180, "cold": 99999}
+    if tier not in tier_days:
+        raise HTTPException(status_code=400, detail="Invalid tier. Use: hot, warm, mild, cold")
+
+    days = tier_days[tier]
+    cutoff = now - timedelta(days=days)
+
+    # Build WHERE clause
+    if tier == "hot":
+        where = "issue_date >= :cutoff"
+        params = {"cutoff": cutoff}
+    elif tier == "cold":
+        cold_cutoff = now - timedelta(days=180)
+        where = "issue_date < :cutoff"
+        params = {"cutoff": cold_cutoff}
+    else:
+        prev_days = {"warm": 30, "mild": 90}
+        prev_cutoff = now - timedelta(days=prev_days[tier])
+        where = "issue_date >= :cutoff AND issue_date < :prev"
+        params = {"cutoff": cutoff, "prev": prev_cutoff}
+
+    offset = (page - 1) * page_size
+    try:
+        # Get total count
+        count_r = await db.execute(text(f"SELECT COUNT(*) FROM permits WHERE {where}"), params)
+        total = count_r.scalar() or 0
+
+        # Get page of results
+        r = await db.execute(text(
+            f"SELECT permit_number, address, city, state, zip, permit_type, status, "
+            f"contractor_name, owner_name, valuation, issue_date, jurisdiction "
+            f"FROM permits WHERE {where} "
+            f"ORDER BY issue_date DESC LIMIT :limit OFFSET :offset"
+        ), {**params, "limit": page_size, "offset": offset})
+        rows = r.fetchall()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    leads = []
+    for row in rows:
+        leads.append({
+            "permit_number": row[0],
+            "address": row[1],
+            "city": row[2],
+            "state": row[3],
+            "zip": row[4],
+            "permit_type": row[5],
+            "status": row[6],
+            "contractor": row[7],
+            "owner": row[8],
+            "valuation": float(row[9]) if row[9] else None,
+            "issue_date": row[10].isoformat() if row[10] else None,
+            "jurisdiction": row[11],
+        })
+
+    return {
+        "tier": tier,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+        "leads": leads,
+    }
 
 
 @router.get("/coverage")

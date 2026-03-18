@@ -3627,6 +3627,19 @@ results.forEach(p =>
         <div class="admin-health-card"><div class="ahc-label">Loading...</div><div class="ahc-value" style="height:28px;background:var(--surface2);border-radius:4px;animation:pulse 1.5s infinite"></div></div>
       </div>
 
+      <!-- Data Lifecycle Tiers -->
+      <div id="admin-lifecycle-cards" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px"></div>
+
+      <!-- Lead Viewer Modal (shown when clicking a tier) -->
+      <div id="admin-leads-viewer" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3 id="admin-leads-title" style="margin:0;font-size:18px;font-weight:700"></h3>
+          <button onclick="document.getElementById('admin-leads-viewer').style.display='none'" style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;color:var(--text2);cursor:pointer;font-size:12px">Close</button>
+        </div>
+        <div id="admin-leads-table" style="overflow-x:auto"></div>
+        <div id="admin-leads-pagination" style="display:flex;gap:8px;margin-top:12px;justify-content:center"></div>
+      </div>
+
       <!-- Stale / Failing Alert Banner -->
       <div id="admin-alerts-area"></div>
 
@@ -3931,7 +3944,7 @@ function showPage(page) {
 function routeFromHash() {
   const raw = location.hash.replace('#','') || 'home';
   const h = raw.split('?')[0]; // strip query params (e.g. #passport?addr=...)
-  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', risk: 'risk', trends: 'trends', properties: 'properties', market: 'market', feed: 'feed', estimator: 'estimator', requirements: 'requirements', reports: 'reports', watchlist: 'watchlist', playground: 'playground', owners: 'owners', value: 'value', passport: 'passport', momentum: 'momentum', compare: 'compare', jurisdiction: 'jurisdiction' };
+  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', risk: 'risk', trends: 'trends', properties: 'properties', market: 'market', feed: 'feed', estimator: 'estimator', requirements: 'requirements', reports: 'reports', watchlist: 'watchlist', playground: 'playground', owners: 'owners', value: 'value', passport: 'passport', momentum: 'momentum', compare: 'compare', jurisdiction: 'jurisdiction', admin: 'admin' };
   showPage(map[h] || 'home');
 }
 window.addEventListener('hashchange', routeFromHash);
@@ -10746,7 +10759,7 @@ function initJurisdictionPage() {
 // ─── END API PLAYGROUND ────────────────────────────────────────────────────────
 
 // ─── ADMIN DASHBOARD ────────────────────────────────────────────────────────
-const ADMIN_EMAILS = ['will@ecbtx.com', 'admin@ecbtx.com'];
+const ADMIN_EMAILS = ['will@ecbtx.com', 'admin@ecbtx.com', 'willwalterburns@gmail.com'];
 let adminScrapers = [];
 let adminDashData = null;
 let adminCoverageData = null;
@@ -10796,6 +10809,7 @@ async function loadAdmin() {
   if (dashRes.status === 'fulfilled' && dashRes.value.ok) {
     adminDashData = await dashRes.value.json();
     renderAdminHealth(adminDashData);
+    loadAdminLifecycle();
     renderAdminAlerts(adminDashData);
     renderAdminActivity(adminDashData);
   }
@@ -10898,6 +10912,91 @@ async function loadAdmin() {
       }
     }
   }
+}
+
+// Load lifecycle tier counts and render clickable cards
+async function loadAdminLifecycle() {
+  const hdrs = { 'X-API-Key': currentKey };
+  try {
+    const r = await fetch(API + '/v1/admin/lifecycle', { headers: hdrs });
+    if (!r.ok) return;
+    const d = await r.json();
+    const container = document.getElementById('admin-lifecycle-cards');
+    if (!container) return;
+    const tiers = d.tiers || {};
+    container.innerHTML = Object.entries(tiers).map(([key, t]) => {
+      const count = (t.count || 0).toLocaleString();
+      return `<div onclick="loadAdminLeads('${key}')" style="cursor:pointer;background:linear-gradient(135deg,${t.color}15,${t.color}08);border:1px solid ${t.color}40;border-radius:14px;padding:18px;text-align:center;transition:transform .15s,box-shadow .15s" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px ${t.color}30'" onmouseout="this.style.transform='';this.style.boxShadow=''">
+        <div style="font-size:28px;margin-bottom:4px">${t.emoji}</div>
+        <div style="font-size:28px;font-weight:800;color:${t.color}">${count}</div>
+        <div style="font-size:13px;font-weight:700;color:${t.color};margin-top:2px">${t.label}</div>
+        <div style="font-size:11px;color:var(--text3);margin-top:4px">${key === 'hot' ? '0-30 days' : key === 'warm' ? '30-90 days' : key === 'mild' ? '90-180 days' : '180+ days'}</div>
+        <div style="font-size:10px;color:var(--text3);margin-top:6px;text-decoration:underline">Click to view →</div>
+      </div>`;
+    }).join('');
+  } catch(e) { console.log('Lifecycle load error:', e); }
+}
+
+// Load and display leads for a specific tier
+async function loadAdminLeads(tier, page) {
+  page = page || 1;
+  const hdrs = { 'X-API-Key': currentKey };
+  const viewer = document.getElementById('admin-leads-viewer');
+  const title = document.getElementById('admin-leads-title');
+  const table = document.getElementById('admin-leads-table');
+  const pagination = document.getElementById('admin-leads-pagination');
+  if (!viewer || !table) return;
+
+  viewer.style.display = 'block';
+  const tierLabels = { hot: '🔥 HOT Leads (0-30 days)', warm: '☀️ WARM Leads (30-90 days)', mild: '🌤️ MILD Leads (90-180 days)', cold: '❄️ COLD Leads (180+ days)' };
+  title.textContent = tierLabels[tier] || tier;
+  table.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)">Loading...</div>';
+
+  try {
+    const r = await fetch(API + `/v1/admin/leads/${tier}?page=${page}&page_size=25`, { headers: hdrs });
+    if (!r.ok) { table.innerHTML = '<div style="color:var(--red);padding:12px">Failed to load leads</div>'; return; }
+    const d = await r.json();
+    const leads = d.leads || [];
+    const total = d.total || 0;
+    const totalPages = Math.ceil(total / 25);
+
+    if (!leads.length) {
+      table.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text3)">No leads in this tier</div>';
+      pagination.innerHTML = '';
+      return;
+    }
+
+    table.innerHTML = `
+      <div style="font-size:12px;color:var(--text3);margin-bottom:8px">${total.toLocaleString()} total leads · Page ${page} of ${totalPages}</div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px">
+        <thead><tr style="border-bottom:1px solid var(--border)">
+          <th style="padding:8px;text-align:left;color:var(--text3);font-size:11px">ADDRESS</th>
+          <th style="padding:8px;text-align:left;color:var(--text3);font-size:11px">CITY</th>
+          <th style="padding:8px;text-align:left;color:var(--text3);font-size:11px">STATE</th>
+          <th style="padding:8px;text-align:left;color:var(--text3);font-size:11px">TYPE</th>
+          <th style="padding:8px;text-align:left;color:var(--text3);font-size:11px">OWNER</th>
+          <th style="padding:8px;text-align:right;color:var(--text3);font-size:11px">VALUE</th>
+          <th style="padding:8px;text-align:left;color:var(--text3);font-size:11px">DATE</th>
+        </tr></thead>
+        <tbody>${leads.map(l => `<tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:8px;color:var(--text1);font-weight:500">${esc(l.address || '')}</td>
+          <td style="padding:8px;color:var(--text2)">${esc(l.city || '')}</td>
+          <td style="padding:8px"><span style="background:var(--accent);color:white;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600">${esc(l.state || '')}</span></td>
+          <td style="padding:8px;color:var(--text2);font-size:12px">${esc(l.permit_type || '')}</td>
+          <td style="padding:8px;color:var(--text2);font-size:12px">${esc(l.owner || '')}</td>
+          <td style="padding:8px;text-align:right;color:var(--green);font-weight:600">${l.valuation ? '$' + l.valuation.toLocaleString() : ''}</td>
+          <td style="padding:8px;color:var(--text3);font-size:12px">${l.issue_date || ''}</td>
+        </tr>`).join('')}</tbody>
+      </table>`;
+
+    // Pagination
+    let paginationHtml = '';
+    if (page > 1) paginationHtml += `<button onclick="loadAdminLeads('${tier}',${page-1})" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 12px;color:var(--text2);cursor:pointer;font-size:12px">← Prev</button>`;
+    paginationHtml += `<span style="padding:6px 12px;color:var(--text3);font-size:12px">Page ${page} / ${totalPages}</span>`;
+    if (page < totalPages) paginationHtml += `<button onclick="loadAdminLeads('${tier}',${page+1})" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:6px 12px;color:var(--text2);cursor:pointer;font-size:12px">Next →</button>`;
+    pagination.innerHTML = paginationHtml;
+
+  } catch(e) { table.innerHTML = '<div style="color:var(--red);padding:12px">Error: ' + e.message + '</div>'; }
 }
 
 function renderAdminHealth(d) {
