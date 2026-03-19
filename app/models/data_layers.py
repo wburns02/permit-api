@@ -1,10 +1,10 @@
-"""Data layer models — contractor licenses, EPA, FEMA, census, septic, valuations."""
+"""Data layer models — contractor licenses, EPA, FEMA, census, septic, valuations, business entities."""
 
 import uuid
 from sqlalchemy import (
     Column, String, Text, Float, Date, Integer, Boolean, Index,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from app.database import Base
 
 
@@ -164,4 +164,31 @@ class PropertyValuation(Base):
     __table_args__ = (
         Index("ix_valuations_zip_period", "zip", "period_end"),
         Index("ix_valuations_state_zip", "state", "zip"),
+    )
+
+
+class BusinessEntity(Base):
+    __tablename__ = "business_entities"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    entity_name = Column(String(500), nullable=False, index=True)
+    entity_type = Column(String(50), index=True)  # LLC, Corporation, LP, LLP, etc.
+    state = Column(String(2), nullable=False, index=True)
+    filing_number = Column(String(100), index=True)
+    status = Column(String(50), index=True)  # Active, Inactive, Dissolved, etc.
+    formation_date = Column(Date)
+    dissolution_date = Column(Date)
+    registered_agent_name = Column(String(500))
+    registered_agent_address = Column(String(500))
+    principal_address = Column(String(500))
+    mailing_address = Column(String(500))
+    officers = Column(JSONB)  # [{name, title, address}, ...]
+    source = Column(String(50), nullable=False)  # fl_sunbiz, tx_sos, ca_bizfile, etc.
+    scraped_at = Column(Date)
+
+    __table_args__ = (
+        Index("ix_entity_name_state", "entity_name", "state"),
+        Index("ix_entity_filing", "filing_number", "state"),
+        Index("ix_entity_state_type", "state", "entity_type"),
+        Index("ix_entity_state_status", "state", "status"),
     )

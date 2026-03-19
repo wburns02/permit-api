@@ -21,6 +21,7 @@ from app.models.saved_search import SavedSearch  # noqa: F401
 from app.models.data_layers import (  # noqa: F401
     ContractorLicense, EpaFacility, FemaFloodZone,
     CensusDemographics, SepticSystem, PropertyValuation,
+    BusinessEntity,
 )
 
 # Import routers
@@ -39,6 +40,7 @@ from app.api.v1.environmental import router as environmental_router
 from app.api.v1.septic import router as septic_router
 from app.api.v1.demographics import router as demographics_router
 from app.api.v1.valuations import router as valuations_router
+from app.api.v1.entities import router as entities_router
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +117,7 @@ app.include_router(environmental_router, prefix="/v1")
 app.include_router(septic_router, prefix="/v1")
 app.include_router(demographics_router, prefix="/v1")
 app.include_router(valuations_router, prefix="/v1")
+app.include_router(entities_router, prefix="/v1")
 
 
 @app.get("/health")
@@ -306,6 +309,25 @@ async def migrate_expansion():
                     parent_metro VARCHAR(200)
                 )
             """,
+            "business_entities": """
+                CREATE TABLE IF NOT EXISTS business_entities (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    entity_name VARCHAR(500) NOT NULL,
+                    entity_type VARCHAR(50),
+                    state VARCHAR(2) NOT NULL,
+                    filing_number VARCHAR(100),
+                    status VARCHAR(50),
+                    formation_date DATE,
+                    dissolution_date DATE,
+                    registered_agent_name VARCHAR(500),
+                    registered_agent_address VARCHAR(500),
+                    principal_address VARCHAR(500),
+                    mailing_address VARCHAR(500),
+                    officers JSONB,
+                    source VARCHAR(50) NOT NULL,
+                    scraped_at DATE
+                )
+            """,
         }
 
         for table_name, ddl in new_tables.items():
@@ -334,6 +356,10 @@ async def migrate_expansion():
             "CREATE INDEX IF NOT EXISTS ix_septic_addr ON septic_systems (address)",
             "CREATE INDEX IF NOT EXISTS ix_val_zip ON property_valuations (zip, period_end)",
             "CREATE INDEX IF NOT EXISTS ix_val_state ON property_valuations (state, zip)",
+            "CREATE INDEX IF NOT EXISTS ix_entity_name ON business_entities (entity_name)",
+            "CREATE INDEX IF NOT EXISTS ix_entity_filing ON business_entities (filing_number, state)",
+            "CREATE INDEX IF NOT EXISTS ix_entity_state ON business_entities (state, entity_type)",
+            "CREATE INDEX IF NOT EXISTS ix_entity_agent ON business_entities (registered_agent_name)",
         ]
         for idx_sql in indexes:
             try:
@@ -400,5 +426,6 @@ async def api_info():
             "septic": "GET /v1/septic/lookup?address=...&state=FL",
             "demographics": "GET /v1/demographics/county?state=TX&county_fips=201",
             "valuations": "GET /v1/valuations/zip?zip=78701",
+            "entities": "GET /v1/entities/search?name=Sunrise+Holdings&state=TX",
         },
     }
