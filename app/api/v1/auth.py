@@ -46,6 +46,50 @@ def _build_freshness_info(plan: PlanTier) -> dict:
     }
 
 
+class ContactRequest(BaseModel):
+    name: str
+    email: EmailStr
+    company: str | None = None
+    plan: str | None = None
+    message: str | None = None
+
+
+@router.post("/contact")
+async def contact_sales(body: ContactRequest):
+    """Submit a sales inquiry. Sends email notification."""
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(
+        "SALES INQUIRY: name=%s email=%s company=%s plan=%s message=%s",
+        body.name, body.email, body.company, body.plan, body.message,
+    )
+
+    # Try SendGrid if configured
+    try:
+        from app.config import settings
+        if settings.SENDGRID_API_KEY:
+            from sendgrid import SendGridAPIClient
+            from sendgrid.helpers.mail import Mail
+            msg = Mail(
+                from_email=settings.SENDGRID_FROM_EMAIL,
+                to_emails="willwalterburns@gmail.com",
+                subject=f"PermitLookup {body.plan or 'Sales'} Inquiry — {body.name}",
+                plain_text_content=(
+                    f"Name: {body.name}\n"
+                    f"Email: {body.email}\n"
+                    f"Company: {body.company or 'N/A'}\n"
+                    f"Plan: {body.plan or 'N/A'}\n\n"
+                    f"Message:\n{body.message or 'N/A'}"
+                ),
+            )
+            sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
+            sg.send(msg)
+    except Exception as e:
+        logger.warning("SendGrid failed: %s — inquiry logged above", e)
+
+    return {"status": "received", "message": "Thanks! We'll be in touch within 24 hours."}
+
+
 @router.post("/signup", response_model=SignupResponse)
 async def signup(body: SignupRequest, db: AsyncSession = Depends(get_db)):
     """
