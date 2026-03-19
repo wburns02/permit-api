@@ -1,65 +1,58 @@
-"""Permit model — normalized from 56M+ scraped government records."""
+"""Permit model — aligned with T430 PostgreSQL schema (744M+ records)."""
 
-import uuid
-from sqlalchemy import (
-    Column, String, Text, Float, Date, Integer, Index,
-    func,
-)
-from sqlalchemy.dialects.postgresql import UUID, TSVECTOR
+from sqlalchemy import Column, String, Text, Float, DateTime, BigInteger, Integer, Date, Index
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from app.database import Base
 
 
 class Permit(Base):
     __tablename__ = "permits"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    permit_number = Column(String(100), nullable=False, index=True)
-    original_id = Column(String(255))
+    id = Column("id", BigInteger, primary_key=True)
+    permit_number = Column("permit_number", Text, index=True)
 
     # Location
-    address = Column(String(500), nullable=False)
-    address_normalized = Column(String(500), index=True)
-    city = Column(String(100), index=True)
-    state = Column(String(2), nullable=False, index=True)
-    zip = Column(String(10), index=True)
-    lat = Column(Float)
-    lng = Column(Float)
-    parcel_id = Column(String(200), index=True)
+    address = Column("address", Text)
+    city = Column("city", Text, index=True)
+    state = Column("state_code", String(2), nullable=False, index=True)
+    zip = Column("zip_code", Text, index=True)
+    county = Column("county", Text)
+    lat = Column("lat", Float)
+    lng = Column("lng", Float)
+    parcel_id = Column("parcel_number", Text)
 
     # Permit details
-    permit_type = Column(String(100), index=True)  # building, electrical, plumbing, mechanical, demolition
-    work_type = Column(String(255))
-    trade = Column(String(50), index=True)
-    status = Column(String(50), index=True)
-    description = Column(Text)
-    valuation = Column(Float)
+    permit_type = Column("project_type", Text, index=True)
+    work_type = Column("work_type", Text)
+    trade = Column("trade", Text)
+    category = Column("category", Text)
+    project_name = Column("project_name", Text)
+    status = Column("status", Text, index=True)
+    description = Column("description", Text)
 
     # Dates
-    issue_date = Column(Date, index=True)
-    created_date = Column(Date)
-    expired_date = Column(Date)
-    completed_date = Column(Date)
+    issue_date = Column("date_created", DateTime)
 
     # People
-    owner_name = Column(String(255))
-    contractor_name = Column(String(255), index=True)
-    contractor_company = Column(String(255))
-    applicant_name = Column(String(255))
+    owner_name = Column("owner_name", Text)
+    applicant_name = Column("applicant_name", Text)
 
     # Source tracking
-    jurisdiction = Column(String(200), nullable=False, index=True)
-    source = Column(String(50))  # energov, mgo, arcgis, socrata, opengov
-    scraped_at = Column(Date)
+    source = Column("source", Text)
+    source_file = Column("source_file", Text)
+
+    # T430-specific fields
+    ossf_details = Column("ossf_details", Text)
+    system_type = Column("system_type", Text)
+    subdivision = Column("subdivision", Text)
+    raw_data = Column("raw_data", JSONB)
 
     # Full-text search vector
-    search_vector = Column(TSVECTOR)
+    search_vector = Column("search_vector", TSVECTOR)
 
     __table_args__ = (
         Index("ix_permits_search_vector", "search_vector", postgresql_using="gin"),
-        Index("ix_permits_address_trgm", "address_normalized", postgresql_using="gin",
-              postgresql_ops={"address_normalized": "gin_trgm_ops"}),
-        Index("ix_permits_state_city", "state", "city"),
-        Index("ix_permits_jurisdiction_type", "jurisdiction", "permit_type"),
+        Index("ix_permits_state_city", "state_code", "city"),
         Index("ix_permits_geo", "lat", "lng"),
     )
 

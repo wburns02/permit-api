@@ -117,8 +117,6 @@ async def permit_to_sale(
     permit_count_q = (
         select(
             func.count().label("permit_count"),
-            func.avg(Permit.valuation).label("avg_valuation"),
-            func.sum(Permit.valuation).label("total_valuation"),
         )
         .where(and_(
             Permit.zip == zip,
@@ -197,8 +195,6 @@ async def permit_to_sale(
         "risk_factors": scoring["risk_factors"],
         "permits": {
             "count": permit_row.permit_count,
-            "avg_valuation": round(permit_row.avg_valuation, 2) if permit_row.avg_valuation else None,
-            "total_valuation": round(permit_row.total_valuation, 2) if permit_row.total_valuation else None,
             "type_breakdown": {r.permit_type: r.count for r in type_rows},
         },
         "valuation_snapshot": {
@@ -255,7 +251,6 @@ async def hot_zips(
             Permit.zip.label("zip"),
             Permit.state.label("state"),
             func.count().label("permit_count"),
-            func.avg(Permit.valuation).label("avg_valuation"),
         )
         .where(and_(*permit_conditions))
         .group_by(Permit.zip, Permit.state)
@@ -279,7 +274,6 @@ async def hot_zips(
             permit_subq.c.zip,
             permit_subq.c.state,
             permit_subq.c.permit_count,
-            permit_subq.c.avg_valuation,
             PropertyValuation.median_sale_price,
             PropertyValuation.median_dom,
             PropertyValuation.inventory,
@@ -325,7 +319,6 @@ async def hot_zips(
             "score_components": scoring["components"],
             "risk_factors": scoring["risk_factors"],
             "permit_count": r.permit_count,
-            "avg_permit_valuation": round(r.avg_valuation, 2) if r.avg_valuation else None,
             "median_sale_price": r.median_sale_price,
             "median_dom": r.median_dom,
             "inventory": r.inventory,

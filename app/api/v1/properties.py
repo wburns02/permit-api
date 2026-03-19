@@ -36,9 +36,9 @@ async def _property_history(db: AsyncSession, address: str) -> dict:
 
     query = (
         select(*PERMIT_COLUMNS)
-        .where(text("similarity(address_normalized, :addr) > 0.7").bindparams(addr=normalized))
+        .where(text("similarity(address, :addr) > 0.7").bindparams(addr=normalized))
         .order_by(
-            text("similarity(address_normalized, :addr) DESC").bindparams(addr=normalized),
+            text("similarity(address, :addr) DESC").bindparams(addr=normalized),
             Permit.issue_date.desc().nullslast(),
         )
         .limit(200)

@@ -55,7 +55,6 @@ async def market_activity(
             extract("year", Permit.issue_date).label("year"),
             extract("month", Permit.issue_date).label("month"),
             func.count().label("permit_count"),
-            func.avg(Permit.valuation).label("avg_valuation"),
         )
         .where(where)
         .group_by("year", "month")
@@ -63,15 +62,14 @@ async def market_activity(
     )
     monthly_rows = (await db.execute(monthly_q)).all()
 
-    # Top contractors
-    contractor_key = func.coalesce(Permit.contractor_company, Permit.contractor_name)
+    # Top contractors (applicant_name on T430)
     top_contractors_q = (
         select(
-            contractor_key.label("contractor"),
+            Permit.applicant_name.label("contractor"),
             func.count().label("permits"),
         )
-        .where(and_(where, contractor_key.isnot(None)))
-        .group_by(contractor_key)
+        .where(and_(where, Permit.applicant_name.isnot(None)))
+        .group_by(Permit.applicant_name)
         .order_by(func.count().desc())
         .limit(10)
     )
@@ -102,7 +100,6 @@ async def market_activity(
                 "year": int(r.year),
                 "month": int(r.month),
                 "permit_count": r.permit_count,
-                "avg_valuation": round(r.avg_valuation, 2) if r.avg_valuation else None,
             }
             for r in monthly_rows
         ],
@@ -133,7 +130,6 @@ async def market_hotspots(
         select(
             Permit.zip,
             func.count().label("recent_count"),
-            func.avg(Permit.valuation).label("avg_valuation"),
         )
         .where(and_(
             Permit.state.ilike(state),
@@ -188,7 +184,6 @@ async def market_hotspots(
         results.append({
             "zip": r.zip,
             "permit_count": r.recent_count,
-            "avg_valuation": round(r.avg_valuation, 2) if r.avg_valuation else None,
             "prior_period_count": prior,
             "growth_pct": growth_pct,
         })

@@ -35,41 +35,34 @@ async def search_contractors(
     """
     Search contractors by name or company. Returns aggregated contractor profiles
     with permit counts, active jurisdictions, and specialties.
+
+    Uses applicant_name from the permits table (T430 schema).
     """
     await check_rate_limit(request, lookup_count=1)
 
+    safe_name = _escape_like(name)
     conditions = [
-        or_(
-            Permit.contractor_name.ilike(f"%{name}%"),
-            Permit.contractor_company.ilike(f"%{name}%"),
-        ),
-        or_(
-            Permit.contractor_name.is_not(None),
-            Permit.contractor_company.is_not(None),
-        ),
+        Permit.applicant_name.ilike(f"%{safe_name}%"),
+        Permit.applicant_name.is_not(None),
     ]
     if state:
         conditions.append(Permit.state == state.upper())
 
     where = and_(*conditions)
 
-    # Aggregate by contractor_company (primary) or contractor_name
-    contractor_key = func.coalesce(Permit.contractor_company, Permit.contractor_name)
-
     query = (
         select(
-            contractor_key.label("contractor"),
+            Permit.applicant_name.label("contractor"),
             func.count().label("total_permits"),
-            func.count(func.distinct(Permit.jurisdiction)).label("jurisdictions"),
+            func.count(func.distinct(Permit.county)).label("counties"),
             func.count(func.distinct(Permit.state)).label("states"),
             func.min(Permit.issue_date).label("first_permit"),
             func.max(Permit.issue_date).label("last_permit"),
             func.array_agg(func.distinct(Permit.permit_type)).label("permit_types"),
             func.array_agg(func.distinct(Permit.state)).label("active_states"),
-            func.avg(Permit.valuation).label("avg_valuation"),
         )
         .where(where)
-        .group_by(contractor_key)
+        .group_by(Permit.applicant_name)
         .order_by(func.count().desc())
         .offset((page - 1) * page_size)
         .limit(page_size)
@@ -80,7 +73,7 @@ async def search_contractors(
 
     # Count total
     count_q = (
-        select(func.count(func.distinct(contractor_key)))
+        select(func.count(func.distinct(Permit.applicant_name)))
         .where(where)
     )
     total = (await db.execute(count_q)).scalar() or 0
@@ -100,13 +93,12 @@ async def search_contractors(
         {
             "contractor": r.contractor,
             "total_permits": r.total_permits,
-            "jurisdictions": r.jurisdictions,
+            "counties": r.counties,
             "states": r.states,
             "first_active": r.first_permit.isoformat() if r.first_permit else None,
             "last_active": r.last_permit.isoformat() if r.last_permit else None,
             "permit_types": [t for t in (r.permit_types or []) if t],
             "active_states": [s for s in (r.active_states or []) if s],
-            "avg_valuation": round(r.avg_valuation, 2) if r.avg_valuation else None,
         }
         for r in rows
     ]
@@ -139,11 +131,9 @@ async def contractor_permits(
 
     from app.services.search_service import PERMIT_COLUMNS, row_to_dict
 
+    safe_name = _escape_like(contractor_name)
     conditions = [
-        or_(
-            Permit.contractor_name.ilike(f"%{contractor_name}%"),
-            Permit.contractor_company.ilike(f"%{contractor_name}%"),
-        ),
+        Permit.applicant_name.ilike(f"%{safe_name}%"),
     ]
     if state:
         conditions.append(Permit.state == state.upper())
@@ -248,56 +238,15 @@ def _activity_recency_score(last_permit_date: date | None) -> tuple[int, str]:
     return 100, f"Very stale — last permit {days_ago} days ago"
 
 
-def _jurisdiction_spread_score(count: int) -> tuple[int, str]:
-    """More jurisdictions = more established.  1 = 50, 3+ = 25, 5+ = 0."""
+def _county_spread_score(count: int) -> tuple[int, str]:
+    """More counties = more established.  1 = 50, 3+ = 25, 5+ = 0."""
     if count >= 5:
-        return 0, f"Operating in {count} jurisdictions — well established"
+        return 0, f"Operating in {count} counties — well established"
     if count >= 3:
-        return 25, f"Operating in {count} jurisdictions"
+        return 25, f"Operating in {count} counties"
     if count >= 1:
-        return 50, f"Operating in {count} jurisdiction(s)"
-    return 75, "No jurisdiction data"
-
-
-def _valuation_consistency_score(
-    avg_val: float | None,
-    stddev_val: float | None,
-    min_val: float | None,
-    max_val: float | None,
-    count: int,
-) -> tuple[int, str]:
-    """
-    High coefficient of variation in project valuations = higher risk.
-    With fewer than 3 permits or no valuation data, score is neutral.
-    """
-    if count < 3 or avg_val is None or avg_val <= 0:
-        return 50, "Insufficient valuation data"
-
-    if stddev_val is None or stddev_val <= 0:
-        return 0, "Consistent project valuations"
-
-    cv = stddev_val / avg_val  # coefficient of variation
-
-    if cv <= 0.3:
-        score = 0
-        desc = "Very consistent valuations"
-    elif cv <= 0.6:
-        score = 20
-        desc = "Fairly consistent valuations"
-    elif cv <= 1.0:
-        score = 40
-        desc = "Moderate valuation variance"
-    elif cv <= 2.0:
-        score = 65
-        desc = "High valuation variance"
-    else:
-        score = 85
-        desc = "Extremely high valuation variance"
-
-    if min_val is not None and max_val is not None and min_val > 0:
-        desc += f" (range: ${min_val:,.0f}–${max_val:,.0f})"
-
-    return score, desc
+        return 50, f"Operating in {count} county/counties"
+    return 75, "No county data"
 
 
 def _risk_level(composite: int) -> str:
@@ -321,8 +270,7 @@ async def contractor_risk_score(
 ):
     """
     Compute a composite risk score (0-100) for a contractor based on permit
-    history, license status, activity recency, jurisdiction spread, and
-    valuation consistency.
+    history, license status, activity recency, and county spread.
 
     Requires Pro Leads plan or higher.
     """
@@ -337,21 +285,14 @@ async def contractor_risk_score(
 
     # ----- Query permit data -----
     safe_name = _escape_like(contractor_name)
-    name_filter = or_(
-        Permit.contractor_name.ilike(f"%{safe_name}%"),
-        Permit.contractor_company.ilike(f"%{safe_name}%"),
-    )
+    name_filter = Permit.applicant_name.ilike(f"%{safe_name}%")
 
     permit_agg_q = select(
         func.count().label("total_permits"),
-        func.count(func.distinct(Permit.jurisdiction)).label("jurisdiction_count"),
+        func.count(func.distinct(Permit.county)).label("county_count"),
         func.min(Permit.issue_date).label("first_permit"),
         func.max(Permit.issue_date).label("last_permit"),
-        func.avg(Permit.valuation).label("avg_valuation"),
-        func.stddev(Permit.valuation).label("stddev_valuation"),
-        func.min(Permit.valuation).label("min_valuation"),
-        func.max(Permit.valuation).label("max_valuation"),
-        func.array_agg(func.distinct(Permit.jurisdiction)).label("jurisdictions"),
+        func.array_agg(func.distinct(Permit.county)).label("counties"),
         func.array_agg(func.distinct(Permit.state)).label("active_states"),
         func.array_agg(func.distinct(Permit.permit_type)).label("permit_types"),
     ).where(name_filter)
@@ -387,30 +328,20 @@ async def contractor_risk_score(
 
     recency_score, recency_desc = _activity_recency_score(pdata.last_permit)
 
-    jurisd_score, jurisd_desc = _jurisdiction_spread_score(pdata.jurisdiction_count or 0)
+    county_score, county_desc = _county_spread_score(pdata.county_count or 0)
 
-    val_score, val_desc = _valuation_consistency_score(
-        avg_val=float(pdata.avg_valuation) if pdata.avg_valuation else None,
-        stddev_val=float(pdata.stddev_valuation) if pdata.stddev_valuation else None,
-        min_val=float(pdata.min_valuation) if pdata.min_valuation else None,
-        max_val=float(pdata.max_valuation) if pdata.max_valuation else None,
-        count=total_permits,
-    )
-
-    # ----- Weighted composite -----
+    # ----- Weighted composite (rebalanced without valuation) -----
     weights = {
-        "permit_volume": 0.25,
-        "license_status": 0.25,
-        "activity_recency": 0.20,
-        "jurisdiction_spread": 0.15,
-        "valuation_consistency": 0.15,
+        "permit_volume": 0.30,
+        "license_status": 0.30,
+        "activity_recency": 0.25,
+        "county_spread": 0.15,
     }
     composite = round(
         vol_score * weights["permit_volume"]
         + lic_score * weights["license_status"]
         + recency_score * weights["activity_recency"]
-        + jurisd_score * weights["jurisdiction_spread"]
-        + val_score * weights["valuation_consistency"]
+        + county_score * weights["county_spread"]
     )
     composite = max(0, min(100, composite))  # clamp
 
@@ -426,10 +357,8 @@ async def contractor_risk_score(
         contributing_factors.append(lic_desc)
     if recency_score >= 50:
         contributing_factors.append(recency_desc)
-    if jurisd_score >= 50:
-        contributing_factors.append(jurisd_desc)
-    if val_score >= 50:
-        contributing_factors.append(val_desc)
+    if county_score >= 50:
+        contributing_factors.append(county_desc)
 
     if not contributing_factors:
         contributing_factors.append("No significant risk factors identified")
@@ -469,20 +398,14 @@ async def contractor_risk_score(
                 "first_permit": pdata.first_permit.isoformat() if pdata.first_permit else None,
                 "last_permit": pdata.last_permit.isoformat() if pdata.last_permit else None,
             },
-            "jurisdiction_spread": {
-                "score": jurisd_score,
-                "weight": weights["jurisdiction_spread"],
-                "detail": jurisd_desc,
-                "jurisdictions": [j for j in (pdata.jurisdictions or []) if j][:10],
+            "county_spread": {
+                "score": county_score,
+                "weight": weights["county_spread"],
+                "detail": county_desc,
+                "counties": [c for c in (pdata.counties or []) if c][:10],
                 "active_states": [s for s in (pdata.active_states or []) if s],
-            },
-            "valuation_consistency": {
-                "score": val_score,
-                "weight": weights["valuation_consistency"],
-                "detail": val_desc,
-                "avg_valuation": round(float(pdata.avg_valuation), 2) if pdata.avg_valuation else None,
-                "permit_types": [t for t in (pdata.permit_types or []) if t],
             },
         },
         "contributing_factors": contributing_factors,
+        "permit_types": [t for t in (pdata.permit_types or []) if t],
     }

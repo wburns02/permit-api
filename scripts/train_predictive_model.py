@@ -55,7 +55,6 @@ FEATURE_NAMES = [
     "avg_monthly_permits",
     "seasonality_factor",
     "pct_residential",
-    "avg_valuation",
     "median_sale_price",
     "price_yoy_change",
     "median_dom",
@@ -87,10 +86,10 @@ def get_active_zips(conn):
     t0 = time.time()
     with conn.cursor() as cur:
         cur.execute("""
-            SELECT zip, COUNT(*) as cnt
+            SELECT zip_code AS zip, COUNT(*) as cnt
             FROM permits
-            WHERE zip IS NOT NULL AND zip != ''
-            GROUP BY zip
+            WHERE zip_code IS NOT NULL AND zip_code != ''
+            GROUP BY zip_code
             HAVING COUNT(*) >= 10
         """)
         rows = cur.fetchall()
@@ -121,40 +120,36 @@ def build_permit_features(conn, snapshot_date, lookback_months=24):
 
     query = f"""
         SELECT
-            zip,
+            zip_code AS zip,
             -- Recent activity
-            COUNT(*) FILTER (WHERE filed_date >= {d30} AND filed_date < '{snapshot_date}'::date) AS permit_count_30d,
-            COUNT(*) FILTER (WHERE filed_date >= {d90} AND filed_date < '{snapshot_date}'::date) AS permit_count_90d,
-            COUNT(*) FILTER (WHERE filed_date >= {d365} AND filed_date < '{snapshot_date}'::date) AS permit_count_365d,
+            COUNT(*) FILTER (WHERE date_created >= {d30} AND date_created < '{snapshot_date}'::date) AS permit_count_30d,
+            COUNT(*) FILTER (WHERE date_created >= {d90} AND date_created < '{snapshot_date}'::date) AS permit_count_90d,
+            COUNT(*) FILTER (WHERE date_created >= {d365} AND date_created < '{snapshot_date}'::date) AS permit_count_365d,
 
             -- YoY acceleration: this quarter vs same quarter last year
-            COUNT(*) FILTER (WHERE filed_date >= {d90} AND filed_date < '{snapshot_date}'::date) AS this_q,
-            COUNT(*) FILTER (WHERE filed_date >= {sq_start} AND filed_date < {sq_end}) AS last_yr_q,
+            COUNT(*) FILTER (WHERE date_created >= {d90} AND date_created < '{snapshot_date}'::date) AS this_q,
+            COUNT(*) FILTER (WHERE date_created >= {sq_start} AND date_created < {sq_end}) AS last_yr_q,
 
             -- Average monthly rate over 2 years
-            COUNT(*) FILTER (WHERE filed_date >= {d2y} AND filed_date < '{snapshot_date}'::date) AS total_2y,
+            COUNT(*) FILTER (WHERE date_created >= {d2y} AND date_created < '{snapshot_date}'::date) AS total_2y,
 
             -- Seasonality: current month vs overall average
             COUNT(*) FILTER (
-                WHERE EXTRACT(MONTH FROM filed_date) = EXTRACT(MONTH FROM '{snapshot_date}'::date)
-                AND filed_date >= {d2y} AND filed_date < '{snapshot_date}'::date
+                WHERE EXTRACT(MONTH FROM date_created) = EXTRACT(MONTH FROM '{snapshot_date}'::date)
+                AND date_created >= {d2y} AND date_created < '{snapshot_date}'::date
             ) AS same_month_count,
 
             -- Residential percentage
             COUNT(*) FILTER (
-                WHERE permit_type ILIKE '%%residential%%'
-                AND filed_date >= {d365} AND filed_date < '{snapshot_date}'::date
-            ) AS residential_count,
-
-            -- Average valuation
-            AVG(CASE WHEN valuation > 0 AND filed_date >= {d365} AND filed_date < '{snapshot_date}'::date
-                THEN valuation END) AS avg_valuation
+                WHERE project_type ILIKE '%%residential%%'
+                AND date_created >= {d365} AND date_created < '{snapshot_date}'::date
+            ) AS residential_count
 
         FROM permits
-        WHERE zip IS NOT NULL AND zip != ''
-          AND filed_date >= {d2y}
-          AND filed_date < '{snapshot_date}'::date
-        GROUP BY zip
+        WHERE zip_code IS NOT NULL AND zip_code != ''
+          AND date_created >= {d2y}
+          AND date_created < '{snapshot_date}'::date
+        GROUP BY zip_code
         HAVING COUNT(*) >= 10
     """
 
@@ -314,10 +309,10 @@ def join_census_features(conn, df):
             chunk = zips[i : i + chunk_size]
             placeholders = ",".join(["%s"] * len(chunk))
             q = f"""
-                SELECT DISTINCT ON (zip) zip, state
+                SELECT DISTINCT ON (zip_code) zip_code AS zip, state_code AS state
                 FROM permits
-                WHERE zip IN ({placeholders}) AND state IS NOT NULL
-                ORDER BY zip, filed_date DESC
+                WHERE zip_code IN ({placeholders}) AND state_code IS NOT NULL
+                ORDER BY zip_code, date_created DESC
             """
             with conn.cursor() as cur:
                 cur.execute(q, chunk)
@@ -381,12 +376,12 @@ def build_labels(conn, df, snapshot_date):
         chunk = zips[i : i + chunk_size]
         placeholders = ",".join(["%s"] * len(chunk))
         query = f"""
-            SELECT zip, COUNT(*) AS future_permits
+            SELECT zip_code AS zip, COUNT(*) AS future_permits
             FROM permits
-            WHERE zip IN ({placeholders})
-              AND filed_date >= '{future_start}'::date
-              AND filed_date < '{future_end}'::date
-            GROUP BY zip
+            WHERE zip_code IN ({placeholders})
+              AND date_created >= '{future_start}'::date
+              AND date_created < '{future_end}'::date
+            GROUP BY zip_code
         """
         with conn.cursor() as cur:
             cur.execute(query, chunk)
@@ -561,8 +556,6 @@ def generate_risk_factors(row, feature_importance):
         factors.append("Predominantly residential permits")
     if row.get("median_year_built", 2000) < 1980:
         factors.append("Aging housing stock (renovation demand)")
-    if row.get("avg_valuation", 0) > 100000:
-        factors.append("High average permit valuation")
 
     # If no specific factors triggered, add generic ones based on top features
     if not factors:
@@ -596,10 +589,10 @@ def batch_score_and_write(conn, model, feature_cols, feature_importance):
         chunk = zips[i : i + chunk_size]
         placeholders = ",".join(["%s"] * len(chunk))
         q = f"""
-            SELECT DISTINCT ON (zip) zip, state
+            SELECT DISTINCT ON (zip_code) zip_code AS zip, state_code AS state
             FROM permits
-            WHERE zip IN ({placeholders}) AND state IS NOT NULL
-            ORDER BY zip, filed_date DESC
+            WHERE zip_code IN ({placeholders}) AND state_code IS NOT NULL
+            ORDER BY zip_code, date_created DESC
         """
         with conn.cursor() as cur:
             cur.execute(q, chunk)

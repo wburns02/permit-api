@@ -53,22 +53,20 @@ async def main():
         await db.execute(text("CREATE INDEX IF NOT EXISTS ix_contractors_normalized ON contractors (normalized_name)"))
         await db.commit()
 
-        # Aggregate from permits
+        # Aggregate from permits (T430 uses applicant_name, no valuation column)
         logger.info("Aggregating contractors from permits table...")
-        contractor_key = func.coalesce(Permit.contractor_company, Permit.contractor_name)
 
         query = (
             select(
-                contractor_key.label("name"),
+                Permit.applicant_name.label("name"),
                 func.count().label("permit_count"),
-                func.avg(Permit.valuation).label("avg_valuation"),
                 func.array_agg(func.distinct(Permit.state)).label("active_states"),
                 func.array_agg(func.distinct(Permit.permit_type)).label("specialties"),
                 func.min(Permit.issue_date).label("first_active"),
                 func.max(Permit.issue_date).label("last_active"),
             )
-            .where(contractor_key.isnot(None))
-            .group_by(contractor_key)
+            .where(Permit.applicant_name.isnot(None))
+            .group_by(Permit.applicant_name)
             .having(func.count() >= 2)  # Skip one-off entries
         )
 
@@ -83,11 +81,10 @@ async def main():
                 continue
             try:
                 await db.execute(text("""
-                    INSERT INTO contractors (name, normalized_name, permit_count, avg_valuation, active_states, specialties, first_active, last_active)
-                    VALUES (:name, :norm, :count, :avg_val, :states, :specs, :first, :last)
+                    INSERT INTO contractors (name, normalized_name, permit_count, active_states, specialties, first_active, last_active)
+                    VALUES (:name, :norm, :count, :states, :specs, :first, :last)
                     ON CONFLICT (normalized_name) DO UPDATE SET
                         permit_count = EXCLUDED.permit_count,
-                        avg_valuation = EXCLUDED.avg_valuation,
                         active_states = EXCLUDED.active_states,
                         specialties = EXCLUDED.specialties,
                         first_active = EXCLUDED.first_active,
@@ -96,7 +93,6 @@ async def main():
                     "name": r.name,
                     "norm": normalized,
                     "count": r.permit_count,
-                    "avg_val": round(r.avg_valuation, 2) if r.avg_valuation else None,
                     "states": [s for s in (r.active_states or []) if s],
                     "specs": [s for s in (r.specialties or []) if s],
                     "first": r.first_active,

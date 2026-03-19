@@ -6,14 +6,13 @@ from sqlalchemy import select, func, text, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.permit import Permit, Jurisdiction
 
-# Columns to select for search results (avoid loading search_vector)
+# Columns to select for search results (avoid loading search_vector/raw_data)
 PERMIT_COLUMNS = [
     Permit.id, Permit.permit_number, Permit.address, Permit.city, Permit.state,
-    Permit.zip, Permit.lat, Permit.lng, Permit.permit_type, Permit.work_type,
-    Permit.trade, Permit.status, Permit.description, Permit.valuation,
-    Permit.issue_date, Permit.created_date, Permit.completed_date,
-    Permit.owner_name, Permit.contractor_name, Permit.contractor_company,
-    Permit.jurisdiction, Permit.source,
+    Permit.zip, Permit.county, Permit.lat, Permit.lng, Permit.permit_type,
+    Permit.work_type, Permit.trade, Permit.category, Permit.status,
+    Permit.description, Permit.issue_date,
+    Permit.owner_name, Permit.applicant_name, Permit.source,
 ]
 
 
@@ -62,7 +61,7 @@ def build_filter_conditions(filters: dict) -> list:
 
     Shared by search_permits() and alert_engine.match_alert().
     Supported keys: address, city, state, zip_code/zip, permit_type, status,
-    jurisdiction, contractor, keyword, date_from, date_to.
+    contractor, keyword, date_from, date_to.
     """
     conditions = []
     address = filters.get("address")
@@ -71,17 +70,15 @@ def build_filter_conditions(filters: dict) -> list:
     zip_code = filters.get("zip_code") or filters.get("zip")
     permit_type = filters.get("permit_type")
     status = filters.get("status")
-    jurisdiction = filters.get("jurisdiction")
     contractor = filters.get("contractor")
     keyword = filters.get("keyword")
     date_from = filters.get("date_from")
     date_to = filters.get("date_to")
 
     if address:
+        # Use ILIKE on address column (address_normalized doesn't exist on T430)
         normalized = normalize_address(address)
-        conditions.append(
-            text("similarity(address_normalized, :addr) > 0.3").bindparams(addr=normalized)
-        )
+        conditions.append(Permit.address.ilike(f"%{normalized}%"))
     if city:
         conditions.append(Permit.city.ilike(city))
     if state:
@@ -92,15 +89,9 @@ def build_filter_conditions(filters: dict) -> list:
         conditions.append(Permit.permit_type.ilike(permit_type))
     if status:
         conditions.append(Permit.status.ilike(status))
-    if jurisdiction:
-        conditions.append(Permit.jurisdiction.ilike(f"%{jurisdiction}%"))
     if contractor:
-        conditions.append(
-            or_(
-                Permit.contractor_name.ilike(f"%{contractor}%"),
-                Permit.contractor_company.ilike(f"%{contractor}%"),
-            )
-        )
+        # T430 has applicant_name instead of contractor_name/contractor_company
+        conditions.append(Permit.applicant_name.ilike(f"%{contractor}%"))
     if keyword:
         conditions.append(
             or_(
@@ -140,7 +131,7 @@ async def search_permits(
     page_size: int = 25,
     freshness_limit_days: int | None = None,
 ) -> dict:
-    """Search permits with full-text and trigram matching.
+    """Search permits with text matching.
 
     Args:
         freshness_limit_days: If >0, only return permits with issue_date
@@ -148,36 +139,26 @@ async def search_permits(
     """
     conditions = build_filter_conditions({
         "address": address, "city": city, "state": state, "zip_code": zip_code,
-        "permit_type": permit_type, "status": status, "jurisdiction": jurisdiction,
+        "permit_type": permit_type, "status": status,
         "contractor": contractor, "date_from": date_from, "date_to": date_to,
         "freshness_limit_days": freshness_limit_days,
     })
+
+    # jurisdiction filter: no longer a column on permits, ignore silently
+    # (jurisdictions table still works independently)
 
     if not conditions:
         return {"results": [], "total": 0, "page": page, "page_size": page_size}
 
     where_clause = and_(*conditions)
 
-    if address:
-        normalized = normalize_address(address)
-        query = (
-            select(*PERMIT_COLUMNS)
-            .where(where_clause)
-            .order_by(
-                text("similarity(address_normalized, :addr) DESC").bindparams(addr=normalized),
-                Permit.issue_date.desc().nullslast(),
-            )
-            .offset((page - 1) * page_size)
-            .limit(page_size)
-        )
-    else:
-        query = (
-            select(*PERMIT_COLUMNS)
-            .where(where_clause)
-            .order_by(Permit.issue_date.desc().nullslast())
-            .offset((page - 1) * page_size)
-            .limit(page_size)
-        )
+    query = (
+        select(*PERMIT_COLUMNS)
+        .where(where_clause)
+        .order_by(Permit.issue_date.desc().nullslast())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
+    )
 
     result = await db.execute(query)
     rows = result.all()
@@ -262,7 +243,6 @@ async def geo_search_permits(
 
 async def get_coverage(db: AsyncSession) -> list[dict]:
     """Get list of supported jurisdictions with record counts."""
-    # Join jurisdiction metadata with live permit stats
     cols = [
         Jurisdiction.name,
         Jurisdiction.state,
@@ -273,25 +253,12 @@ async def get_coverage(db: AsyncSession) -> list[dict]:
     q = select(*cols).order_by(Jurisdiction.record_count.desc())
     result = await db.execute(q)
 
-    # Get the most common source per jurisdiction from permits table
-    source_q = (
-        select(Permit.jurisdiction, Permit.source)
-        .where(Permit.source.is_not(None))
-        .group_by(Permit.jurisdiction, Permit.source)
-        .order_by(func.count().desc())
-    )
-    source_rows = (await db.execute(source_q)).all()
-    source_map = {}
-    for row in source_rows:
-        if row[0] not in source_map:
-            source_map[row[0]] = row[1]
-
     return [
         {
             "name": j.name,
             "state": j.state,
             "record_count": j.record_count,
-            "source": j.source or source_map.get(j.name),
+            "source": j.source,
             "last_updated": j.last_updated.isoformat() if j.last_updated else None,
         }
         for j in result.all()
@@ -307,20 +274,17 @@ def row_to_dict(r) -> dict:
         "city": r.city,
         "state": r.state,
         "zip": r.zip,
+        "county": r.county,
         "lat": r.lat,
         "lng": r.lng,
         "permit_type": r.permit_type,
         "work_type": r.work_type,
         "trade": r.trade,
+        "category": r.category,
         "status": r.status,
         "description": r.description,
-        "valuation": r.valuation,
         "issue_date": r.issue_date.isoformat() if r.issue_date else None,
-        "created_date": r.created_date.isoformat() if r.created_date else None,
-        "completed_date": r.completed_date.isoformat() if r.completed_date else None,
         "owner_name": r.owner_name,
-        "contractor_name": r.contractor_name,
-        "contractor_company": r.contractor_company,
-        "jurisdiction": r.jurisdiction,
+        "applicant_name": r.applicant_name,
         "source": r.source,
     }
