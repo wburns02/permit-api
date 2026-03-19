@@ -198,6 +198,20 @@ async def migrate_expansion():
             migrations.append(f"saved_searches: {e}")
             await db.rollback()
 
+        # ---- UsageLog new columns (security services) ----
+        for col, typ in [
+            ("result_count", "INTEGER"),
+            ("response_bytes", "INTEGER"),
+            ("query_hash", "VARCHAR(64)"),
+            ("abuse_score", "INTEGER"),
+        ]:
+            try:
+                await db.execute(text(f"ALTER TABLE usage_logs ADD COLUMN {col} {typ}"))
+                migrations.append(f"usage_logs.{col} added")
+            except Exception:
+                migrations.append(f"usage_logs.{col} already exists")
+                await db.rollback()
+
         # ---- Data expansion tables (Phase 1) ----
         new_tables = {
             "contractor_licenses": """

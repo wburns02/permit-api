@@ -72,6 +72,9 @@ class Settings(BaseSettings):
     ENRICHMENT_PROPERTY_CENTS: int = 300    # $3
     ENRICHMENT_FULL_CENTS: int = 500        # $5
 
+    # Fingerprinting
+    FINGERPRINT_SALT: str = "change-this-in-production-to-random-string"
+
     # Environment
     ENVIRONMENT: str = "development"
     DEBUG: bool = True

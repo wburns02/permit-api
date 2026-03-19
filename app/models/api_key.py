@@ -93,6 +93,10 @@ class UsageLog(Base):
     endpoint = Column(String(100), nullable=False)
     lookup_count = Column(Integer, default=1)  # bulk searches count multiple
     ip_address = Column(String(45))
+    result_count = Column(Integer)
+    response_bytes = Column(Integer)
+    query_hash = Column(String(64))
+    abuse_score = Column(Integer)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
