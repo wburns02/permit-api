@@ -1,4 +1,4 @@
-"""Data layer models — contractor licenses, EPA, FEMA, census, septic, valuations, business entities."""
+"""Data layer models — contractor licenses, EPA, FEMA, census, septic, valuations, business entities, code violations."""
 
 import uuid
 from sqlalchemy import (
@@ -191,4 +191,34 @@ class BusinessEntity(Base):
         Index("ix_entity_filing", "filing_number", "state"),
         Index("ix_entity_state_type", "state", "entity_type"),
         Index("ix_entity_state_status", "state", "status"),
+    )
+
+
+class CodeViolation(Base):
+    __tablename__ = "code_violations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    violation_id = Column(String(100), index=True)  # Source system ID
+    address = Column(String(500), index=True)
+    city = Column(String(100), index=True)
+    state = Column(String(2), nullable=False, index=True)
+    zip = Column(String(10), index=True)
+    violation_type = Column(String(200))  # Class A/B/C, category
+    violation_code = Column(String(100))
+    description = Column(Text)
+    status = Column(String(50), index=True)  # Open, Closed, Pending
+    violation_date = Column(Date, index=True)
+    inspection_date = Column(Date)
+    resolution_date = Column(Date)
+    fine_amount = Column(Float)
+    lat = Column(Float)
+    lng = Column(Float)
+    source = Column(String(50), nullable=False)  # nyc_hpd, chicago_bldg, etc.
+
+    __table_args__ = (
+        Index("ix_violations_geo", "lat", "lng"),
+        Index("ix_violations_state_city", "state", "city"),
+        Index("ix_violations_address", "address"),
+        Index("ix_violations_source_vid", "source", "violation_id"),
+        Index("ix_violations_date_status", "violation_date", "status"),
     )

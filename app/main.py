@@ -21,7 +21,7 @@ from app.models.saved_search import SavedSearch  # noqa: F401
 from app.models.data_layers import (  # noqa: F401
     ContractorLicense, EpaFacility, FemaFloodZone,
     CensusDemographics, SepticSystem, PropertyValuation,
-    BusinessEntity,
+    BusinessEntity, CodeViolation,
 )
 
 # Import routers
@@ -42,6 +42,7 @@ from app.api.v1.demographics import router as demographics_router
 from app.api.v1.valuations import router as valuations_router
 from app.api.v1.entities import router as entities_router
 from app.api.v1.pipeline import router as pipeline_router
+from app.api.v1.violations import router as violations_router
 
 logger = logging.getLogger(__name__)
 
@@ -120,6 +121,7 @@ app.include_router(demographics_router, prefix="/v1")
 app.include_router(valuations_router, prefix="/v1")
 app.include_router(entities_router, prefix="/v1")
 app.include_router(pipeline_router, prefix="/v1")
+app.include_router(violations_router, prefix="/v1")
 
 
 @app.get("/health")
@@ -330,6 +332,27 @@ async def migrate_expansion():
                     scraped_at DATE
                 )
             """,
+            "code_violations": """
+                CREATE TABLE IF NOT EXISTS code_violations (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    violation_id VARCHAR(100),
+                    address VARCHAR(500),
+                    city VARCHAR(100),
+                    state VARCHAR(2) NOT NULL,
+                    zip VARCHAR(10),
+                    violation_type VARCHAR(200),
+                    violation_code VARCHAR(100),
+                    description TEXT,
+                    status VARCHAR(50),
+                    violation_date DATE,
+                    inspection_date DATE,
+                    resolution_date DATE,
+                    fine_amount FLOAT,
+                    lat FLOAT,
+                    lng FLOAT,
+                    source VARCHAR(50) NOT NULL
+                )
+            """,
         }
 
         for table_name, ddl in new_tables.items():
@@ -362,6 +385,14 @@ async def migrate_expansion():
             "CREATE INDEX IF NOT EXISTS ix_entity_filing ON business_entities (filing_number, state)",
             "CREATE INDEX IF NOT EXISTS ix_entity_state ON business_entities (state, entity_type)",
             "CREATE INDEX IF NOT EXISTS ix_entity_agent ON business_entities (registered_agent_name)",
+            "CREATE INDEX IF NOT EXISTS ix_violations_vid ON code_violations (violation_id)",
+            "CREATE INDEX IF NOT EXISTS ix_violations_addr ON code_violations (address)",
+            "CREATE INDEX IF NOT EXISTS ix_violations_city ON code_violations (city)",
+            "CREATE INDEX IF NOT EXISTS ix_violations_state ON code_violations (state)",
+            "CREATE INDEX IF NOT EXISTS ix_violations_status ON code_violations (status)",
+            "CREATE INDEX IF NOT EXISTS ix_violations_date ON code_violations (violation_date)",
+            "CREATE INDEX IF NOT EXISTS ix_violations_geo ON code_violations (lat, lng)",
+            "CREATE INDEX IF NOT EXISTS ix_violations_source_vid ON code_violations (source, violation_id)",
         ]
         for idx_sql in indexes:
             try:
@@ -431,5 +462,8 @@ async def api_info():
             "entities": "GET /v1/entities/search?name=Sunrise+Holdings&state=TX",
             "pipeline": "GET /v1/pipeline/permit-to-sale?zip=78701&months=12",
             "hot_zips": "GET /v1/pipeline/hot-zips?state=TX&limit=25",
+            "violations_search": "GET /v1/violations/search?address=...&city=...&state=NY",
+            "violations_property": "GET /v1/violations/property?address=123+Main+St&state=NY",
+            "violations_stats": "GET /v1/violations/stats",
         },
     }
