@@ -1,8 +1,9 @@
-"""Data layer models — contractor licenses, EPA, FEMA, census, septic, valuations, business entities, code violations."""
+"""Data layer models — contractor licenses, EPA, FEMA, census, septic, valuations, business entities, code violations, permit predictions."""
 
 import uuid
+from datetime import datetime, timezone
 from sqlalchemy import (
-    Column, String, Text, Float, Date, Integer, Boolean, Index,
+    Column, String, Text, Float, Date, DateTime, Integer, Boolean, Index,
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from app.database import Base
@@ -221,4 +222,24 @@ class CodeViolation(Base):
         Index("ix_violations_address", "address"),
         Index("ix_violations_source_vid", "source", "violation_id"),
         Index("ix_violations_date_status", "violation_date", "status"),
+    )
+
+
+class PermitPrediction(Base):
+    __tablename__ = "permit_predictions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    zip = Column(String(10), nullable=False, index=True)
+    state = Column(String(2))
+    prediction_score = Column(Float)  # 0-100, probability of 5+ permits in next 90 days
+    predicted_permits = Column(Integer)  # Expected permit count next 90 days
+    confidence = Column(Float)  # Model confidence 0-1
+    features = Column(JSONB)  # Feature values used for this prediction
+    risk_factors = Column(JSONB)  # Human-readable factors driving the prediction
+    model_version = Column(String(50))
+    scored_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        Index("ix_predictions_state_score", "state", prediction_score.desc()),
+        Index("ix_predictions_scored_at", "scored_at"),
     )

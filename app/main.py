@@ -21,7 +21,7 @@ from app.models.saved_search import SavedSearch  # noqa: F401
 from app.models.data_layers import (  # noqa: F401
     ContractorLicense, EpaFacility, FemaFloodZone,
     CensusDemographics, SepticSystem, PropertyValuation,
-    BusinessEntity, CodeViolation,
+    BusinessEntity, CodeViolation, PermitPrediction,
 )
 
 # Import routers
@@ -43,6 +43,7 @@ from app.api.v1.valuations import router as valuations_router
 from app.api.v1.entities import router as entities_router
 from app.api.v1.pipeline import router as pipeline_router
 from app.api.v1.violations import router as violations_router
+from app.api.v1.predictions import router as predictions_router
 
 logger = logging.getLogger(__name__)
 
@@ -122,6 +123,7 @@ app.include_router(valuations_router, prefix="/v1")
 app.include_router(entities_router, prefix="/v1")
 app.include_router(pipeline_router, prefix="/v1")
 app.include_router(violations_router, prefix="/v1")
+app.include_router(predictions_router, prefix="/v1")
 
 
 @app.get("/health")
@@ -353,6 +355,20 @@ async def migrate_expansion():
                     source VARCHAR(50) NOT NULL
                 )
             """,
+            "permit_predictions": """
+                CREATE TABLE IF NOT EXISTS permit_predictions (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    zip VARCHAR(10) NOT NULL,
+                    state VARCHAR(2),
+                    prediction_score FLOAT,
+                    predicted_permits INTEGER,
+                    confidence FLOAT,
+                    features JSONB,
+                    risk_factors JSONB,
+                    model_version VARCHAR(50),
+                    scored_at TIMESTAMPTZ DEFAULT NOW()
+                )
+            """,
         }
 
         for table_name, ddl in new_tables.items():
@@ -393,6 +409,9 @@ async def migrate_expansion():
             "CREATE INDEX IF NOT EXISTS ix_violations_date ON code_violations (violation_date)",
             "CREATE INDEX IF NOT EXISTS ix_violations_geo ON code_violations (lat, lng)",
             "CREATE INDEX IF NOT EXISTS ix_violations_source_vid ON code_violations (source, violation_id)",
+            "CREATE INDEX IF NOT EXISTS ix_predictions_zip ON permit_predictions (zip)",
+            "CREATE INDEX IF NOT EXISTS ix_predictions_state_score ON permit_predictions (state, prediction_score DESC)",
+            "CREATE INDEX IF NOT EXISTS ix_predictions_scored_at ON permit_predictions (scored_at)",
         ]
         for idx_sql in indexes:
             try:
@@ -465,5 +484,8 @@ async def api_info():
             "violations_search": "GET /v1/violations/search?address=...&city=...&state=NY",
             "violations_property": "GET /v1/violations/property?address=123+Main+St&state=NY",
             "violations_stats": "GET /v1/violations/stats",
+            "predictions_zip": "GET /v1/predictions/zip?zip=78701",
+            "predictions_hotspots": "GET /v1/predictions/hotspots?state=TX&limit=50",
+            "predictions_stats": "GET /v1/predictions/stats",
         },
     }
