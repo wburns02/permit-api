@@ -61,7 +61,7 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
 
     # T430 warehouse has 383M+ records across 3000+ jurisdictions, 35+ states
     # Fetch live count from R730 status API if available, otherwise use known baseline
-    t430_permits = 743_705_373  # exact count from T430
+    t430_permits = 743_976_719  # live count from T430 (updated 2026-03-19)
     t430_jurisdictions = 3143   # US counties + major municipalities
     t430_states = 54            # 50 US states + DC + 3 Canadian provinces
 
@@ -71,7 +71,7 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
         if r.status_code == 200:
             data = r.json()
             t430_count = data.get("t430", {}).get("t430_total_records", 0)
-            if t430_count > t430_permits:
+            if t430_count > 0:
                 t430_permits = t430_count
     except Exception:
         pass  # Use baseline
