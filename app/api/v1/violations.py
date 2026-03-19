@@ -24,8 +24,8 @@ async def violation_search(
     zip: str | None = Query(None, max_length=10),
     status: str | None = Query(None, description="Violation status: Open, Closed, Pending"),
     violation_type: str | None = Query(None, description="Violation class/type"),
-    page: int = Query(1, ge=1),
-    limit: int = Query(25, ge=1, le=100),
+    page: int = Query(1, ge=1, le=20),
+    limit: int = Query(25, ge=1, le=50),
     user: ApiUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):

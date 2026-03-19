@@ -24,8 +24,8 @@ async def lien_search(
     address: str | None = Query(None, min_length=3, description="Property address"),
     filing_number: str | None = Query(None, description="Filing/document number"),
     status: str | None = Query(None, description="Status: Active, Satisfied, Terminated"),
-    page: int = Query(1, ge=1),
-    limit: int = Query(25, ge=1, le=100),
+    page: int = Query(1, ge=1, le=20),
+    limit: int = Query(25, ge=1, le=50),
     user: ApiUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):

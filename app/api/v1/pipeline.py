@@ -225,7 +225,7 @@ async def permit_to_sale(
 async def hot_zips(
     request: Request,
     state: str | None = Query(None, max_length=2, description="Filter by 2-letter state code"),
-    limit: int = Query(25, ge=1, le=100, description="Number of results"),
+    limit: int = Query(25, ge=1, le=50, description="Number of results"),
     min_permits: int = Query(5, ge=1, description="Minimum permits to qualify"),
     user: ApiUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

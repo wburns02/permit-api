@@ -99,8 +99,8 @@ async def search(
     lng: float | None = Query(None, description="Longitude for geo search"),
     radius: float | None = Query(None, description="Radius in miles (default 0.5)", le=25),
     enrichment: EnrichmentType = Query(EnrichmentType.NONE, description="Lead enrichment: none, phone, email, property, full"),
-    page: int = Query(1, ge=1),
-    page_size: int = Query(25, ge=1, le=100),
+    page: int = Query(1, ge=1, le=20),
+    page_size: int = Query(25, ge=1, le=50),
     user: ApiUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):

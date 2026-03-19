@@ -135,8 +135,8 @@ async def test_alert(
 async def alert_history(
     alert_id: UUID,
     request: Request,
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page: int = Query(1, ge=1, le=20),
+    page_size: int = Query(20, ge=1, le=50),
     user: ApiUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):

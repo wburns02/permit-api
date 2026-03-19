@@ -120,7 +120,7 @@ async def market_hotspots(
     state: str = Query(..., max_length=2, description="State code"),
     months: int = Query(6, ge=1, le=24),
     min_permits: int = Query(50, ge=1),
-    limit: int = Query(25, ge=1, le=100),
+    limit: int = Query(25, ge=1, le=50),
     user: ApiUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):

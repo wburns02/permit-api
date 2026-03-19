@@ -55,6 +55,17 @@ ALERT_LIMITS = {
     PlanTier.PRO: 100,
 }
 
+# Daily result caps (total records returned per day)
+RESULT_CAP_LIMITS = {
+    PlanTier.FREE: settings.RESULT_CAP_FREE,
+    PlanTier.EXPLORER: settings.RESULT_CAP_EXPLORER,
+    PlanTier.PRO_LEADS: settings.RESULT_CAP_PRO_LEADS,
+    PlanTier.REALTIME: settings.RESULT_CAP_REALTIME,
+    PlanTier.ENTERPRISE: settings.RESULT_CAP_ENTERPRISE,
+    PlanTier.STARTER: settings.RESULT_CAP_EXPLORER,
+    PlanTier.PRO: settings.RESULT_CAP_PRO_LEADS,
+}
+
 # Enrichment costs (cents) by enrichment type
 ENRICHMENT_COSTS = {
     "phone": settings.ENRICHMENT_PHONE_CENTS,       # 200 ($2)
@@ -142,6 +153,12 @@ def get_alert_limit(plan: PlanTier) -> int:
     """Get maximum number of alerts for a plan tier."""
     resolved = resolve_plan(plan)
     return ALERT_LIMITS.get(resolved, 2)
+
+
+def get_result_cap(plan: PlanTier) -> int:
+    """Get daily result cap for a plan tier."""
+    resolved = resolve_plan(plan)
+    return RESULT_CAP_LIMITS.get(resolved, settings.RESULT_CAP_FREE)
 
 
 def get_enrichment_cost(enrichment_type: str) -> int:

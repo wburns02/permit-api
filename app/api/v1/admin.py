@@ -10,7 +10,7 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -675,8 +675,8 @@ async def get_leads_by_tier(
     tier: str,
     user: ApiUser = Depends(require_admin),
     db: AsyncSession = Depends(get_db),
-    page: int = 1,
-    page_size: int = 50,
+    page: int = Query(1, ge=1, le=20),
+    page_size: int = Query(50, ge=1, le=50),
 ):
     """Get permit leads by freshness tier — clickable from admin dashboard."""
     now = datetime.now(timezone.utc)

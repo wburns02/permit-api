@@ -169,7 +169,7 @@ async def hottest_markets(
     request: Request,
     state: str | None = Query(None, max_length=2, description="Filter by state"),
     metric: str = Query("median_sale_price", description="Sort metric"),
-    limit: int = Query(25, ge=1, le=100),
+    limit: int = Query(25, ge=1, le=50),
     user: ApiUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):

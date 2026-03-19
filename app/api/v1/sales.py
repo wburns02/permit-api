@@ -25,8 +25,8 @@ async def sales_search(
     grantor: str | None = Query(None, description="Seller name"),
     grantee: str | None = Query(None, description="Buyer name"),
     doc_type: str | None = Query(None, description="Document type: DEED, TRANSFER, etc."),
-    page: int = Query(1, ge=1),
-    limit: int = Query(25, ge=1, le=100),
+    page: int = Query(1, ge=1, le=20),
+    limit: int = Query(25, ge=1, le=50),
     user: ApiUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):

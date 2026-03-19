@@ -75,7 +75,7 @@ async def zip_prediction(
 async def hotspots(
     request: Request,
     state: str | None = Query(None, max_length=2, description="Filter by 2-letter state code"),
-    limit: int = Query(50, ge=1, le=200, description="Number of results"),
+    limit: int = Query(50, ge=1, le=50, description="Number of results"),
     user: ApiUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):

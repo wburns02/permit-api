@@ -52,6 +52,13 @@ class Settings(BaseSettings):
     RATE_LIMIT_ENTERPRISE: int = 10000
     OVERAGE_COST_CENTS: int = 5  # $0.05 per lookup over limit
 
+    # Daily result caps (total records returned per day)
+    RESULT_CAP_FREE: int = 500
+    RESULT_CAP_EXPLORER: int = 2000
+    RESULT_CAP_PRO_LEADS: int = 10000
+    RESULT_CAP_REALTIME: int = 25000
+    RESULT_CAP_ENTERPRISE: int = 50000
+
     # Data freshness limits (days) — how old permits must be for each plan
     DATA_FRESHNESS_FREE: int = 180          # 6 months old
     DATA_FRESHNESS_EXPLORER: int = 90       # 3 months old

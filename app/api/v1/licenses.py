@@ -114,8 +114,8 @@ async def search_licenses(
     status: str | None = Query(None, description="License status filter (e.g., CLEAR, SUSPENDED)"),
     classification: str | None = Query(None, description="License classification filter"),
     city: str | None = Query(None, description="City filter"),
-    page: int = Query(1, ge=1),
-    page_size: int = Query(25, ge=1, le=100),
+    page: int = Query(1, ge=1, le=20),
+    page_size: int = Query(25, ge=1, le=50),
     user: ApiUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):

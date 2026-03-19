@@ -185,8 +185,8 @@ async def search_epa_facilities(
     state: str = Query(..., max_length=2, description="State abbreviation"),
     city: str | None = Query(None),
     name: str | None = Query(None, description="Facility name search"),
-    page: int = Query(1, ge=1),
-    page_size: int = Query(25, ge=1, le=100),
+    page: int = Query(1, ge=1, le=20),
+    page_size: int = Query(25, ge=1, le=50),
     user: ApiUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
