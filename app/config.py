@@ -43,21 +43,21 @@ class Settings(BaseSettings):
     REDIS_URL: str | None = None
 
     # Rate limits (lookups per day) — tiered by data freshness plan
-    RATE_LIMIT_FREE: int = 25
-    RATE_LIMIT_STARTER: int = 100       # legacy, mapped to Explorer
-    RATE_LIMIT_PRO: int = 250           # legacy, mapped to Pro Leads
-    RATE_LIMIT_EXPLORER: int = 100
-    RATE_LIMIT_PRO_LEADS: int = 250
-    RATE_LIMIT_REALTIME: int = 1000
-    RATE_LIMIT_ENTERPRISE: int = 10000
-    OVERAGE_COST_CENTS: int = 5  # $0.05 per lookup over limit
+    RATE_LIMIT_FREE: int = 10
+    RATE_LIMIT_STARTER: int = 50        # legacy, mapped to Explorer
+    RATE_LIMIT_PRO: int = 150           # legacy, mapped to Pro Leads
+    RATE_LIMIT_EXPLORER: int = 50
+    RATE_LIMIT_PRO_LEADS: int = 150
+    RATE_LIMIT_REALTIME: int = 500
+    RATE_LIMIT_ENTERPRISE: int = 2000
+    OVERAGE_COST_CENTS: int = 10  # $0.10 per lookup over limit
 
     # Daily result caps (total records returned per day)
-    RESULT_CAP_FREE: int = 500
-    RESULT_CAP_EXPLORER: int = 2000
-    RESULT_CAP_PRO_LEADS: int = 10000
-    RESULT_CAP_REALTIME: int = 25000
-    RESULT_CAP_ENTERPRISE: int = 50000
+    RESULT_CAP_FREE: int = 250
+    RESULT_CAP_EXPLORER: int = 1000
+    RESULT_CAP_PRO_LEADS: int = 5000
+    RESULT_CAP_REALTIME: int = 12500
+    RESULT_CAP_ENTERPRISE: int = 25000
 
     # Data freshness limits (days) — how old permits must be for each plan
     DATA_FRESHNESS_FREE: int = 180          # 6 months old
