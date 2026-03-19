@@ -3679,10 +3679,11 @@ results.forEach(p =>
           <input type="text" id="admin-search" placeholder="Search scrapers..." oninput="filterAdminScrapers()" style="min-width:160px">
           <div class="at-spacer"></div>
           <select id="admin-sort" onchange="sortAdminScrapers()">
-            <option value="category">Sort: Category</option>
             <option value="last_run">Sort: Last Run</option>
             <option value="status">Sort: Status</option>
+            <option value="records">Sort: Records</option>
             <option value="state">Sort: State</option>
+            <option value="category">Sort: Category</option>
             <option value="name">Sort: Name</option>
           </select>
         </div>
@@ -10972,14 +10973,28 @@ async function loadAdmin() {
 
 // Load lifecycle tier counts and render clickable cards
 async function loadAdminLifecycle() {
-  const hdrs = { 'X-API-Key': currentKey };
+  const container = document.getElementById('admin-lifecycle-cards');
+  if (!container) return;
   try {
-    const r = await fetch(API + '/v1/admin/lifecycle', { headers: hdrs });
-    if (!r.ok) return;
-    const d = await r.json();
-    const container = document.getElementById('admin-lifecycle-cards');
-    if (!container) return;
-    const tiers = d.tiers || {};
+    // Fetch lifecycle from R730 status API (which queries T430's 744M records)
+    // Fall back to Railway API if R730 unavailable
+    let tiers = {};
+    const r730 = window._r730Live;
+    if (r730 && r730.lifecycle) {
+      const lc = r730.lifecycle;
+      tiers = {
+        hot: { count: lc.hot || 0, label: 'HOT', emoji: '🔥', color: '#ef4444' },
+        warm: { count: lc.warm || 0, label: 'WARM', emoji: '☀️', color: '#f59e0b' },
+        mild: { count: lc.mild || 0, label: 'MILD', emoji: '🌤️', color: '#06b6d4' },
+        cold: { count: lc.cold || 0, label: 'COLD', emoji: '❄️', color: '#64748b' },
+      };
+    } else {
+      const hdrs = { 'X-API-Key': currentKey };
+      const r = await fetch(API + '/v1/admin/lifecycle', { headers: hdrs });
+      if (!r.ok) return;
+      const d = await r.json();
+      tiers = d.tiers || {};
+    }
     container.innerHTML = Object.entries(tiers).map(([key, t]) => {
       const count = (t.count || 0).toLocaleString();
       return `<div onclick="loadAdminLeads('${key}')" style="cursor:pointer;background:linear-gradient(135deg,${t.color}15,${t.color}08);border:1px solid ${t.color}40;border-radius:14px;padding:18px;text-align:center;transition:transform .15s,box-shadow .15s" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 4px 16px ${t.color}30'" onmouseout="this.style.transform='';this.style.boxShadow=''">
@@ -11222,12 +11237,13 @@ function filterAdminScrapers() {
 }
 
 function sortAdminScrapers() {
-  const sortBy = document.getElementById('admin-sort')?.value || 'category';
-  const catOrder = { parcel: 0, permit: 1, b2b: 2, enrichment: 3, ai: 4, import: 5, utility: 6 };
+  const sortBy = document.getElementById('admin-sort')?.value || 'last_run';
+  const catOrder = { parcel: 0, permit: 1, b2b: 2, enrichment: 3, ai: 4, arcgis: 5, specialty: 6, import: 7, utility: 8 };
 
   adminScrapers.sort((a, b) => {
     if (sortBy === 'name') return a.filename.localeCompare(b.filename);
     if (sortBy === 'state') return (a.target_state||'ZZ').localeCompare(b.target_state||'ZZ');
+    if (sortBy === 'records') return (b.records_count||0) - (a.records_count||0);
     if (sortBy === 'last_run') {
       const ta = a.last_run_time ? new Date(a.last_run_time).getTime() : 0;
       const tb = b.last_run_time ? new Date(b.last_run_time).getTime() : 0;
