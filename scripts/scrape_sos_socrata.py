@@ -57,7 +57,81 @@ SOCRATA_STATES = {
             "registered_agent_address": ["agentprincipaladdress1", "agentprincipalcity", "agentprincipalstate", "agentprincipalzipcode"],
         },
     },
-    # Add more states as we discover their Socrata endpoints
+    "NY": {
+        "base_url": "https://data.ny.gov/resource/n9v6-gdp6.json",
+        "source": "ny_dos_socrata",
+        "fields": {
+            "entity_name": "current_entity_name",
+            "entity_type": "entity_type",
+            "filing_number": "dos_id",
+            "status": None,  # Not in this dataset
+            "formation_date": "initial_dos_filing_date",
+            "principal_address": None,
+            "mailing_address": None,
+            "registered_agent_name": ["dos_process_name"],
+            "registered_agent_address": ["dos_process_address_1", "dos_process_city", "dos_process_state", "dos_process_zip"],
+        },
+    },
+    "OR": {
+        "base_url": "https://data.oregon.gov/resource/tckn-sxa6.json",
+        "source": "or_sos_socrata",
+        "fields": {
+            "entity_name": "business_name",
+            "entity_type": "entity_type",
+            "filing_number": "registry_number",
+            "status": None,  # All are active in this dataset
+            "formation_date": "registry_date",
+            "principal_address": ["address", "city", "state", "zip"],
+            "mailing_address": None,
+            "registered_agent_name": None,
+            "registered_agent_address": None,
+        },
+    },
+    "CT": {
+        "base_url": "https://data.ct.gov/resource/n7gp-d28j.json",
+        "source": "ct_sots_socrata",
+        "fields": {
+            "entity_name": "name",
+            "entity_type": None,
+            "filing_number": "id",
+            "status": "status",
+            "formation_date": "date_registration",
+            "principal_address": ["mailing_address"],
+            "mailing_address": None,
+            "registered_agent_name": None,
+            "registered_agent_address": None,
+        },
+    },
+    "TX": {
+        "base_url": "https://data.texas.gov/resource/9cir-efmm.json",
+        "source": "tx_comptroller_socrata",
+        "fields": {
+            "entity_name": "taxpayer_name",
+            "entity_type": "taxpayer_organizational_type",
+            "filing_number": "taxpayer_number",
+            "status": None,  # All active in this dataset
+            "formation_date": None,
+            "principal_address": ["taxpayer_address", "taxpayer_city", "taxpayer_state", "taxpayer_zip"],
+            "mailing_address": None,
+            "registered_agent_name": None,
+            "registered_agent_address": None,
+        },
+    },
+    "IA": {
+        "base_url": "https://mydata.iowa.gov/resource/ez5t-3qay.json",
+        "source": "ia_sos_socrata",
+        "fields": {
+            "entity_name": "legal_name",
+            "entity_type": "corporation_type",
+            "filing_number": "corp_number",
+            "status": None,
+            "formation_date": "effective_date",
+            "principal_address": ["ho_city", "ho_state", "ho_zip"],
+            "mailing_address": None,
+            "registered_agent_name": None,
+            "registered_agent_address": None,
+        },
+    },
 }
 
 # Entity type mapping — normalize state-specific codes
@@ -186,13 +260,16 @@ def scrape_state(state: str, config: dict, conn):
 
         batch = []
         for r in records:
-            name = r.get(fm["entity_name"], "")
+            name_field = fm.get("entity_name")
+            name = r.get(name_field, "") if name_field else ""
             if not name:
                 continue
 
             # Build agent name
             agent_name_field = fm.get("registered_agent_name")
-            if isinstance(agent_name_field, list):
+            if agent_name_field is None:
+                agent_name = ""
+            elif isinstance(agent_name_field, list):
                 agent_parts = [r.get(f, "") for f in agent_name_field]
                 agent_name = " ".join(p for p in agent_parts if p).strip()
             else:
@@ -200,33 +277,46 @@ def scrape_state(state: str, config: dict, conn):
 
             # Build agent address
             agent_addr_field = fm.get("registered_agent_address")
-            if isinstance(agent_addr_field, list):
+            if agent_addr_field is None:
+                agent_addr = ""
+            elif isinstance(agent_addr_field, list):
                 agent_addr = join_address(*[r.get(f) for f in agent_addr_field])
             else:
                 agent_addr = r.get(agent_addr_field, "")
 
             # Build principal address
             principal_field = fm.get("principal_address")
-            if isinstance(principal_field, list):
+            if principal_field is None:
+                principal_addr = ""
+            elif isinstance(principal_field, list):
                 principal_addr = join_address(*[r.get(f) for f in principal_field])
             else:
                 principal_addr = r.get(principal_field, "")
 
             # Build mailing address
             mailing_field = fm.get("mailing_address")
-            if isinstance(mailing_field, list):
+            if mailing_field is None:
+                mailing_addr = ""
+            elif isinstance(mailing_field, list):
                 mailing_addr = join_address(*[r.get(f) for f in mailing_field])
             else:
                 mailing_addr = r.get(mailing_field, "")
 
+            # Safe field extraction helper
+            def get_field(key):
+                field = fm.get(key)
+                if field is None:
+                    return ""
+                return r.get(field, "")
+
             batch.append((
                 str(uuid.uuid4()),
                 name[:500],
-                normalize_entity_type(r.get(fm.get("entity_type", ""), "")),
+                normalize_entity_type(get_field("entity_type")),
                 state,
-                str(r.get(fm.get("filing_number", ""), ""))[:100] or None,
-                (r.get(fm.get("status", ""), "") or "")[:50] or None,
-                safe_date(r.get(fm.get("formation_date", ""))),
+                str(get_field("filing_number"))[:100] or None,
+                (get_field("status") or "")[:50] or None,
+                safe_date(get_field("formation_date")),
                 None,  # dissolution_date — not in most Socrata datasets
                 (agent_name or "")[:500] or None,
                 (agent_addr or "")[:500] or None,
