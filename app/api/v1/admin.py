@@ -647,19 +647,19 @@ async def lifecycle_stats(
         cutoff = now - timedelta(days=tier_info["days"])
         try:
             if prev_cutoff is None:
-                # HOT: issue_date >= now - 30 days
+                # HOT: date_created >= now - 30 days
                 r = await db.execute(text(
-                    "SELECT COUNT(*) FROM permits WHERE issue_date >= :cutoff"
+                    "SELECT COUNT(*) FROM permits WHERE date_created >= :cutoff"
                 ), {"cutoff": cutoff})
             elif tier_key == "cold":
-                # COLD: issue_date < now - 180 days
+                # COLD: date_created < now - 180 days
                 r = await db.execute(text(
-                    "SELECT COUNT(*) FROM permits WHERE issue_date < :cutoff"
+                    "SELECT COUNT(*) FROM permits WHERE date_created < :cutoff"
                 ), {"cutoff": prev_cutoff})
             else:
                 # WARM/MILD: between cutoffs
                 r = await db.execute(text(
-                    "SELECT COUNT(*) FROM permits WHERE issue_date >= :cutoff AND issue_date < :prev"
+                    "SELECT COUNT(*) FROM permits WHERE date_created >= :cutoff AND date_created < :prev"
                 ), {"cutoff": cutoff, "prev": prev_cutoff})
             count = r.scalar() or 0
         except Exception:
@@ -687,18 +687,18 @@ async def get_leads_by_tier(
     days = tier_days[tier]
     cutoff = now - timedelta(days=days)
 
-    # Build WHERE clause
+    # Build WHERE clause (T430 uses date_created, not issue_date)
     if tier == "hot":
-        where = "issue_date >= :cutoff"
+        where = "date_created >= :cutoff"
         params = {"cutoff": cutoff}
     elif tier == "cold":
         cold_cutoff = now - timedelta(days=180)
-        where = "issue_date < :cutoff"
+        where = "date_created < :cutoff"
         params = {"cutoff": cold_cutoff}
     else:
         prev_days = {"warm": 30, "mild": 90}
         prev_cutoff = now - timedelta(days=prev_days[tier])
-        where = "issue_date >= :cutoff AND issue_date < :prev"
+        where = "date_created >= :cutoff AND date_created < :prev"
         params = {"cutoff": cutoff, "prev": prev_cutoff}
 
     offset = (page - 1) * page_size
@@ -707,12 +707,13 @@ async def get_leads_by_tier(
         count_r = await db.execute(text(f"SELECT COUNT(*) FROM permits WHERE {where}"), params)
         total = count_r.scalar() or 0
 
-        # Get page of results
+        # Get page of results (T430 schema: state_code, zip_code, date_created,
+        # project_type, applicant_name — no valuation/jurisdiction/contractor_name)
         r = await db.execute(text(
-            f"SELECT permit_number, address, city, state, zip, permit_type, status, "
-            f"contractor_name, owner_name, valuation, issue_date, jurisdiction "
+            f"SELECT permit_number, address, city, state_code, zip_code, project_type, status, "
+            f"applicant_name, owner_name, date_created, county "
             f"FROM permits WHERE {where} "
-            f"ORDER BY issue_date DESC LIMIT :limit OFFSET :offset"
+            f"ORDER BY date_created DESC LIMIT :limit OFFSET :offset"
         ), {**params, "limit": page_size, "offset": offset})
         rows = r.fetchall()
     except Exception as e:
@@ -730,9 +731,8 @@ async def get_leads_by_tier(
             "status": row[6],
             "contractor": row[7],
             "owner": row[8],
-            "valuation": float(row[9]) if row[9] else None,
-            "issue_date": row[10].isoformat() if row[10] else None,
-            "jurisdiction": row[11],
+            "issue_date": row[9].isoformat() if row[9] else None,
+            "county": row[10],
         })
 
     return {

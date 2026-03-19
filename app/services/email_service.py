@@ -25,7 +25,7 @@ def _build_matches_html(matches: list[dict]) -> str:
             <td style="padding:6px;border:1px solid #ddd">{m.get('city','')}, {m.get('state','')}</td>
             <td style="padding:6px;border:1px solid #ddd">{m.get('permit_type','')}</td>
             <td style="padding:6px;border:1px solid #ddd">{m.get('issue_date','')}</td>
-            <td style="padding:6px;border:1px solid #ddd">{m.get('contractor_name','') or m.get('contractor_company','')}</td>
+            <td style="padding:6px;border:1px solid #ddd">{m.get('applicant_name','')}</td>
         </tr>"""
 
     return f"""<table style="border-collapse:collapse;width:100%;font-size:14px">

@@ -12,10 +12,10 @@ from copy import deepcopy
 logger = logging.getLogger(__name__)
 
 # Fields stripped from results at elevated / alert levels
+# (T430 schema uses applicant_name, not contractor_name/contractor_company)
 _STRIP_FIELDS = [
     "description",
-    "contractor_name",
-    "contractor_company",
+    "applicant_name",
     "lat",
     "lng",
 ]
