@@ -24,6 +24,7 @@ from app.models.data_layers import (  # noqa: F401
     BusinessEntity, CodeViolation, PermitPrediction,
     PropertySale, PropertyLien,
 )
+from app.models.dialer import CallLog, LeadStatus  # noqa: F401
 
 # Import routers
 from app.api.v1.permits import router as permits_router
@@ -47,6 +48,7 @@ from app.api.v1.violations import router as violations_router
 from app.api.v1.predictions import router as predictions_router
 from app.api.v1.sales import router as sales_router
 from app.api.v1.liens import router as liens_router
+from app.api.v1.dialer import router as dialer_router
 
 logger = logging.getLogger(__name__)
 
@@ -129,6 +131,7 @@ app.include_router(violations_router, prefix="/v1")
 app.include_router(predictions_router, prefix="/v1")
 app.include_router(sales_router, prefix="/v1")
 app.include_router(liens_router, prefix="/v1")
+app.include_router(dialer_router, prefix="/v1")
 
 
 @app.get("/health")
@@ -444,6 +447,41 @@ async def migrate_expansion():
                 migrations.append(f"{table_name}: {e}")
                 await db.rollback()
 
+        # ---- Sales Dialer tables ----
+        dialer_tables = {
+            "call_logs": """
+                CREATE TABLE IF NOT EXISTS call_logs (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID NOT NULL REFERENCES api_users(id),
+                    lead_id UUID,
+                    phone_number VARCHAR(20),
+                    duration_seconds INTEGER,
+                    disposition VARCHAR(50),
+                    notes TEXT,
+                    ai_summary TEXT,
+                    action_items JSONB,
+                    callback_date TIMESTAMPTZ,
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                )
+            """,
+            "lead_statuses": """
+                CREATE TABLE IF NOT EXISTS lead_statuses (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID NOT NULL REFERENCES api_users(id),
+                    lead_id UUID NOT NULL,
+                    status VARCHAR(50) DEFAULT 'new',
+                    updated_at TIMESTAMPTZ DEFAULT NOW()
+                )
+            """,
+        }
+        for table_name, ddl in dialer_tables.items():
+            try:
+                await db.execute(text(ddl))
+                migrations.append(f"{table_name} table created")
+            except Exception as e:
+                migrations.append(f"{table_name}: {e}")
+                await db.rollback()
+
         # Indexes for new tables
         indexes = [
             "CREATE INDEX IF NOT EXISTS ix_cl_license ON contractor_licenses (license_number)",
@@ -499,6 +537,14 @@ async def migrate_expansion():
             "CREATE INDEX IF NOT EXISTS ix_liens_debtor ON property_liens (debtor_name)",
             "CREATE INDEX IF NOT EXISTS ix_liens_filing_state ON property_liens (filing_number, state)",
             "CREATE INDEX IF NOT EXISTS ix_liens_zip ON property_liens (zip)",
+            # call_logs indexes
+            "CREATE INDEX IF NOT EXISTS ix_call_logs_user ON call_logs (user_id)",
+            "CREATE INDEX IF NOT EXISTS ix_call_logs_lead ON call_logs (lead_id)",
+            "CREATE INDEX IF NOT EXISTS ix_call_logs_user_date ON call_logs (user_id, created_at)",
+            "CREATE INDEX IF NOT EXISTS ix_call_logs_callback ON call_logs (user_id, callback_date) WHERE callback_date IS NOT NULL",
+            # lead_statuses indexes
+            "CREATE INDEX IF NOT EXISTS ix_lead_statuses_lead ON lead_statuses (lead_id)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS ix_lead_status_user_lead ON lead_statuses (user_id, lead_id)",
         ]
         for idx_sql in indexes:
             try:
@@ -539,7 +585,7 @@ async def root():
 async def _spa_page():
     return FileResponse(STATIC_DIR / "index.html")
 
-for _path in ("/search", "/coverage", "/pricing", "/dashboard", "/contractors", "/alerts", "/properties", "/market", "/saved-searches", "/admin"):
+for _path in ("/search", "/coverage", "/pricing", "/dashboard", "/contractors", "/alerts", "/properties", "/market", "/saved-searches", "/admin", "/dialer"):
     app.get(_path, include_in_schema=False)(_spa_page)
 
 
@@ -580,5 +626,11 @@ async def api_info():
             "liens_search": "GET /v1/liens/search?debtor=...&state=NY&lien_type=Tax+Lien",
             "liens_property": "GET /v1/liens/property?address=123+Main+St&state=NY",
             "liens_stats": "GET /v1/liens/stats",
+            "dialer_queue": "GET /v1/dialer/queue?trade=roofing&state=TX&limit=25",
+            "dialer_log": "POST /v1/dialer/log",
+            "dialer_disposition": "POST /v1/dialer/disposition",
+            "dialer_callbacks": "GET /v1/dialer/callbacks",
+            "dialer_stats": "GET /v1/dialer/stats",
+            "dialer_history": "GET /v1/dialer/history?page=1&page_size=25",
         },
     }
