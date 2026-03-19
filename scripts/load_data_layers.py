@@ -902,6 +902,8 @@ LOADERS = {
 
 
 def main():
+    global DB_HOST, STAGING
+
     parser = argparse.ArgumentParser(description="Load data layers into T430 PostgreSQL")
     parser.add_argument("--layer", default="all",
                         choices=["all"] + list(LOADERS.keys()),
@@ -910,7 +912,6 @@ def main():
     parser.add_argument("--staging-dir", default=str(STAGING))
     args = parser.parse_args()
 
-    global DB_HOST, STAGING
     DB_HOST = args.db_host
     STAGING = Path(args.staging_dir)
 
