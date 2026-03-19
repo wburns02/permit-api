@@ -11,6 +11,7 @@ from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
 from app.models.data_layers import CodeViolation
 from app.services.fast_counts import fast_count, safe_query
+from app.services.response_guard import guard_response
 
 router = APIRouter(prefix="/violations", tags=["Code Violations"])
 
@@ -90,12 +91,19 @@ async def violation_search(
     db.add(log)
     await db.commit()
 
+    results_list = [_serialize(v) for v in violations]
+
+    # Apply security layers
+    guarded_results, sec_meta = await guard_response(
+        request, results_list, page=page, zip_code=zip, state=state,
+    )
+
     return {
         "query": {
             "address": address, "city": city, "state": state,
             "zip": zip, "status": status, "violation_type": violation_type,
         },
-        "results": [_serialize(v) for v in violations],
+        "results": guarded_results,
         "total": total,
         "page": page,
         "pages": math.ceil(total / limit) if total else 0,

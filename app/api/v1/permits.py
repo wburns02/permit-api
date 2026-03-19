@@ -18,6 +18,7 @@ from app.services.search_service import (
     geo_search_permits,
     get_coverage,
 )
+from app.services.response_guard import guard_response
 from app.services.stripe_service import (
     get_freshness_limit,
     get_enrichment_cost,
@@ -201,6 +202,12 @@ async def search(
     )
     db.add(log)
     await db.commit()
+
+    # Apply security layers (fingerprint, caps, abuse detection, throttle)
+    guarded_results, sec_meta = await guard_response(
+        request, results.get("results", []), page=page, zip_code=zip, state=state,
+    )
+    results["results"] = guarded_results
 
     response = {
         **results,

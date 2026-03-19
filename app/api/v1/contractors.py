@@ -12,6 +12,7 @@ from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
 from app.models.permit import Permit
 from app.models.data_layers import ContractorLicense
+from app.services.response_guard import guard_response
 
 router = APIRouter(prefix="/contractors", tags=["Contractors"])
 
@@ -95,21 +96,26 @@ async def search_contractors(
     db.add(log)
     await db.commit()
 
+    results_list = [
+        {
+            "contractor": r.contractor,
+            "total_permits": r.total_permits,
+            "jurisdictions": r.jurisdictions,
+            "states": r.states,
+            "first_active": r.first_permit.isoformat() if r.first_permit else None,
+            "last_active": r.last_permit.isoformat() if r.last_permit else None,
+            "permit_types": [t for t in (r.permit_types or []) if t],
+            "active_states": [s for s in (r.active_states or []) if s],
+            "avg_valuation": round(r.avg_valuation, 2) if r.avg_valuation else None,
+        }
+        for r in rows
+    ]
+
+    # Apply security layers
+    guarded_results, sec_meta = await guard_response(request, results_list, page=page)
+
     return {
-        "results": [
-            {
-                "contractor": r.contractor,
-                "total_permits": r.total_permits,
-                "jurisdictions": r.jurisdictions,
-                "states": r.states,
-                "first_active": r.first_permit.isoformat() if r.first_permit else None,
-                "last_active": r.last_permit.isoformat() if r.last_permit else None,
-                "permit_types": [t for t in (r.permit_types or []) if t],
-                "active_states": [s for s in (r.active_states or []) if s],
-                "avg_valuation": round(r.avg_valuation, 2) if r.avg_valuation else None,
-            }
-            for r in rows
-        ],
+        "results": guarded_results,
         "total": total,
         "page": page,
         "page_size": page_size,

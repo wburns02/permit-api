@@ -10,6 +10,7 @@ from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
 from app.models.data_layers import ContractorLicense
 from app.services.fast_counts import fast_count
+from app.services.response_guard import guard_response
 
 router = APIRouter(prefix="/licenses", tags=["Contractor Licenses"])
 
@@ -163,20 +164,25 @@ async def search_licenses(
     db.add(log)
     await db.commit()
 
+    results_list = [
+        {
+            "license_number": lic.license_number,
+            "business_name": lic.business_name,
+            "city": lic.city,
+            "state": lic.state,
+            "status": lic.status,
+            "classifications": lic.classifications,
+            "expiration_date": lic.expiration_date.isoformat() if lic.expiration_date else None,
+            "source": lic.source,
+        }
+        for lic in licenses
+    ]
+
+    # Apply security layers
+    guarded_results, sec_meta = await guard_response(request, results_list, page=page, state=state)
+
     return {
-        "results": [
-            {
-                "license_number": lic.license_number,
-                "business_name": lic.business_name,
-                "city": lic.city,
-                "state": lic.state,
-                "status": lic.status,
-                "classifications": lic.classifications,
-                "expiration_date": lic.expiration_date.isoformat() if lic.expiration_date else None,
-                "source": lic.source,
-            }
-            for lic in licenses
-        ],
+        "results": guarded_results,
         "total": total,
         "page": page,
         "page_size": page_size,

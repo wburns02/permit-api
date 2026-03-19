@@ -10,6 +10,7 @@ from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
 from app.models.data_layers import BusinessEntity
 from app.services.fast_counts import fast_count
+from app.services.response_guard import guard_response
 
 router = APIRouter(prefix="/entities", tags=["Business Entities"])
 
@@ -74,9 +75,14 @@ async def search_entities(
     db.add(log)
     await db.commit()
 
+    results_list = [_entity_dict(e) for e in entities]
+
+    # Apply security layers
+    guarded_results, sec_meta = await guard_response(request, results_list, page=page, state=state)
+
     return {
         "query": {"name": name, "state": state, "entity_type": entity_type},
-        "results": [_entity_dict(e) for e in entities],
+        "results": guarded_results,
         "total": total,
         "page": page,
         "page_size": page_size,

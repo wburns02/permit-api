@@ -10,7 +10,7 @@ from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
+from fastapi import APIRouter, Body, Depends, HTTPException, BackgroundTasks, Query, Request
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -805,3 +805,19 @@ async def coverage_analysis(user: ApiUser = Depends(require_admin)):
             "missing_states": missing,
         },
     }
+
+
+@router.post("/trace")
+async def trace_data(request: Request, body: dict = Body(...), user: ApiUser = Depends(require_admin)):
+    """Admin-only: trace a data record back to the API key that downloaded it."""
+    from app.services.fingerprint import trace_fingerprint
+    result = trace_fingerprint(body)
+    return {"trace_result": result}
+
+
+@router.get("/abuse-alerts")
+async def abuse_alerts(request: Request, user: ApiUser = Depends(require_admin)):
+    """Admin-only: view recent abuse detection alerts."""
+    from app.services.abuse_detector import get_recent_alerts
+    alerts = await get_recent_alerts()
+    return {"alerts": alerts, "total": len(alerts)}
