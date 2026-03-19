@@ -314,7 +314,7 @@ async def hot_zips(
         scoring = _compute_pipeline_score(
             permit_count=r.permit_count,
             median_sale_price=r.median_sale_price,
-            median_sale_price_prior=None,  # No YoY in bulk mode for performance
+            median_sale_price_prior=None,  # No YoY in bulk mode
             median_dom=r.median_dom,
             inventory=r.inventory,
         )
@@ -364,6 +364,7 @@ async def hot_zips(
         "limit": limit,
         "min_permits": min_permits,
         "lookback_months": 6,
+        "yoy_price_momentum_included": False,
         "results_count": len(scored),
         "hot_zips": scored,
     }
@@ -371,7 +372,6 @@ async def hot_zips(
 
 @router.get("/stats")
 async def pipeline_stats(
-    request: Request,
     db: AsyncSession = Depends(get_db),
 ):
     """
