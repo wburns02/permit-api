@@ -458,7 +458,7 @@ async def pipeline_stats(
     # Estimate an average pipeline score from average permit count (rough proxy)
     avg_pipeline_score = None
     if avg_permits_result:
-        avg_pipeline_score = round(min(avg_permits_result / 200.0, 1.0) * 40.0 + 30.0, 1)
+        avg_pipeline_score = round(min(float(avg_permits_result) / 200.0, 1.0) * 40.0 + 30.0, 1)
 
     return {
         "zips_with_permit_and_valuation_data": overlap_count,
