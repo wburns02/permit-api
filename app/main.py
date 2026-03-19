@@ -41,6 +41,7 @@ from app.api.v1.septic import router as septic_router
 from app.api.v1.demographics import router as demographics_router
 from app.api.v1.valuations import router as valuations_router
 from app.api.v1.entities import router as entities_router
+from app.api.v1.pipeline import router as pipeline_router
 
 logger = logging.getLogger(__name__)
 
@@ -118,6 +119,7 @@ app.include_router(septic_router, prefix="/v1")
 app.include_router(demographics_router, prefix="/v1")
 app.include_router(valuations_router, prefix="/v1")
 app.include_router(entities_router, prefix="/v1")
+app.include_router(pipeline_router, prefix="/v1")
 
 
 @app.get("/health")
@@ -427,5 +429,7 @@ async def api_info():
             "demographics": "GET /v1/demographics/county?state=TX&county_fips=201",
             "valuations": "GET /v1/valuations/zip?zip=78701",
             "entities": "GET /v1/entities/search?name=Sunrise+Holdings&state=TX",
+            "pipeline": "GET /v1/pipeline/permit-to-sale?zip=78701&months=12",
+            "hot_zips": "GET /v1/pipeline/hot-zips?state=TX&limit=25",
         },
     }
