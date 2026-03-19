@@ -10,6 +10,7 @@ from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
 from app.models.data_layers import PropertySale
+from app.services.fast_counts import fast_count
 
 router = APIRouter(prefix="/sales", tags=["Property Sales"])
 
@@ -177,9 +178,7 @@ async def sales_stats(
     db: AsyncSession = Depends(get_db),
 ):
     """Public endpoint -- property sale database statistics."""
-    total = (await db.execute(
-        select(func.count()).select_from(PropertySale)
-    )).scalar() or 0
+    total = await fast_count(db, "property_sales")
 
     states = (await db.execute(
         select(PropertySale.state, func.count().label("count"))

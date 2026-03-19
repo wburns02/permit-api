@@ -9,6 +9,7 @@ from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
 from app.models.data_layers import PropertyValuation
+from app.services.fast_counts import fast_count
 
 router = APIRouter(prefix="/valuations", tags=["Property Valuations"])
 
@@ -250,9 +251,7 @@ async def valuation_stats(
     db: AsyncSession = Depends(get_db),
 ):
     """Public endpoint — property valuation database statistics."""
-    total = (await db.execute(
-        select(func.count()).select_from(PropertyValuation)
-    )).scalar() or 0
+    total = await fast_count(db, "property_valuations")
 
     zips = (await db.execute(
         select(func.count(func.distinct(PropertyValuation.zip)))

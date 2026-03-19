@@ -9,6 +9,7 @@ from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
 from app.models.data_layers import CensusDemographics
+from app.services.fast_counts import fast_count
 
 router = APIRouter(prefix="/demographics", tags=["Demographics"])
 
@@ -258,9 +259,7 @@ async def demographics_stats(
     db: AsyncSession = Depends(get_db),
 ):
     """Public endpoint — census demographics database statistics."""
-    total = (await db.execute(
-        select(func.count()).select_from(CensusDemographics)
-    )).scalar() or 0
+    total = await fast_count(db, "census_demographics")
 
     states = (await db.execute(
         select(

@@ -505,7 +505,7 @@ async def health_db():
     t0 = time.time()
     try:
         async with async_session_maker() as db:
-            r = await db.execute(text("SELECT COUNT(*) FROM permits"))
+            r = await db.execute(text("SELECT reltuples::bigint FROM pg_class WHERE relname = 'permits'"))
             count = r.scalar()
         return {"status": "ok", "permits": count, "latency_ms": round((time.time() - t0) * 1000)}
     except Exception as e:

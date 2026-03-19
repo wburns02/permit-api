@@ -9,6 +9,7 @@ from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
 from app.models.data_layers import PermitPrediction
+from app.services.fast_counts import fast_count
 
 router = APIRouter(prefix="/predictions", tags=["Predictive Analytics"])
 
@@ -150,9 +151,7 @@ async def prediction_stats(
     db: AsyncSession = Depends(get_db),
 ):
     """Public endpoint — predictive model metadata and statistics."""
-    total_predictions = (await db.execute(
-        select(func.count()).select_from(PermitPrediction)
-    )).scalar() or 0
+    total_predictions = await fast_count(db, "permit_predictions")
 
     unique_zips = (await db.execute(
         select(func.count(func.distinct(PermitPrediction.zip)))

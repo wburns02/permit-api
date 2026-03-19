@@ -9,6 +9,7 @@ from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
 from app.models.data_layers import ContractorLicense
+from app.services.fast_counts import fast_count
 
 router = APIRouter(prefix="/licenses", tags=["Contractor Licenses"])
 
@@ -188,8 +189,7 @@ async def license_stats(
     db: AsyncSession = Depends(get_db),
 ):
     """Public endpoint — license database statistics."""
-    total_q = select(func.count()).select_from(ContractorLicense)
-    total = (await db.execute(total_q)).scalar() or 0
+    total = await fast_count(db, "contractor_licenses")
 
     states_q = select(
         ContractorLicense.state,
