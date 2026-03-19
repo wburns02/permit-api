@@ -48,9 +48,18 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
     Now connected directly to T430 via Tailscale — uses fast reltuples
     for permit count, and known constants for jurisdictions/states.
     """
-    total_permits = await fast_count(db, "permits")
+    # Sum all data layer tables for total platform records
+    tables = [
+        "permits", "business_entities", "septic_systems",
+        "property_valuations", "fema_flood_zones", "code_violations",
+        "epa_facilities", "contractor_licenses", "census_demographics",
+        "property_sales", "property_liens", "permit_predictions",
+    ]
+    total_records = 0
+    for tbl in tables:
+        total_records += await fast_count(db, tbl)
 
-    # Jurisdiction and state counts are relatively stable — use fast estimates
+    # Jurisdiction and state counts are relatively stable
     total_jurisdictions = await fast_count(db, "jurisdictions")
     if total_jurisdictions == 0:
         total_jurisdictions = 3143  # fallback
@@ -59,7 +68,7 @@ async def get_stats(db: AsyncSession = Depends(get_db)):
     total_states = 54
 
     return {
-        "total_permits": total_permits,
+        "total_permits": total_records,
         "total_jurisdictions": total_jurisdictions,
         "total_states": total_states,
     }
