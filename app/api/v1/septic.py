@@ -10,7 +10,7 @@ from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
 from app.models.data_layers import SepticSystem
-from app.services.fast_counts import fast_count
+from app.services.fast_counts import fast_count, safe_query
 
 router = APIRouter(prefix="/septic", tags=["Septic Systems"])
 
@@ -179,18 +179,18 @@ async def septic_stats(
     """Public endpoint — septic system database statistics."""
     total = await fast_count(db, "septic_systems")
 
-    states = (await db.execute(
+    states = await safe_query(db,
         select(SepticSystem.state, func.count().label("count"))
         .group_by(SepticSystem.state)
         .order_by(func.count().desc())
-    )).all()
+    )
 
-    types = (await db.execute(
+    types = await safe_query(db,
         select(SepticSystem.system_type, func.count().label("count"))
         .group_by(SepticSystem.system_type)
         .order_by(func.count().desc())
         .limit(10)
-    )).all()
+    )
 
     return {
         "total_records": total,

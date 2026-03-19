@@ -10,7 +10,7 @@ from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
 from app.models.data_layers import CodeViolation
-from app.services.fast_counts import fast_count
+from app.services.fast_counts import fast_count, safe_query
 
 router = APIRouter(prefix="/violations", tags=["Code Violations"])
 
@@ -175,24 +175,24 @@ async def violation_stats(
     """Public endpoint — code violation database statistics."""
     total = await fast_count(db, "code_violations")
 
-    cities = (await db.execute(
+    cities = await safe_query(db,
         select(CodeViolation.city, func.count().label("count"))
         .group_by(CodeViolation.city)
         .order_by(func.count().desc())
         .limit(10)
-    )).all()
+    )
 
-    statuses = (await db.execute(
+    statuses = await safe_query(db,
         select(CodeViolation.status, func.count().label("count"))
         .group_by(CodeViolation.status)
         .order_by(func.count().desc())
-    )).all()
+    )
 
-    sources = (await db.execute(
+    sources = await safe_query(db,
         select(CodeViolation.source, func.count().label("count"))
         .group_by(CodeViolation.source)
         .order_by(func.count().desc())
-    )).all()
+    )
 
     return {
         "total_records": total,

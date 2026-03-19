@@ -9,7 +9,7 @@ from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
 from app.models.data_layers import PropertyValuation
-from app.services.fast_counts import fast_count
+from app.services.fast_counts import fast_count, safe_query
 
 router = APIRouter(prefix="/valuations", tags=["Property Valuations"])
 
@@ -257,19 +257,20 @@ async def valuation_stats(
         select(func.count(func.distinct(PropertyValuation.zip)))
     )).scalar() or 0
 
-    states = (await db.execute(
+    states = await safe_query(db,
         select(PropertyValuation.state, func.count(func.distinct(PropertyValuation.zip)).label("zips"))
         .group_by(PropertyValuation.state)
         .order_by(func.count(func.distinct(PropertyValuation.zip)).desc())
         .limit(15)
-    )).all()
+    )
 
-    date_range = (await db.execute(
+    date_range_rows = await safe_query(db,
         select(
             func.min(PropertyValuation.period_begin).label("earliest"),
             func.max(PropertyValuation.period_end).label("latest"),
         )
-    )).one_or_none()
+    )
+    date_range = date_range_rows[0] if date_range_rows else None
 
     return {
         "total_records": total,

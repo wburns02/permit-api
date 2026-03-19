@@ -10,7 +10,7 @@ from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
 from app.models.data_layers import EpaFacility, FemaFloodZone
-from app.services.fast_counts import fast_count
+from app.services.fast_counts import fast_count, safe_query
 
 router = APIRouter(prefix="/environmental", tags=["Environmental Risk"])
 
@@ -301,21 +301,21 @@ async def environmental_stats(
     """Public endpoint — environmental database statistics."""
     epa_total = await fast_count(db, "epa_facilities")
 
-    epa_states = (await db.execute(
+    epa_states = await safe_query(db,
         select(EpaFacility.state, func.count().label("count"))
         .group_by(EpaFacility.state)
         .order_by(func.count().desc())
         .limit(10)
-    )).all()
+    )
 
     fema_total = await fast_count(db, "fema_flood_zones")
 
-    fema_states = (await db.execute(
+    fema_states = await safe_query(db,
         select(FemaFloodZone.state_abbrev, func.count().label("count"))
         .group_by(FemaFloodZone.state_abbrev)
         .order_by(func.count().desc())
         .limit(10)
-    )).all()
+    )
 
     return {
         "epa_facilities": {
