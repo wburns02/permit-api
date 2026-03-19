@@ -7,6 +7,7 @@ Datasets:
 - Chicago Building Violations: data.cityofchicago.org/resource/22u3-xenr — 2M records
 - Cincinnati Code Violations: data.cincinnati-oh.gov/resource/cncm-znd6 — 751K records
 - Montgomery County MD: data.montgomerycountymd.gov/resource/k9nj-z35d — 932K records
+- LA Building Safety: data.lacity.org/resource/9w5z-rg2h — 11M records
 
 Usage:
     python scrape_code_violations.py --city nyc --db-host 100.122.216.15
@@ -129,6 +130,27 @@ CITY_CONFIGS = {
             "fine_amount": None,
             "lat": "latitude",
             "lng": "longitude",
+        },
+    },
+    "la": {
+        "base_url": "https://data.lacity.org/resource/9w5z-rg2h.json",
+        "source": "la_building_safety",
+        "city": "Los Angeles",
+        "state": "CA",
+        "fields": {
+            "violation_id": "permit",
+            "address": "address",
+            "zip": None,
+            "violation_type": "inspection",
+            "violation_code": None,
+            "description": "inspection_result",
+            "status": "inspection_result",
+            "violation_date": "inspection_date",
+            "inspection_date": "inspection_date",
+            "resolution_date": None,
+            "fine_amount": None,
+            "lat": "lat",
+            "lng": "lon",
         },
     },
 }
