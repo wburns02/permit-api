@@ -16,6 +16,11 @@ from app.models.data_layers import ContractorLicense
 router = APIRouter(prefix="/contractors", tags=["Contractors"])
 
 
+def _escape_like(s: str) -> str:
+    """Escape SQL ILIKE wildcards in user input."""
+    return s.replace("%", r"\%").replace("_", r"\_")
+
+
 @router.get("/search")
 async def search_contractors(
     request: Request,
@@ -284,7 +289,6 @@ def _valuation_consistency_score(
         desc = "Extremely high valuation variance"
 
     if min_val is not None and max_val is not None and min_val > 0:
-        range_ratio = max_val / min_val
         desc += f" (range: ${min_val:,.0f}–${max_val:,.0f})"
 
     return score, desc
@@ -326,9 +330,10 @@ async def contractor_risk_score(
     await check_rate_limit(request, lookup_count=1)
 
     # ----- Query permit data -----
+    safe_name = _escape_like(contractor_name)
     name_filter = or_(
-        Permit.contractor_name.ilike(f"%{contractor_name}%"),
-        Permit.contractor_company.ilike(f"%{contractor_name}%"),
+        Permit.contractor_name.ilike(f"%{safe_name}%"),
+        Permit.contractor_company.ilike(f"%{safe_name}%"),
     )
 
     permit_agg_q = select(
@@ -350,17 +355,24 @@ async def contractor_risk_score(
 
     total_permits = pdata.total_permits or 0
 
-    # ----- Query license data -----
+    # ----- Query license data (before 404 check so we have both) -----
     license_q = select(ContractorLicense.status, ContractorLicense.license_number).where(
         or_(
-            ContractorLicense.business_name.ilike(f"%{contractor_name}%"),
-            ContractorLicense.full_business_name.ilike(f"%{contractor_name}%"),
+            ContractorLicense.business_name.ilike(f"%{safe_name}%"),
+            ContractorLicense.full_business_name.ilike(f"%{safe_name}%"),
         )
     )
     license_result = await db.execute(license_q)
     license_rows = license_result.all()
     license_statuses = [r.status for r in license_rows]
     license_numbers = [r.license_number for r in license_rows]
+
+    # ----- 404 if no data at all -----
+    if total_permits == 0 and len(license_rows) == 0:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No permit or license data found for contractor '{contractor_name}'.",
+        )
 
     # ----- Compute sub-scores -----
     vol_score = _permit_volume_score(total_permits)
