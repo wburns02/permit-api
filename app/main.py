@@ -22,6 +22,7 @@ from app.models.data_layers import (  # noqa: F401
     ContractorLicense, EpaFacility, FemaFloodZone,
     CensusDemographics, SepticSystem, PropertyValuation,
     BusinessEntity, CodeViolation, PermitPrediction,
+    PropertySale, PropertyLien,
 )
 
 # Import routers
@@ -44,6 +45,8 @@ from app.api.v1.entities import router as entities_router
 from app.api.v1.pipeline import router as pipeline_router
 from app.api.v1.violations import router as violations_router
 from app.api.v1.predictions import router as predictions_router
+from app.api.v1.sales import router as sales_router
+from app.api.v1.liens import router as liens_router
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +127,8 @@ app.include_router(entities_router, prefix="/v1")
 app.include_router(pipeline_router, prefix="/v1")
 app.include_router(violations_router, prefix="/v1")
 app.include_router(predictions_router, prefix="/v1")
+app.include_router(sales_router, prefix="/v1")
+app.include_router(liens_router, prefix="/v1")
 
 
 @app.get("/health")
@@ -369,6 +374,52 @@ async def migrate_expansion():
                     scored_at TIMESTAMPTZ DEFAULT NOW()
                 )
             """,
+            "property_sales": """
+                CREATE TABLE IF NOT EXISTS property_sales (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    document_id VARCHAR(100),
+                    address VARCHAR(500),
+                    city VARCHAR(100),
+                    state VARCHAR(2) NOT NULL,
+                    zip VARCHAR(10),
+                    borough VARCHAR(50),
+                    sale_price FLOAT,
+                    sale_date DATE,
+                    recorded_date DATE,
+                    doc_type VARCHAR(50),
+                    grantor VARCHAR(500),
+                    grantee VARCHAR(500),
+                    property_type VARCHAR(100),
+                    building_class VARCHAR(50),
+                    residential_units INTEGER,
+                    land_sqft FLOAT,
+                    gross_sqft FLOAT,
+                    lat FLOAT,
+                    lng FLOAT,
+                    source VARCHAR(50) NOT NULL
+                )
+            """,
+            "property_liens": """
+                CREATE TABLE IF NOT EXISTS property_liens (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    document_id VARCHAR(100),
+                    lien_type VARCHAR(100),
+                    filing_number VARCHAR(100),
+                    address VARCHAR(500),
+                    city VARCHAR(100),
+                    state VARCHAR(2) NOT NULL,
+                    zip VARCHAR(10),
+                    borough VARCHAR(50),
+                    amount FLOAT,
+                    filing_date DATE,
+                    lapse_date DATE,
+                    status VARCHAR(50),
+                    debtor_name VARCHAR(500),
+                    creditor_name VARCHAR(500),
+                    description TEXT,
+                    source VARCHAR(50) NOT NULL
+                )
+            """,
         }
 
         for table_name, ddl in new_tables.items():
@@ -412,6 +463,28 @@ async def migrate_expansion():
             "CREATE INDEX IF NOT EXISTS ix_predictions_zip ON permit_predictions (zip)",
             "CREATE INDEX IF NOT EXISTS ix_predictions_state_score ON permit_predictions (state, prediction_score DESC)",
             "CREATE INDEX IF NOT EXISTS ix_predictions_scored_at ON permit_predictions (scored_at)",
+            # property_sales indexes
+            "CREATE INDEX IF NOT EXISTS ix_sales_doc_id ON property_sales (document_id)",
+            "CREATE INDEX IF NOT EXISTS ix_sales_address ON property_sales (address)",
+            "CREATE INDEX IF NOT EXISTS ix_sales_city ON property_sales (city)",
+            "CREATE INDEX IF NOT EXISTS ix_sales_state ON property_sales (state)",
+            "CREATE INDEX IF NOT EXISTS ix_sales_zip ON property_sales (zip)",
+            "CREATE INDEX IF NOT EXISTS ix_sales_state_city ON property_sales (state, city)",
+            "CREATE INDEX IF NOT EXISTS ix_sales_zip_date ON property_sales (zip, sale_date)",
+            "CREATE INDEX IF NOT EXISTS ix_sales_sale_date ON property_sales (sale_date)",
+            "CREATE INDEX IF NOT EXISTS ix_sales_grantor ON property_sales (grantor)",
+            "CREATE INDEX IF NOT EXISTS ix_sales_grantee ON property_sales (grantee)",
+            # property_liens indexes
+            "CREATE INDEX IF NOT EXISTS ix_liens_doc_id ON property_liens (document_id)",
+            "CREATE INDEX IF NOT EXISTS ix_liens_address ON property_liens (address)",
+            "CREATE INDEX IF NOT EXISTS ix_liens_lien_type ON property_liens (lien_type)",
+            "CREATE INDEX IF NOT EXISTS ix_liens_filing_number ON property_liens (filing_number)",
+            "CREATE INDEX IF NOT EXISTS ix_liens_state ON property_liens (state)",
+            "CREATE INDEX IF NOT EXISTS ix_liens_state_type ON property_liens (state, lien_type)",
+            "CREATE INDEX IF NOT EXISTS ix_liens_filing_date ON property_liens (filing_date)",
+            "CREATE INDEX IF NOT EXISTS ix_liens_debtor ON property_liens (debtor_name)",
+            "CREATE INDEX IF NOT EXISTS ix_liens_filing_state ON property_liens (filing_number, state)",
+            "CREATE INDEX IF NOT EXISTS ix_liens_zip ON property_liens (zip)",
         ]
         for idx_sql in indexes:
             try:
@@ -487,5 +560,11 @@ async def api_info():
             "predictions_zip": "GET /v1/predictions/zip?zip=78701",
             "predictions_hotspots": "GET /v1/predictions/hotspots?state=TX&limit=50",
             "predictions_stats": "GET /v1/predictions/stats",
+            "sales_search": "GET /v1/sales/search?address=...&state=NY",
+            "sales_property": "GET /v1/sales/property?address=123+Main+St&state=NY",
+            "sales_stats": "GET /v1/sales/stats",
+            "liens_search": "GET /v1/liens/search?debtor=...&state=NY&lien_type=Tax+Lien",
+            "liens_property": "GET /v1/liens/property?address=123+Main+St&state=NY",
+            "liens_stats": "GET /v1/liens/stats",
         },
     }

@@ -1,4 +1,4 @@
-"""Data layer models — contractor licenses, EPA, FEMA, census, septic, valuations, business entities, code violations, permit predictions."""
+"""Data layer models — contractor licenses, EPA, FEMA, census, septic, valuations, business entities, code violations, permit predictions, property sales."""
 
 import uuid
 from datetime import datetime, timezone
@@ -242,4 +242,69 @@ class PermitPrediction(Base):
     __table_args__ = (
         Index("ix_predictions_state_score", "state", prediction_score.desc()),
         Index("ix_predictions_scored_at", "scored_at"),
+    )
+
+
+class PropertySale(Base):
+    __tablename__ = "property_sales"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    document_id = Column(String(100), index=True)  # Source document ID
+    address = Column(String(500), index=True)
+    city = Column(String(100), index=True)
+    state = Column(String(2), nullable=False, index=True)
+    zip = Column(String(10), index=True)
+    borough = Column(String(50))  # NYC specific
+    sale_price = Column(Float)
+    sale_date = Column(Date, index=True)
+    recorded_date = Column(Date)
+    doc_type = Column(String(50))  # DEED, TRANSFER, etc.
+    grantor = Column(String(500))  # Seller
+    grantee = Column(String(500))  # Buyer
+    property_type = Column(String(100))  # Residential, Commercial, etc.
+    building_class = Column(String(50))
+    residential_units = Column(Integer)
+    land_sqft = Column(Float)
+    gross_sqft = Column(Float)
+    lat = Column(Float)
+    lng = Column(Float)
+    source = Column(String(50), nullable=False)
+
+    __table_args__ = (
+        Index("ix_sales_address", "address"),
+        Index("ix_sales_state_city", "state", "city"),
+        Index("ix_sales_zip_date", "zip", "sale_date"),
+        Index("ix_sales_sale_date", "sale_date"),
+        Index("ix_sales_grantor", "grantor"),
+        Index("ix_sales_grantee", "grantee"),
+    )
+
+
+class PropertyLien(Base):
+    __tablename__ = "property_liens"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    document_id = Column(String(100), index=True)
+    lien_type = Column(String(100), index=True)  # Tax Lien, UCC, Mechanic's Lien, Judgment, etc.
+    filing_number = Column(String(100), index=True)
+    address = Column(String(500), index=True)
+    city = Column(String(100))
+    state = Column(String(2), nullable=False, index=True)
+    zip = Column(String(10), index=True)
+    borough = Column(String(50))  # NYC specific
+    amount = Column(Float)
+    filing_date = Column(Date, index=True)
+    lapse_date = Column(Date)
+    status = Column(String(50))  # Active, Satisfied, Terminated, etc.
+    debtor_name = Column(String(500), index=True)
+    creditor_name = Column(String(500))
+    description = Column(Text)
+    source = Column(String(50), nullable=False)
+
+    __table_args__ = (
+        Index("ix_liens_address", "address"),
+        Index("ix_liens_state_type", "state", "lien_type"),
+        Index("ix_liens_filing_date", "filing_date"),
+        Index("ix_liens_debtor", "debtor_name"),
+        Index("ix_liens_filing_state", "filing_number", "state"),
     )
