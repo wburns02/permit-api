@@ -25,6 +25,7 @@ from app.models.data_layers import (  # noqa: F401
     PropertySale, PropertyLien,
 )
 from app.models.dialer import CallLog, LeadStatus  # noqa: F401
+from app.models.crm import Contact, Deal, Note, Commission  # noqa: F401
 
 # Import routers
 from app.api.v1.permits import router as permits_router
@@ -49,6 +50,7 @@ from app.api.v1.predictions import router as predictions_router
 from app.api.v1.sales import router as sales_router
 from app.api.v1.liens import router as liens_router
 from app.api.v1.dialer import router as dialer_router
+from app.api.v1.crm import router as crm_router
 
 logger = logging.getLogger(__name__)
 
@@ -132,6 +134,7 @@ app.include_router(predictions_router, prefix="/v1")
 app.include_router(sales_router, prefix="/v1")
 app.include_router(liens_router, prefix="/v1")
 app.include_router(dialer_router, prefix="/v1")
+app.include_router(crm_router, prefix="/v1")
 
 
 @app.get("/health")
@@ -482,6 +485,76 @@ async def migrate_expansion():
                 migrations.append(f"{table_name}: {e}")
                 await db.rollback()
 
+        # ---- CRM tables ----
+        crm_tables = {
+            "contacts": """
+                CREATE TABLE IF NOT EXISTS contacts (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID NOT NULL REFERENCES api_users(id),
+                    name TEXT NOT NULL,
+                    company TEXT,
+                    phone VARCHAR(20),
+                    email VARCHAR(255),
+                    address TEXT,
+                    city VARCHAR(100),
+                    state VARCHAR(2),
+                    zip VARCHAR(10),
+                    lead_source VARCHAR(50) DEFAULT 'permit',
+                    lead_id UUID,
+                    tags JSONB,
+                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ DEFAULT NOW()
+                )
+            """,
+            "deals": """
+                CREATE TABLE IF NOT EXISTS deals (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID NOT NULL REFERENCES api_users(id),
+                    contact_id UUID REFERENCES contacts(id),
+                    title TEXT,
+                    stage VARCHAR(50) DEFAULT 'new',
+                    value FLOAT,
+                    expected_close_date DATE,
+                    actual_close_date DATE,
+                    lost_reason TEXT,
+                    notes TEXT,
+                    permit_number VARCHAR(100),
+                    permit_type VARCHAR(50),
+                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ DEFAULT NOW()
+                )
+            """,
+            "crm_notes": """
+                CREATE TABLE IF NOT EXISTS crm_notes (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID REFERENCES api_users(id),
+                    contact_id UUID REFERENCES contacts(id),
+                    deal_id UUID REFERENCES deals(id),
+                    content TEXT NOT NULL,
+                    note_type VARCHAR(20) DEFAULT 'note',
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                )
+            """,
+            "commissions": """
+                CREATE TABLE IF NOT EXISTS commissions (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID REFERENCES api_users(id),
+                    deal_id UUID REFERENCES deals(id),
+                    amount FLOAT,
+                    rate FLOAT DEFAULT 0.10,
+                    status VARCHAR(20) DEFAULT 'pending',
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                )
+            """,
+        }
+        for table_name, ddl in crm_tables.items():
+            try:
+                await db.execute(text(ddl))
+                migrations.append(f"{table_name} table created")
+            except Exception as e:
+                migrations.append(f"{table_name}: {e}")
+                await db.rollback()
+
         # Indexes for new tables
         indexes = [
             "CREATE INDEX IF NOT EXISTS ix_cl_license ON contractor_licenses (license_number)",
@@ -545,6 +618,17 @@ async def migrate_expansion():
             # lead_statuses indexes
             "CREATE INDEX IF NOT EXISTS ix_lead_statuses_lead ON lead_statuses (lead_id)",
             "CREATE UNIQUE INDEX IF NOT EXISTS ix_lead_status_user_lead ON lead_statuses (user_id, lead_id)",
+            # CRM indexes
+            "CREATE INDEX IF NOT EXISTS ix_contacts_user ON contacts (user_id)",
+            "CREATE INDEX IF NOT EXISTS ix_contacts_user_phone ON contacts (user_id, phone)",
+            "CREATE INDEX IF NOT EXISTS ix_contacts_user_email ON contacts (user_id, email)",
+            "CREATE INDEX IF NOT EXISTS ix_deals_user ON deals (user_id)",
+            "CREATE INDEX IF NOT EXISTS ix_deals_user_stage ON deals (user_id, stage)",
+            "CREATE INDEX IF NOT EXISTS ix_deals_contact ON deals (contact_id)",
+            "CREATE INDEX IF NOT EXISTS ix_crm_notes_contact ON crm_notes (contact_id)",
+            "CREATE INDEX IF NOT EXISTS ix_crm_notes_deal ON crm_notes (deal_id)",
+            "CREATE INDEX IF NOT EXISTS ix_commissions_user ON commissions (user_id)",
+            "CREATE INDEX IF NOT EXISTS ix_commissions_deal ON commissions (deal_id)",
         ]
         for idx_sql in indexes:
             try:
@@ -585,7 +669,7 @@ async def root():
 async def _spa_page():
     return FileResponse(STATIC_DIR / "index.html")
 
-for _path in ("/search", "/coverage", "/pricing", "/dashboard", "/contractors", "/alerts", "/properties", "/market", "/saved-searches", "/admin", "/dialer"):
+for _path in ("/search", "/coverage", "/pricing", "/dashboard", "/contractors", "/alerts", "/properties", "/market", "/saved-searches", "/admin", "/dialer", "/crm"):
     app.get(_path, include_in_schema=False)(_spa_page)
 
 
@@ -632,5 +716,17 @@ async def api_info():
             "dialer_callbacks": "GET /v1/dialer/callbacks",
             "dialer_stats": "GET /v1/dialer/stats",
             "dialer_history": "GET /v1/dialer/history?page=1&page_size=25",
+            "crm_contacts": "GET /v1/crm/contacts?q=...&page=1",
+            "crm_contact_create": "POST /v1/crm/contacts",
+            "crm_contact_detail": "GET /v1/crm/contacts/{id}",
+            "crm_contact_from_lead": "POST /v1/crm/contacts/from-lead",
+            "crm_deals": "GET /v1/crm/deals?stage=new",
+            "crm_deal_create": "POST /v1/crm/deals",
+            "crm_notes": "POST /v1/crm/notes",
+            "crm_pipeline": "GET /v1/crm/pipeline",
+            "crm_dashboard": "GET /v1/crm/dashboard",
+            "crm_leaderboard": "GET /v1/crm/leaderboard?period=week",
+            "crm_commissions": "GET /v1/crm/commissions",
+            "crm_commissions_summary": "GET /v1/crm/commissions/summary",
         },
     }

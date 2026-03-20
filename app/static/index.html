@@ -1167,6 +1167,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
       <a href="#alerts" onclick="showPage('alerts');return false">Alerts</a>
       <a href="#leads" onclick="showPage('leads');return false">Leads</a>
       <a href="#dialer" onclick="showPage('dialer');return false">Dialer</a>
+      <a href="#crm" onclick="showPage('crm');return false">CRM</a>
       <a href="#playground" onclick="showPage('playground');return false">Playground</a>
       <a href="#pricing" onclick="showPage('pricing');return false">Pricing</a>
       <div class="nav-dropdown" id="nav-tools-dropdown">
@@ -3917,6 +3918,160 @@ results.forEach(p =>
   </div>
 </div>
 
+<!-- CRM PAGE -->
+<div class="page" id="page-crm">
+  <section style="padding:24px 0">
+    <div class="container" style="max-width:1400px">
+      <!-- Top Bar -->
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+        <div>
+          <h2 style="display:flex;align-items:center;gap:10px">CRM <span style="font-size:13px;font-weight:500;color:var(--accent2);background:var(--accent-glow);padding:3px 10px;border-radius:20px">SALES</span></h2>
+          <p class="subtitle" style="margin-bottom:0">Contacts, deals, pipeline, and commissions</p>
+        </div>
+      </div>
+
+      <!-- Auth Gate -->
+      <div id="crm-auth-gate" style="display:none;text-align:center;padding:60px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)">
+        <div style="font-size:48px;margin-bottom:16px">&#128188;</div>
+        <h3 style="font-size:22px;margin-bottom:8px">Sales CRM</h3>
+        <p style="color:var(--text2);max-width:480px;margin:0 auto 20px">Manage contacts, track deals through your pipeline, and earn commissions. Requires Explorer plan or higher.</p>
+        <button onclick="openSignup()" style="padding:12px 32px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:600;cursor:pointer">Get Started</button>
+      </div>
+
+      <!-- Main CRM Content -->
+      <div id="crm-main" style="display:none">
+        <!-- Tabs -->
+        <div style="display:flex;gap:2px;margin-bottom:20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:4px">
+          <button onclick="showCrmTab('contacts')" id="crm-tab-contacts" class="crm-tab active" style="flex:1;padding:10px;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;background:var(--accent);color:#fff">Contacts</button>
+          <button onclick="showCrmTab('pipeline')" id="crm-tab-pipeline" class="crm-tab" style="flex:1;padding:10px;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;background:transparent;color:var(--text2)">Pipeline</button>
+          <button onclick="showCrmTab('dashboard')" id="crm-tab-dashboard" class="crm-tab" style="flex:1;padding:10px;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;background:transparent;color:var(--text2)">Dashboard</button>
+        </div>
+
+        <!-- CONTACTS TAB -->
+        <div id="crm-panel-contacts">
+          <!-- Search + Add -->
+          <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+            <div style="flex:1;min-width:250px">
+              <input type="text" id="crm-contact-search" placeholder="Search contacts by name, company, phone, email..." style="width:100%;padding:12px 16px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;box-sizing:border-box;transition:border-color .2s" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'" onkeydown="if(event.key==='Enter')loadCrmContacts()">
+            </div>
+            <button onclick="loadCrmContacts()" style="padding:12px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer">Search</button>
+            <button onclick="showCrmContactForm()" style="padding:12px 20px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer">+ Add Contact</button>
+          </div>
+
+          <!-- Contacts Table -->
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+            <table style="width:100%;border-collapse:collapse;font-size:13px">
+              <thead>
+                <tr style="background:var(--surface2);border-bottom:1px solid var(--border)">
+                  <th style="padding:12px 16px;text-align:left;color:var(--text3);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Name</th>
+                  <th style="padding:12px 16px;text-align:left;color:var(--text3);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Company</th>
+                  <th style="padding:12px 16px;text-align:left;color:var(--text3);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Phone</th>
+                  <th style="padding:12px 16px;text-align:left;color:var(--text3);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Source</th>
+                  <th style="padding:12px 16px;text-align:center;color:var(--text3);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Deals</th>
+                  <th style="padding:12px 16px;text-align:left;color:var(--text3);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px">Created</th>
+                </tr>
+              </thead>
+              <tbody id="crm-contacts-body">
+                <tr><td colspan="6" style="padding:40px;text-align:center;color:var(--text3)">Search or add contacts to get started</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="crm-contacts-pagination" style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:13px;color:var(--text3)"></div>
+        </div>
+
+        <!-- PIPELINE TAB -->
+        <div id="crm-panel-pipeline" style="display:none">
+          <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:12px;overflow-x:auto" id="crm-pipeline-board">
+            <!-- Columns generated by JS -->
+          </div>
+        </div>
+
+        <!-- DASHBOARD TAB -->
+        <div id="crm-panel-dashboard" style="display:none">
+          <!-- Stat Cards -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:24px" id="crm-dashboard-stats"></div>
+
+          <!-- This Week -->
+          <div style="margin-bottom:24px">
+            <h3 style="font-size:16px;font-weight:700;margin-bottom:12px;color:var(--text2)">This Week</h3>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px" id="crm-dashboard-week"></div>
+          </div>
+
+          <!-- Top Deals + Commissions -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <div>
+              <h3 style="font-size:16px;font-weight:700;margin-bottom:12px;color:var(--text2)">Top Active Deals</h3>
+              <div id="crm-dashboard-top-deals" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden"></div>
+            </div>
+            <div>
+              <h3 style="font-size:16px;font-weight:700;margin-bottom:12px;color:var(--text2)">Commission Summary</h3>
+              <div id="crm-dashboard-commissions" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px"></div>
+            </div>
+          </div>
+
+          <!-- Leaderboard -->
+          <div style="margin-top:24px">
+            <h3 style="font-size:16px;font-weight:700;margin-bottom:12px;color:var(--text2)">Leaderboard</h3>
+            <div id="crm-dashboard-leaderboard" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden"></div>
+          </div>
+        </div>
+
+      </div><!-- end crm-main -->
+    </div>
+  </section>
+</div>
+
+<!-- CRM CONTACT DETAIL MODAL -->
+<div class="modal-overlay" id="crm-contact-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto">
+  <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);max-width:900px;width:100%;max-height:90vh;overflow-y:auto;padding:28px;position:relative">
+    <button onclick="closeCrmContactModal()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text3);font-size:24px;cursor:pointer;padding:4px">&times;</button>
+    <div id="crm-contact-detail-content"></div>
+  </div>
+</div>
+
+<!-- CRM ADD CONTACT FORM MODAL -->
+<div class="modal-overlay" id="crm-add-contact-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto">
+  <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);max-width:600px;width:100%;padding:28px;position:relative">
+    <button onclick="closeCrmAddContactModal()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text3);font-size:24px;cursor:pointer;padding:4px">&times;</button>
+    <h3 style="font-size:20px;font-weight:700;margin-bottom:20px">Add Contact</h3>
+    <form onsubmit="submitCrmContact();return false">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+        <div><label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Name *</label><input type="text" id="crm-form-name" required style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></div>
+        <div><label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Company</label><input type="text" id="crm-form-company" style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></div>
+        <div><label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Phone</label><input type="text" id="crm-form-phone" style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></div>
+        <div><label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Email</label><input type="email" id="crm-form-email" style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></div>
+        <div style="grid-column:1/-1"><label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Address</label><input type="text" id="crm-form-address" style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></div>
+        <div><label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">City</label><input type="text" id="crm-form-city" style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">State</label><input type="text" id="crm-form-state" maxlength="2" style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></div><div><label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">ZIP</label><input type="text" id="crm-form-zip" maxlength="10" style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></div></div>
+      </div>
+      <button type="submit" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer">Create Contact</button>
+    </form>
+  </div>
+</div>
+
+<!-- CRM ADD DEAL FORM MODAL -->
+<div class="modal-overlay" id="crm-add-deal-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:250;display:none;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto">
+  <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);max-width:500px;width:100%;padding:28px;position:relative">
+    <button onclick="closeCrmDealModal()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text3);font-size:24px;cursor:pointer;padding:4px">&times;</button>
+    <h3 style="font-size:20px;font-weight:700;margin-bottom:20px">Create Deal</h3>
+    <form onsubmit="submitCrmDeal();return false">
+      <input type="hidden" id="crm-deal-contact-id">
+      <div style="display:grid;gap:12px;margin-bottom:16px">
+        <div><label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Title</label><input type="text" id="crm-deal-title" placeholder="e.g. Roof replacement — 123 Main St" style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div><label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Value ($)</label><input type="number" id="crm-deal-value" min="0" step="0.01" style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></div>
+          <div><label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Stage</label><select id="crm-deal-stage" style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;box-sizing:border-box"><option value="new">New</option><option value="contacted">Contacted</option><option value="quoted">Quoted</option><option value="negotiating">Negotiating</option><option value="won">Won</option><option value="lost">Lost</option></select></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div><label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Permit #</label><input type="text" id="crm-deal-permit" style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></div>
+          <div><label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Permit Type</label><input type="text" id="crm-deal-permit-type" style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;box-sizing:border-box" onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></div>
+        </div>
+      </div>
+      <button type="submit" style="width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer">Create Deal</button>
+    </form>
+  </div>
+</div>
+
 <!-- DIALER PAGE -->
 <div class="page" id="page-dialer">
   <section style="padding:24px 0">
@@ -4079,6 +4234,7 @@ results.forEach(p =>
             <a id="dialer-call-btn" href="#" onclick="dialerCall();return false" style="flex:1;min-width:160px;display:flex;align-items:center;justify-content:center;gap:8px;padding:14px 24px;background:var(--green);color:#fff;border-radius:var(--radius-sm);font-size:16px;font-weight:700;text-decoration:none;transition:opacity .15s;text-align:center" onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">&#9742; Call</a>
             <button onclick="dialerSkip()" style="padding:14px 24px;border-radius:var(--radius-sm);background:var(--surface);border:1px solid var(--border);color:var(--text2);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">Skip</button>
             <button onclick="dialerNext()" style="padding:14px 24px;border-radius:var(--radius-sm);background:var(--surface);border:1px solid var(--border);color:var(--text2);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">Next &rarr;</button>
+            <button onclick="dialerSaveToCrm()" id="dialer-crm-btn" style="padding:14px 24px;border-radius:var(--radius-sm);background:var(--accent-glow);border:1px solid var(--accent);color:var(--accent2);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s" onmouseover="this.style.background='var(--accent)';this.style.color='#fff'" onmouseout="this.style.background='var(--accent-glow)';this.style.color='var(--accent2)'">Save to CRM</button>
           </div>
         </div>
 
@@ -4240,7 +4396,7 @@ function showPage(page) {
   // Update active nav link
   document.querySelectorAll('nav .links a, .nav-dropdown-menu a').forEach(a => a.classList.remove('active'));
   document.getElementById('nav-tools-btn')?.classList.remove('has-active');
-  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', dialer: '#dialer', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements', reports: '#reports', watchlist: '#watchlist', playground: '#playground', owners: '#owners', value: '#value', passport: '#passport', momentum: '#momentum', compare: '#compare', jurisdiction: '#jurisdiction', admin: '#admin' };
+  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', dialer: '#dialer', crm: '#crm', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements', reports: '#reports', watchlist: '#watchlist', playground: '#playground', owners: '#owners', value: '#value', passport: '#passport', momentum: '#momentum', compare: '#compare', jurisdiction: '#jurisdiction', admin: '#admin' };
   const activeHash = hashMap[page] || '#search';
   const activeLink = document.querySelector(`a[href="${activeHash}"]`);
   if (activeLink) {
@@ -4274,6 +4430,7 @@ function showPage(page) {
   if (page === 'jurisdiction') { initJurisdictionPage(); }
   if (page === 'admin') { loadAdmin(); }
   if (page === 'dialer') { initDialerPage(); }
+  if (page === 'crm') { initCrmPage(); }
   if (page === 'contractors') {
     showContractorSearch();
     const results = document.getElementById('contractor-results');
@@ -12334,6 +12491,527 @@ function timeAgo(date) {
 }
 
 // ─── END SALES DIALER ──────────────────────────────────────────────────────
+
+// ─── CRM ──────────────────────────────────────────────────────────────────
+
+let crmContactsCache = [];
+let crmContactPage = 1;
+let crmContactTotal = 0;
+let crmCurrentContactId = null;
+
+function initCrmPage() {
+  if (!currentKey) {
+    document.getElementById('crm-auth-gate').style.display = '';
+    document.getElementById('crm-main').style.display = 'none';
+    return;
+  }
+  document.getElementById('crm-auth-gate').style.display = 'none';
+  document.getElementById('crm-main').style.display = '';
+  loadCrmContacts();
+}
+
+function showCrmTab(tab) {
+  document.querySelectorAll('.crm-tab').forEach(b => { b.style.background = 'transparent'; b.style.color = 'var(--text2)'; });
+  const btn = document.getElementById('crm-tab-' + tab);
+  if (btn) { btn.style.background = 'var(--accent)'; btn.style.color = '#fff'; }
+  document.getElementById('crm-panel-contacts').style.display = tab === 'contacts' ? '' : 'none';
+  document.getElementById('crm-panel-pipeline').style.display = tab === 'pipeline' ? '' : 'none';
+  document.getElementById('crm-panel-dashboard').style.display = tab === 'dashboard' ? '' : 'none';
+  if (tab === 'contacts') loadCrmContacts();
+  if (tab === 'pipeline') loadCrmPipeline();
+  if (tab === 'dashboard') loadCrmDashboard();
+}
+
+// ── Contacts ──
+
+async function loadCrmContacts(page) {
+  if (!currentKey) return;
+  if (page) crmContactPage = page;
+  const q = document.getElementById('crm-contact-search')?.value?.trim() || '';
+  let url = API + '/v1/crm/contacts?page=' + crmContactPage + '&page_size=25';
+  if (q) url += '&q=' + encodeURIComponent(q);
+  try {
+    const resp = await fetch(url, { headers: { 'X-API-Key': currentKey } });
+    if (resp.status === 403) { showToast('CRM requires Explorer plan or higher', 'error'); return; }
+    if (!resp.ok) throw new Error('Failed to load contacts');
+    const data = await resp.json();
+    crmContactsCache = data.results;
+    crmContactTotal = data.total;
+    renderCrmContacts(data);
+  } catch (err) {
+    showToast('Error loading contacts: ' + err.message, 'error');
+  }
+}
+
+function renderCrmContacts(data) {
+  const tbody = document.getElementById('crm-contacts-body');
+  if (!data.results.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="padding:40px;text-align:center;color:var(--text3)">No contacts found</td></tr>';
+    document.getElementById('crm-contacts-pagination').innerHTML = '';
+    return;
+  }
+  tbody.innerHTML = data.results.map(c => `
+    <tr style="border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''" onclick="openCrmContact('${c.id}')">
+      <td style="padding:10px 16px;font-weight:600;color:var(--text)">${esc(c.name)}</td>
+      <td style="padding:10px 16px;color:var(--text2)">${esc(c.company || '-')}</td>
+      <td style="padding:10px 16px;color:var(--text2);font-family:var(--mono);font-size:12px">${esc(c.phone || '-')}</td>
+      <td style="padding:10px 16px"><span class="badge badge-blue" style="font-size:10px">${esc(c.lead_source || 'manual')}</span></td>
+      <td style="padding:10px 16px;text-align:center;font-weight:700;color:${c.deals > 0 ? 'var(--accent2)' : 'var(--text3)'}">${c.deals}</td>
+      <td style="padding:10px 16px;color:var(--text3);font-size:12px">${c.created_at ? new Date(c.created_at).toLocaleDateString() : '-'}</td>
+    </tr>
+  `).join('');
+
+  // Pagination
+  const totalPages = Math.ceil(data.total / data.page_size);
+  let pag = `<span>${data.total} contacts</span><div style="display:flex;gap:6px">`;
+  if (data.page > 1) pag += `<button onclick="loadCrmContacts(${data.page - 1})" style="padding:6px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);cursor:pointer;font-size:12px">Prev</button>`;
+  pag += `<span style="padding:6px 12px;font-size:12px;color:var(--text)">Page ${data.page} / ${totalPages}</span>`;
+  if (data.page < totalPages) pag += `<button onclick="loadCrmContacts(${data.page + 1})" style="padding:6px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);cursor:pointer;font-size:12px">Next</button>`;
+  pag += '</div>';
+  document.getElementById('crm-contacts-pagination').innerHTML = pag;
+}
+
+function showCrmContactForm() {
+  const modal = document.getElementById('crm-add-contact-modal');
+  modal.style.display = 'flex';
+  document.getElementById('crm-form-name').value = '';
+  document.getElementById('crm-form-company').value = '';
+  document.getElementById('crm-form-phone').value = '';
+  document.getElementById('crm-form-email').value = '';
+  document.getElementById('crm-form-address').value = '';
+  document.getElementById('crm-form-city').value = '';
+  document.getElementById('crm-form-state').value = '';
+  document.getElementById('crm-form-zip').value = '';
+  document.getElementById('crm-form-name').focus();
+}
+
+function closeCrmAddContactModal() {
+  document.getElementById('crm-add-contact-modal').style.display = 'none';
+}
+
+async function submitCrmContact() {
+  if (!currentKey) return;
+  const body = {
+    name: document.getElementById('crm-form-name').value.trim(),
+    company: document.getElementById('crm-form-company').value.trim() || null,
+    phone: document.getElementById('crm-form-phone').value.trim() || null,
+    email: document.getElementById('crm-form-email').value.trim() || null,
+    address: document.getElementById('crm-form-address').value.trim() || null,
+    city: document.getElementById('crm-form-city').value.trim() || null,
+    state: document.getElementById('crm-form-state').value.trim().toUpperCase() || null,
+    zip: document.getElementById('crm-form-zip').value.trim() || null,
+  };
+  if (!body.name) { showToast('Name is required', 'error'); return; }
+  try {
+    const resp = await fetch(API + '/v1/crm/contacts', {
+      method: 'POST',
+      headers: { 'X-API-Key': currentKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) { const err = await resp.json(); throw new Error(err.detail || 'Failed'); }
+    showToast('Contact created');
+    closeCrmAddContactModal();
+    loadCrmContacts();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+// ── Contact Detail ──
+
+async function openCrmContact(contactId) {
+  if (!currentKey) return;
+  crmCurrentContactId = contactId;
+  const modal = document.getElementById('crm-contact-modal');
+  const content = document.getElementById('crm-contact-detail-content');
+  content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Loading...</div>';
+  modal.style.display = 'flex';
+  try {
+    const resp = await fetch(API + '/v1/crm/contacts/' + contactId, { headers: { 'X-API-Key': currentKey } });
+    if (!resp.ok) throw new Error('Failed to load contact');
+    const c = await resp.json();
+    renderCrmContactDetail(c);
+  } catch (err) {
+    content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--red)">Error: ' + esc(err.message) + '</div>';
+  }
+}
+
+function renderCrmContactDetail(c) {
+  const content = document.getElementById('crm-contact-detail-content');
+  const locationParts = [c.city, c.state, c.zip].filter(Boolean).join(', ');
+  let html = `
+    <div style="margin-bottom:24px">
+      <h2 style="font-size:24px;font-weight:800;margin-bottom:4px">${esc(c.name)}</h2>
+      ${c.company ? `<div style="font-size:15px;color:var(--text2);margin-bottom:4px">${esc(c.company)}</div>` : ''}
+      <div style="display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;font-size:13px">
+        ${c.phone ? `<span style="color:var(--text2)"><a href="tel:${esc(c.phone)}" style="color:var(--green);font-weight:600">${esc(c.phone)}</a></span>` : ''}
+        ${c.email ? `<span style="color:var(--text2)"><a href="mailto:${esc(c.email)}" style="color:var(--accent2)">${esc(c.email)}</a></span>` : ''}
+        ${locationParts ? `<span style="color:var(--text3)">${esc(locationParts)}</span>` : ''}
+        ${c.address ? `<span style="color:var(--text3)">${esc(c.address)}</span>` : ''}
+      </div>
+      <div style="display:flex;gap:6px;margin-top:8px">
+        <span class="badge badge-blue" style="font-size:10px">${esc(c.lead_source || 'manual')}</span>
+        <span style="font-size:11px;color:var(--text3)">Created ${c.created_at ? new Date(c.created_at).toLocaleDateString() : 'N/A'}</span>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:24px">
+      <button onclick="showCrmDealForm('${c.id}')" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer">+ Create Deal</button>
+      <button onclick="showCrmNoteForm('${c.id}', null)" style="padding:8px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-size:13px;font-weight:600;cursor:pointer">+ Add Note</button>
+    </div>
+  `;
+
+  // Deals
+  html += '<h3 style="font-size:16px;font-weight:700;margin-bottom:10px;color:var(--text2)">Deals</h3>';
+  if (c.deals && c.deals.length) {
+    html += '<div style="display:grid;gap:8px;margin-bottom:20px">';
+    c.deals.forEach(d => {
+      const stageColor = d.stage === 'won' ? 'var(--green)' : d.stage === 'lost' ? 'var(--red)' : 'var(--accent2)';
+      html += `
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+          <div>
+            <div style="font-weight:600;font-size:14px">${esc(d.title || 'Untitled Deal')}</div>
+            <div style="font-size:12px;color:var(--text3)">${d.permit_number ? 'Permit #' + esc(d.permit_number) : ''} ${d.created_at ? new Date(d.created_at).toLocaleDateString() : ''}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px">
+            ${d.value ? `<span style="font-size:16px;font-weight:800;color:var(--text)">$${Number(d.value).toLocaleString()}</span>` : ''}
+            <select onchange="updateCrmDealStage('${d.id}', this.value)" style="padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:${stageColor};font-size:12px;font-weight:700;text-transform:uppercase;cursor:pointer">
+              ${['new','contacted','quoted','negotiating','won','lost'].map(s => `<option value="${s}" ${d.stage === s ? 'selected' : ''}>${s}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+      `;
+    });
+    html += '</div>';
+  } else {
+    html += '<div style="padding:16px;text-align:center;color:var(--text3);font-size:13px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:20px">No deals yet</div>';
+  }
+
+  // Notes
+  html += '<h3 style="font-size:16px;font-weight:700;margin-bottom:10px;color:var(--text2)">Notes & Activity</h3>';
+  html += '<div id="crm-note-form-inline" style="display:none;margin-bottom:12px"><textarea id="crm-inline-note-content" rows="2" placeholder="Add a note..." style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;resize:vertical;font-family:var(--font);box-sizing:border-box;margin-bottom:6px"></textarea><div style="display:flex;gap:6px"><select id="crm-inline-note-type" style="padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-size:12px"><option value="note">Note</option><option value="call">Call</option><option value="email">Email</option><option value="meeting">Meeting</option><option value="task">Task</option></select><button onclick="submitCrmNote()" style="padding:6px 16px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:12px;font-weight:600;cursor:pointer">Save</button><button onclick="document.getElementById(\'crm-note-form-inline\').style.display=\'none\'" style="padding:6px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-size:12px;cursor:pointer">Cancel</button></div></div>';
+
+  const allActivity = [];
+  if (c.notes) c.notes.forEach(n => allActivity.push({ type: 'note', ...n }));
+  if (c.call_history) c.call_history.forEach(ch => allActivity.push({ type: 'call_log', ...ch }));
+  allActivity.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+  if (allActivity.length) {
+    html += '<div style="display:grid;gap:6px">';
+    allActivity.forEach(a => {
+      const icon = a.type === 'call_log' ? '&#9742;' : a.note_type === 'call' ? '&#9742;' : a.note_type === 'email' ? '&#9993;' : a.note_type === 'meeting' ? '&#128197;' : a.note_type === 'task' ? '&#9745;' : '&#128221;';
+      const label = a.type === 'call_log' ? (a.disposition || 'Call') : (a.note_type || 'note');
+      const text = a.type === 'call_log' ? (a.ai_summary || a.notes || a.disposition || 'Call logged') : a.content;
+      html += `
+        <div style="padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);display:flex;gap:10px;align-items:flex-start">
+          <span style="font-size:16px;flex-shrink:0;margin-top:2px">${icon}</span>
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px">
+              <span style="font-size:11px;font-weight:700;color:var(--accent2);text-transform:uppercase">${esc(label)}</span>
+              <span style="font-size:11px;color:var(--text3)">${a.created_at ? new Date(a.created_at).toLocaleString() : ''}</span>
+            </div>
+            <div style="font-size:13px;color:var(--text);line-height:1.4">${esc(text || '')}</div>
+          </div>
+        </div>
+      `;
+    });
+    html += '</div>';
+  } else {
+    html += '<div style="padding:16px;text-align:center;color:var(--text3);font-size:13px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm)">No activity yet</div>';
+  }
+
+  content.innerHTML = html;
+}
+
+function closeCrmContactModal() {
+  document.getElementById('crm-contact-modal').style.display = 'none';
+}
+
+function showCrmNoteForm(contactId, dealId) {
+  crmCurrentContactId = contactId;
+  const form = document.getElementById('crm-note-form-inline');
+  form.style.display = '';
+  document.getElementById('crm-inline-note-content').value = '';
+  document.getElementById('crm-inline-note-content').focus();
+}
+
+async function submitCrmNote() {
+  if (!currentKey || !crmCurrentContactId) return;
+  const content = document.getElementById('crm-inline-note-content').value.trim();
+  const noteType = document.getElementById('crm-inline-note-type').value;
+  if (!content) { showToast('Note content is required', 'error'); return; }
+  try {
+    const resp = await fetch(API + '/v1/crm/notes', {
+      method: 'POST',
+      headers: { 'X-API-Key': currentKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contact_id: crmCurrentContactId, content, note_type: noteType }),
+    });
+    if (!resp.ok) { const err = await resp.json(); throw new Error(err.detail || 'Failed'); }
+    showToast('Note saved');
+    openCrmContact(crmCurrentContactId);
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+// ── Deals ──
+
+function showCrmDealForm(contactId) {
+  document.getElementById('crm-deal-contact-id').value = contactId;
+  document.getElementById('crm-deal-title').value = '';
+  document.getElementById('crm-deal-value').value = '';
+  document.getElementById('crm-deal-stage').value = 'new';
+  document.getElementById('crm-deal-permit').value = '';
+  document.getElementById('crm-deal-permit-type').value = '';
+  document.getElementById('crm-add-deal-modal').style.display = 'flex';
+  document.getElementById('crm-deal-title').focus();
+}
+
+function closeCrmDealModal() {
+  document.getElementById('crm-add-deal-modal').style.display = 'none';
+}
+
+async function submitCrmDeal() {
+  if (!currentKey) return;
+  const contactId = document.getElementById('crm-deal-contact-id').value;
+  const body = {
+    contact_id: contactId,
+    title: document.getElementById('crm-deal-title').value.trim() || null,
+    value: parseFloat(document.getElementById('crm-deal-value').value) || null,
+    stage: document.getElementById('crm-deal-stage').value,
+    permit_number: document.getElementById('crm-deal-permit').value.trim() || null,
+    permit_type: document.getElementById('crm-deal-permit-type').value.trim() || null,
+  };
+  try {
+    const resp = await fetch(API + '/v1/crm/deals', {
+      method: 'POST',
+      headers: { 'X-API-Key': currentKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) { const err = await resp.json(); throw new Error(err.detail || 'Failed'); }
+    showToast('Deal created');
+    closeCrmDealModal();
+    openCrmContact(contactId);
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+async function updateCrmDealStage(dealId, newStage) {
+  if (!currentKey) return;
+  try {
+    const resp = await fetch(API + '/v1/crm/deals/' + dealId, {
+      method: 'PUT',
+      headers: { 'X-API-Key': currentKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ stage: newStage }),
+    });
+    if (!resp.ok) { const err = await resp.json(); throw new Error(err.detail || 'Failed'); }
+    const data = await resp.json();
+    showToast('Deal updated to ' + newStage);
+    if (crmCurrentContactId) openCrmContact(crmCurrentContactId);
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+// ── Pipeline ──
+
+async function loadCrmPipeline() {
+  if (!currentKey) return;
+  const board = document.getElementById('crm-pipeline-board');
+  board.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text3)">Loading pipeline...</div>';
+  try {
+    const [pipeResp, dealsResp] = await Promise.all([
+      fetch(API + '/v1/crm/pipeline', { headers: { 'X-API-Key': currentKey } }),
+      fetch(API + '/v1/crm/deals?page_size=100', { headers: { 'X-API-Key': currentKey } }),
+    ]);
+    if (!pipeResp.ok || !dealsResp.ok) throw new Error('Failed to load pipeline');
+    const pipeData = await pipeResp.json();
+    const dealsData = await dealsResp.json();
+    renderCrmPipeline(pipeData, dealsData);
+  } catch (err) {
+    board.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--red)">Error: ' + esc(err.message) + '</div>';
+  }
+}
+
+function renderCrmPipeline(pipeData, dealsData) {
+  const board = document.getElementById('crm-pipeline-board');
+  const stageColors = { new: 'var(--accent2)', contacted: 'var(--orange)', quoted: '#06b6d4', negotiating: '#a855f7', won: 'var(--green)', lost: 'var(--red)' };
+  const deals = dealsData.results || [];
+
+  let html = '';
+  pipeData.stages.forEach(s => {
+    const stageDeals = deals.filter(d => d.stage === s.stage);
+    const color = stageColors[s.stage] || 'var(--text3)';
+    html += `
+      <div style="min-width:200px">
+        <div style="padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius) var(--radius) 0 0;border-bottom:3px solid ${color}">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:${color}">${s.stage}</span>
+            <span style="font-size:12px;color:var(--text3);font-weight:600">${s.count}</span>
+          </div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">$${Number(s.total_value).toLocaleString()}</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius);padding:8px;min-height:200px;display:flex;flex-direction:column;gap:6px">
+    `;
+    if (stageDeals.length === 0) {
+      html += '<div style="text-align:center;padding:20px;color:var(--text3);font-size:12px">No deals</div>';
+    }
+    stageDeals.forEach(d => {
+      html += `
+          <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px;cursor:pointer;transition:border-color .15s" onmouseover="this.style.borderColor='${color}'" onmouseout="this.style.borderColor='var(--border)'" onclick="openCrmContact('${d.contact_id}')">
+            <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(d.title || 'Untitled')}</div>
+            <div style="font-size:12px;color:var(--text3);margin-bottom:4px">${esc(d.contact_name || '')}</div>
+            ${d.value ? `<div style="font-size:15px;font-weight:800;color:${color}">$${Number(d.value).toLocaleString()}</div>` : ''}
+          </div>
+      `;
+    });
+    html += '</div></div>';
+  });
+
+  board.innerHTML = html;
+}
+
+// ── Dashboard ──
+
+async function loadCrmDashboard() {
+  if (!currentKey) return;
+  try {
+    const [dashResp, commResp, lbResp] = await Promise.all([
+      fetch(API + '/v1/crm/dashboard', { headers: { 'X-API-Key': currentKey } }),
+      fetch(API + '/v1/crm/commissions/summary', { headers: { 'X-API-Key': currentKey } }),
+      fetch(API + '/v1/crm/leaderboard?period=week', { headers: { 'X-API-Key': currentKey } }),
+    ]);
+    if (!dashResp.ok) throw new Error('Failed');
+    const dash = await dashResp.json();
+    const comm = commResp.ok ? await commResp.json() : { total_earned: 0, total_pending: 0, this_month: 0 };
+    const lb = lbResp.ok ? await lbResp.json() : { leaderboard: [] };
+    renderCrmDashboard(dash, comm, lb);
+  } catch (err) {
+    showToast('Error loading dashboard: ' + err.message, 'error');
+  }
+}
+
+function renderCrmDashboard(dash, comm, lb) {
+  const stats = dash.stats || {};
+  const statsEl = document.getElementById('crm-dashboard-stats');
+  const statCards = [
+    { label: 'Contacts', value: stats.total_contacts, color: 'var(--text)' },
+    { label: 'Active Deals', value: stats.active_deals, color: 'var(--accent2)' },
+    { label: 'Pipeline Value', value: '$' + Number(stats.pipeline_value || 0).toLocaleString(), color: 'var(--accent2)' },
+    { label: 'Deals Won', value: stats.total_won, color: 'var(--green)' },
+    { label: 'Revenue', value: '$' + Number(stats.total_revenue || 0).toLocaleString(), color: 'var(--green)' },
+    { label: 'Conversion Rate', value: stats.conversion_rate + '%', color: 'var(--orange)' },
+  ];
+  statsEl.innerHTML = statCards.map(s => `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center">
+      <div style="font-size:28px;font-weight:800;color:${s.color};font-variant-numeric:tabular-nums">${s.value}</div>
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">${s.label}</div>
+    </div>
+  `).join('');
+
+  // This Week
+  const week = dash.this_week || {};
+  const weekEl = document.getElementById('crm-dashboard-week');
+  const weekCards = [
+    { label: 'New Contacts', value: week.new_contacts || 0, color: 'var(--text)' },
+    { label: 'Calls Made', value: week.calls_made || 0, color: 'var(--accent2)' },
+    { label: 'Deals Won', value: week.deals_won || 0, color: 'var(--green)' },
+    { label: 'Revenue', value: '$' + Number(week.revenue || 0).toLocaleString(), color: 'var(--green)' },
+  ];
+  weekEl.innerHTML = weekCards.map(s => `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center">
+      <div style="font-size:24px;font-weight:800;color:${s.color};font-variant-numeric:tabular-nums">${s.value}</div>
+      <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">${s.label}</div>
+    </div>
+  `).join('');
+
+  // Top Deals
+  const topEl = document.getElementById('crm-dashboard-top-deals');
+  const topDeals = dash.top_deals || [];
+  if (topDeals.length) {
+    topEl.innerHTML = topDeals.map(d => `
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:14px;font-weight:600;color:var(--text)">${esc(d.title || 'Untitled')}</div>
+          <div style="font-size:12px;color:var(--text3)">${esc(d.contact_name || '')} &middot; ${d.stage}</div>
+        </div>
+        ${d.value ? `<div style="font-size:16px;font-weight:800;color:var(--accent2)">$${Number(d.value).toLocaleString()}</div>` : ''}
+      </div>
+    `).join('');
+  } else {
+    topEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px">No active deals</div>';
+  }
+
+  // Commission Summary
+  const commEl = document.getElementById('crm-dashboard-commissions');
+  commEl.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;text-align:center">
+      <div>
+        <div style="font-size:24px;font-weight:800;color:var(--green);font-variant-numeric:tabular-nums">$${Number(comm.total_earned || 0).toLocaleString()}</div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Total Earned</div>
+      </div>
+      <div>
+        <div style="font-size:24px;font-weight:800;color:var(--orange);font-variant-numeric:tabular-nums">$${Number(comm.total_pending || 0).toLocaleString()}</div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">Pending</div>
+      </div>
+      <div>
+        <div style="font-size:24px;font-weight:800;color:var(--accent2);font-variant-numeric:tabular-nums">$${Number(comm.this_month || 0).toLocaleString()}</div>
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-top:4px">This Month</div>
+      </div>
+    </div>
+  `;
+
+  // Leaderboard
+  const lbEl = document.getElementById('crm-dashboard-leaderboard');
+  const leaders = lb.leaderboard || [];
+  if (leaders.length) {
+    let lbHtml = '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:var(--surface2);border-bottom:1px solid var(--border)"><th style="padding:10px 14px;text-align:left;color:var(--text3);font-weight:600;font-size:11px;text-transform:uppercase">#</th><th style="padding:10px 14px;text-align:left;color:var(--text3);font-weight:600;font-size:11px;text-transform:uppercase">User</th><th style="padding:10px 14px;text-align:center;color:var(--text3);font-weight:600;font-size:11px;text-transform:uppercase">Calls</th><th style="padding:10px 14px;text-align:center;color:var(--text3);font-weight:600;font-size:11px;text-transform:uppercase">Deals Won</th><th style="padding:10px 14px;text-align:right;color:var(--text3);font-weight:600;font-size:11px;text-transform:uppercase">Revenue</th></tr></thead><tbody>';
+    leaders.forEach((l, i) => {
+      lbHtml += `<tr style="border-bottom:1px solid var(--border)"><td style="padding:10px 14px;font-weight:700;color:${i < 3 ? 'var(--orange)' : 'var(--text3)'}">${i + 1}</td><td style="padding:10px 14px;color:var(--text)">${esc(l.company || l.email || 'User')}</td><td style="padding:10px 14px;text-align:center;color:var(--text2)">${l.calls}</td><td style="padding:10px 14px;text-align:center;color:var(--green);font-weight:700">${l.deals_won}</td><td style="padding:10px 14px;text-align:right;font-weight:700;color:var(--accent2)">$${Number(l.revenue || 0).toLocaleString()}</td></tr>`;
+    });
+    lbHtml += '</tbody></table>';
+    lbEl.innerHTML = lbHtml;
+  } else {
+    lbEl.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:13px">No activity this period</div>';
+  }
+}
+
+// ── Save to CRM from Dialer ──
+
+async function dialerSaveToCrm() {
+  if (!currentKey || !currentDialerLead) return;
+  const leadId = currentDialerLead.id;
+  const btn = document.getElementById('dialer-crm-btn');
+  const origText = btn.textContent;
+  btn.textContent = 'Saving...';
+  btn.disabled = true;
+  try {
+    const resp = await fetch(API + '/v1/crm/contacts/from-lead', {
+      method: 'POST',
+      headers: { 'X-API-Key': currentKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lead_id: leadId }),
+    });
+    if (resp.status === 409) {
+      showToast('Contact already exists for this lead', 'error');
+      btn.textContent = 'Already Saved';
+      return;
+    }
+    if (!resp.ok) { const err = await resp.json(); throw new Error(err.detail || 'Failed'); }
+    const data = await resp.json();
+    showToast('Contact saved to CRM: ' + (data.name || 'Contact'));
+    btn.textContent = 'Saved!';
+    btn.style.background = 'var(--green-glow)';
+    btn.style.borderColor = 'var(--green)';
+    btn.style.color = 'var(--green)';
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+    btn.textContent = origText;
+    btn.disabled = false;
+  }
+}
+
+// ─── END CRM ──────────────────────────────────────────────────────────────
 </script>
 <!-- Contact Sales Modal -->
 <div id="contact-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);align-items:center;justify-content:center;backdrop-filter:blur(4px)">
