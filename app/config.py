@@ -80,6 +80,9 @@ class Settings(BaseSettings):
     DEBUG: bool = True
     VERSION: str = "0.1.0"
 
+    # Anthropic Claude API (AI call summaries + analysis)
+    ANTHROPIC_API_KEY: str | None = None
+
     # SendGrid (alert emails)
     SENDGRID_API_KEY: str | None = None
     SENDGRID_FROM_EMAIL: str = "alerts@permitlookup.com"

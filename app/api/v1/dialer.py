@@ -227,6 +227,21 @@ async def log_call(
             detail=f"Invalid disposition. Must be one of: {', '.join(sorted(VALID_DISPOSITIONS))}",
         )
 
+    # AI-generate summary + action items from notes
+    ai_summary = None
+    action_items = None
+    if body.notes and len(body.notes.strip()) > 10:
+        try:
+            from app.services.call_intelligence import summarize_call
+            ai_result = await summarize_call(body.notes, {
+                "lead_id": str(body.lead_id),
+                "phone": body.phone_number,
+            })
+            ai_summary = ai_result.get("summary")
+            action_items = ai_result.get("action_items")
+        except Exception:
+            pass  # AI is optional — don't block the call log
+
     # Create call log
     call_log = CallLog(
         user_id=user.id,
@@ -235,6 +250,8 @@ async def log_call(
         duration_seconds=body.duration_seconds,
         disposition=body.disposition,
         notes=body.notes,
+        ai_summary=ai_summary,
+        action_items=action_items,
     )
     db.add(call_log)
 
@@ -277,7 +294,63 @@ async def log_call(
         "lead_id": str(body.lead_id),
         "disposition": body.disposition,
         "status": mapped_status,
+        "ai_summary": ai_summary,
+        "action_items": action_items,
     }
+
+
+# ---------------------------------------------------------------------------
+# POST /v1/dialer/analyze-transcription — AI analysis of call recording
+# ---------------------------------------------------------------------------
+
+class TranscriptionRequest(BaseModel):
+    call_log_id: str
+    transcription: str
+
+
+@router.post("/analyze-transcription")
+async def analyze_transcription_endpoint(
+    body: TranscriptionRequest,
+    request: Request,
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Analyze a call transcription with AI — extracts summary, action items, objections, buying signals."""
+    _require_paid(user)
+
+    from app.services.call_intelligence import analyze_transcription
+
+    # Get lead context from the call log
+    call_log = await db.execute(
+        select(CallLog).where(CallLog.id == body.call_log_id, CallLog.user_id == user.id)
+    )
+    log_record = call_log.scalar_one_or_none()
+    if not log_record:
+        raise HTTPException(status_code=404, detail="Call log not found")
+
+    lead_context = None
+    if log_record.lead_id:
+        lead_row = await db.execute(
+            text("SELECT address, permit_type, valuation, contractor_company FROM hot_leads WHERE id = :lid"),
+            {"lid": str(log_record.lead_id)},
+        )
+        lead = lead_row.one_or_none()
+        if lead:
+            lead_context = {
+                "address": lead.address,
+                "permit_type": lead.permit_type,
+                "valuation": lead.valuation,
+                "contractor_company": lead.contractor_company,
+            }
+
+    result = await analyze_transcription(body.transcription, lead_context)
+
+    # Update the call log with AI analysis
+    log_record.ai_summary = result.get("summary")
+    log_record.action_items = result.get("action_items")
+    await db.commit()
+
+    return result
 
 
 # ---------------------------------------------------------------------------
