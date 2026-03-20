@@ -1151,6 +1151,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
   .admin-coverage-grid{grid-template-columns:repeat(6,1fr)}
   .admin-schedule-row{grid-template-columns:1fr 60px 60px 50px 60px;font-size:11px}
 }
+@keyframes dotPulse{0%,80%,100%{opacity:.3;transform:scale(.8)}40%{opacity:1;transform:scale(1.1)}}
 </style>
 </head>
 <body>
@@ -1169,6 +1170,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
       <a href="#dialer" onclick="showPage('dialer');return false">Dialer</a>
       <a href="#crm" onclick="showPage('crm');return false">CRM</a>
       <a href="#playground" onclick="showPage('playground');return false">Playground</a>
+      <a href="#analyst" onclick="showPage('analyst');return false" style="background:linear-gradient(135deg,rgba(99,102,241,.12),rgba(139,92,246,.12));color:#a78bfa;border:1px solid rgba(139,92,246,.2)">AI Analyst</a>
       <a href="#pricing" onclick="showPage('pricing');return false">Pricing</a>
       <div class="nav-dropdown" id="nav-tools-dropdown">
         <button class="nav-dropdown-toggle" id="nav-tools-btn" onclick="toggleNavDropdown()" type="button">
@@ -4412,6 +4414,73 @@ results.forEach(p =>
   </section>
 </div>
 
+<!-- AI ANALYST PAGE -->
+<div class="page" id="page-analyst">
+  <section style="padding:32px 0 60px">
+    <div class="container" style="max-width:960px">
+
+      <!-- Hero header -->
+      <div style="text-align:center;margin-bottom:40px;position:relative">
+        <div style="position:absolute;top:-40px;left:50%;transform:translateX(-50%);width:500px;height:300px;background:radial-gradient(ellipse,rgba(139,92,246,.12) 0%,transparent 70%);pointer-events:none"></div>
+        <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.25);border-radius:20px;padding:5px 14px;font-size:12px;font-weight:700;color:#a78bfa;margin-bottom:16px;letter-spacing:.5px">AI-POWERED</div>
+        <h1 style="font-size:clamp(28px,4vw,42px);font-weight:800;line-height:1.15;margin-bottom:12px;background:linear-gradient(135deg,#fff 30%,#a78bfa 70%,#6366f1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text">Ask Anything About<br>800M+ Property Records</h1>
+        <p style="font-size:15px;color:var(--text2);max-width:560px;margin:0 auto">Natural language queries across permits, violations, sales, liens, contractors, flood zones, and more. Powered by AI.</p>
+      </div>
+
+      <!-- Chat input -->
+      <div id="analyst-input-area" style="max-width:720px;margin:0 auto 32px;position:relative">
+        <div id="analyst-search-box" style="display:flex;gap:0;background:var(--surface);border:2px solid var(--border);border-radius:16px;overflow:hidden;transition:border-color .3s,box-shadow .3s">
+          <input type="text" id="analyst-input" placeholder="e.g. Roofing permits in Austin this week over $50K..."
+            style="flex:1;padding:18px 22px;background:none;border:none;color:var(--text);font-size:16px;outline:none"
+            onkeydown="if(event.key==='Enter')analystSubmit()">
+          <button onclick="analystSubmit()" id="analyst-submit-btn"
+            style="padding:18px 28px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;font-size:15px;font-weight:700;transition:opacity .2s;cursor:pointer;display:flex;align-items:center;gap:8px">
+            <span id="analyst-btn-text">Ask AI</span>
+            <svg id="analyst-spinner" style="display:none;animation:spin 1s linear infinite" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity=".25"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/></svg>
+          </button>
+        </div>
+        <style>
+          #analyst-search-box:focus-within{border-color:#8b5cf6;box-shadow:0 0 0 4px rgba(139,92,246,.15),0 0 30px rgba(139,92,246,.08)}
+          @keyframes spin{to{transform:rotate(360deg)}}
+        </style>
+      </div>
+
+      <!-- Example questions -->
+      <div id="analyst-suggestions" style="max-width:720px;margin:0 auto 40px">
+        <div style="font-size:12px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;text-align:center">Try asking</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center" id="analyst-suggestion-chips">
+          <button class="analyst-chip" onclick="analystAsk(this.textContent)">Roofing permits in Austin this week</button>
+          <button class="analyst-chip" onclick="analystAsk(this.textContent)">Properties in flood zones with recent permits</button>
+          <button class="analyst-chip" onclick="analystAsk(this.textContent)">Top contractors by permit volume in Florida</button>
+          <button class="analyst-chip" onclick="analystAsk(this.textContent)">LLC-owned properties with permits over $200K</button>
+          <button class="analyst-chip" onclick="analystAsk(this.textContent)">Hailstorm areas with roofing permit spikes</button>
+          <button class="analyst-chip" onclick="analystAsk(this.textContent)">New construction permits near Phoenix this month</button>
+          <button class="analyst-chip" onclick="analystAsk(this.textContent)">Code violations in Houston zip 77002</button>
+          <button class="analyst-chip" onclick="analystAsk(this.textContent)">Contractor license expirations in California</button>
+        </div>
+        <style>
+          .analyst-chip{padding:8px 16px;border-radius:20px;background:var(--surface);border:1px solid var(--border);color:var(--text2);font-size:13px;cursor:pointer;transition:all .2s;font-family:var(--font)}
+          .analyst-chip:hover{border-color:#8b5cf6;color:#a78bfa;background:rgba(139,92,246,.06)}
+        </style>
+      </div>
+
+      <!-- Auth gate (shown when no API key) -->
+      <div id="analyst-auth-gate" style="display:none;text-align:center;padding:48px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);max-width:520px;margin:0 auto">
+        <div style="font-size:48px;margin-bottom:16px;opacity:.6">&#129302;</div>
+        <h3 style="font-size:20px;margin-bottom:8px">AI Analyst Requires Pro Leads+</h3>
+        <p style="color:var(--text2);font-size:14px;margin-bottom:20px;max-width:400px;margin-left:auto;margin-right:auto">Unlock natural language queries across the entire property intelligence database. Ask anything, get instant answers.</p>
+        <button onclick="showPage('pricing')" style="padding:12px 32px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer">View Plans</button>
+      </div>
+
+      <!-- Chat conversation area -->
+      <div id="analyst-chat" style="max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:24px">
+        <!-- Messages rendered here dynamically -->
+      </div>
+
+    </div>
+  </section>
+</div>
+
 <!-- SIGNUP MODAL -->
 <div class="modal-overlay" id="signup-modal">
   <div class="modal">
@@ -4508,7 +4577,7 @@ function showPage(page) {
   // Update active nav link
   document.querySelectorAll('nav .links a, .nav-dropdown-menu a').forEach(a => a.classList.remove('active'));
   document.getElementById('nav-tools-btn')?.classList.remove('has-active');
-  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', dialer: '#dialer', crm: '#crm', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements', reports: '#reports', watchlist: '#watchlist', playground: '#playground', owners: '#owners', value: '#value', passport: '#passport', momentum: '#momentum', compare: '#compare', jurisdiction: '#jurisdiction', admin: '#admin' };
+  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', dialer: '#dialer', crm: '#crm', analyst: '#analyst', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements', reports: '#reports', watchlist: '#watchlist', playground: '#playground', owners: '#owners', value: '#value', passport: '#passport', momentum: '#momentum', compare: '#compare', jurisdiction: '#jurisdiction', admin: '#admin' };
   const activeHash = hashMap[page] || '#search';
   const activeLink = document.querySelector(`a[href="${activeHash}"]`);
   if (activeLink) {
@@ -4542,6 +4611,7 @@ function showPage(page) {
   if (page === 'jurisdiction') { initJurisdictionPage(); }
   if (page === 'admin') { loadAdmin(); }
   if (page === 'dialer') { initDialerPage(); }
+  if (page === 'analyst') { initAnalystPage(); }
   if (page === 'crm') { initCrmPage(); }
   if (page === 'contractors') {
     showContractorSearch();
@@ -4569,7 +4639,7 @@ function showPage(page) {
 function routeFromHash() {
   const raw = location.hash.replace('#','') || 'home';
   const h = raw.split('?')[0]; // strip query params (e.g. #passport?addr=...)
-  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', dialer: 'dialer', risk: 'risk', trends: 'trends', properties: 'properties', market: 'market', feed: 'feed', estimator: 'estimator', requirements: 'requirements', reports: 'reports', watchlist: 'watchlist', playground: 'playground', owners: 'owners', value: 'value', passport: 'passport', momentum: 'momentum', compare: 'compare', jurisdiction: 'jurisdiction', admin: 'admin' };
+  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', dialer: 'dialer', analyst: 'analyst', risk: 'risk', trends: 'trends', properties: 'properties', market: 'market', feed: 'feed', estimator: 'estimator', requirements: 'requirements', reports: 'reports', watchlist: 'watchlist', playground: 'playground', owners: 'owners', value: 'value', passport: 'passport', momentum: 'momentum', compare: 'compare', jurisdiction: 'jurisdiction', admin: 'admin' };
   showPage(map[h] || 'home');
 }
 window.addEventListener('hashchange', routeFromHash);
@@ -13511,6 +13581,182 @@ async function submitTeamMember() {
 }
 
 // ─── END CRM ──────────────────────────────────────────────────────────────
+
+// ─── AI ANALYST ─────────────────────────────────────────────────────────
+let analystBusy = false;
+
+function initAnalystPage() {
+  // Show auth gate if no API key
+  const gate = document.getElementById('analyst-auth-gate');
+  const input = document.getElementById('analyst-input-area');
+  const suggestions = document.getElementById('analyst-suggestions');
+  if (!currentKey) {
+    if (gate) gate.style.display = '';
+    if (input) input.style.display = 'none';
+    if (suggestions) suggestions.style.display = 'none';
+  } else {
+    if (gate) gate.style.display = 'none';
+    if (input) input.style.display = '';
+    if (suggestions) suggestions.style.display = '';
+  }
+  // Focus input
+  setTimeout(() => document.getElementById('analyst-input')?.focus(), 100);
+}
+
+function analystAsk(question) {
+  document.getElementById('analyst-input').value = question;
+  analystSubmit();
+}
+
+async function analystSubmit() {
+  const input = document.getElementById('analyst-input');
+  const question = input.value.trim();
+  if (!question || analystBusy) return;
+
+  if (!currentKey) {
+    showToast('API key required. Sign up first.', 'error');
+    openSignup();
+    return;
+  }
+
+  analystBusy = true;
+  const btn = document.getElementById('analyst-submit-btn');
+  const btnText = document.getElementById('analyst-btn-text');
+  const spinner = document.getElementById('analyst-spinner');
+  btn.disabled = true;
+  btnText.textContent = 'Thinking...';
+  spinner.style.display = '';
+
+  // Hide suggestions after first query
+  const sugg = document.getElementById('analyst-suggestions');
+  if (sugg) sugg.style.display = 'none';
+
+  // Add user message to chat
+  const chat = document.getElementById('analyst-chat');
+  const userBubble = document.createElement('div');
+  userBubble.style.cssText = 'display:flex;justify-content:flex-end;animation:fadeIn .3s ease';
+  userBubble.innerHTML = `<div style="max-width:80%;padding:14px 18px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border-radius:16px 16px 4px 16px;font-size:14px;line-height:1.5">${escapeHtml(question)}</div>`;
+  chat.appendChild(userBubble);
+
+  // Add thinking indicator
+  const thinkingBubble = document.createElement('div');
+  thinkingBubble.id = 'analyst-thinking';
+  thinkingBubble.style.cssText = 'display:flex;justify-content:flex-start;animation:fadeIn .3s ease';
+  thinkingBubble.innerHTML = `<div style="max-width:85%;padding:16px 20px;background:var(--surface);border:1px solid var(--border);border-radius:16px 16px 16px 4px;font-size:14px;color:var(--text2)"><div style="display:flex;align-items:center;gap:10px"><div style="display:flex;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:#8b5cf6;animation:dotPulse 1.4s ease-in-out infinite"></span><span style="width:6px;height:6px;border-radius:50%;background:#8b5cf6;animation:dotPulse 1.4s ease-in-out .2s infinite"></span><span style="width:6px;height:6px;border-radius:50%;background:#8b5cf6;animation:dotPulse 1.4s ease-in-out .4s infinite"></span></div>Querying 800M+ records...</div></div>`;
+  chat.appendChild(thinkingBubble);
+  chat.scrollTop = chat.scrollHeight;
+
+  try {
+    const resp = await fetch(API + '/v1/analyst/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-API-Key': currentKey },
+      body: JSON.stringify({ question }),
+    });
+
+    // Remove thinking indicator
+    document.getElementById('analyst-thinking')?.remove();
+
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ detail: 'Request failed' }));
+      throw new Error(err.detail || `Error ${resp.status}`);
+    }
+
+    const data = await resp.json();
+
+    // Build response bubble
+    const responseBubble = document.createElement('div');
+    responseBubble.style.cssText = 'display:flex;justify-content:flex-start;animation:fadeIn .3s ease';
+
+    let tableHtml = '';
+    if (data.data && data.data.length > 0) {
+      const cols = Object.keys(data.data[0]);
+      tableHtml = `<div style="overflow-x:auto;margin-top:16px;border:1px solid var(--border);border-radius:8px">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;white-space:nowrap">
+          <thead><tr>${cols.map(c => `<th style="padding:8px 12px;text-align:left;background:var(--surface2);border-bottom:1px solid var(--border);font-weight:700;color:var(--text2);text-transform:uppercase;font-size:10px;letter-spacing:.5px">${escapeHtml(c)}</th>`).join('')}</tr></thead>
+          <tbody>${data.data.slice(0, 25).map(row => `<tr>${cols.map(c => `<td style="padding:6px 12px;border-bottom:1px solid var(--border);color:var(--text)">${row[c] != null ? escapeHtml(String(row[c])) : '<span style="color:var(--text3)">--</span>'}</td>`).join('')}</tr>`).join('')}</tbody>
+        </table>
+      </div>`;
+      if (data.data.length > 25) {
+        tableHtml += `<div style="font-size:11px;color:var(--text3);text-align:center;padding:8px">Showing 25 of ${data.row_count} results</div>`;
+      }
+    }
+
+    const queryId = data.query_id || '';
+    responseBubble.innerHTML = `<div style="max-width:100%;width:100%;padding:20px;background:var(--surface);border:1px solid var(--border);border-radius:16px 16px 16px 4px">
+      <div style="font-size:14px;line-height:1.6;color:var(--text);margin-bottom:8px">${escapeHtml(data.summary)}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:11px;color:var(--text3);margin-bottom:4px">
+        <span>${data.row_count} result${data.row_count !== 1 ? 's' : ''}</span>
+        <span>${data.execution_time_ms}ms</span>
+        <button onclick="analystToggleSql('${queryId}')" style="background:none;border:none;color:#8b5cf6;font-size:11px;cursor:pointer;padding:0;font-family:var(--font)">Show SQL</button>
+        ${data.data && data.data.length > 0 ? `<button onclick="analystExportCsv('${queryId}')" style="background:none;border:none;color:var(--green);font-size:11px;cursor:pointer;padding:0;font-family:var(--font)">Export CSV</button>` : ''}
+      </div>
+      <div id="analyst-sql-${queryId}" style="display:none;margin-top:8px;padding:10px 14px;background:var(--surface2);border-radius:8px;font-family:var(--mono);font-size:12px;line-height:1.5;color:#a78bfa;overflow-x:auto;white-space:pre-wrap;word-break:break-all">${escapeHtml(data.sql)}</div>
+      ${tableHtml}
+    </div>`;
+
+    // Store data for CSV export
+    responseBubble.dataset.queryId = queryId;
+    responseBubble.dataset.csvData = JSON.stringify(data.data || []);
+    chat.appendChild(responseBubble);
+
+    // Store in window for export
+    window['_analyst_data_' + queryId] = data.data;
+
+  } catch (err) {
+    document.getElementById('analyst-thinking')?.remove();
+    const errorBubble = document.createElement('div');
+    errorBubble.style.cssText = 'display:flex;justify-content:flex-start;animation:fadeIn .3s ease';
+    errorBubble.innerHTML = `<div style="max-width:85%;padding:16px 20px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:16px 16px 16px 4px;font-size:14px;color:var(--red)">${escapeHtml(err.message)}</div>`;
+    chat.appendChild(errorBubble);
+  }
+
+  // Reset UI
+  analystBusy = false;
+  btn.disabled = false;
+  btnText.textContent = 'Ask AI';
+  spinner.style.display = 'none';
+  input.value = '';
+  input.focus();
+  chat.scrollTop = chat.scrollHeight;
+}
+
+function analystToggleSql(queryId) {
+  const el = document.getElementById('analyst-sql-' + queryId);
+  if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
+function analystExportCsv(queryId) {
+  const data = window['_analyst_data_' + queryId];
+  if (!data || !data.length) return;
+  const cols = Object.keys(data[0]);
+  const csvRows = [cols.join(',')];
+  for (const row of data) {
+    csvRows.push(cols.map(c => {
+      let val = row[c] != null ? String(row[c]) : '';
+      if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+        val = '"' + val.replace(/"/g, '""') + '"';
+      }
+      return val;
+    }).join(','));
+  }
+  const blob = new Blob([csvRows.join('\n')], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'permit_analyst_' + queryId + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('CSV downloaded', 'success');
+}
+
+function escapeHtml(str) {
+  if (typeof str !== 'string') return str;
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// ─── END AI ANALYST ─────────────────────────────────────────────────────
 </script>
 <!-- Contact Sales Modal -->
 <div id="contact-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);align-items:center;justify-content:center;backdrop-filter:blur(4px)">

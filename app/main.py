@@ -54,6 +54,7 @@ from app.api.v1.liens import router as liens_router
 from app.api.v1.dialer import router as dialer_router
 from app.api.v1.crm import router as crm_router
 from app.api.v1.quotes import router as quotes_router
+from app.api.v1.analyst import router as analyst_router
 
 logger = logging.getLogger(__name__)
 
@@ -139,6 +140,7 @@ app.include_router(liens_router, prefix="/v1")
 app.include_router(dialer_router, prefix="/v1")
 app.include_router(crm_router, prefix="/v1")
 app.include_router(quotes_router, prefix="/v1")
+app.include_router(analyst_router, prefix="/v1")
 
 
 @app.get("/health")
@@ -754,7 +756,7 @@ async def root():
 async def _spa_page():
     return FileResponse(STATIC_DIR / "index.html")
 
-for _path in ("/search", "/coverage", "/pricing", "/dashboard", "/contractors", "/alerts", "/properties", "/market", "/saved-searches", "/admin", "/dialer", "/crm", "/quotes"):
+for _path in ("/search", "/coverage", "/pricing", "/dashboard", "/contractors", "/alerts", "/properties", "/market", "/saved-searches", "/admin", "/dialer", "/crm", "/quotes", "/analyst"):
     app.get(_path, include_in_schema=False)(_spa_page)
 
 
@@ -825,5 +827,8 @@ async def api_info():
             "quotes_detail": "GET /v1/quotes/{id}",
             "quotes_update": "PUT /v1/quotes/{id}",
             "quotes_send": "POST /v1/quotes/{id}/send",
+            "analyst_query": "POST /v1/analyst/query",
+            "analyst_suggestions": "GET /v1/analyst/suggestions",
+            "analyst_report": "GET /v1/analyst/report?address=123+Main+St&city=Austin&state=TX",
         },
     }
