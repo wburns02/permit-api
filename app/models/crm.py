@@ -50,6 +50,7 @@ class Deal(Base):
     notes = Column(Text)
     permit_number = Column(String(100))
     permit_type = Column(String(50))
+    review_requested_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 

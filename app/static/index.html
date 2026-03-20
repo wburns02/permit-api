@@ -3944,6 +3944,8 @@ results.forEach(p =>
         <div style="display:flex;gap:2px;margin-bottom:20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:4px">
           <button onclick="showCrmTab('contacts')" id="crm-tab-contacts" class="crm-tab active" style="flex:1;padding:10px;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;background:var(--accent);color:#fff">Contacts</button>
           <button onclick="showCrmTab('pipeline')" id="crm-tab-pipeline" class="crm-tab" style="flex:1;padding:10px;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;background:transparent;color:var(--text2)">Pipeline</button>
+          <button onclick="showCrmTab('quotes')" id="crm-tab-quotes" class="crm-tab" style="flex:1;padding:10px;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;background:transparent;color:var(--text2)">Quotes</button>
+          <button onclick="showCrmTab('teams')" id="crm-tab-teams" class="crm-tab" style="flex:1;padding:10px;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;background:transparent;color:var(--text2)">Teams</button>
           <button onclick="showCrmTab('dashboard')" id="crm-tab-dashboard" class="crm-tab" style="flex:1;padding:10px;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;background:transparent;color:var(--text2)">Dashboard</button>
         </div>
 
@@ -4016,9 +4018,119 @@ results.forEach(p =>
           </div>
         </div>
 
+        <!-- QUOTES TAB -->
+        <div id="crm-panel-quotes" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+            <h3 style="font-size:18px;font-weight:700;margin:0">Quotes & Estimates</h3>
+            <button onclick="showQuoteForm()" style="padding:10px 20px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer">+ New Quote</button>
+          </div>
+          <div id="quotes-list" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+            <div style="padding:40px;text-align:center;color:var(--text3)">Loading quotes...</div>
+          </div>
+        </div>
+
+        <!-- TEAMS TAB -->
+        <div id="crm-panel-teams" style="display:none">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:10px">
+            <h3 style="font-size:18px;font-weight:700;margin:0">Teams</h3>
+            <button onclick="showTeamForm()" style="padding:10px 20px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer">+ Create Team</button>
+          </div>
+          <div id="teams-list" style="display:grid;gap:12px"></div>
+          <div id="team-detail-panel" style="display:none;margin-top:20px">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:10px">
+              <h4 id="team-detail-name" style="font-size:16px;font-weight:700;margin:0"></h4>
+              <button onclick="showAddMemberForm()" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer">+ Add Member</button>
+            </div>
+            <div id="team-members-table" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden"></div>
+          </div>
+        </div>
+
       </div><!-- end crm-main -->
     </div>
   </section>
+</div>
+
+<!-- QUOTE BUILDER MODAL -->
+<div class="modal-overlay" id="quote-builder-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:200;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto">
+  <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);max-width:900px;width:100%;max-height:90vh;overflow-y:auto;padding:28px;position:relative">
+    <button onclick="closeQuoteModal()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text3);font-size:24px;cursor:pointer;padding:4px">&times;</button>
+    <h3 style="font-size:20px;font-weight:700;margin-bottom:20px">Create Quote / Estimate</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+      <div><label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Company Name</label><input type="text" id="quote-company-name" style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;box-sizing:border-box"></div>
+      <div><label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Company Phone</label><input type="text" id="quote-company-phone" style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;box-sizing:border-box"></div>
+      <div><label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Company Email</label><input type="text" id="quote-company-email" style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;box-sizing:border-box"></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div><label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Contact (optional)</label><select id="quote-contact-id" style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;box-sizing:border-box"><option value="">-- Select Contact --</option></select></div>
+      <div><label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Tax Rate (%)</label><input type="number" id="quote-tax-rate" value="0" min="0" max="100" step="0.1" style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;box-sizing:border-box"></div>
+    </div>
+    <!-- Line Items -->
+    <div style="margin-bottom:16px">
+      <label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Line Items</label>
+      <table style="width:100%;border-collapse:collapse;font-size:13px" id="quote-items-table">
+        <thead><tr style="background:var(--surface2)">
+          <th style="padding:8px 12px;text-align:left;color:var(--text3);font-size:11px;text-transform:uppercase;width:50%">Description</th>
+          <th style="padding:8px 12px;text-align:center;color:var(--text3);font-size:11px;text-transform:uppercase;width:12%">Qty</th>
+          <th style="padding:8px 12px;text-align:right;color:var(--text3);font-size:11px;text-transform:uppercase;width:16%">Unit Price</th>
+          <th style="padding:8px 12px;text-align:right;color:var(--text3);font-size:11px;text-transform:uppercase;width:16%">Total</th>
+          <th style="width:6%"></th>
+        </tr></thead>
+        <tbody id="quote-items-body"></tbody>
+      </table>
+      <button onclick="addQuoteLineItem()" style="margin-top:8px;padding:6px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer">+ Add Line</button>
+    </div>
+    <!-- Quote Total -->
+    <div id="quote-totals" style="text-align:right;margin-bottom:16px;font-size:14px;color:var(--text2)"></div>
+    <!-- Notes/Terms -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px">
+      <div><label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Notes</label><textarea id="quote-notes" rows="3" style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;resize:vertical;font-family:var(--font);box-sizing:border-box"></textarea></div>
+      <div><label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Terms & Conditions</label><textarea id="quote-terms" rows="3" style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:13px;resize:vertical;font-family:var(--font);box-sizing:border-box"></textarea></div>
+    </div>
+    <input type="hidden" id="quote-deal-id" value="">
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeQuoteModal()" style="padding:10px 20px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-size:14px;font-weight:600;cursor:pointer">Cancel</button>
+      <button onclick="submitQuote()" style="padding:10px 24px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer">Create Quote</button>
+    </div>
+  </div>
+</div>
+
+<!-- QUOTE PREVIEW MODAL -->
+<div class="modal-overlay" id="quote-preview-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:200;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto">
+  <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);max-width:700px;width:100%;max-height:90vh;overflow-y:auto;padding:28px;position:relative">
+    <button onclick="closeQuotePreview()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text3);font-size:24px;cursor:pointer;padding:4px">&times;</button>
+    <div id="quote-preview-content"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:20px">
+      <button onclick="closeQuotePreview()" style="padding:10px 20px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-size:14px;font-weight:600;cursor:pointer">Close</button>
+      <button onclick="sendCurrentQuote()" id="quote-send-btn" style="padding:10px 24px;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer">Send to Contact</button>
+    </div>
+  </div>
+</div>
+
+<!-- TEAM CREATE MODAL -->
+<div class="modal-overlay" id="team-create-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center;padding:40px 20px">
+  <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);max-width:420px;width:100%;padding:28px;position:relative">
+    <button onclick="closeTeamModal()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text3);font-size:24px;cursor:pointer;padding:4px">&times;</button>
+    <h3 style="font-size:20px;font-weight:700;margin-bottom:16px">Create Team</h3>
+    <div><label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Team Name</label><input type="text" id="team-form-name" style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;box-sizing:border-box;margin-bottom:16px"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeTeamModal()" style="padding:10px 20px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-size:14px;cursor:pointer">Cancel</button>
+      <button onclick="submitTeam()" style="padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD MEMBER MODAL -->
+<div class="modal-overlay" id="member-add-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center;padding:40px 20px">
+  <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);max-width:420px;width:100%;padding:28px;position:relative">
+    <button onclick="closeMemberModal()" style="position:absolute;top:12px;right:16px;background:none;border:none;color:var(--text3);font-size:24px;cursor:pointer;padding:4px">&times;</button>
+    <h3 style="font-size:20px;font-weight:700;margin-bottom:16px">Add Team Member</h3>
+    <div style="margin-bottom:12px"><label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Email</label><input type="email" id="member-form-email" placeholder="user@example.com" style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;box-sizing:border-box"></div>
+    <div style="margin-bottom:16px"><label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Role</label><select id="member-form-role" style="width:100%;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;box-sizing:border-box"><option value="member">Member</option><option value="manager">Manager</option></select></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button onclick="closeMemberModal()" style="padding:10px 20px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-size:14px;cursor:pointer">Cancel</button>
+      <button onclick="submitTeamMember()" style="padding:10px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:600;cursor:pointer">Add</button>
+    </div>
+  </div>
 </div>
 
 <!-- CRM CONTACT DETAIL MODAL -->
@@ -12075,7 +12187,7 @@ let dialerTimerInterval = null;
 let dialerTimerStart = null;
 let dialerCallSeconds = 0;
 
-function initDialerPage() {
+async function initDialerPage() {
   if (!currentKey) {
     document.getElementById('dialer-auth-gate').style.display = '';
     document.getElementById('dialer-main').style.display = 'none';
@@ -12086,6 +12198,28 @@ function initDialerPage() {
   loadDialerStats();
   loadDialerCallbacks();
   loadDialerHistory();
+  // Auto-fill territory filters if user has assigned territories
+  try {
+    const resp = await fetch(API + '/v1/crm/territories', { headers: { 'X-API-Key': currentKey } });
+    if (resp.ok) {
+      const data = await resp.json();
+      const territories = data.territories || [];
+      if (territories.length > 0) {
+        // Separate ZIPs (5 digits) from state codes (2 chars)
+        const zips = territories.filter(t => /^\d{5}$/.test(t.code)).map(t => t.code);
+        const states = territories.filter(t => /^[A-Z]{2}$/.test(t.code)).map(t => t.code);
+        const stateSelect = document.getElementById('dialer-state');
+        const locationInput = document.getElementById('dialer-location');
+        if (states.length === 1 && stateSelect) {
+          stateSelect.value = states[0];
+        }
+        if (zips.length > 0 && locationInput) {
+          locationInput.value = zips[0];
+          locationInput.placeholder = `Territory: ${zips.join(', ')}`;
+        }
+      }
+    }
+  } catch(e) { /* territory fetch is non-critical */ }
 }
 
 async function loadDialerQueue() {
@@ -12514,12 +12648,15 @@ function showCrmTab(tab) {
   document.querySelectorAll('.crm-tab').forEach(b => { b.style.background = 'transparent'; b.style.color = 'var(--text2)'; });
   const btn = document.getElementById('crm-tab-' + tab);
   if (btn) { btn.style.background = 'var(--accent)'; btn.style.color = '#fff'; }
-  document.getElementById('crm-panel-contacts').style.display = tab === 'contacts' ? '' : 'none';
-  document.getElementById('crm-panel-pipeline').style.display = tab === 'pipeline' ? '' : 'none';
-  document.getElementById('crm-panel-dashboard').style.display = tab === 'dashboard' ? '' : 'none';
+  ['contacts','pipeline','quotes','teams','dashboard'].forEach(t => {
+    const el = document.getElementById('crm-panel-' + t);
+    if (el) el.style.display = tab === t ? '' : 'none';
+  });
   if (tab === 'contacts') loadCrmContacts();
   if (tab === 'pipeline') loadCrmPipeline();
   if (tab === 'dashboard') loadCrmDashboard();
+  if (tab === 'quotes') loadQuotesList();
+  if (tab === 'teams') loadTeamsList();
 }
 
 // ── Contacts ──
@@ -12673,8 +12810,9 @@ function renderCrmContactDetail(c) {
             <div style="font-weight:600;font-size:14px">${esc(d.title || 'Untitled Deal')}</div>
             <div style="font-size:12px;color:var(--text3)">${d.permit_number ? 'Permit #' + esc(d.permit_number) : ''} ${d.created_at ? new Date(d.created_at).toLocaleDateString() : ''}</div>
           </div>
-          <div style="display:flex;align-items:center;gap:12px">
+          <div style="display:flex;align-items:center;gap:8px">
             ${d.value ? `<span style="font-size:16px;font-weight:800;color:var(--text)">$${Number(d.value).toLocaleString()}</span>` : ''}
+            <button onclick="event.stopPropagation();openQuoteFromDeal('${d.id}','${c.id}')" style="padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--accent2);font-size:11px;font-weight:600;cursor:pointer" title="Create Quote">Quote</button>
             <select onchange="updateCrmDealStage('${d.id}', this.value)" style="padding:6px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:${stageColor};font-size:12px;font-weight:700;text-transform:uppercase;cursor:pointer">
               ${['new','contacted','quoted','negotiating','won','lost'].map(s => `<option value="${s}" ${d.stage === s ? 'selected' : ''}>${s}</option>`).join('')}
             </select>
@@ -13008,6 +13146,367 @@ async function dialerSaveToCrm() {
     showToast('Error: ' + err.message, 'error');
     btn.textContent = origText;
     btn.disabled = false;
+  }
+}
+
+// ─── Quotes ──
+
+let quoteLineItemCounter = 0;
+let currentQuotePreviewId = null;
+
+function showQuoteForm(dealId, contactId) {
+  document.getElementById('quote-builder-modal').style.display = 'flex';
+  document.getElementById('quote-company-name').value = '';
+  document.getElementById('quote-company-phone').value = '';
+  document.getElementById('quote-company-email').value = '';
+  document.getElementById('quote-tax-rate').value = '0';
+  document.getElementById('quote-notes').value = '';
+  document.getElementById('quote-terms').value = '';
+  document.getElementById('quote-deal-id').value = dealId || '';
+  document.getElementById('quote-items-body').innerHTML = '';
+  document.getElementById('quote-totals').innerHTML = '';
+  quoteLineItemCounter = 0;
+  addQuoteLineItem();
+  // Load contacts for dropdown
+  loadQuoteContacts(contactId);
+}
+
+function openQuoteFromDeal(dealId, contactId) {
+  closeCrmContactModal();
+  showQuoteForm(dealId, contactId);
+}
+
+function closeQuoteModal() {
+  document.getElementById('quote-builder-modal').style.display = 'none';
+}
+
+async function loadQuoteContacts(preselect) {
+  if (!currentKey) return;
+  try {
+    const resp = await fetch(API + '/v1/crm/contacts?page_size=100', { headers: { 'X-API-Key': currentKey } });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const sel = document.getElementById('quote-contact-id');
+    sel.innerHTML = '<option value="">-- Select Contact --</option>' +
+      data.results.map(c => `<option value="${c.id}" ${preselect === c.id ? 'selected' : ''}>${esc(c.name)}${c.company ? ' (' + esc(c.company) + ')' : ''}</option>`).join('');
+  } catch(e) {}
+}
+
+function addQuoteLineItem() {
+  const idx = quoteLineItemCounter++;
+  const tbody = document.getElementById('quote-items-body');
+  const tr = document.createElement('tr');
+  tr.id = 'quote-line-' + idx;
+  tr.style.borderBottom = '1px solid var(--border)';
+  tr.innerHTML = `
+    <td style="padding:6px 8px"><input type="text" id="ql-desc-${idx}" placeholder="Service or item..." style="width:100%;padding:8px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:13px;outline:none;box-sizing:border-box"></td>
+    <td style="padding:6px 8px"><input type="number" id="ql-qty-${idx}" value="1" min="0.01" step="any" onchange="updateQuoteTotals()" style="width:100%;padding:8px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:13px;text-align:center;outline:none;box-sizing:border-box"></td>
+    <td style="padding:6px 8px"><input type="number" id="ql-price-${idx}" value="0" min="0" step="0.01" onchange="updateQuoteTotals()" style="width:100%;padding:8px;background:var(--surface);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:13px;text-align:right;outline:none;box-sizing:border-box"></td>
+    <td style="padding:6px 8px;text-align:right;color:var(--text);font-weight:600;font-size:13px" id="ql-total-${idx}">$0.00</td>
+    <td style="padding:6px 4px;text-align:center"><button onclick="removeQuoteLine(${idx})" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;padding:4px">&times;</button></td>
+  `;
+  tbody.appendChild(tr);
+  updateQuoteTotals();
+}
+
+function removeQuoteLine(idx) {
+  const tr = document.getElementById('quote-line-' + idx);
+  if (tr) tr.remove();
+  updateQuoteTotals();
+}
+
+function updateQuoteTotals() {
+  let subtotal = 0;
+  for (let i = 0; i < quoteLineItemCounter; i++) {
+    const qtyEl = document.getElementById('ql-qty-' + i);
+    const priceEl = document.getElementById('ql-price-' + i);
+    const totalEl = document.getElementById('ql-total-' + i);
+    if (!qtyEl || !priceEl) continue;
+    const qty = parseFloat(qtyEl.value) || 0;
+    const price = parseFloat(priceEl.value) || 0;
+    const lineTotal = qty * price;
+    subtotal += lineTotal;
+    if (totalEl) totalEl.textContent = '$' + lineTotal.toFixed(2);
+  }
+  const taxRate = (parseFloat(document.getElementById('quote-tax-rate').value) || 0) / 100;
+  const tax = subtotal * taxRate;
+  const total = subtotal + tax;
+  let html = `<div>Subtotal: <strong>$${subtotal.toFixed(2)}</strong></div>`;
+  if (taxRate > 0) html += `<div>Tax (${(taxRate*100).toFixed(1)}%): <strong>$${tax.toFixed(2)}</strong></div>`;
+  html += `<div style="font-size:18px;font-weight:800;color:var(--green);margin-top:4px">Total: $${total.toFixed(2)}</div>`;
+  document.getElementById('quote-totals').innerHTML = html;
+}
+
+async function submitQuote() {
+  if (!currentKey) return;
+  const items = [];
+  for (let i = 0; i < quoteLineItemCounter; i++) {
+    const descEl = document.getElementById('ql-desc-' + i);
+    const qtyEl = document.getElementById('ql-qty-' + i);
+    const priceEl = document.getElementById('ql-price-' + i);
+    if (!descEl || !qtyEl) continue;
+    const desc = descEl.value.trim();
+    if (!desc) continue;
+    items.push({ description: desc, quantity: parseFloat(qtyEl.value) || 1, unit_price: parseFloat(priceEl.value) || 0 });
+  }
+  if (!items.length) { showToast('Add at least one line item', 'error'); return; }
+  const contactId = document.getElementById('quote-contact-id').value || null;
+  const dealId = document.getElementById('quote-deal-id').value || null;
+  const body = {
+    items,
+    contact_id: contactId || undefined,
+    deal_id: dealId || undefined,
+    tax_rate: (parseFloat(document.getElementById('quote-tax-rate').value) || 0) / 100,
+    notes: document.getElementById('quote-notes').value.trim() || null,
+    terms: document.getElementById('quote-terms').value.trim() || null,
+    company_name: document.getElementById('quote-company-name').value.trim() || null,
+    company_phone: document.getElementById('quote-company-phone').value.trim() || null,
+    company_email: document.getElementById('quote-company-email').value.trim() || null,
+  };
+  try {
+    const resp = await fetch(API + '/v1/quotes', {
+      method: 'POST',
+      headers: { 'X-API-Key': currentKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!resp.ok) { const err = await resp.json(); throw new Error(err.detail || 'Failed'); }
+    showToast('Quote created');
+    closeQuoteModal();
+    loadQuotesList();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+async function loadQuotesList() {
+  if (!currentKey) return;
+  const el = document.getElementById('quotes-list');
+  el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">Loading...</div>';
+  try {
+    const resp = await fetch(API + '/v1/quotes?page_size=50', { headers: { 'X-API-Key': currentKey } });
+    if (resp.status === 403) { el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">Requires paid plan</div>'; return; }
+    if (!resp.ok) throw new Error('Failed');
+    const data = await resp.json();
+    if (!data.results.length) {
+      el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">No quotes yet. Click "+ New Quote" to create one.</div>';
+      return;
+    }
+    const statusColors = { draft: 'var(--text3)', sent: 'var(--accent2)', accepted: 'var(--green)', declined: 'var(--red)' };
+    el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:var(--surface2);border-bottom:1px solid var(--border)"><th style="padding:12px 16px;text-align:left;color:var(--text3);font-weight:600;font-size:11px;text-transform:uppercase">Contact</th><th style="padding:12px 16px;text-align:right;color:var(--text3);font-weight:600;font-size:11px;text-transform:uppercase">Total</th><th style="padding:12px 16px;text-align:center;color:var(--text3);font-weight:600;font-size:11px;text-transform:uppercase">Items</th><th style="padding:12px 16px;text-align:center;color:var(--text3);font-weight:600;font-size:11px;text-transform:uppercase">Status</th><th style="padding:12px 16px;text-align:left;color:var(--text3);font-weight:600;font-size:11px;text-transform:uppercase">Created</th><th style="padding:12px 16px;text-align:center;color:var(--text3);font-weight:600;font-size:11px;text-transform:uppercase">Action</th></tr></thead><tbody>' +
+      data.results.map(q => `
+        <tr style="border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+          <td style="padding:10px 16px;font-weight:600;color:var(--text)" onclick="previewQuote('${q.id}')">${esc(q.contact_name || q.company_name || 'No contact')}</td>
+          <td style="padding:10px 16px;text-align:right;font-weight:800;color:var(--green);font-size:15px" onclick="previewQuote('${q.id}')">$${Number(q.total || 0).toLocaleString(undefined, {minimumFractionDigits:2})}</td>
+          <td style="padding:10px 16px;text-align:center;color:var(--text2)" onclick="previewQuote('${q.id}')">${(q.items || []).length}</td>
+          <td style="padding:10px 16px;text-align:center" onclick="previewQuote('${q.id}')"><span style="padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;background:${statusColors[q.status] || 'var(--text3)'}22;color:${statusColors[q.status] || 'var(--text3)'}">${q.status}</span></td>
+          <td style="padding:10px 16px;color:var(--text3);font-size:12px" onclick="previewQuote('${q.id}')">${q.created_at ? new Date(q.created_at).toLocaleDateString() : '-'}</td>
+          <td style="padding:10px 16px;text-align:center"><button onclick="previewQuote('${q.id}')" style="padding:4px 10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--accent2);font-size:11px;font-weight:600;cursor:pointer">View</button></td>
+        </tr>
+      `).join('') + '</tbody></table>';
+  } catch (err) {
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--red)">Error: ' + esc(err.message) + '</div>';
+  }
+}
+
+async function previewQuote(quoteId) {
+  if (!currentKey) return;
+  currentQuotePreviewId = quoteId;
+  const modal = document.getElementById('quote-preview-modal');
+  const content = document.getElementById('quote-preview-content');
+  content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Loading...</div>';
+  modal.style.display = 'flex';
+  try {
+    const resp = await fetch(API + '/v1/quotes/' + quoteId, { headers: { 'X-API-Key': currentKey } });
+    if (!resp.ok) throw new Error('Failed');
+    const q = await resp.json();
+    let itemsHtml = (q.items || []).map(item => `
+      <tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:8px 12px;color:var(--text)">${esc(item.description)}</td>
+        <td style="padding:8px 12px;text-align:center;color:var(--text2)">${item.quantity}</td>
+        <td style="padding:8px 12px;text-align:right;color:var(--text2)">$${Number(item.unit_price).toFixed(2)}</td>
+        <td style="padding:8px 12px;text-align:right;font-weight:600;color:var(--text)">$${Number(item.total).toFixed(2)}</td>
+      </tr>
+    `).join('');
+    const statusColors = { draft: 'var(--text3)', sent: 'var(--accent2)', accepted: 'var(--green)', declined: 'var(--red)' };
+    const sc = statusColors[q.status] || 'var(--text3)';
+    content.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px">
+        <div>
+          <h2 style="font-size:22px;font-weight:800;margin:0 0 4px">Quote / Estimate</h2>
+          <div style="font-size:13px;color:var(--text2)">${esc(q.company_name || '')} ${q.company_phone ? '| ' + esc(q.company_phone) : ''} ${q.company_email ? '| ' + esc(q.company_email) : ''}</div>
+          ${q.contact_name ? `<div style="font-size:13px;color:var(--text3);margin-top:4px">To: <strong style="color:var(--text)">${esc(q.contact_name)}</strong> ${q.contact_company ? '(' + esc(q.contact_company) + ')' : ''}</div>` : ''}
+        </div>
+        <span style="padding:4px 12px;border-radius:20px;font-size:12px;font-weight:700;text-transform:uppercase;background:${sc}22;color:${sc}">${q.status}</span>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px">
+        <thead><tr style="background:var(--surface2)"><th style="padding:10px 12px;text-align:left;color:var(--text3);font-size:11px;text-transform:uppercase">Description</th><th style="padding:10px 12px;text-align:center;color:var(--text3);font-size:11px;text-transform:uppercase">Qty</th><th style="padding:10px 12px;text-align:right;color:var(--text3);font-size:11px;text-transform:uppercase">Unit Price</th><th style="padding:10px 12px;text-align:right;color:var(--text3);font-size:11px;text-transform:uppercase">Total</th></tr></thead>
+        <tbody>${itemsHtml}</tbody>
+      </table>
+      <div style="text-align:right;font-size:14px;margin-bottom:16px">
+        <div>Subtotal: <strong>$${Number(q.subtotal || 0).toFixed(2)}</strong></div>
+        ${q.tax_rate ? `<div>Tax (${(q.tax_rate*100).toFixed(1)}%): <strong>$${Number(q.tax_amount || 0).toFixed(2)}</strong></div>` : ''}
+        <div style="font-size:20px;font-weight:800;color:var(--green);margin-top:4px">Total: $${Number(q.total || 0).toFixed(2)}</div>
+      </div>
+      ${q.notes ? `<div style="padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px"><strong style="color:var(--text2);font-size:12px">Notes:</strong><div style="color:var(--text);font-size:13px;margin-top:4px">${esc(q.notes)}</div></div>` : ''}
+      ${q.terms ? `<div style="padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px"><strong style="color:var(--text2);font-size:12px">Terms:</strong><div style="color:var(--text3);font-size:12px;margin-top:4px">${esc(q.terms)}</div></div>` : ''}
+      ${q.valid_until ? `<div style="font-size:12px;color:var(--text3)">Valid until: ${new Date(q.valid_until).toLocaleDateString()}</div>` : ''}
+    `;
+    // Show/hide send button based on status and contact
+    const sendBtn = document.getElementById('quote-send-btn');
+    sendBtn.style.display = (q.contact_id && q.status === 'draft') ? '' : 'none';
+  } catch (err) {
+    content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--red)">Error: ' + esc(err.message) + '</div>';
+  }
+}
+
+function closeQuotePreview() {
+  document.getElementById('quote-preview-modal').style.display = 'none';
+  currentQuotePreviewId = null;
+}
+
+async function sendCurrentQuote() {
+  if (!currentKey || !currentQuotePreviewId) return;
+  const btn = document.getElementById('quote-send-btn');
+  btn.textContent = 'Sending...';
+  btn.disabled = true;
+  try {
+    const resp = await fetch(API + '/v1/quotes/' + currentQuotePreviewId + '/send', {
+      method: 'POST',
+      headers: { 'X-API-Key': currentKey },
+    });
+    if (!resp.ok) { const err = await resp.json(); throw new Error(err.detail || 'Failed'); }
+    const data = await resp.json();
+    if (data.sent) {
+      showToast('Quote sent to ' + (data.to || 'contact'));
+      closeQuotePreview();
+      loadQuotesList();
+    } else {
+      showToast('Failed to send quote', 'error');
+    }
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  } finally {
+    btn.textContent = 'Send to Contact';
+    btn.disabled = false;
+  }
+}
+
+
+// ─── Teams ──
+
+let currentTeamId = null;
+
+function showTeamForm() {
+  document.getElementById('team-create-modal').style.display = 'flex';
+  document.getElementById('team-form-name').value = '';
+  document.getElementById('team-form-name').focus();
+}
+
+function closeTeamModal() {
+  document.getElementById('team-create-modal').style.display = 'none';
+}
+
+async function submitTeam() {
+  if (!currentKey) return;
+  const name = document.getElementById('team-form-name').value.trim();
+  if (!name) { showToast('Team name is required', 'error'); return; }
+  try {
+    const resp = await fetch(API + '/v1/crm/teams', {
+      method: 'POST',
+      headers: { 'X-API-Key': currentKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name }),
+    });
+    if (!resp.ok) { const err = await resp.json(); throw new Error(err.detail || 'Failed'); }
+    showToast('Team created');
+    closeTeamModal();
+    loadTeamsList();
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+async function loadTeamsList() {
+  if (!currentKey) return;
+  const el = document.getElementById('teams-list');
+  el.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3)">Loading teams...</div>';
+  document.getElementById('team-detail-panel').style.display = 'none';
+  try {
+    const resp = await fetch(API + '/v1/crm/teams', { headers: { 'X-API-Key': currentKey } });
+    if (resp.status === 403) { el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3)">Requires paid plan</div>'; return; }
+    if (!resp.ok) throw new Error('Failed');
+    const data = await resp.json();
+    if (!data.results.length) {
+      el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--text3);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius)">No teams yet. Click "+ Create Team" to get started.</div>';
+      return;
+    }
+    el.innerHTML = data.results.map(t => `
+      <div onclick="openTeam('${t.id}','${esc(t.name)}')" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;cursor:pointer;transition:border-color .15s;display:flex;justify-content:space-between;align-items:center" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div>
+          <div style="font-size:16px;font-weight:700;color:var(--text)">${esc(t.name)}</div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px">${t.member_count} member${t.member_count !== 1 ? 's' : ''} &middot; Your role: <strong style="color:var(--accent2)">${t.your_role}</strong></div>
+        </div>
+        <div style="font-size:12px;color:var(--text3)">${t.created_at ? new Date(t.created_at).toLocaleDateString() : ''}</div>
+      </div>
+    `).join('');
+  } catch (err) {
+    el.innerHTML = '<div style="padding:40px;text-align:center;color:var(--red)">Error: ' + esc(err.message) + '</div>';
+  }
+}
+
+async function openTeam(teamId, teamName) {
+  currentTeamId = teamId;
+  document.getElementById('team-detail-name').textContent = teamName;
+  document.getElementById('team-detail-panel').style.display = '';
+  const el = document.getElementById('team-members-table');
+  el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3)">Loading members...</div>';
+  try {
+    const resp = await fetch(API + '/v1/crm/teams/' + teamId + '/members', { headers: { 'X-API-Key': currentKey } });
+    if (!resp.ok) throw new Error('Failed');
+    const data = await resp.json();
+    const roleColors = { owner: 'var(--orange)', manager: 'var(--accent2)', member: 'var(--text3)' };
+    el.innerHTML = '<table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="background:var(--surface2);border-bottom:1px solid var(--border)"><th style="padding:10px 14px;text-align:left;color:var(--text3);font-weight:600;font-size:11px;text-transform:uppercase">Email</th><th style="padding:10px 14px;text-align:left;color:var(--text3);font-weight:600;font-size:11px;text-transform:uppercase">Company</th><th style="padding:10px 14px;text-align:center;color:var(--text3);font-weight:600;font-size:11px;text-transform:uppercase">Role</th><th style="padding:10px 14px;text-align:left;color:var(--text3);font-weight:600;font-size:11px;text-transform:uppercase">Territories</th></tr></thead><tbody>' +
+      data.results.map(m => `
+        <tr style="border-bottom:1px solid var(--border)">
+          <td style="padding:10px 14px;color:var(--text);font-weight:600">${esc(m.email)}</td>
+          <td style="padding:10px 14px;color:var(--text2)">${esc(m.company_name || '-')}</td>
+          <td style="padding:10px 14px;text-align:center"><span style="padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700;text-transform:uppercase;background:${roleColors[m.role] || 'var(--text3)'}22;color:${roleColors[m.role] || 'var(--text3)'}">${m.role}</span></td>
+          <td style="padding:10px 14px;color:var(--text3);font-size:12px;font-family:var(--mono)">${(m.territories || []).join(', ') || 'All'}</td>
+        </tr>
+      `).join('') + '</tbody></table>';
+  } catch (err) {
+    el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--red)">Error: ' + esc(err.message) + '</div>';
+  }
+}
+
+function showAddMemberForm() {
+  if (!currentTeamId) return;
+  document.getElementById('member-add-modal').style.display = 'flex';
+  document.getElementById('member-form-email').value = '';
+  document.getElementById('member-form-role').value = 'member';
+  document.getElementById('member-form-email').focus();
+}
+
+function closeMemberModal() {
+  document.getElementById('member-add-modal').style.display = 'none';
+}
+
+async function submitTeamMember() {
+  if (!currentKey || !currentTeamId) return;
+  const email = document.getElementById('member-form-email').value.trim();
+  const role = document.getElementById('member-form-role').value;
+  if (!email) { showToast('Email is required', 'error'); return; }
+  try {
+    const resp = await fetch(API + '/v1/crm/teams/' + currentTeamId + '/members', {
+      method: 'POST',
+      headers: { 'X-API-Key': currentKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, role }),
+    });
+    if (!resp.ok) { const err = await resp.json(); throw new Error(err.detail || 'Failed'); }
+    showToast('Member added');
+    closeMemberModal();
+    openTeam(currentTeamId, document.getElementById('team-detail-name').textContent);
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
   }
 }
 

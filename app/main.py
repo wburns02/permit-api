@@ -26,6 +26,8 @@ from app.models.data_layers import (  # noqa: F401
 )
 from app.models.dialer import CallLog, LeadStatus  # noqa: F401
 from app.models.crm import Contact, Deal, Note, Commission  # noqa: F401
+from app.models.quote import Quote  # noqa: F401
+from app.models.team import Team, TeamMember  # noqa: F401
 
 # Import routers
 from app.api.v1.permits import router as permits_router
@@ -51,6 +53,7 @@ from app.api.v1.sales import router as sales_router
 from app.api.v1.liens import router as liens_router
 from app.api.v1.dialer import router as dialer_router
 from app.api.v1.crm import router as crm_router
+from app.api.v1.quotes import router as quotes_router
 
 logger = logging.getLogger(__name__)
 
@@ -135,6 +138,7 @@ app.include_router(sales_router, prefix="/v1")
 app.include_router(liens_router, prefix="/v1")
 app.include_router(dialer_router, prefix="/v1")
 app.include_router(crm_router, prefix="/v1")
+app.include_router(quotes_router, prefix="/v1")
 
 
 @app.get("/health")
@@ -555,6 +559,77 @@ async def migrate_expansion():
                 migrations.append(f"{table_name}: {e}")
                 await db.rollback()
 
+        # ---- Add review_requested_at to deals ----
+        try:
+            await db.execute(text("ALTER TABLE deals ADD COLUMN review_requested_at TIMESTAMPTZ"))
+            migrations.append("deals.review_requested_at added")
+        except Exception:
+            migrations.append("deals.review_requested_at already exists")
+            await db.rollback()
+
+        # ---- Quote/Estimate tables ----
+        quote_tables = {
+            "quotes": """
+                CREATE TABLE IF NOT EXISTS quotes (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID NOT NULL REFERENCES api_users(id),
+                    contact_id UUID REFERENCES contacts(id),
+                    deal_id UUID REFERENCES deals(id),
+                    items JSONB,
+                    subtotal FLOAT DEFAULT 0.0,
+                    tax_rate FLOAT DEFAULT 0.0,
+                    tax_amount FLOAT DEFAULT 0.0,
+                    total FLOAT DEFAULT 0.0,
+                    status VARCHAR(20) DEFAULT 'draft',
+                    valid_until DATE,
+                    sent_at TIMESTAMPTZ,
+                    accepted_at TIMESTAMPTZ,
+                    notes TEXT,
+                    terms TEXT,
+                    company_name VARCHAR(200),
+                    company_phone VARCHAR(20),
+                    company_email VARCHAR(200),
+                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ DEFAULT NOW()
+                )
+            """,
+        }
+        for table_name, ddl in quote_tables.items():
+            try:
+                await db.execute(text(ddl))
+                migrations.append(f"{table_name} table created")
+            except Exception as e:
+                migrations.append(f"{table_name}: {e}")
+                await db.rollback()
+
+        # ---- Team Management tables ----
+        team_tables = {
+            "teams": """
+                CREATE TABLE IF NOT EXISTS teams (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    name VARCHAR(200) NOT NULL,
+                    owner_id UUID NOT NULL REFERENCES api_users(id),
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                )
+            """,
+            "team_members": """
+                CREATE TABLE IF NOT EXISTS team_members (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    team_id UUID NOT NULL REFERENCES teams(id) ON DELETE CASCADE,
+                    user_id UUID NOT NULL REFERENCES api_users(id),
+                    role VARCHAR(20) DEFAULT 'member',
+                    territories JSONB
+                )
+            """,
+        }
+        for table_name, ddl in team_tables.items():
+            try:
+                await db.execute(text(ddl))
+                migrations.append(f"{table_name} table created")
+            except Exception as e:
+                migrations.append(f"{table_name}: {e}")
+                await db.rollback()
+
         # Indexes for new tables
         indexes = [
             "CREATE INDEX IF NOT EXISTS ix_cl_license ON contractor_licenses (license_number)",
@@ -629,6 +704,16 @@ async def migrate_expansion():
             "CREATE INDEX IF NOT EXISTS ix_crm_notes_deal ON crm_notes (deal_id)",
             "CREATE INDEX IF NOT EXISTS ix_commissions_user ON commissions (user_id)",
             "CREATE INDEX IF NOT EXISTS ix_commissions_deal ON commissions (deal_id)",
+            # quotes indexes
+            "CREATE INDEX IF NOT EXISTS ix_quotes_user ON quotes (user_id)",
+            "CREATE INDEX IF NOT EXISTS ix_quotes_contact ON quotes (contact_id)",
+            "CREATE INDEX IF NOT EXISTS ix_quotes_deal ON quotes (deal_id)",
+            "CREATE INDEX IF NOT EXISTS ix_quotes_user_status ON quotes (user_id, status)",
+            # teams indexes
+            "CREATE INDEX IF NOT EXISTS ix_teams_owner ON teams (owner_id)",
+            "CREATE INDEX IF NOT EXISTS ix_team_members_team ON team_members (team_id)",
+            "CREATE INDEX IF NOT EXISTS ix_team_members_user ON team_members (user_id)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS ix_team_members_team_user ON team_members (team_id, user_id)",
         ]
         for idx_sql in indexes:
             try:
@@ -669,7 +754,7 @@ async def root():
 async def _spa_page():
     return FileResponse(STATIC_DIR / "index.html")
 
-for _path in ("/search", "/coverage", "/pricing", "/dashboard", "/contractors", "/alerts", "/properties", "/market", "/saved-searches", "/admin", "/dialer", "/crm"):
+for _path in ("/search", "/coverage", "/pricing", "/dashboard", "/contractors", "/alerts", "/properties", "/market", "/saved-searches", "/admin", "/dialer", "/crm", "/quotes"):
     app.get(_path, include_in_schema=False)(_spa_page)
 
 
@@ -728,5 +813,17 @@ async def api_info():
             "crm_leaderboard": "GET /v1/crm/leaderboard?period=week",
             "crm_commissions": "GET /v1/crm/commissions",
             "crm_commissions_summary": "GET /v1/crm/commissions/summary",
+            "crm_teams": "GET /v1/crm/teams",
+            "crm_team_create": "POST /v1/crm/teams",
+            "crm_team_members": "GET /v1/crm/teams/{id}/members",
+            "crm_team_add_member": "POST /v1/crm/teams/{id}/members",
+            "crm_team_update_member": "PUT /v1/crm/teams/{id}/members/{member_id}",
+            "crm_team_dashboard": "GET /v1/crm/teams/{id}/dashboard",
+            "crm_territories": "GET /v1/crm/territories",
+            "quotes_list": "GET /v1/quotes",
+            "quotes_create": "POST /v1/quotes",
+            "quotes_detail": "GET /v1/quotes/{id}",
+            "quotes_update": "PUT /v1/quotes/{id}",
+            "quotes_send": "POST /v1/quotes/{id}/send",
         },
     }

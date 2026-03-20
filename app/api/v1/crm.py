@@ -1,4 +1,4 @@
-"""CRM endpoints — contacts, deals, pipeline, commissions, leaderboard."""
+"""CRM endpoints — contacts, deals, pipeline, commissions, leaderboard, teams."""
 
 import uuid
 from datetime import datetime, timezone, timedelta, date
@@ -14,6 +14,7 @@ from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
 from app.models.crm import Contact, Deal, Note, Commission
 from app.models.dialer import CallLog
+from app.models.team import Team, TeamMember
 
 router = APIRouter(prefix="/crm", tags=["CRM"])
 
@@ -577,7 +578,7 @@ async def update_deal(
         setattr(deal, field, value)
     deal.updated_at = datetime.now(timezone.utc)
 
-    # Auto-create commission when stage changes to "won"
+    # Auto-create commission and schedule review request when stage changes to "won"
     new_stage = update_data.get("stage")
     if new_stage == "won" and old_stage != "won":
         deal.actual_close_date = deal.actual_close_date or date.today()
@@ -595,6 +596,16 @@ async def update_deal(
                     status="pending",
                 )
                 db.add(commission)
+        # Add system note about scheduled review request (7 days from now)
+        review_date = (datetime.now(timezone.utc) + timedelta(days=7)).strftime("%b %d, %Y")
+        review_note = Note(
+            user_id=user.id,
+            deal_id=deal.id,
+            contact_id=deal.contact_id,
+            content=f"Review request email scheduled for {review_date} (7 days after close).",
+            note_type="system",
+        )
+        db.add(review_note)
 
     db.add(_log_usage(user, request, "/v1/crm/deals/" + str(deal_id)))
     await db.commit()
@@ -984,3 +995,389 @@ async def commission_summary(
         "total_pending": total_pending,
         "this_month": this_month,
     }
+
+
+# ---------------------------------------------------------------------------
+# Teams
+# ---------------------------------------------------------------------------
+
+class TeamCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+
+
+class TeamMemberAdd(BaseModel):
+    email: str = Field(..., max_length=255)
+    role: str = Field("member", max_length=20)
+
+
+class TeamMemberUpdate(BaseModel):
+    role: str | None = None
+    territories: list[str] | None = None
+
+
+VALID_TEAM_ROLES = {"owner", "manager", "member"}
+
+
+@router.post("/teams")
+async def create_team(
+    body: TeamCreate,
+    request: Request,
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new team. The creator becomes the owner."""
+    _require_paid(user)
+    await check_rate_limit(request, lookup_count=1)
+
+    team = Team(name=body.name, owner_id=user.id)
+    db.add(team)
+    await db.flush()
+
+    # Add creator as owner member
+    member = TeamMember(team_id=team.id, user_id=user.id, role="owner")
+    db.add(member)
+    db.add(_log_usage(user, request, "/v1/crm/teams"))
+    await db.commit()
+    await db.refresh(team)
+
+    return {
+        "id": str(team.id),
+        "name": team.name,
+        "owner_id": str(team.owner_id),
+        "created_at": team.created_at.isoformat() if team.created_at else None,
+    }
+
+
+@router.get("/teams")
+async def list_teams(
+    request: Request,
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List teams the user belongs to."""
+    _require_paid(user)
+    await check_rate_limit(request, lookup_count=1)
+
+    # Find teams where user is a member
+    query = (
+        select(Team, TeamMember.role)
+        .join(TeamMember, TeamMember.team_id == Team.id)
+        .where(TeamMember.user_id == user.id)
+        .order_by(Team.created_at.desc())
+    )
+    result = await db.execute(query)
+    teams = result.all()
+
+    # Get member counts
+    team_ids = [t[0].id for t in teams]
+    member_counts = {}
+    if team_ids:
+        mc_q = (
+            select(TeamMember.team_id, func.count().label("cnt"))
+            .where(TeamMember.team_id.in_(team_ids))
+            .group_by(TeamMember.team_id)
+        )
+        mc_result = await db.execute(mc_q)
+        member_counts = {r.team_id: r.cnt for r in mc_result.all()}
+
+    items = [
+        {
+            "id": str(t.id),
+            "name": t.name,
+            "owner_id": str(t.owner_id),
+            "your_role": role,
+            "member_count": member_counts.get(t.id, 0),
+            "created_at": t.created_at.isoformat() if t.created_at else None,
+        }
+        for t, role in teams
+    ]
+
+    db.add(_log_usage(user, request, "/v1/crm/teams"))
+    await db.commit()
+
+    return {"results": items}
+
+
+@router.post("/teams/{team_id}/members")
+async def add_team_member(
+    team_id: uuid.UUID,
+    body: TeamMemberAdd,
+    request: Request,
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Add a member to a team by email. Only owner/manager can add."""
+    _require_paid(user)
+    await check_rate_limit(request, lookup_count=1)
+
+    # Verify team exists and user has permission
+    team_q = await db.execute(select(Team).where(Team.id == team_id))
+    team = team_q.scalar_one_or_none()
+    if not team:
+        raise HTTPException(status_code=404, detail="Team not found")
+
+    # Check caller's role
+    caller_member = await db.execute(
+        select(TeamMember).where(TeamMember.team_id == team_id, TeamMember.user_id == user.id)
+    )
+    caller = caller_member.scalar_one_or_none()
+    if not caller or caller.role not in ("owner", "manager"):
+        raise HTTPException(status_code=403, detail="Only team owners and managers can add members")
+
+    if body.role not in VALID_TEAM_ROLES:
+        raise HTTPException(status_code=400, detail=f"Invalid role. Must be: {', '.join(sorted(VALID_TEAM_ROLES))}")
+
+    # Find user by email
+    target_q = await db.execute(select(ApiUser).where(ApiUser.email == body.email))
+    target_user = target_q.scalar_one_or_none()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="No user found with that email")
+
+    # Check if already a member
+    existing_q = await db.execute(
+        select(TeamMember).where(TeamMember.team_id == team_id, TeamMember.user_id == target_user.id)
+    )
+    if existing_q.scalar_one_or_none():
+        raise HTTPException(status_code=409, detail="User is already a team member")
+
+    member = TeamMember(team_id=team_id, user_id=target_user.id, role=body.role)
+    db.add(member)
+    db.add(_log_usage(user, request, f"/v1/crm/teams/{team_id}/members"))
+    await db.commit()
+    await db.refresh(member)
+
+    return {
+        "id": str(member.id),
+        "team_id": str(member.team_id),
+        "user_id": str(member.user_id),
+        "email": target_user.email,
+        "role": member.role,
+        "territories": member.territories,
+    }
+
+
+@router.get("/teams/{team_id}/members")
+async def list_team_members(
+    team_id: uuid.UUID,
+    request: Request,
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List members of a team."""
+    _require_paid(user)
+    await check_rate_limit(request, lookup_count=1)
+
+    # Verify user is a member of this team
+    check_q = await db.execute(
+        select(TeamMember).where(TeamMember.team_id == team_id, TeamMember.user_id == user.id)
+    )
+    if not check_q.scalar_one_or_none():
+        raise HTTPException(status_code=403, detail="Not a member of this team")
+
+    query = (
+        select(TeamMember, ApiUser.email, ApiUser.company_name)
+        .join(ApiUser, ApiUser.id == TeamMember.user_id)
+        .where(TeamMember.team_id == team_id)
+        .order_by(TeamMember.role)
+    )
+    result = await db.execute(query)
+    members = result.all()
+
+    items = [
+        {
+            "id": str(m.id),
+            "user_id": str(m.user_id),
+            "email": email,
+            "company_name": company_name,
+            "role": m.role,
+            "territories": m.territories or [],
+        }
+        for m, email, company_name in members
+    ]
+
+    db.add(_log_usage(user, request, f"/v1/crm/teams/{team_id}/members"))
+    await db.commit()
+
+    return {"results": items}
+
+
+@router.put("/teams/{team_id}/members/{member_id}")
+async def update_team_member(
+    team_id: uuid.UUID,
+    member_id: uuid.UUID,
+    body: TeamMemberUpdate,
+    request: Request,
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a team member's role or territories. Only owner/manager can update."""
+    _require_paid(user)
+    await check_rate_limit(request, lookup_count=1)
+
+    # Verify caller's role
+    caller_q = await db.execute(
+        select(TeamMember).where(TeamMember.team_id == team_id, TeamMember.user_id == user.id)
+    )
+    caller = caller_q.scalar_one_or_none()
+    if not caller or caller.role not in ("owner", "manager"):
+        raise HTTPException(status_code=403, detail="Only team owners and managers can update members")
+
+    # Find the target member
+    target_q = await db.execute(
+        select(TeamMember).where(TeamMember.id == member_id, TeamMember.team_id == team_id)
+    )
+    member = target_q.scalar_one_or_none()
+    if not member:
+        raise HTTPException(status_code=404, detail="Team member not found")
+
+    update_data = body.model_dump(exclude_unset=True)
+    if "role" in update_data:
+        if update_data["role"] not in VALID_TEAM_ROLES:
+            raise HTTPException(status_code=400, detail=f"Invalid role. Must be: {', '.join(sorted(VALID_TEAM_ROLES))}")
+        member.role = update_data["role"]
+    if "territories" in update_data:
+        member.territories = update_data["territories"]
+
+    db.add(_log_usage(user, request, f"/v1/crm/teams/{team_id}/members/{member_id}"))
+    await db.commit()
+    await db.refresh(member)
+
+    return {
+        "id": str(member.id),
+        "user_id": str(member.user_id),
+        "role": member.role,
+        "territories": member.territories or [],
+    }
+
+
+@router.get("/teams/{team_id}/dashboard")
+async def team_dashboard(
+    team_id: uuid.UUID,
+    request: Request,
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Team aggregate dashboard — combined stats for all members."""
+    _require_paid(user)
+    await check_rate_limit(request, lookup_count=1)
+
+    # Verify user is a member
+    check_q = await db.execute(
+        select(TeamMember).where(TeamMember.team_id == team_id, TeamMember.user_id == user.id)
+    )
+    if not check_q.scalar_one_or_none():
+        raise HTTPException(status_code=403, detail="Not a member of this team")
+
+    # Get all member user_ids
+    members_q = await db.execute(
+        select(TeamMember.user_id).where(TeamMember.team_id == team_id)
+    )
+    member_ids = [r[0] for r in members_q.all()]
+
+    now = datetime.now(timezone.utc)
+    week_start = (now - timedelta(days=now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+
+    # Team pipeline
+    pipeline_q = (
+        select(
+            Deal.stage,
+            func.count().label("count"),
+            func.coalesce(func.sum(Deal.value), 0).label("total_value"),
+        )
+        .where(Deal.user_id.in_(member_ids))
+        .group_by(Deal.stage)
+    )
+    pipeline_result = await db.execute(pipeline_q)
+    stages_data = {r.stage: {"count": r.count, "total_value": float(r.total_value)} for r in pipeline_result.all()}
+
+    pipeline = []
+    for s in ["new", "contacted", "quoted", "negotiating", "won", "lost"]:
+        data = stages_data.get(s, {"count": 0, "total_value": 0.0})
+        pipeline.append({"stage": s, "count": data["count"], "total_value": data["total_value"]})
+
+    # This week team stats
+    team_calls_q = select(func.count()).select_from(CallLog).where(
+        CallLog.user_id.in_(member_ids), CallLog.created_at >= week_start
+    )
+    team_calls = (await db.execute(team_calls_q)).scalar() or 0
+
+    team_contacts_q = select(func.count()).select_from(Contact).where(
+        Contact.user_id.in_(member_ids), Contact.created_at >= week_start
+    )
+    team_contacts = (await db.execute(team_contacts_q)).scalar() or 0
+
+    team_won_q = select(func.count(), func.coalesce(func.sum(Deal.value), 0)).where(
+        Deal.user_id.in_(member_ids), Deal.stage == "won", Deal.updated_at >= week_start
+    )
+    team_won_result = (await db.execute(team_won_q)).one()
+    team_deals_won = team_won_result[0] or 0
+    team_revenue = float(team_won_result[1] or 0)
+
+    # Per-member breakdown
+    member_stats_q = text("""
+        SELECT u.id as user_id, u.email, u.company_name,
+               (SELECT COUNT(*) FROM call_logs cl WHERE cl.user_id = u.id AND cl.created_at >= :week_start) as calls,
+               (SELECT COUNT(*) FROM deals d WHERE d.user_id = u.id AND d.stage = 'won' AND d.updated_at >= :week_start) as deals_won,
+               (SELECT COALESCE(SUM(d.value), 0) FROM deals d WHERE d.user_id = u.id AND d.stage = 'won' AND d.updated_at >= :week_start) as revenue
+        FROM api_users u
+        WHERE u.id = ANY(:member_ids)
+        ORDER BY revenue DESC
+    """)
+    member_stats_result = await db.execute(member_stats_q, {"week_start": week_start, "member_ids": member_ids})
+    member_breakdown = [
+        {
+            "user_id": str(r["user_id"]),
+            "email": r["email"],
+            "company_name": r["company_name"],
+            "calls": r["calls"],
+            "deals_won": r["deals_won"],
+            "revenue": float(r["revenue"]),
+        }
+        for r in member_stats_result.mappings().all()
+    ]
+
+    db.add(_log_usage(user, request, f"/v1/crm/teams/{team_id}/dashboard"))
+    await db.commit()
+
+    return {
+        "team_id": str(team_id),
+        "member_count": len(member_ids),
+        "pipeline": pipeline,
+        "this_week": {
+            "calls": team_calls,
+            "new_contacts": team_contacts,
+            "deals_won": team_deals_won,
+            "revenue": team_revenue,
+        },
+        "members": member_breakdown,
+    }
+
+
+@router.get("/territories")
+async def get_my_territories(
+    request: Request,
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get the current user's assigned territories (ZIPs/states) across all teams."""
+    _require_paid(user)
+    await check_rate_limit(request, lookup_count=1)
+
+    result = await db.execute(
+        select(TeamMember.territories, Team.name)
+        .join(Team, Team.id == TeamMember.team_id)
+        .where(TeamMember.user_id == user.id, TeamMember.territories.isnot(None))
+    )
+    rows = result.all()
+
+    # Merge all territories
+    all_territories = []
+    for territories, team_name in rows:
+        if territories:
+            for t in territories:
+                all_territories.append({"code": t, "team": team_name})
+
+    db.add(_log_usage(user, request, "/v1/crm/territories"))
+    await db.commit()
+
+    return {"territories": all_territories}
