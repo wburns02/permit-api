@@ -65,7 +65,11 @@ def s(v, maxlen=500):
     """Safe string: strip, truncate, return None for blanks."""
     if v in (None, "", "NA", "N/A", ".", "-", "NONE", "None", "none"):
         return None
-    return str(v).strip()[:maxlen] or None
+    val = str(v).strip()
+    # Socrata sometimes uses <Null> for missing values
+    if val.lower() in ("<null>", "null", "n/a", "na", "none", ".", "-", ""):
+        return None
+    return val[:maxlen] or None
 
 
 def sd(v):
@@ -563,7 +567,8 @@ def scrape_mo_inspectors(conn):
             "Onsite System Inspector/Evaluator",
             s(r.get("insp_id"), 100),
             None,
-            s(r.get("city"), 100), s(r.get("state"), 2) or "MO",
+            s(r.get("city"), 100),
+            s(r.get("state"), 2) or "MO",
             None, None,
             sd(r.get("date_of_expiration")),
             "mo_dnr"
