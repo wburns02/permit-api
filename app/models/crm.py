@@ -1,4 +1,4 @@
-"""CRM models — contacts, deals, notes, and commissions."""
+"""CRM models — contacts, deals, notes, commissions, and activities."""
 
 import uuid
 from datetime import datetime, timezone
@@ -82,3 +82,24 @@ class Commission(Base):
     rate = Column(Float, default=0.10)
     status = Column(String(20), default="pending")  # pending/paid
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+
+class Activity(Base):
+    """Team activity feed — auto-logged for calls, deals, contacts, quotes, lead assignments."""
+    __tablename__ = "activities"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    team_id = Column(UUID(as_uuid=True), ForeignKey("teams.id", ondelete="SET NULL"), nullable=True, index=True)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("api_users.id"), nullable=False, index=True)
+    activity_type = Column(String(50), nullable=False)
+    # Types: call_logged, deal_created, deal_stage_changed, contact_created,
+    #        note_added, lead_assigned, quote_sent
+    description = Column(Text)
+    entity_type = Column(String(20))  # contact, deal, lead, quote
+    entity_id = Column(UUID(as_uuid=True))
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        Index("ix_activities_team_created", "team_id", "created_at"),
+        Index("ix_activities_user_created", "user_id", "created_at"),
+    )

@@ -13,7 +13,8 @@ from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
 from app.models.quote import Quote
-from app.models.crm import Contact
+from app.models.crm import Contact, Activity
+from app.models.team import TeamMember
 from app.config import settings
 
 router = APIRouter(prefix="/quotes", tags=["Quotes"])
@@ -319,6 +320,26 @@ async def send_quote(
         quote.status = "sent"
         quote.sent_at = datetime.now(timezone.utc)
         quote.updated_at = datetime.now(timezone.utc)
+
+        # Auto-log activity
+        try:
+            team_q = await db.execute(
+                select(TeamMember.team_id).where(TeamMember.user_id == user.id).limit(1)
+            )
+            team_id = team_q.scalar_one_or_none()
+            total_str = f" for ${quote.total:,.2f}" if quote.total else ""
+            activity = Activity(
+                user_id=user.id,
+                team_id=team_id,
+                activity_type="quote_sent",
+                description=f"Sent quote{total_str} to {contact.email}",
+                entity_type="quote",
+                entity_id=quote.id,
+            )
+            db.add(activity)
+        except Exception:
+            pass  # Activity logging is non-critical
+
         await db.commit()
         await db.refresh(quote)
 

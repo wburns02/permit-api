@@ -12,8 +12,8 @@ from app.database import get_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
-from app.models.crm import Contact, Deal, Note, Commission
-from app.models.dialer import CallLog
+from app.models.crm import Contact, Deal, Note, Commission, Activity
+from app.models.dialer import CallLog, LeadStatus
 from app.models.team import Team, TeamMember
 
 router = APIRouter(prefix="/crm", tags=["CRM"])
@@ -209,6 +209,18 @@ async def create_contact(
     )
     db.add(contact)
     db.add(_log_usage(user, request, "/v1/crm/contacts"))
+    await db.flush()
+
+    # Auto-log activity
+    team_id = await _get_user_team_id(db, user.id)
+    await log_activity(
+        db, user.id, team_id,
+        "contact_created",
+        f"Created contact: {body.name}" + (f" ({body.company})" if body.company else ""),
+        entity_type="contact",
+        entity_id=contact.id,
+    )
+
     await db.commit()
     await db.refresh(contact)
 
@@ -536,6 +548,19 @@ async def create_deal(
         db.add(commission)
 
     db.add(_log_usage(user, request, "/v1/crm/deals"))
+    await db.flush()
+
+    # Auto-log activity
+    team_id = await _get_user_team_id(db, user.id)
+    val_str = f" (${body.value:,.0f})" if body.value else ""
+    await log_activity(
+        db, user.id, team_id,
+        "deal_created",
+        f"Created deal: {body.title or 'Untitled'}{val_str} at stage {body.stage}",
+        entity_type="deal",
+        entity_id=deal.id,
+    )
+
     await db.commit()
     await db.refresh(deal)
 
@@ -608,6 +633,20 @@ async def update_deal(
         db.add(review_note)
 
     db.add(_log_usage(user, request, "/v1/crm/deals/" + str(deal_id)))
+
+    # Auto-log activity for stage changes
+    new_stage = update_data.get("stage")
+    if new_stage and new_stage != old_stage:
+        team_id = await _get_user_team_id(db, user.id)
+        val_str = f" (${deal.value:,.0f})" if deal.value else ""
+        await log_activity(
+            db, user.id, team_id,
+            "deal_stage_changed",
+            f"Moved '{deal.title or 'Untitled'}' from {old_stage} to {new_stage}{val_str}",
+            entity_type="deal",
+            entity_id=deal.id,
+        )
+
     await db.commit()
     await db.refresh(deal)
 
@@ -651,6 +690,21 @@ async def create_note(
     )
     db.add(note)
     db.add(_log_usage(user, request, "/v1/crm/notes"))
+    await db.flush()
+
+    # Auto-log activity
+    team_id = await _get_user_team_id(db, user.id)
+    entity_type = "contact" if body.contact_id else "deal"
+    entity_id = body.contact_id or body.deal_id
+    preview = body.content[:80] + "..." if len(body.content) > 80 else body.content
+    await log_activity(
+        db, user.id, team_id,
+        "note_added",
+        f"Added {body.note_type} note: {preview}",
+        entity_type=entity_type,
+        entity_id=entity_id,
+    )
+
     await db.commit()
     await db.refresh(note)
 
@@ -1381,3 +1435,379 @@ async def get_my_territories(
     await db.commit()
 
     return {"territories": all_territories}
+
+
+# ---------------------------------------------------------------------------
+# Activity Logging Helper
+# ---------------------------------------------------------------------------
+
+async def log_activity(
+    db: AsyncSession,
+    user_id,
+    team_id,
+    activity_type: str,
+    description: str,
+    entity_type: str | None = None,
+    entity_id=None,
+):
+    """Create an Activity record. Called after successful CRM operations."""
+    activity = Activity(
+        user_id=user_id,
+        team_id=team_id,
+        activity_type=activity_type,
+        description=description,
+        entity_type=entity_type,
+        entity_id=entity_id,
+    )
+    db.add(activity)
+
+
+async def _get_user_team_id(db: AsyncSession, user_id) -> uuid.UUID | None:
+    """Get the first team_id for a user (for activity logging)."""
+    result = await db.execute(
+        select(TeamMember.team_id).where(TeamMember.user_id == user_id).limit(1)
+    )
+    row = result.scalar_one_or_none()
+    return row if row else None
+
+
+# ---------------------------------------------------------------------------
+# Collaboration: Activity Feed
+# ---------------------------------------------------------------------------
+
+@router.get("/activity-feed")
+async def activity_feed(
+    request: Request,
+    limit: int = Query(50, ge=1, le=100),
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Team activity feed — last N actions across all team members.
+    Shows: calls logged, deals created/updated, contacts created, leads assigned, quotes sent.
+    """
+    _require_paid(user)
+    await check_rate_limit(request, lookup_count=1)
+
+    # Get all team IDs the user belongs to
+    teams_q = await db.execute(
+        select(TeamMember.team_id).where(TeamMember.user_id == user.id)
+    )
+    team_ids = [r[0] for r in teams_q.all()]
+
+    if team_ids:
+        # Show activities from all teams the user is in
+        query = (
+            select(Activity)
+            .where(Activity.team_id.in_(team_ids))
+            .order_by(Activity.created_at.desc())
+            .limit(limit)
+        )
+    else:
+        # Solo user — show own activities
+        query = (
+            select(Activity)
+            .where(Activity.user_id == user.id)
+            .order_by(Activity.created_at.desc())
+            .limit(limit)
+        )
+
+    result = await db.execute(query)
+    activities = result.scalars().all()
+
+    # Get user emails for display
+    user_ids = list(set(a.user_id for a in activities))
+    user_names = {}
+    if user_ids:
+        un_q = await db.execute(
+            select(ApiUser.id, ApiUser.email, ApiUser.company_name)
+            .where(ApiUser.id.in_(user_ids))
+        )
+        user_names = {
+            r.id: {"email": r.email, "company": r.company_name}
+            for r in un_q.all()
+        }
+
+    items = [
+        {
+            "id": str(a.id),
+            "user_id": str(a.user_id),
+            "user_email": user_names.get(a.user_id, {}).get("email"),
+            "user_company": user_names.get(a.user_id, {}).get("company"),
+            "team_id": str(a.team_id) if a.team_id else None,
+            "activity_type": a.activity_type,
+            "description": a.description,
+            "entity_type": a.entity_type,
+            "entity_id": str(a.entity_id) if a.entity_id else None,
+            "created_at": a.created_at.isoformat() if a.created_at else None,
+        }
+        for a in activities
+    ]
+
+    # Also pull recent call_logs, deal changes, new contacts for a richer feed
+    # if no logged activities exist yet
+    if not items:
+        now = datetime.now(timezone.utc)
+        recent_start = now - timedelta(days=7)
+
+        # Recent calls
+        if team_ids:
+            member_ids_q = await db.execute(
+                select(TeamMember.user_id).where(TeamMember.team_id.in_(team_ids))
+            )
+            member_ids = [r[0] for r in member_ids_q.all()]
+        else:
+            member_ids = [user.id]
+
+        calls_q = text("""
+            SELECT cl.id, cl.user_id, u.email, cl.disposition, cl.duration_seconds,
+                   cl.created_at, h.contractor_company, h.address
+            FROM call_logs cl
+            JOIN api_users u ON u.id = cl.user_id
+            LEFT JOIN hot_leads h ON h.id = cl.lead_id
+            WHERE cl.user_id = ANY(:member_ids)
+              AND cl.created_at >= :start
+            ORDER BY cl.created_at DESC
+            LIMIT :lim
+        """)
+        calls_result = await db.execute(calls_q, {
+            "member_ids": member_ids,
+            "start": recent_start,
+            "lim": limit,
+        })
+        for r in calls_result.mappings().all():
+            target = r["contractor_company"] or r["address"] or "a lead"
+            items.append({
+                "id": str(r["id"]),
+                "user_id": str(r["user_id"]),
+                "user_email": r["email"],
+                "activity_type": "call_logged",
+                "description": f"Logged a {r['disposition'] or 'call'} with {target} ({r['duration_seconds'] or 0}s)",
+                "entity_type": "lead",
+                "created_at": r["created_at"].isoformat() if r["created_at"] else None,
+            })
+
+        # Recent deal stage changes
+        deals_q = text("""
+            SELECT d.id, d.user_id, u.email, d.title, d.stage, d.value, d.updated_at
+            FROM deals d
+            JOIN api_users u ON u.id = d.user_id
+            WHERE d.user_id = ANY(:member_ids)
+              AND d.updated_at >= :start
+            ORDER BY d.updated_at DESC
+            LIMIT :lim
+        """)
+        deals_result = await db.execute(deals_q, {
+            "member_ids": member_ids,
+            "start": recent_start,
+            "lim": 20,
+        })
+        for r in deals_result.mappings().all():
+            val_str = f" (${r['value']:,.0f})" if r["value"] else ""
+            items.append({
+                "id": str(r["id"]),
+                "user_id": str(r["user_id"]),
+                "user_email": r["email"],
+                "activity_type": "deal_stage_changed",
+                "description": f"Deal '{r['title'] or 'Untitled'}' moved to {r['stage']}{val_str}",
+                "entity_type": "deal",
+                "entity_id": str(r["id"]),
+                "created_at": r["updated_at"].isoformat() if r["updated_at"] else None,
+            })
+
+        # Sort by date
+        items.sort(key=lambda x: x.get("created_at") or "", reverse=True)
+        items = items[:limit]
+
+    db.add(_log_usage(user, request, "/v1/crm/activity-feed"))
+    await db.commit()
+
+    return {"results": items, "count": len(items)}
+
+
+# ---------------------------------------------------------------------------
+# Collaboration: Lead Assignment
+# ---------------------------------------------------------------------------
+
+class LeadAssignRequest(BaseModel):
+    lead_ids: list[uuid.UUID] = Field(..., min_length=1, max_length=100)
+    member_id: uuid.UUID
+
+
+@router.post("/leads/assign")
+async def assign_leads(
+    body: LeadAssignRequest,
+    request: Request,
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Assign leads to a team member. Creates lead_statuses with status='assigned'
+    for the target user. Only team owners/managers can assign.
+    """
+    _require_paid(user)
+    await check_rate_limit(request, lookup_count=1)
+
+    # Verify the caller is an owner/manager of a shared team with the target
+    caller_teams_q = await db.execute(
+        select(TeamMember.team_id).where(
+            TeamMember.user_id == user.id,
+            TeamMember.role.in_(["owner", "manager"]),
+        )
+    )
+    caller_team_ids = [r[0] for r in caller_teams_q.all()]
+
+    if not caller_team_ids:
+        raise HTTPException(
+            status_code=403,
+            detail="Only team owners and managers can assign leads",
+        )
+
+    # Verify target member is on one of the caller's teams
+    target_member_q = await db.execute(
+        select(TeamMember).where(
+            TeamMember.user_id == body.member_id,
+            TeamMember.team_id.in_(caller_team_ids),
+        )
+    )
+    target_member = target_member_q.scalar_one_or_none()
+    if not target_member:
+        raise HTTPException(
+            status_code=404,
+            detail="Target user is not a member of your team",
+        )
+
+    # Get target user info for activity description
+    target_user_q = await db.execute(
+        select(ApiUser.email).where(ApiUser.id == body.member_id)
+    )
+    target_email = target_user_q.scalar_one_or_none() or "team member"
+
+    # Create/update lead_statuses for the target user
+    assigned_count = 0
+    for lead_id in body.lead_ids:
+        existing_q = await db.execute(
+            select(LeadStatus).where(
+                LeadStatus.user_id == body.member_id,
+                LeadStatus.lead_id == lead_id,
+            )
+        )
+        existing = existing_q.scalar_one_or_none()
+
+        if existing:
+            existing.status = "assigned"
+            existing.updated_at = datetime.now(timezone.utc)
+        else:
+            db.add(LeadStatus(
+                user_id=body.member_id,
+                lead_id=lead_id,
+                status="assigned",
+            ))
+        assigned_count += 1
+
+    # Log activity
+    team_id = await _get_user_team_id(db, user.id)
+    await log_activity(
+        db, user.id, team_id,
+        "lead_assigned",
+        f"Assigned {assigned_count} leads to {target_email}",
+        entity_type="lead",
+    )
+
+    db.add(_log_usage(user, request, "/v1/crm/leads/assign"))
+    await db.commit()
+
+    return {
+        "assigned": assigned_count,
+        "member_id": str(body.member_id),
+        "member_email": target_email,
+    }
+
+
+@router.get("/leads/assigned")
+async def get_assigned_leads(
+    request: Request,
+    page: int = Query(1, ge=1, le=500),
+    page_size: int = Query(25, ge=1, le=100),
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Get leads assigned to the current user. Returns hot_leads where
+    lead_statuses.user_id = current user AND status = 'assigned'.
+    """
+    _require_paid(user)
+    await check_rate_limit(request, lookup_count=1)
+
+    # Count total assigned
+    count_sql = text("""
+        SELECT count(*)
+        FROM lead_statuses ls
+        WHERE ls.user_id = :user_id AND ls.status = 'assigned'
+    """)
+    total = (await db.execute(count_sql, {"user_id": user.id})).scalar() or 0
+
+    # Fetch assigned leads with hot_leads data
+    query = text("""
+        SELECT
+            h.id, h.permit_number, h.permit_type, h.work_class, h.description,
+            h.address, h.city, h.state, h.zip, h.county,
+            h.lat, h.lng, h.issue_date, h.valuation, h.sqft,
+            h.contractor_company, h.contractor_name, h.contractor_phone,
+            h.contractor_trade, h.applicant_name, h.applicant_phone,
+            h.owner_name, h.jurisdiction, h.source,
+            ls.updated_at as assigned_at
+        FROM lead_statuses ls
+        JOIN hot_leads h ON h.id = ls.lead_id
+        WHERE ls.user_id = :user_id AND ls.status = 'assigned'
+        ORDER BY ls.updated_at DESC
+        OFFSET :offset LIMIT :limit
+    """)
+
+    result = await db.execute(query, {
+        "user_id": user.id,
+        "offset": (page - 1) * page_size,
+        "limit": page_size,
+    })
+    rows = result.mappings().all()
+
+    leads = [
+        {
+            "id": str(r["id"]),
+            "permit_number": r["permit_number"],
+            "permit_type": r["permit_type"],
+            "work_class": r["work_class"],
+            "description": r["description"],
+            "address": r["address"],
+            "city": r["city"],
+            "state": r["state"],
+            "zip": r["zip"],
+            "county": r["county"],
+            "lat": r["lat"],
+            "lng": r["lng"],
+            "issue_date": r["issue_date"].isoformat() if r["issue_date"] else None,
+            "valuation": r["valuation"],
+            "sqft": r["sqft"],
+            "contractor_company": r["contractor_company"],
+            "contractor_name": r["contractor_name"],
+            "contractor_phone": r["contractor_phone"],
+            "contractor_trade": r["contractor_trade"],
+            "applicant_name": r["applicant_name"],
+            "applicant_phone": r["applicant_phone"],
+            "owner_name": r["owner_name"],
+            "jurisdiction": r["jurisdiction"],
+            "source": r["source"],
+            "assigned_at": r["assigned_at"].isoformat() if r["assigned_at"] else None,
+        }
+        for r in rows
+    ]
+
+    db.add(_log_usage(user, request, "/v1/crm/leads/assigned"))
+    await db.commit()
+
+    return {
+        "results": leads,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }

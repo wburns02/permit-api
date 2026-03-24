@@ -13,6 +13,8 @@ from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
 from app.models.dialer import CallLog, LeadStatus
+from app.models.crm import Activity
+from app.models.team import TeamMember
 
 router = APIRouter(prefix="/dialer", tags=["Sales Dialer"])
 
@@ -287,6 +289,26 @@ async def log_call(
         db.add(lead_status)
 
     db.add(_log_usage(user, request, "/v1/dialer/log"))
+
+    # Auto-log activity for team feed
+    try:
+        team_q = await db.execute(
+            select(TeamMember.team_id).where(TeamMember.user_id == user.id).limit(1)
+        )
+        team_id = team_q.scalar_one_or_none()
+        dur_str = f" ({body.duration_seconds}s)" if body.duration_seconds else ""
+        activity = Activity(
+            user_id=user.id,
+            team_id=team_id,
+            activity_type="call_logged",
+            description=f"Logged a {body.disposition} call to {body.phone_number}{dur_str}",
+            entity_type="lead",
+            entity_id=body.lead_id,
+        )
+        db.add(activity)
+    except Exception:
+        pass  # Activity logging is non-critical
+
     await db.commit()
 
     return {

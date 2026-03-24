@@ -25,7 +25,7 @@ from app.models.data_layers import (  # noqa: F401
     PropertySale, PropertyLien,
 )
 from app.models.dialer import CallLog, LeadStatus  # noqa: F401
-from app.models.crm import Contact, Deal, Note, Commission  # noqa: F401
+from app.models.crm import Contact, Deal, Note, Commission, Activity  # noqa: F401
 from app.models.quote import Quote  # noqa: F401
 from app.models.team import Team, TeamMember  # noqa: F401
 
@@ -55,6 +55,7 @@ from app.api.v1.dialer import router as dialer_router
 from app.api.v1.crm import router as crm_router
 from app.api.v1.quotes import router as quotes_router
 from app.api.v1.analyst import router as analyst_router
+from app.api.v1.trends import router as trends_router
 
 logger = logging.getLogger(__name__)
 
@@ -141,6 +142,7 @@ app.include_router(dialer_router, prefix="/v1")
 app.include_router(crm_router, prefix="/v1")
 app.include_router(quotes_router, prefix="/v1")
 app.include_router(analyst_router, prefix="/v1")
+app.include_router(trends_router, prefix="/v1")
 
 
 @app.get("/health")
@@ -632,6 +634,25 @@ async def migrate_expansion():
                 migrations.append(f"{table_name}: {e}")
                 await db.rollback()
 
+        # ---- Activities table (collaboration feed) ----
+        try:
+            await db.execute(text("""
+                CREATE TABLE IF NOT EXISTS activities (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    team_id UUID REFERENCES teams(id) ON DELETE SET NULL,
+                    user_id UUID NOT NULL REFERENCES api_users(id),
+                    activity_type VARCHAR(50) NOT NULL,
+                    description TEXT,
+                    entity_type VARCHAR(20),
+                    entity_id UUID,
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                )
+            """))
+            migrations.append("activities table created")
+        except Exception as e:
+            migrations.append(f"activities: {e}")
+            await db.rollback()
+
         # Indexes for new tables
         indexes = [
             "CREATE INDEX IF NOT EXISTS ix_cl_license ON contractor_licenses (license_number)",
@@ -716,6 +737,11 @@ async def migrate_expansion():
             "CREATE INDEX IF NOT EXISTS ix_team_members_team ON team_members (team_id)",
             "CREATE INDEX IF NOT EXISTS ix_team_members_user ON team_members (user_id)",
             "CREATE UNIQUE INDEX IF NOT EXISTS ix_team_members_team_user ON team_members (team_id, user_id)",
+            # activities indexes
+            "CREATE INDEX IF NOT EXISTS ix_activities_team ON activities (team_id)",
+            "CREATE INDEX IF NOT EXISTS ix_activities_user ON activities (user_id)",
+            "CREATE INDEX IF NOT EXISTS ix_activities_team_created ON activities (team_id, created_at)",
+            "CREATE INDEX IF NOT EXISTS ix_activities_user_created ON activities (user_id, created_at)",
         ]
         for idx_sql in indexes:
             try:
@@ -756,7 +782,7 @@ async def root():
 async def _spa_page():
     return FileResponse(STATIC_DIR / "index.html")
 
-for _path in ("/search", "/coverage", "/pricing", "/dashboard", "/contractors", "/alerts", "/properties", "/market", "/saved-searches", "/admin", "/dialer", "/crm", "/quotes", "/analyst"):
+for _path in ("/search", "/coverage", "/pricing", "/dashboard", "/contractors", "/alerts", "/properties", "/market", "/saved-searches", "/admin", "/dialer", "/crm", "/quotes", "/analyst", "/trends"):
     app.get(_path, include_in_schema=False)(_spa_page)
 
 
@@ -830,5 +856,13 @@ async def api_info():
             "analyst_query": "POST /v1/analyst/query",
             "analyst_suggestions": "GET /v1/analyst/suggestions",
             "analyst_report": "GET /v1/analyst/report?address=123+Main+St&city=Austin&state=TX",
+            "trends_zip": "GET /v1/trends/zip?zip=78701&months=12",
+            "trends_contractor": "GET /v1/trends/contractor?name=ABC+Builders&months=24",
+            "trends_market": "GET /v1/trends/market?state=TX&months=12",
+            "trends_entity": "GET /v1/trends/entity?name=Sunrise+Holdings+LLC",
+            "trends_stats": "GET /v1/trends/stats",
+            "crm_activity_feed": "GET /v1/crm/activity-feed",
+            "crm_leads_assign": "POST /v1/crm/leads/assign",
+            "crm_leads_assigned": "GET /v1/crm/leads/assigned",
         },
     }

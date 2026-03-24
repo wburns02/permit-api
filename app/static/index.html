@@ -4018,6 +4018,17 @@ results.forEach(p =>
             <h3 style="font-size:16px;font-weight:700;margin-bottom:12px;color:var(--text2)">Leaderboard</h3>
             <div id="crm-dashboard-leaderboard" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden"></div>
           </div>
+
+          <!-- Activity Feed -->
+          <div style="margin-top:24px">
+            <h3 style="font-size:16px;font-weight:700;margin-bottom:12px;color:var(--text2);display:flex;align-items:center;gap:8px">
+              Team Activity Feed
+              <span style="font-size:11px;font-weight:500;color:var(--green);background:rgba(34,197,94,.1);padding:2px 8px;border-radius:12px">LIVE</span>
+            </h3>
+            <div id="crm-activity-feed" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);max-height:400px;overflow-y:auto">
+              <div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">Loading activity feed...</div>
+            </div>
+          </div>
         </div>
 
         <!-- QUOTES TAB -->
@@ -4349,6 +4360,7 @@ results.forEach(p =>
             <button onclick="dialerSkip()" style="padding:14px 24px;border-radius:var(--radius-sm);background:var(--surface);border:1px solid var(--border);color:var(--text2);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">Skip</button>
             <button onclick="dialerNext()" style="padding:14px 24px;border-radius:var(--radius-sm);background:var(--surface);border:1px solid var(--border);color:var(--text2);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--text)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text2)'">Next &rarr;</button>
             <button onclick="dialerSaveToCrm()" id="dialer-crm-btn" style="padding:14px 24px;border-radius:var(--radius-sm);background:var(--accent-glow);border:1px solid var(--accent);color:var(--accent2);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s" onmouseover="this.style.background='var(--accent)';this.style.color='#fff'" onmouseout="this.style.background='var(--accent-glow)';this.style.color='var(--accent2)'">Save to CRM</button>
+            <button onclick="showAssignLeadModal()" id="dialer-assign-btn" style="padding:14px 24px;border-radius:var(--radius-sm);background:rgba(147,51,234,.08);border:1px solid rgba(147,51,234,.3);color:rgb(147,51,234);font-size:14px;font-weight:600;cursor:pointer;transition:all .15s" onmouseover="this.style.background='rgb(147,51,234)';this.style.color='#fff'" onmouseout="this.style.background='rgba(147,51,234,.08)';this.style.color='rgb(147,51,234)'">Assign Lead</button>
           </div>
         </div>
 
@@ -13095,6 +13107,8 @@ async function loadCrmDashboard() {
     const comm = commResp.ok ? await commResp.json() : { total_earned: 0, total_pending: 0, this_month: 0 };
     const lb = lbResp.ok ? await lbResp.json() : { leaderboard: [] };
     renderCrmDashboard(dash, comm, lb);
+    // Load activity feed in parallel
+    loadActivityFeed();
   } catch (err) {
     showToast('Error loading dashboard: ' + err.message, 'error');
   }
@@ -13575,6 +13589,147 @@ async function submitTeamMember() {
     showToast('Member added');
     closeMemberModal();
     openTeam(currentTeamId, document.getElementById('team-detail-name').textContent);
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+// ── Activity Feed ──
+
+async function loadActivityFeed() {
+  if (!currentKey) return;
+  const feedEl = document.getElementById('crm-activity-feed');
+  if (!feedEl) return;
+  try {
+    const resp = await fetch(API + '/v1/crm/activity-feed?limit=50', { headers: { 'X-API-Key': currentKey } });
+    if (!resp.ok) throw new Error('Failed');
+    const data = await resp.json();
+    const items = data.results || [];
+    if (!items.length) {
+      feedEl.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">No team activity yet. Start making calls and creating deals!</div>';
+      return;
+    }
+    const typeIcons = {
+      call_logged: '&#9742;',
+      deal_created: '&#128188;',
+      deal_stage_changed: '&#8644;',
+      contact_created: '&#128100;',
+      note_added: '&#128221;',
+      lead_assigned: '&#128073;',
+      quote_sent: '&#128231;',
+    };
+    const typeColors = {
+      call_logged: 'var(--green)',
+      deal_created: 'var(--accent2)',
+      deal_stage_changed: 'var(--orange)',
+      contact_created: 'var(--text2)',
+      note_added: 'var(--text3)',
+      lead_assigned: 'rgb(147,51,234)',
+      quote_sent: 'var(--accent)',
+    };
+    feedEl.innerHTML = items.map(a => {
+      const icon = typeIcons[a.activity_type] || '&#9679;';
+      const color = typeColors[a.activity_type] || 'var(--text3)';
+      const user = a.user_company || a.user_email || 'Team member';
+      const timeAgo = a.created_at ? formatTimeAgo(new Date(a.created_at)) : '';
+      return `
+        <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:flex-start;gap:12px">
+          <div style="font-size:18px;min-width:28px;text-align:center;color:${color}">${icon}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;color:var(--text)"><strong style="font-weight:600">${esc(user)}</strong> ${esc(a.description || a.activity_type)}</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">${timeAgo}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    feedEl.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text3);font-size:13px">Could not load activity feed</div>';
+  }
+}
+
+function formatTimeAgo(date) {
+  const now = new Date();
+  const diff = Math.floor((now - date) / 1000);
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
+  if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+  if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
+  return date.toLocaleDateString();
+}
+
+// ── Assign Lead Modal ──
+
+function showAssignLeadModal() {
+  if (!dialerQueue || dialerQueue.length === 0) {
+    showToast('No lead selected to assign', 'error');
+    return;
+  }
+  const lead = dialerQueue[dialerIndex];
+  if (!lead) { showToast('No lead selected', 'error'); return; }
+
+  // Build a simple prompt modal
+  const modal = document.createElement('div');
+  modal.id = 'assign-lead-modal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:10000';
+  modal.innerHTML = `
+    <div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:24px;max-width:440px;width:90%">
+      <h3 style="font-size:18px;font-weight:700;margin-bottom:16px;color:var(--text)">Assign Lead to Team Member</h3>
+      <div style="margin-bottom:12px">
+        <div style="font-size:13px;color:var(--text3);margin-bottom:4px">Lead: <strong style="color:var(--text)">${esc(lead.contractor_company || lead.address || lead.permit_number || 'Unknown')}</strong></div>
+      </div>
+      <div style="margin-bottom:16px">
+        <label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Team Member Email</label>
+        <input type="email" id="assign-member-email" placeholder="teammate@company.com" style="width:100%;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:14px;outline:none;box-sizing:border-box">
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end">
+        <button onclick="document.getElementById('assign-lead-modal').remove()" style="padding:10px 20px;background:var(--surface);border:1px solid var(--border);color:var(--text2);border-radius:var(--radius-sm);cursor:pointer;font-size:14px;font-weight:600">Cancel</button>
+        <button onclick="submitAssignLead()" style="padding:10px 20px;background:rgb(147,51,234);color:#fff;border:none;border-radius:var(--radius-sm);cursor:pointer;font-size:14px;font-weight:600">Assign</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  document.getElementById('assign-member-email').focus();
+}
+
+async function submitAssignLead() {
+  if (!currentKey) return;
+  const lead = dialerQueue[dialerIndex];
+  if (!lead) return;
+  const email = document.getElementById('assign-member-email').value.trim();
+  if (!email) { showToast('Enter a team member email', 'error'); return; }
+
+  // First look up the user by email to get their member_id
+  try {
+    // Get teams
+    const teamsResp = await fetch(API + '/v1/crm/teams', { headers: { 'X-API-Key': currentKey } });
+    if (!teamsResp.ok) throw new Error('You need to create a team first');
+    const teamsData = await teamsResp.json();
+    const teams = teamsData.results || [];
+    if (!teams.length) throw new Error('Create a team first to assign leads');
+
+    // Find the member in any team
+    let memberId = null;
+    for (const team of teams) {
+      const membersResp = await fetch(API + '/v1/crm/teams/' + team.id + '/members', { headers: { 'X-API-Key': currentKey } });
+      if (membersResp.ok) {
+        const membersData = await membersResp.json();
+        const match = (membersData.results || []).find(m => m.email === email);
+        if (match) { memberId = match.user_id; break; }
+      }
+    }
+
+    if (!memberId) throw new Error('No team member found with email: ' + email);
+
+    // Assign
+    const resp = await fetch(API + '/v1/crm/leads/assign', {
+      method: 'POST',
+      headers: { 'X-API-Key': currentKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lead_ids: [lead.id], member_id: memberId }),
+    });
+    if (!resp.ok) { const err = await resp.json(); throw new Error(err.detail || 'Failed to assign'); }
+    const data = await resp.json();
+    showToast('Lead assigned to ' + (data.member_email || email));
+    document.getElementById('assign-lead-modal').remove();
   } catch (err) {
     showToast('Error: ' + err.message, 'error');
   }
