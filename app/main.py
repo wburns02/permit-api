@@ -28,6 +28,7 @@ from app.models.dialer import CallLog, LeadStatus  # noqa: F401
 from app.models.crm import Contact, Deal, Note, Commission, Activity, Webhook, BatchJob  # noqa: F401
 from app.models.quote import Quote  # noqa: F401
 from app.models.team import Team, TeamMember  # noqa: F401
+from app.models.email_campaign import EmailCampaign, EmailRecipient, EmailUnsubscribe  # noqa: F401
 
 # Import routers
 from app.api.v1.permits import router as permits_router
@@ -57,6 +58,7 @@ from app.api.v1.quotes import router as quotes_router
 from app.api.v1.analyst import router as analyst_router
 from app.api.v1.trends import router as trends_router
 from app.api.v1.batch import router as batch_router
+from app.api.v1.campaigns import router as campaigns_router
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +147,7 @@ app.include_router(quotes_router, prefix="/v1")
 app.include_router(analyst_router, prefix="/v1")
 app.include_router(trends_router, prefix="/v1")
 app.include_router(batch_router, prefix="/v1")
+app.include_router(campaigns_router, prefix="/v1")
 
 
 @app.get("/health")
@@ -697,8 +700,72 @@ async def migrate_expansion():
             migrations.append(f"batch_jobs: {e}")
             await db.rollback()
 
+        # ---- Email Campaign tables ----
+        email_tables = {
+            "email_campaigns": """
+                CREATE TABLE IF NOT EXISTS email_campaigns (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    name VARCHAR(200) NOT NULL,
+                    subject VARCHAR(500) NOT NULL,
+                    body_html TEXT,
+                    body_text TEXT,
+                    target_audience VARCHAR(100),
+                    target_state VARCHAR(2),
+                    status VARCHAR(20) DEFAULT 'draft',
+                    sent_count INTEGER DEFAULT 0,
+                    open_count INTEGER DEFAULT 0,
+                    click_count INTEGER DEFAULT 0,
+                    unsubscribe_count INTEGER DEFAULT 0,
+                    signup_count INTEGER DEFAULT 0,
+                    bounce_count INTEGER DEFAULT 0,
+                    send_rate INTEGER DEFAULT 200,
+                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    started_at TIMESTAMPTZ,
+                    completed_at TIMESTAMPTZ
+                )
+            """,
+            "email_recipients": """
+                CREATE TABLE IF NOT EXISTS email_recipients (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    campaign_id UUID REFERENCES email_campaigns(id) ON DELETE CASCADE,
+                    email VARCHAR(255) NOT NULL,
+                    name VARCHAR(500),
+                    company VARCHAR(500),
+                    state VARCHAR(2),
+                    license_type VARCHAR(100),
+                    status VARCHAR(20) DEFAULT 'pending',
+                    sent_at TIMESTAMPTZ,
+                    opened_at TIMESTAMPTZ,
+                    clicked_at TIMESTAMPTZ,
+                    unsubscribed_at TIMESTAMPTZ
+                )
+            """,
+            "email_unsubscribes": """
+                CREATE TABLE IF NOT EXISTS email_unsubscribes (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    email VARCHAR(255) NOT NULL UNIQUE,
+                    reason TEXT,
+                    unsubscribed_at TIMESTAMPTZ DEFAULT NOW()
+                )
+            """,
+        }
+        for table_name, ddl in email_tables.items():
+            try:
+                await db.execute(text(ddl))
+                migrations.append(f"{table_name} table created")
+            except Exception as e:
+                migrations.append(f"{table_name}: {e}")
+                await db.rollback()
+
         # Indexes for new tables
         indexes = [
+            # Email campaign indexes
+            "CREATE INDEX IF NOT EXISTS ix_ec_status ON email_campaigns (status)",
+            "CREATE INDEX IF NOT EXISTS ix_ec_audience ON email_campaigns (target_audience)",
+            "CREATE INDEX IF NOT EXISTS ix_er_campaign_status ON email_recipients (campaign_id, status)",
+            "CREATE INDEX IF NOT EXISTS ix_er_email ON email_recipients (email)",
+            "CREATE INDEX IF NOT EXISTS ix_er_sent_at ON email_recipients (sent_at)",
+            "CREATE INDEX IF NOT EXISTS ix_eu_email ON email_unsubscribes (email)",
             "CREATE INDEX IF NOT EXISTS ix_cl_license ON contractor_licenses (license_number)",
             "CREATE INDEX IF NOT EXISTS ix_cl_name ON contractor_licenses (business_name)",
             "CREATE INDEX IF NOT EXISTS ix_cl_state ON contractor_licenses (state)",
@@ -832,7 +899,7 @@ async def root():
 async def _spa_page():
     return FileResponse(STATIC_DIR / "index.html")
 
-for _path in ("/search", "/coverage", "/pricing", "/dashboard", "/contractors", "/alerts", "/properties", "/market", "/saved-searches", "/admin", "/dialer", "/crm", "/quotes", "/analyst", "/trends", "/batch"):
+for _path in ("/search", "/coverage", "/pricing", "/dashboard", "/contractors", "/alerts", "/properties", "/market", "/saved-searches", "/admin", "/dialer", "/crm", "/quotes", "/analyst", "/trends", "/batch", "/campaigns", "/unsubscribe"):
     app.get(_path, include_in_schema=False)(_spa_page)
 
 
