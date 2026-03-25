@@ -205,3 +205,43 @@ async def trends_stats(
             "momentum_score",
         ],
     }
+
+
+# ---------------------------------------------------------------------------
+# GET /v1/trends/anomalies — Market anomaly detection (public)
+# ---------------------------------------------------------------------------
+
+@router.get("/anomalies")
+async def market_anomalies(
+    state: str = Query(None, min_length=2, max_length=2, description="Two-letter state code (optional)"),
+    limit: int = Query(20, ge=1, le=50, description="Max anomalies to return"),
+    db: AsyncSession = Depends(get_db),
+):
+    """Detect unusual patterns across all data layers.
+
+    Returns permit velocity spikes, storm-permit correlations, price anomalies,
+    violation surges, and new entity clusters. Public endpoint — no auth required.
+    Great for marketing and general market awareness.
+    """
+    from app.services.anomaly_detector import detect_anomalies
+
+    anomalies = await detect_anomalies(
+        db,
+        state=state.upper() if state else None,
+        limit=limit,
+    )
+
+    return {
+        "anomalies": anomalies,
+        "count": len(anomalies),
+        "filters": {
+            "state": state.upper() if state else None,
+        },
+        "types": [
+            "permit_velocity_spike",
+            "storm_permit_correlation",
+            "price_anomaly",
+            "violation_surge",
+            "entity_cluster",
+        ],
+    }

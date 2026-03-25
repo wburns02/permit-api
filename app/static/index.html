@@ -1369,6 +1369,27 @@ results.forEach(p =>
     </div>
   </section>
 
+  <!-- Market Anomalies -->
+  <section style="padding:60px 0 20px">
+    <div class="container" style="max-width:960px">
+      <div style="text-align:center;margin-bottom:28px">
+        <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:20px;padding:5px 14px;font-size:11px;font-weight:700;color:#ef4444;letter-spacing:.5px;margin-bottom:12px">LIVE ANOMALIES</div>
+        <h2 style="font-size:24px;font-weight:800;margin-bottom:8px">Market Anomalies</h2>
+        <p style="font-size:14px;color:var(--text2);max-width:540px;margin:0 auto">Auto-detected unusual patterns across permits, prices, violations, storms, and entity formation. Updated continuously.</p>
+      </div>
+      <div style="display:flex;justify-content:center;gap:6px;margin-bottom:20px;flex-wrap:wrap">
+        <button onclick="loadAnomalies(null)" style="padding:6px 14px;background:var(--surface);border:1px solid var(--border);border-radius:20px;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer">All States</button>
+        <button onclick="loadAnomalies('TX')" style="padding:6px 14px;background:var(--surface);border:1px solid var(--border);border-radius:20px;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer">Texas</button>
+        <button onclick="loadAnomalies('CA')" style="padding:6px 14px;background:var(--surface);border:1px solid var(--border);border-radius:20px;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer">California</button>
+        <button onclick="loadAnomalies('FL')" style="padding:6px 14px;background:var(--surface);border:1px solid var(--border);border-radius:20px;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer">Florida</button>
+        <button onclick="loadAnomalies('NY')" style="padding:6px 14px;background:var(--surface);border:1px solid var(--border);border-radius:20px;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer">New York</button>
+        <button onclick="loadAnomalies('AZ')" style="padding:6px 14px;background:var(--surface);border:1px solid var(--border);border-radius:20px;color:var(--text2);font-size:12px;font-weight:600;cursor:pointer">Arizona</button>
+      </div>
+      <div id="anomalies-loading" style="display:none;text-align:center;padding:24px"><div style="display:inline-block;width:28px;height:28px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite"></div></div>
+      <div id="anomalies-container"></div>
+    </div>
+  </section>
+
   <!-- Industry Verticals -->
   <section style="background:var(--surface);padding:80px 0">
     <div class="container">
@@ -4728,6 +4749,7 @@ document.addEventListener('click', e => {
 // Init
 document.addEventListener('DOMContentLoaded', () => {
   loadStats();
+  loadAnomalies(null);
   checkAdminAccess();
   if (currentKey) {
     document.getElementById('nav-signup').textContent = 'Dashboard';
@@ -4772,6 +4794,7 @@ function showPage(page) {
   currentPage = page;
   if (page === 'home') {
     setTimeout(() => document.getElementById('search-input')?.focus(), 100);
+    if (!anomaliesLoaded) loadAnomalies(null);
   }
   if (page === 'coverage') loadCoverage();
   if (page === 'alerts') loadAlerts();
@@ -5164,7 +5187,7 @@ function renderResultCard(p) {
     </div>
     ${p.description ? `<div style="margin-top:8px;font-size:13px;color:var(--text2)">${esc(p.description).substring(0,200)}${p.description.length > 200 ? '...' : ''}</div>` : ''}
     ${p.contractor_name || p.contractor_company ? `<div style="margin-top:6px;font-size:13px;color:var(--text3)">Contractor: ${esc(p.contractor_name || '')} ${p.contractor_company ? '(' + esc(p.contractor_company) + ')' : ''}</div>` : ''}
-    <div style="margin-top:8px"><button onclick="addSearchResultToWatchlist('${esc(p.address||'').replace(/'/g,"\\'")}','${esc(p.city||'').replace(/'/g,"\\'")}','${esc(p.state||'')}')" style="padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='#22c55e';this.style.color='#22c55e'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">+ Watchlist</button></div>
+    <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap"><button onclick="addSearchResultToWatchlist('${esc(p.address||'').replace(/'/g,"\\'")}','${esc(p.city||'').replace(/'/g,"\\'")}','${esc(p.state||'')}')" style="padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='#22c55e';this.style.color='#22c55e'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">+ Watchlist</button><button onclick="openHtmlReport({address:'${esc(p.address||'').replace(/'/g,"\\'")}',city:'${esc(p.city||'').replace(/'/g,"\\'")}',state:'${esc(p.state||'')}'})" style="padding:4px 10px;background:none;border:1px solid rgba(245,158,11,.3);border-radius:20px;color:#f59e0b;font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='#f59e0b';this.style.background='rgba(245,158,11,.08)'" onmouseout="this.style.borderColor='rgba(245,158,11,.3)';this.style.background='none'">Property Report</button></div>
   </div>`;
 }
 
@@ -13079,9 +13102,10 @@ function renderCrmContactDetail(c) {
       </div>
     </div>
 
-    <div style="display:flex;gap:8px;margin-bottom:24px">
+    <div style="display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap">
       <button onclick="showCrmDealForm('${c.id}')" style="padding:8px 16px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer">+ Create Deal</button>
       <button onclick="showCrmNoteForm('${c.id}', null)" style="padding:8px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-size:13px;font-weight:600;cursor:pointer">+ Add Note</button>
+      ${c.address ? `<button onclick="openHtmlReport({address:'${esc(c.address||'').replace(/'/g,"\\\\'")}',city:'${esc(c.city||'').replace(/'/g,"\\\\'")}',state:'${esc(c.state||'')}'})" style="padding:8px 16px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:var(--radius-sm);color:#f59e0b;font-size:13px;font-weight:600;cursor:pointer">Property Report</button>` : ''}
     </div>
   `;
 
@@ -14195,6 +14219,7 @@ async function analystSubmit() {
         <span>${data.execution_time_ms}ms</span>
         <button onclick="analystToggleSql('${queryId}')" style="background:none;border:none;color:#8b5cf6;font-size:11px;cursor:pointer;padding:0;font-family:var(--font)">Show SQL</button>
         ${data.data && data.data.length > 0 ? `<button onclick="analystExportCsv('${queryId}')" style="background:none;border:none;color:var(--green);font-size:11px;cursor:pointer;padding:0;font-family:var(--font)">Export CSV</button>` : ''}
+        ${data.data && data.data.length > 0 && data.data[0].address ? `<button onclick="openHtmlReport(window['_analyst_report_addr_${queryId}'])" style="background:none;border:none;color:#f59e0b;font-size:11px;cursor:pointer;padding:0;font-family:var(--font)">Generate Report</button>` : ''}
       </div>
       <div id="analyst-sql-${queryId}" style="display:none;margin-top:8px;padding:10px 14px;background:var(--surface2);border-radius:8px;font-family:var(--mono);font-size:12px;line-height:1.5;color:#a78bfa;overflow-x:auto;white-space:pre-wrap;word-break:break-all">${escapeHtml(data.sql)}</div>
       ${tableHtml}
@@ -14207,6 +14232,11 @@ async function analystSubmit() {
 
     // Store in window for export
     window['_analyst_data_' + queryId] = data.data;
+    // Store first result address for report generation
+    if (data.data && data.data.length > 0 && data.data[0].address) {
+      const firstRow = data.data[0];
+      window['_analyst_report_addr_' + queryId] = { address: firstRow.address, city: firstRow.city || '', state: firstRow.state_code || firstRow.state || '' };
+    }
 
   } catch (err) {
     document.getElementById('analyst-thinking')?.remove();
@@ -14260,6 +14290,109 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+// ─── HTML REPORT GENERATOR ──────────────────────────────────────────────
+
+function openHtmlReport(info) {
+  if (!info || !info.address) { showToast('No address available for report', 'error'); return; }
+  if (!currentKey) { showToast('API key required for Property Reports. Sign up first.', 'info'); openSignup(); return; }
+  const params = new URLSearchParams({ address: info.address, state: info.state || 'TX' });
+  if (info.city) params.set('city', info.city);
+  const url = API + '/v1/analyst/report/html?' + params.toString();
+  // Open in new tab — user can then Ctrl+P to save as PDF
+  const win = window.open('about:blank', '_blank');
+  if (win) {
+    win.document.title = 'Loading Property Report...';
+    fetch(url, { headers: { 'X-API-Key': currentKey } })
+      .then(r => {
+        if (!r.ok) throw new Error('Report generation failed (requires Pro Leads+ plan)');
+        return r.text();
+      })
+      .then(html => {
+        win.document.open();
+        win.document.write(html);
+        win.document.close();
+      })
+      .catch(err => {
+        win.document.open();
+        win.document.write('<html><body style="background:#0a0a0f;color:#ef4444;font-family:sans-serif;padding:40px;text-align:center"><h2>Report Error</h2><p>' + err.message + '</p><p style="color:#a0a0b8;margin-top:20px">Property Reports require a Pro Leads plan or higher. <a href="https://permits.ecbtx.com/#pricing" style="color:#818cf8">View pricing</a></p></body></html>');
+        win.document.close();
+      });
+  } else {
+    showToast('Pop-up blocked — allow pop-ups for this site', 'error');
+  }
+}
+
+// ─── MARKET ANOMALIES ──────────────────────────────────────────────────
+
+let anomaliesLoaded = false;
+async function loadAnomalies(state) {
+  const container = document.getElementById('anomalies-container');
+  const loading = document.getElementById('anomalies-loading');
+  if (!container) return;
+
+  if (loading) loading.style.display = '';
+  container.innerHTML = '';
+
+  try {
+    const params = new URLSearchParams({ limit: '12' });
+    if (state) params.set('state', state);
+    const r = await fetch(API + '/v1/trends/anomalies?' + params.toString());
+    if (!r.ok) throw new Error('Failed to load anomalies');
+    const d = await r.json();
+    if (loading) loading.style.display = 'none';
+
+    if (!d.anomalies || d.anomalies.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:24px;color:var(--text3);font-size:14px">No anomalies detected for this filter. Check back soon.</div>';
+      return;
+    }
+
+    const severityIcon = { high: '<span style="color:#ef4444;font-weight:800">!!!</span>', medium: '<span style="color:#f59e0b;font-weight:800">!!</span>', low: '<span style="color:#22c55e;font-weight:700">!</span>' };
+    const severityBg = { high: 'rgba(239,68,68,.06)', medium: 'rgba(245,158,11,.06)', low: 'rgba(34,197,94,.06)' };
+    const severityBorder = { high: 'rgba(239,68,68,.2)', medium: 'rgba(245,158,11,.2)', low: 'rgba(34,197,94,.2)' };
+    const typeLabel = {
+      permit_velocity_spike: 'Permit Surge',
+      storm_permit_correlation: 'Storm Impact',
+      price_anomaly: 'Price Shift',
+      violation_surge: 'Violation Spike',
+      entity_cluster: 'LLC Formation',
+    };
+    const typeColor = {
+      permit_velocity_spike: '#6366f1',
+      storm_permit_correlation: '#ef4444',
+      price_anomaly: '#f59e0b',
+      violation_surge: '#ef4444',
+      entity_cluster: '#8b5cf6',
+    };
+
+    let html = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px">';
+    d.anomalies.forEach(a => {
+      const sev = a.severity || 'low';
+      const tl = typeLabel[a.type] || a.type;
+      const tc = typeColor[a.type] || '#818cf8';
+      const pct = a.change_pct != null ? (a.change_pct > 0 ? '+' + a.change_pct + '%' : a.change_pct + '%') : '';
+      // Build analyst query from anomaly
+      const query = a.zip ? `Permits in ZIP ${a.zip} ${a.state || ''} this month` : `Permits in ${a.state || 'US'} this month`;
+      html += `
+        <div onclick="analystAsk('${escapeHtml(query)}');showPage('analyst')" style="background:${severityBg[sev]};border:1px solid ${severityBorder[sev]};border-radius:var(--radius);padding:16px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='${tc}'" onmouseout="this.style.borderColor='${severityBorder[sev]}'">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            ${severityIcon[sev]}
+            <span style="font-size:11px;font-weight:700;color:${tc};text-transform:uppercase;letter-spacing:.5px">${escapeHtml(tl)}</span>
+            <span style="margin-left:auto;font-size:12px;font-weight:800;color:${sev === 'high' ? '#ef4444' : sev === 'medium' ? '#f59e0b' : '#22c55e'}">${pct}</span>
+          </div>
+          <div style="font-size:13px;color:var(--text);line-height:1.5">${escapeHtml(a.description)}</div>
+          <div style="margin-top:8px;font-size:11px;color:var(--text3)">Click to investigate with AI Analyst</div>
+        </div>
+      `;
+    });
+    html += '</div>';
+    container.innerHTML = html;
+    anomaliesLoaded = true;
+  } catch (err) {
+    if (loading) loading.style.display = 'none';
+    container.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text3);font-size:13px">Anomaly detection unavailable.</div>';
+  }
 }
 
 // ─── END AI ANALYST ─────────────────────────────────────────────────────

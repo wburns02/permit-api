@@ -12,6 +12,7 @@ import uuid
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -563,3 +564,407 @@ async def property_report(
         risk_score=risk_score,
         ai_summary=ai_summary,
     )
+
+
+# ---------------------------------------------------------------------------
+# HTML Property Report — "Carfax for Buildings" (printable)
+# ---------------------------------------------------------------------------
+
+def _html_table(rows: list[dict], columns: list[str], labels: dict | None = None) -> str:
+    """Render a list of dicts as an HTML table. Only includes specified columns."""
+    if not rows:
+        return '<p style="color:#6b7280;font-size:13px;padding:12px 0">No data available.</p>'
+    labels = labels or {}
+    ths = "".join(f'<th>{labels.get(c, c.replace("_", " ").title())}</th>' for c in columns)
+    body = ""
+    for row in rows:
+        tds = ""
+        for c in columns:
+            val = row.get(c, "")
+            if val is None:
+                val = "--"
+            elif isinstance(val, float):
+                if c in ("sale_price", "amount", "fine_amount", "valuation",
+                         "median_sale_price", "median_list_price"):
+                    val = f"${val:,.0f}"
+                else:
+                    val = f"{val:,.2f}"
+            else:
+                val = str(val)
+            tds += f"<td>{val}</td>"
+        body += f"<tr>{tds}</tr>"
+    return f"<table><thead><tr>{ths}</tr></thead><tbody>{body}</tbody></table>"
+
+
+def _risk_color(score: int) -> str:
+    if score <= 25:
+        return "#22c55e"
+    elif score <= 50:
+        return "#84cc16"
+    elif score <= 75:
+        return "#f59e0b"
+    else:
+        return "#ef4444"
+
+
+def _risk_label(score: int) -> str:
+    if score <= 25:
+        return "Low Risk"
+    elif score <= 50:
+        return "Moderate"
+    elif score <= 75:
+        return "Elevated"
+    else:
+        return "High Risk"
+
+
+def _build_html_report(report: ReportResponse) -> str:
+    """Build a self-contained, printable HTML property report."""
+
+    report_date = datetime.now(timezone.utc).strftime("%B %d, %Y")
+    risk_color = _risk_color(report.risk_score)
+    risk_label = _risk_label(report.risk_score)
+
+    permits_table = _html_table(
+        report.permits,
+        ["permit_number", "project_type", "work_type", "status", "date_created", "owner_name"],
+        {"date_created": "Date", "project_type": "Type", "work_type": "Work", "owner_name": "Owner"},
+    )
+
+    violations_table = _html_table(
+        report.violations,
+        ["violation_id", "violation_type", "description", "status", "violation_date", "fine_amount"],
+        {"violation_date": "Date", "fine_amount": "Fine"},
+    )
+
+    sales_table = _html_table(
+        report.sales,
+        ["sale_date", "sale_price", "doc_type", "grantor", "grantee", "property_type"],
+        {"sale_date": "Date", "sale_price": "Price"},
+    )
+
+    liens_table = _html_table(
+        report.liens,
+        ["lien_type", "amount", "filing_date", "status", "debtor_name", "creditor_name"],
+        {"filing_date": "Filed"},
+    )
+
+    septic_table = _html_table(
+        report.septic,
+        ["system_type", "install_date", "status"],
+        {"install_date": "Installed"},
+    )
+
+    epa_section = _html_table(
+        report.epa_nearby,
+        ["name", "address", "city", "state"],
+    ) if report.epa_nearby else '<p style="color:#6b7280;font-size:13px;padding:12px 0">No EPA facilities found nearby.</p>'
+
+    flood_section = _html_table(
+        report.flood_zone,
+        ["dfirm_id", "fld_zone", "sfha_tf"],
+        {"dfirm_id": "DFIRM ID", "fld_zone": "Zone", "sfha_tf": "SFHA"},
+    ) if report.flood_zone else '<p style="color:#6b7280;font-size:13px;padding:12px 0">No flood zone data available.</p>'
+
+    market_table = _html_table(
+        report.market,
+        ["zip", "median_sale_price", "median_list_price", "homes_sold", "inventory", "median_dom", "period_end", "parent_metro"],
+        {"median_sale_price": "Median Sale", "median_list_price": "Median List",
+         "homes_sold": "Sold", "median_dom": "DOM", "period_end": "Period", "parent_metro": "Metro"},
+    )
+
+    demographics_section = _html_table(
+        report.demographics,
+        list(report.demographics[0].keys()) if report.demographics else [],
+    ) if report.demographics else '<p style="color:#6b7280;font-size:13px;padding:12px 0">No demographics data for this location.</p>'
+
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Property Report — {report.address} | PermitLookup</title>
+<style>
+@media print {{
+  body {{ -webkit-print-color-adjust: exact; print-color-adjust: exact; }}
+  .no-print {{ display: none !important; }}
+  @page {{ margin: 0.5in; }}
+}}
+* {{ margin: 0; padding: 0; box-sizing: border-box; }}
+body {{
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  background: #0a0a0f;
+  color: #e8e8f0;
+  line-height: 1.6;
+  font-size: 13px;
+}}
+.report-wrap {{
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 40px 32px;
+}}
+.header {{
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding-bottom: 24px;
+  border-bottom: 2px solid #6366f1;
+  margin-bottom: 32px;
+}}
+.header .brand {{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}}
+.header .logo-box {{
+  width: 36px; height: 36px;
+  background: linear-gradient(135deg, #6366f1, #a855f7);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 800; color: #fff;
+}}
+.header .brand-text {{
+  font-size: 20px; font-weight: 800; color: #e8e8f0;
+}}
+.header .meta {{
+  text-align: right;
+  font-size: 12px;
+  color: #a0a0b8;
+}}
+h1 {{
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 8px;
+  color: #fff;
+  line-height: 1.2;
+}}
+.summary-box {{
+  background: #12121a;
+  border: 1px solid #2a2a3a;
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 28px;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #c8c8d8;
+}}
+.risk-badge {{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: #12121a;
+  border: 2px solid {risk_color};
+  border-radius: 12px;
+  padding: 12px 20px;
+  margin-bottom: 28px;
+}}
+.risk-circle {{
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: {risk_color}22;
+  border: 3px solid {risk_color};
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; font-weight: 800; color: {risk_color};
+}}
+.risk-info {{
+  font-size: 12px; color: #a0a0b8;
+}}
+.risk-info strong {{
+  display: block; font-size: 16px; color: {risk_color}; font-weight: 700;
+}}
+.section {{
+  margin-bottom: 28px;
+}}
+.section h2 {{
+  font-size: 16px;
+  font-weight: 700;
+  color: #818cf8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #2a2a3a;
+  margin-bottom: 12px;
+}}
+table {{
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}}
+th {{
+  text-align: left;
+  padding: 8px 10px;
+  background: #1a1a25;
+  color: #a0a0b8;
+  font-weight: 700;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid #2a2a3a;
+}}
+td {{
+  padding: 7px 10px;
+  border-bottom: 1px solid #1a1a25;
+  color: #c8c8d8;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}}
+tr:hover td {{
+  background: #12121a;
+}}
+.footer {{
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid #2a2a3a;
+  text-align: center;
+  font-size: 12px;
+  color: #6a6a80;
+}}
+.footer a {{ color: #818cf8; text-decoration: none; }}
+.print-btn {{
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(99,102,241,.4);
+  z-index: 100;
+}}
+.print-btn:hover {{ opacity: 0.9; }}
+.stats-row {{
+  display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 24px;
+}}
+.stat-card {{
+  flex: 1; min-width: 120px;
+  background: #12121a;
+  border: 1px solid #2a2a3a;
+  border-radius: 10px;
+  padding: 14px 16px;
+  text-align: center;
+}}
+.stat-card .num {{
+  font-size: 24px; font-weight: 800; color: #fff;
+}}
+.stat-card .lbl {{
+  font-size: 11px; color: #6a6a80; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;
+}}
+</style>
+</head>
+<body>
+<button class="print-btn no-print" onclick="window.print()">Print / Save PDF</button>
+<div class="report-wrap">
+  <div class="header">
+    <div class="brand">
+      <div class="logo-box">P</div>
+      <span class="brand-text">PermitLookup</span>
+    </div>
+    <div class="meta">
+      Property Intelligence Report<br>
+      Generated {report_date}
+    </div>
+  </div>
+
+  <h1>{report.address}</h1>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="num">{len(report.permits)}</div><div class="lbl">Permits</div></div>
+    <div class="stat-card"><div class="num">{len(report.violations)}</div><div class="lbl">Violations</div></div>
+    <div class="stat-card"><div class="num">{len(report.sales)}</div><div class="lbl">Sales</div></div>
+    <div class="stat-card"><div class="num">{len(report.liens)}</div><div class="lbl">Liens</div></div>
+  </div>
+
+  <div class="risk-badge">
+    <div class="risk-circle">{report.risk_score}</div>
+    <div class="risk-info">
+      <strong>{risk_label}</strong>
+      Risk Score (0-100)
+    </div>
+  </div>
+
+  <div class="summary-box">{report.ai_summary}</div>
+
+  <div class="section">
+    <h2>Permit History</h2>
+    {permits_table}
+  </div>
+
+  <div class="section">
+    <h2>Code Violations</h2>
+    {violations_table}
+  </div>
+
+  <div class="section">
+    <h2>Sales History</h2>
+    {sales_table}
+  </div>
+
+  <div class="section">
+    <h2>Liens</h2>
+    {liens_table}
+  </div>
+
+  <div class="section">
+    <h2>Septic Status</h2>
+    {septic_table}
+  </div>
+
+  <div class="section">
+    <h2>Environmental Risk</h2>
+    <h3 style="font-size:13px;color:#a0a0b8;margin-bottom:8px;font-weight:600">EPA Facilities Nearby</h3>
+    {epa_section}
+    <h3 style="font-size:13px;color:#a0a0b8;margin:16px 0 8px;font-weight:600">FEMA Flood Zone</h3>
+    {flood_section}
+  </div>
+
+  <div class="section">
+    <h2>Market Context</h2>
+    {market_table}
+  </div>
+
+  <div class="section">
+    <h2>Demographics</h2>
+    {demographics_section}
+  </div>
+
+  <div class="footer">
+    Generated by <a href="https://permits.ecbtx.com">PermitLookup</a> &mdash; permits.ecbtx.com<br>
+    Data sourced from public records across 3,000+ jurisdictions. Report is informational only.
+  </div>
+</div>
+</body>
+</html>"""
+
+
+@router.get("/report/html", response_class=HTMLResponse)
+async def property_report_html(
+    request: Request,
+    address: str = Query(..., min_length=3, description="Street address"),
+    city: str = Query(None, description="City"),
+    state: str = Query(..., min_length=2, max_length=2, description="2-letter state code"),
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate a printable HTML property intelligence report.
+
+    Same data as /report but rendered as a self-contained HTML page with
+    PermitLookup branding. Users can print to PDF via Ctrl+P.
+    Requires Pro Leads+ plan.
+    """
+    # Re-use the JSON report endpoint logic
+    report = await property_report(
+        request=request,
+        address=address,
+        city=city,
+        state=state,
+        user=user,
+        db=db,
+    )
+    html = _build_html_report(report)
+    return HTMLResponse(content=html)
