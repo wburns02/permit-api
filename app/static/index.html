@@ -1250,7 +1250,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
   <section class="hero">
     <div class="container">
       <h1>Building Permit Data <br>via API</h1>
-      <p>The most comprehensive property intelligence database. <span id="hero-count">923M+</span> records across 50+ data layers from 3,000+ jurisdictions in 50 US states + Canada. Real-time data for contractors, investors, insurers, and analysts.</p>
+      <p>The most comprehensive property intelligence database. <span id="hero-count">960M+</span> records across 50+ data layers from 3,000+ jurisdictions in 50 US states + Canada. Real-time data for contractors, investors, insurers, and analysts.</p>
       <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px;justify-content:center">
         <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);border-radius:20px;padding:6px 16px;font-size:13px;color:#22c55e">
           <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;animation:pulse 1.5s infinite"></span>
@@ -1726,11 +1726,11 @@ results.forEach(p =>
         <div style="flex:1;min-width:280px">
           <div style="display:inline-block;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;font-weight:800;font-size:11px;padding:4px 12px;border-radius:4px;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Most Powerful</div>
           <h3 style="font-size:28px;font-weight:800;color:var(--text1);margin-bottom:8px">Intelligence Plan</h3>
-          <p style="color:var(--text2);font-size:15px;margin-bottom:16px;line-height:1.5">AI-powered property intelligence for teams. Predictive permit forecasting, contractor risk scoring, LLC piercing, permit-to-sale pipeline tracking, and cross-referenced lien + deed data. Everything you need to make smarter decisions faster.</p>
+          <p style="color:var(--text2);font-size:15px;margin-bottom:16px;line-height:1.5">AI-powered property intelligence for teams. Predictive permit forecasting, contractor risk scoring, LLC piercing, permit-to-sale pipeline tracking, oil &amp; gas well data, healthcare provider data, international coverage (UK + Australia), and custom ML models on your data. Everything you need to make smarter decisions faster.</p>
           <div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:16px">
             <div><span style="color:#f59e0b;font-weight:700">5,000</span> <span style="color:var(--text3);font-size:13px">lookups/day</span></div>
-            <div><span style="color:#f59e0b;font-weight:700">12</span> <span style="color:var(--text3);font-size:13px">data layers</span></div>
-            <div><span style="color:#f59e0b;font-weight:700">923M+</span> <span style="color:var(--text3);font-size:13px">records</span></div>
+            <div><span style="color:#f59e0b;font-weight:700">50+</span> <span style="color:var(--text3);font-size:13px">data layers</span></div>
+            <div><span style="color:#f59e0b;font-weight:700">960M+</span> <span style="color:var(--text3);font-size:13px">records</span></div>
             <div><span style="color:#f59e0b;font-weight:700">AI</span> <span style="color:var(--text3);font-size:13px">predictive models</span></div>
           </div>
           <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--text3)">
@@ -1741,6 +1741,8 @@ results.forEach(p =>
             <span style="background:var(--surface2);padding:3px 10px;border-radius:4px">Deed/Sale History</span>
             <span style="background:var(--surface2);padding:3px 10px;border-radius:4px">Lien Search</span>
             <span style="background:var(--surface2);padding:3px 10px;border-radius:4px">Custom ML Models</span>
+            <span style="background:var(--surface2);padding:3px 10px;border-radius:4px">International (US + UK + Australia)</span>
+            <span style="background:var(--surface2);padding:3px 10px;border-radius:4px">Mobile App (PWA)</span>
           </div>
         </div>
         <div style="text-align:center;min-width:200px">
@@ -1760,11 +1762,10 @@ results.forEach(p =>
           <div class="limits">10 lookups / day</div>
           <div class="freshness-badge" style="background:linear-gradient(135deg,rgba(107,114,128,.2),rgba(71,85,105,.2));color:#94a3b8;border:1px solid rgba(107,114,128,.3)">&#x2744;&#xFE0F; Cold data only (180+ days)</div>
           <ul>
-            <li>Permit search (923M+ records across 12 layers)</li>
-            <li>Basic search</li>
+            <li>Permit search (960M+ records across 50+ data layers)</li>
+            <li>Basic search + Advanced filters</li>
             <li>2 monitoring alerts</li>
-            <li>Contractor Intelligence + Compare</li>
-            <li>Risk Score + Trend Charts</li>
+            <li>Contractor Intelligence</li>
             <li>FEMA flood zone stats</li>
             <li>1 API key</li>
           </ul>
@@ -1780,10 +1781,12 @@ results.forEach(p =>
             <li>Everything in Free</li>
             <li>25 monitoring alerts</li>
             <li>Saved searches + email digests</li>
-            <li>Contractor profiles</li>
+            <li>Contractor profiles + risk scores</li>
             <li>Property Intelligence drill-down</li>
-            <li>Census demographics by county</li>
+            <li>Census demographics</li>
             <li>Property valuations by ZIP</li>
+            <li>CSV export</li>
+            <li>Mobile app (PWA)</li>
           </ul>
           <a class="btn" href="#" onclick="subscribe('explorer');return false">Subscribe</a>
         </div>
@@ -1796,16 +1799,17 @@ results.forEach(p =>
           <ul>
             <li>Everything in Explorer</li>
             <li>100 alerts + webhooks</li>
-            <li>Market analytics dashboard</li>
-            <li>Bulk CSV export</li>
-            <li>Lead scoring</li>
+            <li><strong>AI Analyst</strong> (natural language queries)</li>
+            <li><strong>Sales Dialer</strong> (click-to-call + AI summaries)</li>
+            <li><strong>CRM</strong> (contacts, deals, pipeline)</li>
+            <li><strong>Quote Builder</strong></li>
             <li>Contractor license verification</li>
-            <li>Contractor risk scoring (0-100)</li>
-            <li>EPA environmental risk</li>
-            <li>Septic system intelligence</li>
             <li>Code violation history</li>
             <li>Business entity / LLC search</li>
-            <li>Tract-level demographics</li>
+            <li>Septic system data</li>
+            <li>Environmental risk (EPA + FEMA)</li>
+            <li>Property reports ("Carfax for buildings")</li>
+            <li>Batch address lookup (500/batch)</li>
             <li>Permit-to-sale pipeline</li>
           </ul>
           <a class="btn" href="#" onclick="subscribe('pro_leads');return false">Subscribe</a>
@@ -1820,10 +1824,12 @@ results.forEach(p =>
             <li>Everything in Pro Leads</li>
             <li>500 alerts + instant notifications</li>
             <li>Contact enrichment (phone + email)</li>
-            <li>Predictive analytics (AI permit forecasting)</li>
+            <li><strong>Predictive analytics</strong> (AI permit forecasting)</li>
+            <li><strong>Anomaly detection</strong> (market spike alerts)</li>
+            <li><strong>Temporal trends</strong> (ZIP/contractor/market trajectory)</li>
             <li>Hot ZIP rankings</li>
+            <li>Real-time permit stream</li>
             <li>Priority API access</li>
-            <li>Live Permit Activity Feed</li>
           </ul>
           <a class="btn" href="#" onclick="subscribe('realtime');return false">Subscribe</a>
         </div>
@@ -1835,10 +1841,11 @@ results.forEach(p =>
           <div class="freshness-badge" style="background:linear-gradient(135deg,rgba(239,68,68,.15),rgba(249,115,22,.15));color:#f87171;border:1px solid rgba(239,68,68,.3)">&#x1F525; Everything in Real-Time</div>
           <ul>
             <li>Everything in Real-Time</li>
+            <li><strong>Team management</strong> + territories</li>
+            <li><strong>Leaderboard</strong> + commission tracking</li>
             <li>Custom data feeds</li>
             <li>Dedicated support + SLA</li>
             <li>White-label option</li>
-            <li>2,000 lookups / day</li>
           </ul>
           <a class="btn" href="#" onclick="subscribe('enterprise');return false">Contact Sales</a>
         </div>
@@ -1874,74 +1881,70 @@ results.forEach(p =>
 
       <!-- Data Layers Section -->
       <div style="margin-top:56px">
-        <h3 style="text-align:center;margin-bottom:8px">12 Data Layers, 1 API</h3>
-        <p class="subtitle" style="text-align:center;margin-bottom:32px">More than just permits. Layer intelligence for premium insights.</p>
-        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px">
+        <h3 style="text-align:center;margin-bottom:8px">50+ Data Layers, 1 API</h3>
+        <p class="subtitle" style="text-align:center;margin-bottom:32px">More than just permits. Layer intelligence across property, people, risk, financial, energy, and market data.</p>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+          <!-- Property -->
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
-            <div style="font-size:24px;margin-bottom:8px">&#x1F4CB;</div>
-            <div style="font-weight:600;color:var(--text1);margin-bottom:4px">Building Permits</div>
-            <div style="font-size:13px;color:var(--text3)">923M+ records from 50 states. Building, electrical, plumbing, mechanical, demolition.</div>
-            <div style="font-size:11px;color:var(--accent);margin-top:8px">All Plans</div>
+            <div style="font-size:13px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Property</div>
+            <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--text2)">
+              <div style="display:flex;justify-content:space-between"><span>Building Permits</span><span style="color:var(--text3);font-weight:600">760M</span></div>
+              <div style="display:flex;justify-content:space-between"><span>Property Sales</span><span style="color:var(--text3);font-weight:600">8M</span></div>
+              <div style="display:flex;justify-content:space-between"><span>Property Valuations</span><span style="color:var(--text3);font-weight:600">9.5M</span></div>
+              <div style="display:flex;justify-content:space-between"><span>Property Characteristics</span><span style="color:var(--text3);font-weight:600">&mdash;</span></div>
+              <div style="display:flex;justify-content:space-between"><span>Liens &amp; Judgments</span><span style="color:var(--text3);font-weight:600">3.5M</span></div>
+            </div>
           </div>
+          <!-- People -->
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
-            <div style="font-size:24px;margin-bottom:8px">&#x1F3D7;</div>
-            <div style="font-weight:600;color:var(--text1);margin-bottom:4px">Contractor Licenses</div>
-            <div style="font-size:13px;color:var(--text3)">500K+ licenses (CA, FL, more). Verify status, classifications, insurance, bonds.</div>
-            <div style="font-size:11px;color:#a855f7;margin-top:8px">Pro Leads+</div>
+            <div style="font-size:13px;font-weight:700;color:#a855f7;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">People</div>
+            <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--text2)">
+              <div style="display:flex;justify-content:space-between"><span>Contractors</span><span style="color:var(--text3);font-weight:600">503K</span></div>
+              <div style="display:flex;justify-content:space-between"><span>Business Entities</span><span style="color:var(--text3);font-weight:600">14M</span></div>
+              <div style="display:flex;justify-content:space-between"><span>Healthcare Providers</span><span style="color:var(--text3);font-weight:600">7M</span></div>
+              <div style="display:flex;justify-content:space-between"><span>Prospect Contacts</span><span style="color:var(--text3);font-weight:600">20M</span></div>
+            </div>
           </div>
+          <!-- Risk -->
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
-            <div style="font-size:24px;margin-bottom:8px">&#x2622;&#xFE0F;</div>
-            <div style="font-weight:600;color:var(--text1);margin-bottom:4px">Environmental Risk</div>
-            <div style="font-size:13px;color:var(--text3)">EPA facilities + FEMA flood zones. Contamination risk, Superfund sites, flood hazard areas.</div>
-            <div style="font-size:11px;color:#a855f7;margin-top:8px">Pro Leads+ (Flood stats: Free)</div>
+            <div style="font-size:13px;font-weight:700;color:#ef4444;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Risk</div>
+            <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--text2)">
+              <div style="display:flex;justify-content:space-between"><span>Code Violations</span><span style="color:var(--text3);font-weight:600">20M</span></div>
+              <div style="display:flex;justify-content:space-between"><span>FEMA Flood Zones</span><span style="color:var(--text3);font-weight:600">5.5M</span></div>
+              <div style="display:flex;justify-content:space-between"><span>EPA Facilities</span><span style="color:var(--text3);font-weight:600">3M</span></div>
+              <div style="display:flex;justify-content:space-between"><span>Septic Systems</span><span style="color:var(--text3);font-weight:600">10M</span></div>
+              <div style="display:flex;justify-content:space-between"><span>Crime Data</span><span style="color:var(--text3);font-weight:600">&mdash;</span></div>
+            </div>
           </div>
+          <!-- Financial -->
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
-            <div style="font-size:24px;margin-bottom:8px">&#x1F6BD;</div>
-            <div style="font-weight:600;color:var(--text1);margin-bottom:4px">Septic Intelligence</div>
-            <div style="font-size:13px;color:var(--text3)">5M+ septic records across 10+ states. System type, age, inspection status.</div>
-            <div style="font-size:11px;color:#a855f7;margin-top:8px">Pro Leads+</div>
+            <div style="font-size:13px;font-weight:700;color:#22c55e;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Financial</div>
+            <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--text2)">
+              <div style="display:flex;justify-content:space-between"><span>Mortgages</span><span style="color:var(--text3);font-weight:600">17M</span></div>
+              <div style="display:flex;justify-content:space-between"><span>Consumer Complaints</span><span style="color:var(--text3);font-weight:600">14M</span></div>
+              <div style="display:flex;justify-content:space-between"><span>Bank Branches</span><span style="color:var(--text3);font-weight:600">83K</span></div>
+              <div style="display:flex;justify-content:space-between"><span>SBA PPP Loans</span><span style="color:var(--text3);font-weight:600">11.5M</span></div>
+            </div>
           </div>
+          <!-- Energy -->
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
-            <div style="font-size:24px;margin-bottom:8px">&#x1F4CA;</div>
-            <div style="font-weight:600;color:var(--text1);margin-bottom:4px">Census Demographics</div>
-            <div style="font-size:13px;color:var(--text3)">ACS 2023 data. Income, home values, population, homeownership by block group.</div>
-            <div style="font-size:11px;color:#6366f1;margin-top:8px">Explorer+</div>
+            <div style="font-size:13px;font-weight:700;color:#f59e0b;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Energy</div>
+            <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--text2)">
+              <div style="display:flex;justify-content:space-between"><span>Oil &amp; Gas Wells</span><span style="color:var(--text3);font-weight:600">9.4M</span></div>
+              <div style="display:flex;justify-content:space-between"><span>Propane/Gas Facilities</span><span style="color:var(--text3);font-weight:600">&mdash;</span></div>
+              <div style="display:flex;justify-content:space-between"><span>Underground Storage Tanks</span><span style="color:var(--text3);font-weight:600">&mdash;</span></div>
+              <div style="display:flex;justify-content:space-between"><span>Toxic Releases</span><span style="color:var(--text3);font-weight:600">&mdash;</span></div>
+            </div>
           </div>
+          <!-- Market -->
           <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
-            <div style="font-size:24px;margin-bottom:8px">&#x1F3E0;</div>
-            <div style="font-weight:600;color:var(--text1);margin-bottom:4px">Property Valuations</div>
-            <div style="font-size:13px;color:var(--text3)">Market data by ZIP. Median sale/list prices, days on market, inventory, trends.</div>
-            <div style="font-size:11px;color:#6366f1;margin-top:8px">Explorer+</div>
-          </div>
-          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
-            <div style="font-size:24px;margin-bottom:8px">&#x1F3E2;</div>
-            <div style="font-weight:600;color:var(--text1);margin-bottom:4px">Business Entities</div>
-            <div style="font-size:13px;color:var(--text3)">13M+ LLCs and Corps across 6 states. Registered agents, officers, filing status.</div>
-            <div style="font-size:11px;color:#a855f7;margin-top:8px">Pro Leads+</div>
-          </div>
-          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
-            <div style="font-size:24px;margin-bottom:8px">&#x26A0;&#xFE0F;</div>
-            <div style="font-weight:600;color:var(--text1);margin-bottom:4px">Code Violations</div>
-            <div style="font-size:13px;color:var(--text3)">14M+ violations from NYC, Chicago, Cincinnati, Montgomery County. Status, dates, fines.</div>
-            <div style="font-size:11px;color:#a855f7;margin-top:8px">Pro Leads+</div>
-          </div>
-          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
-            <div style="font-size:24px;margin-bottom:8px">&#x1F52E;</div>
-            <div style="font-weight:600;color:var(--text1);margin-bottom:4px">Predictive Analytics</div>
-            <div style="font-size:13px;color:var(--text3)">AI-powered permit forecasting. Which ZIPs will see new permits in the next 90 days?</div>
-            <div style="font-size:11px;color:#f59e0b;margin-top:8px">Real-Time+</div>
-          </div>
-          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
-            <div style="font-size:24px;margin-bottom:8px">&#x1F4B0;</div>
-            <div style="font-weight:600;color:var(--text1);margin-bottom:4px">Deed/Sale Transfers</div>
-            <div style="font-size:13px;color:var(--text3)">8M+ property sales from NYC, Illinois, Connecticut. Prices, buyers, sellers, dates.</div>
-            <div style="font-size:11px;color:#a855f7;margin-top:8px">Pro Leads+</div>
-          </div>
-          <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
-            <div style="font-size:24px;margin-bottom:8px">&#x1F4DC;</div>
-            <div style="font-weight:600;color:var(--text1);margin-bottom:4px">Liens & Judgments</div>
-            <div style="font-size:13px;color:var(--text3)">4M+ tax liens, UCC filings, and tax sales from NYC, Colorado, Connecticut, Cook County.</div>
-            <div style="font-size:11px;color:#a855f7;margin-top:8px">Pro Leads+</div>
+            <div style="font-size:13px;font-weight:700;color:#6366f1;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Market</div>
+            <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;color:var(--text2)">
+              <div style="display:flex;justify-content:space-between"><span>Census Demographics</span><span style="color:var(--text3);font-weight:600">242K</span></div>
+              <div style="display:flex;justify-content:space-between"><span>Economic Indicators</span><span style="color:var(--text3);font-weight:600">&mdash;</span></div>
+              <div style="display:flex;justify-content:space-between"><span>NOAA Weather</span><span style="color:var(--text3);font-weight:600">&mdash;</span></div>
+              <div style="display:flex;justify-content:space-between"><span>Construction Employment</span><span style="color:var(--text3);font-weight:600">&mdash;</span></div>
+            </div>
           </div>
         </div>
       </div>
@@ -2633,7 +2636,7 @@ results.forEach(p =>
     <div class="est-hero">
       <div class="est-badge">🧮 New Feature</div>
       <h2 style="font-size:36px;font-weight:800;margin-bottom:14px">Permit Cost & Timeline Estimator</h2>
-      <p style="color:var(--text2);font-size:17px;max-width:580px;margin:0 auto">See what your permit will cost, how long approval takes, and what to expect — before you file. Powered by data from 923M+ real permits.</p>
+      <p style="color:var(--text2);font-size:17px;max-width:580px;margin:0 auto">See what your permit will cost, how long approval takes, and what to expect — before you file. Powered by data from 960M+ real permits.</p>
     </div>
 
     <div class="est-form-card">
@@ -2815,7 +2818,7 @@ results.forEach(p =>
     <div class="rpt-hero">
       <div class="rpt-badge">📊 New — Export & Share</div>
       <h2 style="font-size:36px;font-weight:800;margin-bottom:14px">Permit Report Builder</h2>
-      <p style="color:var(--text2);font-size:17px;max-width:580px;margin:0 auto">Generate professional permit reports for any property, contractor, or market. Download CSV or share a live link — powered by 923M+ real permit records.</p>
+      <p style="color:var(--text2);font-size:17px;max-width:580px;margin:0 auto">Generate professional permit reports for any property, contractor, or market. Download CSV or share a live link — powered by 960M+ real permit records.</p>
     </div>
 
     <!-- Report type selector -->
@@ -3656,7 +3659,7 @@ results.forEach(p =>
     <div style="background:linear-gradient(135deg,rgba(99,102,241,.1),rgba(6,182,212,.05));border:1px solid rgba(99,102,241,.2);border-radius:var(--radius);padding:32px;text-align:center">
       <div style="font-size:32px;margin-bottom:12px">⚡</div>
       <h3 style="font-size:20px;font-weight:800;margin-bottom:8px">Get Live Momentum Alerts</h3>
-      <p style="color:var(--text2);font-size:14px;max-width:480px;margin:0 auto 20px">Sign up free to get real-time permit velocity alerts for your target markets, weekly market reports, and API access to 923M+ permits.</p>
+      <p style="color:var(--text2);font-size:14px;max-width:480px;margin:0 auto 20px">Sign up free to get real-time permit velocity alerts for your target markets, weekly market reports, and API access to 960M+ permits.</p>
       <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
         <button onclick="openSignup()" style="padding:12px 32px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer">Get Free API Key →</button>
         <button onclick="showPage('alerts')" style="padding:12px 32px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-weight:600;color:var(--text);cursor:pointer">Set Up Alerts</button>
@@ -5301,7 +5304,7 @@ async function doSearch() {
       const list = document.getElementById('results-list');
       if (list) {
         list.innerHTML = `<div style="margin-bottom:16px;padding:12px 18px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:var(--radius-sm);font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-          <span>🔒 Demo results — <strong>sign up free</strong> to search 923M+ real permit records across 50 US states + Canada</span>
+          <span>🔒 Demo results — <strong>sign up free</strong> to search 960M+ real permit records across 50 US states + Canada</span>
           <button onclick="openSignup()" style="padding:7px 18px;background:rgba(251,191,36,.2);border:1px solid rgba(251,191,36,.4);border-radius:var(--radius-sm);color:#fbbf24;font-size:13px;font-weight:700;white-space:nowrap">Get Free API Key →</button>
         </div>
         ${demoSlice.map(p => `<div class="result-card"><div class="address">${esc(p.address)}, ${esc(p.city)} ${esc(p.state)}</div><div class="meta"><span><strong>#</strong> ${esc(p.permit_number)}</span>${p.permit_type?`<span class="badge badge-blue">${esc(p.permit_type)}</span>`:''}<span class="badge ${statusBadge(p.status||'issued')}">${esc(p.status||'Issued')}</span><span>Issued: ${p.issue_date}</span>${p.estimated_value?`<span>$${Number(p.estimated_value).toLocaleString()}</span>`:''}<span>${esc(p.jurisdiction||p.city+' '+p.state)}</span></div>${p.description?`<div style="margin-top:8px;font-size:13px;color:var(--text2)">${esc(p.description)}</div>`:''}<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap"><button onclick="addSearchResultToWatchlist('${esc(p.address||'').replace(/'/g,"\\'")}','${esc(p.city||'').replace(/'/g,"\\'")}','${esc(p.state||'')}')" style="padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='#22c55e';this.style.color='#22c55e'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">+ Watchlist</button><button onclick="openRiskForAddress('${esc(p.address||'').replace(/'/g,"\\'")}','${esc(p.city||'').replace(/'/g,"\\'")}','${esc(p.state||'')}')" style="padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--accent2)';this.style.color='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">Risk Score →</button><button onclick="openPassportForAddress('${esc(p.address||'').replace(/'/g,"\\'")}','${esc(p.city||'').replace(/'/g,"\\'")}','${esc(p.state||'')}')" style="padding:4px 10px;background:none;border:1px solid var(--border);border-radius:20px;color:var(--text3);font-size:11px;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='#63b3ed';this.style.color='#63b3ed'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">Passport →</button></div></div>`).join('')}
@@ -5732,29 +5735,49 @@ function openSignup(plan) {
   document.getElementById('signup-company').value = '';
   document.getElementById('signup-btn').disabled = false;
   document.getElementById('signup-btn').textContent = 'Create Free Account';
-  // Show plan badge if coming from a paid plan CTA
+  // Reset title/description for free signup
+  const formView = document.getElementById('signup-form-view');
+  formView.querySelector('h3').textContent = 'Get Your Free API Key';
+  formView.querySelector('p').textContent = 'No credit card required. Start with 100 free lookups per day.';
+  // Hide plan badge for free signup
   let planBadge = document.getElementById('signup-plan-badge');
-  if (plan && plan !== 'enterprise') {
-    const planInfo = { explorer: { name: 'Explorer', price: '$79/mo', color: '#6366f1' }, pro_leads: { name: 'Pro Leads', price: '$249/mo', color: '#a855f7' }, realtime: { name: 'Real-Time', price: '$599/mo', color: '#f59e0b' }, enterprise: { name: 'Enterprise', price: '$1,499/mo', color: '#ef4444' } };
-    const info = planInfo[plan];
-    if (info) {
-      if (!planBadge) {
-        planBadge = document.createElement('div');
-        planBadge.id = 'signup-plan-badge';
-        planBadge.style.cssText = 'margin-bottom:12px;padding:8px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;text-align:center';
-        document.getElementById('signup-form-view').insertBefore(planBadge, document.getElementById('signup-form-view').firstChild);
-      }
-      planBadge.style.background = info.color + '22';
-      planBadge.style.border = '1px solid ' + info.color + '44';
-      planBadge.style.color = info.color;
-      planBadge.textContent = '→ You selected ' + info.name + ' (' + info.price + ') — create your free account first, then upgrade in your dashboard.';
-      planBadge.style.display = '';
-    }
-  } else if (planBadge) {
-    planBadge.style.display = 'none';
-  }
+  if (planBadge) planBadge.style.display = 'none';
 }
-function closeSignup() { document.getElementById('signup-modal').classList.remove('visible'); }
+function closeSignup() { document.getElementById('signup-modal').classList.remove('visible'); document.getElementById('signup-modal').removeAttribute('data-pending-plan'); }
+
+function openPaidSignup(plan) {
+  const planNames = { explorer: 'Explorer', pro_leads: 'Pro Leads', realtime: 'Real-Time' };
+  const planPrices = { explorer: '$79/mo', pro_leads: '$249/mo', realtime: '$599/mo' };
+  const modal = document.getElementById('signup-modal');
+  modal.classList.add('visible');
+  modal.setAttribute('data-pending-plan', plan);
+  document.getElementById('signup-form-view').style.display = '';
+  document.getElementById('signup-success-view').style.display = 'none';
+  document.getElementById('signup-error').style.display = 'none';
+  document.getElementById('signup-email').value = '';
+  document.getElementById('signup-company').value = '';
+  document.getElementById('signup-btn').disabled = false;
+  document.getElementById('signup-btn').textContent = 'Continue to Payment';
+  // Update title
+  const formView = document.getElementById('signup-form-view');
+  formView.querySelector('h3').textContent = 'Start your ' + (planNames[plan] || plan) + ' plan';
+  formView.querySelector('p').textContent = 'Enter your email to get started. You\'ll be redirected to secure checkout.';
+  // Show plan badge
+  let planBadge = document.getElementById('signup-plan-badge');
+  const colors = { explorer: '#6366f1', pro_leads: '#a855f7', realtime: '#f59e0b' };
+  const color = colors[plan] || '#6366f1';
+  if (!planBadge) {
+    planBadge = document.createElement('div');
+    planBadge.id = 'signup-plan-badge';
+    planBadge.style.cssText = 'margin-bottom:12px;padding:8px 14px;border-radius:var(--radius-sm);font-size:13px;font-weight:600;text-align:center';
+    formView.insertBefore(planBadge, formView.firstChild.nextSibling);
+  }
+  planBadge.style.background = color + '22';
+  planBadge.style.border = '1px solid ' + color + '44';
+  planBadge.style.color = color;
+  planBadge.textContent = (planNames[plan] || plan) + ' — ' + (planPrices[plan] || '') + ' — Cancel anytime';
+  planBadge.style.display = '';
+}
 
 async function doSignup() {
   const email = document.getElementById('signup-email').value.trim();
@@ -5785,6 +5808,28 @@ async function doSignup() {
     localStorage.setItem('pl_user_email', d.email || email);
     checkAdminAccess();
     updateNavForAuth({ email: d.email || email, plan: d.plan || 'free' });
+
+    // Check if this signup was triggered by a paid plan button
+    const pendingPlan = document.getElementById('signup-modal').getAttribute('data-pending-plan');
+    if (pendingPlan && pendingPlan !== 'free') {
+      // Immediately redirect to Stripe checkout
+      btn.textContent = 'Redirecting to checkout...';
+      try {
+        const sr = await fetch(API + '/v1/subscribe?plan=' + encodeURIComponent(pendingPlan), {
+          method: 'POST',
+          headers: { 'X-API-Key': currentKey }
+        });
+        const sd = await sr.json();
+        if (sd.checkout_url) {
+          document.getElementById('signup-modal').removeAttribute('data-pending-plan');
+          window.location.href = sd.checkout_url;
+          return;
+        }
+      } catch(stripeErr) {
+        // If Stripe fails, fall through to normal success view
+        console.warn('Stripe redirect failed:', stripeErr);
+      }
+    }
 
     document.getElementById('signup-form-view').style.display = 'none';
     document.getElementById('signup-success-view').style.display = '';
@@ -6015,25 +6060,34 @@ async function submitContactForm(e) {
 }
 
 async function subscribe(plan) {
-  if (!currentKey) { openSignup(plan); return; }
+  // Enterprise/Intelligence → contact form (unchanged)
   if (plan === 'enterprise' || plan === 'intelligence') {
     openContactForm(plan === 'intelligence' ? 'Intelligence' : 'Enterprise');
     return;
   }
-  try {
-    const r = await fetch(API + '/v1/subscribe?plan=' + encodeURIComponent(plan), {
-      method: 'POST',
-      headers: { 'X-API-Key': currentKey }
-    });
-    const d = await r.json();
-    if (d.checkout_url) {
-      window.location.href = d.checkout_url;
-    } else {
-      showToast(d.detail || 'Billing coming soon. Contact us to upgrade.', 'error');
+  // Free plan → normal signup modal
+  if (plan === 'free') { openSignup(); return; }
+  // Paid plans (explorer, pro_leads, realtime):
+  // If already logged in, go straight to Stripe
+  if (currentKey) {
+    try {
+      const r = await fetch(API + '/v1/subscribe?plan=' + encodeURIComponent(plan), {
+        method: 'POST',
+        headers: { 'X-API-Key': currentKey }
+      });
+      const d = await r.json();
+      if (d.checkout_url) {
+        window.location.href = d.checkout_url;
+      } else {
+        showToast(d.detail || 'Billing coming soon. Contact us to upgrade.', 'error');
+      }
+    } catch(e) {
+      showToast('Billing coming soon. Contact sales@permits.ecbtx.com to upgrade.', 'error');
     }
-  } catch(e) {
-    showToast('Billing coming soon. Contact sales@permits.ecbtx.com to upgrade.', 'error');
+    return;
   }
+  // Not logged in → show quick signup modal that auto-redirects to Stripe
+  openPaidSignup(plan);
 }
 
 // Code tabs
@@ -6081,7 +6135,7 @@ function loadDemoContractors() {
   const emptyNote = document.createElement('div');
   emptyNote.id = 'contractor-demo-note';
   emptyNote.style.cssText = 'margin-bottom:16px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px';
-  emptyNote.innerHTML = '<span>🔨 Demo contractors — sign up free to search 180K+ licensed contractors across 923M+ permits</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button>';
+  emptyNote.innerHTML = '<span>🔨 Demo contractors — sign up free to search 180K+ licensed contractors across 960M+ permits</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button>';
   const resultsEl = document.getElementById('contractor-results');
   if (!document.getElementById('contractor-demo-note')) {
     resultsEl.parentNode.insertBefore(emptyNote, resultsEl);
@@ -6105,7 +6159,7 @@ async function doContractorSearch() {
     const list = document.getElementById('contractor-results');
     const banner = document.createElement('div');
     banner.style.cssText = 'margin-bottom:16px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px';
-    banner.innerHTML = '<span>📊 Demo results — sign up free to search real contractor data from 923M+ permits</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button>';
+    banner.innerHTML = '<span>📊 Demo results — sign up free to search real contractor data from 960M+ permits</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button>';
     list.insertBefore(banner, list.firstChild);
     return;
   }
@@ -6455,7 +6509,7 @@ async function viewContractor(name) {
       <div class="profile-stat"><div class="num" style="font-size:13px"><a href="#" onclick="return false" style="color:var(--accent);text-decoration:none">${slug}.example.com</a></div><div class="lbl">Website</div></div>
     `;
     const list = document.getElementById('contractor-permits-list');
-    list.innerHTML = `<div style="margin-bottom:16px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px"><span>📊 Demo permit history — sign up free for real contractor data from 923M+ permits</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button></div>` +
+    list.innerHTML = `<div style="margin-bottom:16px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px"><span>📊 Demo permit history — sign up free for real contractor data from 960M+ permits</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button></div>` +
       demoPermits.map(p => `<div class="result-card"><div class="address">${esc(p.address)}, ${esc(p.city)} ${esc(p.state)}</div><div class="meta"><span><strong>#</strong> ${esc(p.permit_number)}</span>${p.permit_type ? `<span class="badge badge-blue">${esc(p.permit_type)}</span>` : ''}${p.status ? `<span class="badge ${statusBadge(p.status)}">${esc(p.status)}</span>` : ''}<span>Issued: ${p.issue_date}</span>${p.estimated_value ? `<span>$${Number(p.estimated_value).toLocaleString()}</span>` : ''}<span>${esc(p.jurisdiction)}</span></div>${p.description ? `<div style="margin-top:8px;font-size:13px;color:var(--text2)">${esc(p.description)}</div>` : ''}</div>`).join('');
     return;
   }
@@ -7044,7 +7098,7 @@ async function lookupProperty() {
     // Add demo banner to results
     const banner = document.createElement('div');
     banner.style.cssText = 'margin-bottom:16px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px';
-    banner.innerHTML = '<span>📋 Demo results — sign up free to get live property data from 923M+ permits</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button>';
+    banner.innerHTML = '<span>📋 Demo results — sign up free to get live property data from 960M+ permits</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button>';
     results.insertBefore(banner, results.firstChild);
     return;
   }
@@ -7516,7 +7570,7 @@ function loadLeadsPage() {
       note = document.createElement('div');
       note.id = 'leads-demo-note';
       note.style.cssText = 'margin-bottom:16px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px';
-      note.innerHTML = '<span>📊 Demo pipeline — sign up free to import real permit leads from 923M+ records</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button>';
+      note.innerHTML = '<span>📊 Demo pipeline — sign up free to import real permit leads from 960M+ records</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button>';
       const content = document.getElementById('leads-content');
       if (content) content.insertBefore(note, content.firstChild);
     }
@@ -8923,7 +8977,7 @@ async function runEstimator() {
     <div class="est-cta">
       <div style="font-size:22px;margin-bottom:10px">📋</div>
       <h3 style="font-size:18px;font-weight:700;margin-bottom:8px">Ready to file? Get your permit data first.</h3>
-      <p style="font-size:14px;color:var(--text2);max-width:500px;margin:0 auto 20px">Search 923M+ real permits for your address, find licensed contractors, and set up alerts when similar permits are filed.</p>
+      <p style="font-size:14px;color:var(--text2);max-width:500px;margin:0 auto 20px">Search 960M+ real permits for your address, find licensed contractors, and set up alerts when similar permits are filed.</p>
       <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
         <button onclick="openSignup()" style="padding:11px 24px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer">Get Free API Key</button>
         <button onclick="showPage('contractors')" style="padding:11px 24px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:14px;font-weight:600;color:var(--text);cursor:pointer">Find Contractors</button>
@@ -9643,7 +9697,7 @@ async function runRequirementsLookup() {
           </div>
         `).join('')}
       </div>
-      ${!currentKey ? `<div style="margin-top:12px;font-size:12px;color:var(--text3);text-align:center">Search 923M+ real permits — <a href="#" onclick="openSignup();return false" style="color:var(--accent)">sign up free</a> to view live data</div>` : ''}
+      ${!currentKey ? `<div style="margin-top:12px;font-size:12px;color:var(--text3);text-align:center">Search 960M+ real permits — <a href="#" onclick="openSignup();return false" style="color:var(--accent)">sign up free</a> to view live data</div>` : ''}
     </div>
 
     <div class="req-cta">
@@ -9755,7 +9809,7 @@ function renderPropertyReport(addr) {
   permits.forEach(p => { typeCounts[p.permit_type||'other'] = (typeCounts[p.permit_type||'other']||0) + 1; });
   const typeEntries = Object.entries(typeCounts).sort((a,b)=>b[1]-a[1]);
 
-  const demoBanner = !currentKey ? `<div style="margin:0 0 16px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px"><span>📊 Demo report — sign up free for live data from 923M+ permits</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button></div>` : '';
+  const demoBanner = !currentKey ? `<div style="margin:0 0 16px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px"><span>📊 Demo report — sign up free for live data from 960M+ permits</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button></div>` : '';
 
   document.getElementById('rpt-output').innerHTML = `
     ${demoBanner}
@@ -11921,7 +11975,7 @@ function loadJurisdiction() {
     const data = generateJurisdictionData(city || state, state || city);
     renderJurisdiction(data, city || state, state);
     if (!currentKey) {
-      results.insertAdjacentHTML('afterbegin', `<div style="margin-bottom:16px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px"><span>📊 Demo data — sign up free to access real approval timelines from 923M+ permits</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button></div>`);
+      results.insertAdjacentHTML('afterbegin', `<div style="margin-bottom:16px;padding:10px 16px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:8px;font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px"><span>📊 Demo data — sign up free to access real approval timelines from 960M+ permits</span><button onclick="openSignup()" style="padding:6px 14px;background:rgba(251,191,36,.15);border:1px solid rgba(251,191,36,.3);border-radius:6px;color:#fbbf24;font-size:12px;font-weight:600;white-space:nowrap">Get Free Access</button></div>`);
     }
   }, 500);
 }

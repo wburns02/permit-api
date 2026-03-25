@@ -177,6 +177,31 @@ async def stripe_webhook(request: Request):
                 await db.commit()
                 logger.info(f"User {user.email} subscribed to {resolved.value}")
 
+                # Notify Will of payment
+                try:
+                    if settings.SENDGRID_API_KEY:
+                        from sendgrid import SendGridAPIClient
+                        from sendgrid.helpers.mail import Mail
+                        sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
+                        msg = Mail(
+                            from_email=settings.SENDGRID_FROM_EMAIL,
+                            to_emails="willwalterburns@gmail.com",
+                            subject=f"\U0001f4b0 New Payment \u2014 {user.email} on {resolved.value}",
+                            html_content=f"""
+                            <h2>New Payment!</h2>
+                            <p><strong>Email:</strong> {user.email}</p>
+                            <p><strong>Company:</strong> {user.company_name or 'N/A'}</p>
+                            <p><strong>Plan:</strong> {resolved.value}</p>
+                            <p><strong>Stripe Customer:</strong> {customer_id}</p>
+                            <p><strong>Subscription:</strong> {subscription_id}</p>
+                            <p><strong>Time:</strong> {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}</p>
+                            <p><a href="https://permits.ecbtx.com/#admin">View in Admin</a></p>
+                            """,
+                        )
+                        sg.send(msg)
+                except Exception as e:
+                    logger.warning("Payment notification failed: %s", e)
+
         elif event["type"] == "customer.subscription.deleted":
             subscription = event["data"]["object"]
             customer_id = subscription["customer"]

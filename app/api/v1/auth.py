@@ -1,7 +1,8 @@
 """API key management and signup endpoints."""
 
 import hashlib
-from datetime import date, timedelta
+import logging
+from datetime import date, datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,6 +12,27 @@ from app.database import get_db
 from app.middleware.api_key_auth import get_current_user, hash_api_key
 from app.models.api_key import ApiUser, ApiKey, PlanTier, resolve_plan
 from app.services.stripe_service import get_freshness_limit, get_daily_limit, get_alert_limit
+
+logger = logging.getLogger(__name__)
+
+
+def _notify_will(subject: str, html_content: str):
+    """Send email notification to Will via SendGrid (fire-and-forget)."""
+    try:
+        from app.config import settings
+        if settings.SENDGRID_API_KEY:
+            from sendgrid import SendGridAPIClient
+            from sendgrid.helpers.mail import Mail
+            sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
+            msg = Mail(
+                from_email=settings.SENDGRID_FROM_EMAIL,
+                to_emails="willwalterburns@gmail.com",
+                subject=subject,
+                html_content=html_content,
+            )
+            sg.send(msg)
+    except Exception as e:
+        logger.warning("Notification email failed: %s", e)
 
 router = APIRouter(tags=["Auth"])
 
@@ -139,6 +161,21 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
     await db.commit()
 
     plan = resolve_plan(user.plan)
+
+    # Notify Will of login
+    logger.info("LOGIN: email=%s plan=%s", user.email, plan.value)
+    _notify_will(
+        subject=f"\U0001f511 PermitLookup Login \u2014 {user.email}",
+        html_content=f"""
+        <h2>User Login</h2>
+        <p><strong>Email:</strong> {user.email}</p>
+        <p><strong>Company:</strong> {user.company_name or 'N/A'}</p>
+        <p><strong>Plan:</strong> {plan.value}</p>
+        <p><strong>Time:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        <p><a href="https://permits.ecbtx.com/#admin">View in Admin</a></p>
+        """,
+    )
+
     return LoginResponse(
         api_key=raw_key,
         user_id=str(user.id),
@@ -187,6 +224,21 @@ async def signup(body: SignupRequest, db: AsyncSession = Depends(get_db)):
     await db.commit()
 
     plan = resolve_plan(user.plan)
+
+    # Notify Will of new signup
+    logger.info("NEW SIGNUP: email=%s company=%s", body.email, body.company_name)
+    _notify_will(
+        subject=f"\U0001f389 New PermitLookup Signup \u2014 {email}",
+        html_content=f"""
+        <h2>New Signup!</h2>
+        <p><strong>Email:</strong> {email}</p>
+        <p><strong>Company:</strong> {body.company_name or 'N/A'}</p>
+        <p><strong>Plan:</strong> Free</p>
+        <p><strong>Time:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        <p><a href="https://permits.ecbtx.com/#admin">View in Admin</a></p>
+        """,
+    )
+
     return SignupResponse(
         api_key=raw_key,
         user_id=str(user.id),
