@@ -1238,6 +1238,8 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
       <a href="/docs" target="_blank">API Docs</a>
       <a href="#admin" onclick="showPage('admin');return false" id="nav-admin-link" style="display:none">Admin</a>
       <a href="#campaigns" onclick="showPage('campaigns');return false" id="nav-campaigns-link" style="display:none">Campaigns</a>
+      <a href="#login" onclick="showPage('login');return false" id="nav-login-link" style="display:none;color:var(--text2)">Log In</a>
+      <span id="nav-user-badge" style="display:none;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:600;background:var(--accent-glow);border:1px solid rgba(99,102,241,.25);color:var(--accent2);white-space:nowrap;cursor:pointer" onclick="showPage('dashboard')" title="Go to Dashboard"></span>
       <button class="btn-primary" onclick="openSignup()" id="nav-signup">Get API Key</button>
     </div>
   </div>
@@ -3788,8 +3790,11 @@ results.forEach(p =>
       <div id="dash-auth-gate" style="display:none">
         <!-- Demo dashboard preview -->
         <div style="margin-bottom:20px;padding:12px 18px;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);border-radius:var(--radius-sm);font-size:13px;color:#fbbf24;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
-          <span>🔒 Preview mode — create a free account to get your personal API key and live usage stats</span>
-          <button onclick="openSignup()" style="padding:7px 18px;background:rgba(251,191,36,.2);border:1px solid rgba(251,191,36,.4);border-radius:var(--radius-sm);color:#fbbf24;font-size:13px;font-weight:700;white-space:nowrap">Get Free API Key →</button>
+          <span>Preview mode — log in or create a free account to access your dashboard</span>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button onclick="showPage('login')" style="padding:7px 18px;background:rgba(99,102,241,.2);border:1px solid rgba(99,102,241,.4);border-radius:var(--radius-sm);color:var(--accent2);font-size:13px;font-weight:700;white-space:nowrap;cursor:pointer">Log In</button>
+            <button onclick="openSignup()" style="padding:7px 18px;background:rgba(251,191,36,.2);border:1px solid rgba(251,191,36,.4);border-radius:var(--radius-sm);color:#fbbf24;font-size:13px;font-weight:700;white-space:nowrap;cursor:pointer">Sign Up Free</button>
+          </div>
         </div>
         <div class="dash-grid" style="margin-bottom:20px">
           <div class="dash-card">
@@ -4248,7 +4253,10 @@ results.forEach(p =>
         <div style="font-size:48px;margin-bottom:16px">&#128188;</div>
         <h3 style="font-size:22px;margin-bottom:8px">Sales CRM</h3>
         <p style="color:var(--text2);max-width:480px;margin:0 auto 20px">Manage contacts, track deals through your pipeline, and earn commissions. Requires Explorer plan or higher.</p>
-        <button onclick="openSignup()" style="padding:12px 32px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:600;cursor:pointer">Get Started</button>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+          <button onclick="showPage('login')" style="padding:12px 32px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:600;cursor:pointer">Log In</button>
+          <button onclick="openSignup()" style="padding:12px 32px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:15px;font-weight:600;color:var(--text2);cursor:pointer">Sign Up Free</button>
+        </div>
       </div>
 
       <!-- Main CRM Content -->
@@ -4619,7 +4627,10 @@ results.forEach(p =>
         <div style="font-size:48px;margin-bottom:16px">&#128222;</div>
         <h3 style="font-size:22px;margin-bottom:8px">Sales Dialer</h3>
         <p style="color:var(--text2);max-width:480px;margin:0 auto 20px">Work through fresh permit leads with click-to-call. Requires Explorer plan or higher.</p>
-        <button onclick="openSignup()" style="padding:12px 32px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:600;cursor:pointer">Get Started</button>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+          <button onclick="showPage('login')" style="padding:12px 32px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:600;cursor:pointer">Log In</button>
+          <button onclick="openSignup()" style="padding:12px 32px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:15px;font-weight:600;color:var(--text2);cursor:pointer">Sign Up Free</button>
+        </div>
       </div>
 
       <!-- Main Content Area (2-column) -->
@@ -4851,7 +4862,10 @@ results.forEach(p =>
         <div style="font-size:48px;margin-bottom:16px;opacity:.6">&#129302;</div>
         <h3 style="font-size:20px;margin-bottom:8px">AI Analyst Requires Pro Leads+</h3>
         <p style="color:var(--text2);font-size:14px;margin-bottom:20px;max-width:400px;margin-left:auto;margin-right:auto">Unlock natural language queries across the entire property intelligence database. Ask anything, get instant answers.</p>
-        <button onclick="showPage('pricing')" style="padding:12px 32px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer">View Plans</button>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+          <button onclick="showPage('login')" style="padding:12px 32px;background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer">Log In</button>
+          <button onclick="showPage('pricing')" style="padding:12px 32px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:15px;font-weight:600;color:var(--text2);cursor:pointer">View Plans</button>
+        </div>
       </div>
 
       <!-- Chat conversation area -->
@@ -4859,6 +4873,65 @@ results.forEach(p =>
         <!-- Messages rendered here dynamically -->
       </div>
 
+    </div>
+  </section>
+</div>
+
+<!-- LOGIN PAGE -->
+<div class="page" id="page-login">
+  <section style="padding:80px 0 60px">
+    <div class="container" style="max-width:420px;margin:0 auto;text-align:center">
+      <div style="margin-bottom:32px">
+        <div style="width:56px;height:56px;background:linear-gradient(135deg,var(--accent),#a855f7);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:24px;font-weight:800;color:#fff;margin:0 auto 16px">P</div>
+        <h2 style="font-size:28px;font-weight:800;margin-bottom:8px">Log In to PermitLookup</h2>
+        <p style="color:var(--text3);font-size:15px">Enter your API key to access your account</p>
+      </div>
+
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px;text-align:left">
+        <!-- Login method tabs -->
+        <div style="display:flex;gap:2px;margin-bottom:20px;background:var(--surface2);border-radius:var(--radius-sm);padding:3px">
+          <button onclick="switchLoginTab('email')" id="login-tab-email" style="flex:1;padding:8px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;background:var(--accent);color:#fff">Email</button>
+          <button onclick="switchLoginTab('key')" id="login-tab-key" style="flex:1;padding:8px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;background:transparent;color:var(--text3)">API Key</button>
+        </div>
+
+        <!-- Email login form -->
+        <div id="login-email-form">
+          <label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Email Address</label>
+          <input type="email" id="login-email-input" placeholder="you@company.com" autocomplete="email"
+                 style="width:100%;padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:15px;outline:none;transition:border-color .2s;box-sizing:border-box"
+                 onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+                 onkeydown="if(event.key==='Enter')doEmailLogin()">
+          <div id="login-email-error" style="display:none;margin-top:8px;padding:8px 12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:var(--radius-sm);font-size:13px;color:#ef4444"></div>
+          <button onclick="doEmailLogin()" id="login-email-btn" style="width:100%;padding:14px;margin-top:16px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;transition:background .2s">Log In with Email</button>
+        </div>
+
+        <!-- API Key login form (hidden by default) -->
+        <div id="login-key-form" style="display:none">
+          <label style="display:block;font-size:12px;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">API Key</label>
+          <input type="text" id="login-key-input" placeholder="pl_live_..." autocomplete="off"
+                 style="width:100%;padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text);font-size:15px;font-family:var(--mono);outline:none;transition:border-color .2s;box-sizing:border-box"
+                 onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"
+                 onkeydown="if(event.key==='Enter')doKeyLogin()">
+          <div id="login-error" style="display:none;margin-top:8px;padding:8px 12px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);border-radius:var(--radius-sm);font-size:13px;color:#ef4444"></div>
+          <button onclick="doKeyLogin()" id="login-btn" style="width:100%;padding:14px;margin-top:16px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-weight:700;cursor:pointer;transition:background .2s">Log In with API Key</button>
+        </div>
+
+        <div style="position:relative;text-align:center;margin:20px 0">
+          <div style="position:absolute;top:50%;left:0;right:0;border-top:1px solid var(--border)"></div>
+          <span style="position:relative;background:var(--surface);padding:0 12px;font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:1px">or</span>
+        </div>
+
+        <button onclick="demoLogin()" id="demo-login-btn" style="width:100%;padding:14px;background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(34,197,94,.06));border:1px solid rgba(34,197,94,.25);border-radius:var(--radius-sm);font-size:15px;font-weight:600;color:#22c55e;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='#22c55e'" onmouseout="this.style.borderColor='rgba(34,197,94,.25)'">
+          Try Demo (Free) -- No account needed
+        </button>
+      </div>
+
+      <p style="margin-top:20px;font-size:13px;color:var(--text3)">
+        Don't have an account? <a href="#" onclick="openSignup();return false" style="color:var(--accent2)">Sign up free</a>
+      </p>
+      <p style="margin-top:8px;font-size:12px;color:var(--text3)">
+        Lost your key? Email <a href="mailto:support@permitlookup.com" style="color:var(--accent2)">support@permitlookup.com</a>
+      </p>
     </div>
   </section>
 </div>
@@ -4907,6 +4980,19 @@ const API = '';
 let currentKey = localStorage.getItem('pl_api_key') || '';
 let currentPage = 'home';
 
+// Restore key from URL ?key= param (highest priority), then localStorage
+(function initAuthFromUrl() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const keyFromUrl = urlParams.get('key');
+  if (keyFromUrl && keyFromUrl.startsWith('pl_live_')) {
+    currentKey = keyFromUrl;
+    localStorage.setItem('pl_api_key', keyFromUrl);
+    // Clean URL: remove key param for security
+    const cleanUrl = window.location.pathname + window.location.hash;
+    window.history.replaceState({}, '', cleanUrl);
+  }
+})();
+
 // Nav dropdown
 function toggleNavDropdown() {
   const menu = document.getElementById('nav-tools-menu');
@@ -4931,9 +5017,24 @@ document.addEventListener('DOMContentLoaded', () => {
   loadStats();
   loadAnomalies(null);
   checkAdminAccess();
+  // Set up nav auth state — must run before routing
   if (currentKey) {
-    document.getElementById('nav-signup').textContent = 'Dashboard';
-    document.getElementById('nav-signup').onclick = () => showPage('dashboard');
+    // Validate the key and update nav
+    fetch(API + '/v1/me', { headers: { 'X-API-Key': currentKey } })
+      .then(r => { if (r.ok) return r.json(); throw new Error('invalid'); })
+      .then(d => {
+        if (d.email) localStorage.setItem('pl_user_email', d.email);
+        updateNavForAuth(d);
+      })
+      .catch(() => {
+        // Key is invalid — clear it
+        currentKey = '';
+        localStorage.removeItem('pl_api_key');
+        localStorage.removeItem('pl_user_email');
+        updateNavForAuth(null);
+      });
+  } else {
+    updateNavForAuth(null);
   }
   document.getElementById('search-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') doSearch();
@@ -4960,7 +5061,7 @@ function showPage(page) {
   // Update active nav link
   document.querySelectorAll('nav .links a, .nav-dropdown-menu a').forEach(a => a.classList.remove('active'));
   document.getElementById('nav-tools-btn')?.classList.remove('has-active');
-  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', dialer: '#dialer', crm: '#crm', analyst: '#analyst', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements', reports: '#reports', watchlist: '#watchlist', playground: '#playground', owners: '#owners', value: '#value', passport: '#passport', momentum: '#momentum', compare: '#compare', jurisdiction: '#jurisdiction', admin: '#admin', batch: '#batch', campaigns: '#campaigns' };
+  const hashMap = { home: '#search', login: '#login', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', dialer: '#dialer', crm: '#crm', analyst: '#analyst', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements', reports: '#reports', watchlist: '#watchlist', playground: '#playground', owners: '#owners', value: '#value', passport: '#passport', momentum: '#momentum', compare: '#compare', jurisdiction: '#jurisdiction', admin: '#admin', batch: '#batch', campaigns: '#campaigns' };
   const activeHash = hashMap[page] || '#search';
   const activeLink = document.querySelector(`a[href="${activeHash}"]`);
   if (activeLink) {
@@ -4999,6 +5100,7 @@ function showPage(page) {
   if (page === 'crm') { initCrmPage(); }
   if (page === 'batch') { initBatchPage(); }
   if (page === 'campaigns') { loadCampaigns(); }
+  if (page === 'login') { setTimeout(() => document.getElementById('login-email-input')?.focus(), 100); }
   if (page === 'contractors') {
     showContractorSearch();
     const results = document.getElementById('contractor-results');
@@ -5025,7 +5127,7 @@ function showPage(page) {
 function routeFromHash() {
   const raw = location.hash.replace('#','') || 'home';
   const h = raw.split('?')[0]; // strip query params (e.g. #passport?addr=...)
-  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', dialer: 'dialer', analyst: 'analyst', risk: 'risk', trends: 'trends', properties: 'properties', market: 'market', feed: 'feed', estimator: 'estimator', requirements: 'requirements', reports: 'reports', watchlist: 'watchlist', playground: 'playground', owners: 'owners', value: 'value', passport: 'passport', momentum: 'momentum', compare: 'compare', jurisdiction: 'jurisdiction', admin: 'admin', batch: 'batch', campaigns: 'campaigns' };
+  const map = { search: 'home', login: 'login', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', dialer: 'dialer', analyst: 'analyst', risk: 'risk', trends: 'trends', properties: 'properties', market: 'market', feed: 'feed', estimator: 'estimator', requirements: 'requirements', reports: 'reports', watchlist: 'watchlist', playground: 'playground', owners: 'owners', value: 'value', passport: 'passport', momentum: 'momentum', compare: 'compare', jurisdiction: 'jurisdiction', admin: 'admin', batch: 'batch', campaigns: 'campaigns' };
   showPage(map[h] || 'home');
 }
 window.addEventListener('hashchange', routeFromHash);
@@ -5230,9 +5332,8 @@ async function doSearch() {
     });
     if (r.status === 401) {
       currentKey = ''; localStorage.removeItem('pl_api_key');
-      document.getElementById('nav-signup').textContent = 'Get API Key';
-      document.getElementById('nav-signup').onclick = openSignup;
-      openSignup(); return;
+      updateNavForAuth(null);
+      showPage('login'); return;
     }
     if (r.status === 429) { showToast('Daily limit reached. Upgrade your plan.', 'error'); return; }
     if (!r.ok) {
@@ -5501,8 +5602,7 @@ function signOut() {
   currentKey = '';
   localStorage.removeItem('pl_api_key');
   localStorage.removeItem('pl_user_email');
-  document.getElementById('nav-signup').textContent = 'Get API Key';
-  document.getElementById('nav-signup').onclick = openSignup;
+  updateNavForAuth(null);
   const signoutBtn = document.getElementById('signout-btn');
   if (signoutBtn) signoutBtn.style.display = 'none';
   checkAdminAccess();
@@ -5529,7 +5629,7 @@ async function loadDashboard() {
       fetch(API + '/v1/me', { headers: { 'X-API-Key': currentKey } })
     ]);
 
-    if (usageR.status === 401) { currentKey = ''; localStorage.removeItem('pl_api_key'); showPage('home'); openSignup(); return; }
+    if (usageR.status === 401) { currentKey = ''; localStorage.removeItem('pl_api_key'); updateNavForAuth(null); showPage('login'); return; }
 
     const usage = await usageR.json();
     const keys = await keysR.json();
@@ -5671,19 +5771,24 @@ async function doSignup() {
       body: JSON.stringify({ email, company_name: company || null })
     });
     const d = await r.json();
-    if (!r.ok) { showSignupError(d.detail || 'Signup failed'); return; }
+    if (!r.ok) {
+      if (r.status === 409) {
+        showSignupError('Email already registered. <a href="#login" onclick="closeSignup();showPage(\'login\');return false" style="color:var(--accent2);text-decoration:underline">Log in instead</a>');
+      } else {
+        showSignupError(d.detail || 'Signup failed');
+      }
+      return;
+    }
 
     currentKey = d.api_key;
     localStorage.setItem('pl_api_key', currentKey);
     localStorage.setItem('pl_user_email', d.email || email);
     checkAdminAccess();
+    updateNavForAuth({ email: d.email || email, plan: d.plan || 'free' });
 
     document.getElementById('signup-form-view').style.display = 'none';
     document.getElementById('signup-success-view').style.display = '';
     document.getElementById('signup-key-display').textContent = d.api_key;
-
-    document.getElementById('nav-signup').textContent = 'Dashboard';
-    document.getElementById('nav-signup').onclick = () => showPage('dashboard');
 
     // Refresh current page if it has an auth gate
     if (currentPage === 'leads') loadLeadsPage();
@@ -5710,11 +5815,161 @@ async function doSignup() {
 
 function showSignupError(msg) {
   const el = document.getElementById('signup-error');
-  el.textContent = msg; el.style.display = '';
+  el.innerHTML = msg; el.style.display = '';
 }
 
 function copyKey(el) {
   navigator.clipboard.writeText(el.textContent).then(() => showToast('Copied to clipboard!', 'success'));
+}
+
+// ---- Login flow ----
+async function doKeyLogin() {
+  const input = document.getElementById('login-key-input');
+  const key = input.value.trim();
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+
+  if (!key) { errEl.textContent = 'Please enter your API key.'; errEl.style.display = ''; return; }
+  if (!key.startsWith('pl_live_')) { errEl.textContent = 'Invalid key format. Keys start with pl_live_'; errEl.style.display = ''; return; }
+
+  const btn = document.getElementById('login-btn');
+  btn.disabled = true; btn.textContent = 'Validating...';
+
+  try {
+    const r = await fetch(API + '/v1/me', { headers: { 'X-API-Key': key } });
+    if (r.ok) {
+      const d = await r.json();
+      currentKey = key;
+      localStorage.setItem('pl_api_key', key);
+      if (d.email) localStorage.setItem('pl_user_email', d.email);
+      updateNavForAuth(d);
+      checkAdminAccess();
+      showToast('Logged in as ' + (d.email || 'User'), 'success');
+      showPage('search');
+    } else if (r.status === 401) {
+      errEl.textContent = 'Invalid or expired API key. Check your key and try again.';
+      errEl.style.display = '';
+    } else {
+      errEl.textContent = 'Could not validate key. Try again.';
+      errEl.style.display = '';
+    }
+  } catch(e) {
+    errEl.textContent = 'Network error. Check your connection.';
+    errEl.style.display = '';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Log In';
+  }
+}
+
+function switchLoginTab(tab) {
+  const emailTab = document.getElementById('login-tab-email');
+  const keyTab = document.getElementById('login-tab-key');
+  const emailForm = document.getElementById('login-email-form');
+  const keyForm = document.getElementById('login-key-form');
+  if (tab === 'email') {
+    emailTab.style.background = 'var(--accent)'; emailTab.style.color = '#fff';
+    keyTab.style.background = 'transparent'; keyTab.style.color = 'var(--text3)';
+    emailForm.style.display = ''; keyForm.style.display = 'none';
+    document.getElementById('login-email-input')?.focus();
+  } else {
+    keyTab.style.background = 'var(--accent)'; keyTab.style.color = '#fff';
+    emailTab.style.background = 'transparent'; emailTab.style.color = 'var(--text3)';
+    keyForm.style.display = ''; emailForm.style.display = 'none';
+    document.getElementById('login-key-input')?.focus();
+  }
+}
+
+async function doEmailLogin() {
+  const input = document.getElementById('login-email-input');
+  const email = input.value.trim().toLowerCase();
+  const errEl = document.getElementById('login-email-error');
+  errEl.style.display = 'none';
+
+  if (!email) { errEl.textContent = 'Please enter your email address.'; errEl.style.display = ''; return; }
+  if (!/\S+@\S+\.\S+/.test(email)) { errEl.textContent = 'Please enter a valid email address.'; errEl.style.display = ''; return; }
+
+  const btn = document.getElementById('login-email-btn');
+  btn.disabled = true; btn.textContent = 'Logging in...';
+
+  try {
+    const r = await fetch(API + '/v1/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email })
+    });
+    const d = await r.json();
+    if (r.ok && d.api_key) {
+      currentKey = d.api_key;
+      localStorage.setItem('pl_api_key', d.api_key);
+      localStorage.setItem('pl_user_email', d.email || email);
+      updateNavForAuth({ email: d.email || email, plan: d.plan || 'free', company_name: d.company_name });
+      checkAdminAccess();
+      showToast('Logged in as ' + (d.email || email), 'success');
+      showPage('search');
+    } else {
+      errEl.textContent = d.detail || 'Login failed. Check your email or sign up.';
+      errEl.style.display = '';
+    }
+  } catch(e) {
+    errEl.textContent = 'Network error. Please try again.';
+    errEl.style.display = '';
+  } finally {
+    btn.disabled = false; btn.textContent = 'Log In with Email';
+  }
+}
+
+async function demoLogin() {
+  const btn = document.getElementById('demo-login-btn');
+  btn.textContent = 'Loading demo...';
+  btn.disabled = true;
+
+  try {
+    const r = await fetch(API + '/v1/demo', { method: 'POST' });
+    if (r.ok) {
+      const d = await r.json();
+      currentKey = d.api_key;
+      localStorage.setItem('pl_api_key', d.api_key);
+      localStorage.setItem('pl_user_email', d.email || 'demo@permitlookup.com');
+      updateNavForAuth({ email: d.email || 'demo@permitlookup.com', plan: d.plan || 'enterprise' });
+      checkAdminAccess();
+      showToast('Demo mode activated! Full access for exploration.', 'success');
+      showPage('search');
+    } else {
+      showToast('Could not start demo. Try signing up.', 'error');
+      openSignup();
+    }
+  } catch(e) {
+    showToast('Network error. Try again.', 'error');
+  }
+
+  btn.textContent = 'Try Demo (Free) -- No account needed';
+  btn.disabled = false;
+}
+
+function updateNavForAuth(userData) {
+  const signupBtn = document.getElementById('nav-signup');
+  const loginLink = document.getElementById('nav-login-link');
+  const userBadge = document.getElementById('nav-user-badge');
+
+  if (currentKey) {
+    // Logged in state
+    signupBtn.style.display = 'none';
+    loginLink.style.display = 'none';
+    if (userBadge) {
+      const email = (userData && userData.email) || localStorage.getItem('pl_user_email') || '';
+      const plan = (userData && userData.plan) || '';
+      const planLabel = { free: 'Free', explorer: 'Explorer', pro_leads: 'Pro Leads', realtime: 'Real-Time', enterprise: 'Enterprise' }[plan] || plan || '';
+      userBadge.textContent = (email ? email.split('@')[0] : 'Account') + (planLabel ? ' (' + planLabel + ')' : '');
+      userBadge.style.display = '';
+    }
+  } else {
+    // Logged out state
+    signupBtn.textContent = 'Get API Key';
+    signupBtn.onclick = openSignup;
+    signupBtn.style.display = '';
+    loginLink.style.display = '';
+    if (userBadge) userBadge.style.display = 'none';
+  }
 }
 
 function openContactForm(plan) {
@@ -6481,7 +6736,7 @@ async function loadAlerts() {
 
   try {
     const r = await fetch(API + '/v1/alerts', { headers: { 'X-API-Key': currentKey } });
-    if (r.status === 401) { currentKey = ''; localStorage.removeItem('pl_api_key'); loadAlerts(); return; }
+    if (r.status === 401) { currentKey = ''; localStorage.removeItem('pl_api_key'); updateNavForAuth(null); showPage('login'); return; }
     if (!r.ok) throw new Error('Failed to load alerts');
     const d = await r.json();
     alertsList = d.alerts || [];
@@ -11904,13 +12159,9 @@ function checkAdminAccess() {
 }
 
 async function loadAdmin() {
-  // Try to restore API key from localStorage, or use URL param for admin backdoor
   if (!currentKey) {
-    const savedKey = localStorage.getItem('pl_api_key');
-    const urlKey = new URLSearchParams(location.search).get('key');
-    if (urlKey) { currentKey = urlKey; localStorage.setItem('pl_api_key', urlKey); }
-    else if (savedKey) { currentKey = savedKey; }
-    else { showPage('home'); openSignup(); return; }
+    showPage('login');
+    return;
   }
   const hdrs = { 'X-API-Key': currentKey };
 

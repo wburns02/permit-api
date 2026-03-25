@@ -15,6 +15,19 @@ from app.services.stripe_service import get_freshness_limit, get_daily_limit, ge
 router = APIRouter(tags=["Auth"])
 
 
+class LoginRequest(BaseModel):
+    email: EmailStr
+
+
+class LoginResponse(BaseModel):
+    api_key: str
+    user_id: str
+    email: str
+    company_name: str | None
+    plan: str
+    message: str
+
+
 class SignupRequest(BaseModel):
     email: EmailStr
     company_name: str | None = None
@@ -90,6 +103,52 @@ async def contact_sales(body: ContactRequest):
     return {"status": "received", "message": "Thanks! We'll be in touch within 24 hours."}
 
 
+@router.post("/login", response_model=LoginResponse)
+async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Login with email. Generates a fresh API key for the account.
+
+    Since API keys are hashed, we can't return an existing key.
+    Instead, we generate a new key for the user's account.
+    """
+    email = body.email.strip().lower()
+
+    # Look up user by email
+    result = await db.execute(
+        select(ApiUser).where(
+            func.lower(ApiUser.email) == email,
+            ApiUser.is_active.is_(True),
+        )
+    )
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="No active account found with that email. Check your email or sign up for a free account.",
+        )
+
+    # Generate a fresh API key for this login session
+    raw_key = ApiKey.generate_key()
+    api_key = ApiKey(
+        user_id=user.id,
+        key_hash=hash_api_key(raw_key),
+        key_prefix=raw_key[:12],
+        name=f"Login {date.today().isoformat()}",
+    )
+    db.add(api_key)
+    await db.commit()
+
+    plan = resolve_plan(user.plan)
+    return LoginResponse(
+        api_key=raw_key,
+        user_id=str(user.id),
+        email=user.email,
+        company_name=user.company_name,
+        plan=plan.value,
+        message="Logged in successfully. A new API key has been generated for this session.",
+    )
+
+
 @router.post("/signup", response_model=SignupResponse)
 async def signup(body: SignupRequest, db: AsyncSession = Depends(get_db)):
     """
@@ -138,6 +197,53 @@ async def signup(body: SignupRequest, db: AsyncSession = Depends(get_db)):
         message="Save your API key — it won't be shown again. Include it as X-API-Key header. "
                 "Free tier: COLD data only (permits 180+ days old). Upgrade for fresher data.",
     )
+
+
+@router.post("/demo")
+async def demo_login(db: AsyncSession = Depends(get_db)):
+    """
+    Get a demo API key. Creates a demo account if it doesn't exist,
+    or generates a fresh key for the existing demo account.
+    Intended for investors, prospects, and quick exploration.
+    """
+    demo_email = "demo@permitlookup.com"
+
+    # Check if demo user exists
+    result = await db.execute(
+        select(ApiUser).where(func.lower(ApiUser.email) == demo_email)
+    )
+    user = result.scalar_one_or_none()
+
+    if not user:
+        # Create demo user with Enterprise plan for full access demo
+        user = ApiUser(
+            email=demo_email,
+            company_name="PermitLookup Demo",
+            plan=PlanTier.ENTERPRISE,
+        )
+        db.add(user)
+        await db.flush()
+
+    # Generate a fresh key for this demo session
+    raw_key = ApiKey.generate_key()
+    api_key = ApiKey(
+        user_id=user.id,
+        key_hash=hash_api_key(raw_key),
+        key_prefix=raw_key[:12],
+        name=f"Demo {date.today().isoformat()}",
+    )
+    db.add(api_key)
+    await db.commit()
+
+    plan = resolve_plan(user.plan)
+    return {
+        "api_key": raw_key,
+        "user_id": str(user.id),
+        "email": user.email,
+        "company_name": user.company_name,
+        "plan": plan.value,
+        "message": "Demo account ready. Full Enterprise access for exploration.",
+    }
 
 
 @router.get("/me")
