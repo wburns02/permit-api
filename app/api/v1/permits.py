@@ -5,7 +5,9 @@ from datetime import date, timedelta
 from enum import Enum
 
 from fastapi import APIRouter, Depends, Query, HTTPException, Request, UploadFile, File
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 import csv
 import io
 
@@ -316,3 +318,93 @@ async def bulk_search(
             "cutoff_date": (date.today() - timedelta(days=freshness_days)).isoformat() if freshness_days > 0 else None,
         },
     }
+
+
+@router.get("/export")
+async def export_permits_csv(
+    request: Request,
+    address: str | None = Query(None),
+    city: str | None = Query(None),
+    state: str | None = Query(None, max_length=2),
+    zip: str | None = Query(None, alias="zip_code"),
+    permit_type: str | None = Query(None),
+    contractor: str | None = Query(None),
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Export search results as CSV. Max 500 rows. Requires Explorer+."""
+    plan = resolve_plan(user.plan)
+    if plan == PlanTier.FREE:
+        raise HTTPException(
+            status_code=403,
+            detail="CSV export requires Explorer plan or above.",
+        )
+
+    # Build query against hot_leads table (richest data with contractor details)
+    conditions = []
+    params = {}
+    if address:
+        conditions.append("address ILIKE :address")
+        params["address"] = f"%{address}%"
+    if city:
+        conditions.append("city ILIKE :city")
+        params["city"] = f"%{city}%"
+    if state:
+        conditions.append("state = :state")
+        params["state"] = state.upper()
+    if zip:
+        conditions.append("zip = :zip")
+        params["zip"] = zip
+    if permit_type:
+        conditions.append("permit_type ILIKE :permit_type")
+        params["permit_type"] = f"%{permit_type}%"
+    if contractor:
+        conditions.append("contractor_company ILIKE :contractor")
+        params["contractor"] = f"%{contractor}%"
+
+    if not conditions:
+        raise HTTPException(status_code=400, detail="At least one search parameter is required.")
+
+    where_clause = " AND ".join(conditions)
+    sql = f"""
+        SELECT address, city, state, zip, permit_type,
+               contractor_company, contractor_phone, valuation, issue_date
+        FROM hot_leads
+        WHERE {where_clause}
+        LIMIT 500
+    """
+
+    try:
+        result = await db.execute(text(sql), params)
+        rows = result.fetchall()
+    except Exception as e:
+        logger.warning("CSV export query failed (hot_leads may not exist): %s", e)
+        # Fallback: return empty CSV with headers
+        rows = []
+
+    # Build CSV in memory
+    output = io.StringIO()
+    writer = csv.writer(output)
+    headers = ["address", "city", "state", "zip", "permit_type",
+               "contractor_company", "contractor_phone", "valuation", "issue_date"]
+    writer.writerow(headers)
+    for row in rows:
+        writer.writerow([str(v) if v is not None else "" for v in row])
+
+    # Log usage
+    log = UsageLog(
+        user_id=user.id,
+        api_key_id=request.state.api_key.id,
+        endpoint="/v1/permits/export",
+        lookup_count=len(rows),
+        ip_address=request.client.host if request.client else None,
+    )
+    db.add(log)
+    await db.commit()
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=permitlookup_export.csv"},
+    )

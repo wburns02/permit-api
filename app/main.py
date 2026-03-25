@@ -25,7 +25,7 @@ from app.models.data_layers import (  # noqa: F401
     PropertySale, PropertyLien,
 )
 from app.models.dialer import CallLog, LeadStatus  # noqa: F401
-from app.models.crm import Contact, Deal, Note, Commission, Activity  # noqa: F401
+from app.models.crm import Contact, Deal, Note, Commission, Activity, Webhook  # noqa: F401
 from app.models.quote import Quote  # noqa: F401
 from app.models.team import Team, TeamMember  # noqa: F401
 
@@ -653,6 +653,28 @@ async def migrate_expansion():
             migrations.append(f"activities: {e}")
             await db.rollback()
 
+        # ---- Webhooks table ----
+        try:
+            await db.execute(text("""
+                CREATE TABLE IF NOT EXISTS webhooks (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID NOT NULL REFERENCES api_users(id),
+                    name VARCHAR(200),
+                    url TEXT NOT NULL,
+                    event_types JSONB DEFAULT '[]'::jsonb,
+                    filters JSONB DEFAULT '{}'::jsonb,
+                    is_active BOOLEAN DEFAULT TRUE,
+                    secret VARCHAR(100),
+                    last_triggered TIMESTAMPTZ,
+                    failure_count INTEGER DEFAULT 0,
+                    created_at TIMESTAMPTZ DEFAULT NOW()
+                )
+            """))
+            migrations.append("webhooks table created")
+        except Exception as e:
+            migrations.append(f"webhooks: {e}")
+            await db.rollback()
+
         # Indexes for new tables
         indexes = [
             "CREATE INDEX IF NOT EXISTS ix_cl_license ON contractor_licenses (license_number)",
@@ -742,6 +764,9 @@ async def migrate_expansion():
             "CREATE INDEX IF NOT EXISTS ix_activities_user ON activities (user_id)",
             "CREATE INDEX IF NOT EXISTS ix_activities_team_created ON activities (team_id, created_at)",
             "CREATE INDEX IF NOT EXISTS ix_activities_user_created ON activities (user_id, created_at)",
+            # webhooks indexes
+            "CREATE INDEX IF NOT EXISTS ix_webhooks_user ON webhooks (user_id)",
+            "CREATE INDEX IF NOT EXISTS ix_webhooks_active ON webhooks (user_id, is_active)",
         ]
         for idx_sql in indexes:
             try:
@@ -864,5 +889,11 @@ async def api_info():
             "crm_activity_feed": "GET /v1/crm/activity-feed",
             "crm_leads_assign": "POST /v1/crm/leads/assign",
             "crm_leads_assigned": "GET /v1/crm/leads/assigned",
+            "webhooks_list": "GET /v1/crm/webhooks",
+            "webhooks_create": "POST /v1/crm/webhooks",
+            "webhooks_update": "PUT /v1/crm/webhooks/{id}",
+            "webhooks_delete": "DELETE /v1/crm/webhooks/{id}",
+            "webhooks_test": "POST /v1/crm/webhooks/{id}/test",
+            "permits_export_csv": "GET /v1/permits/export?address=...&state=TX",
         },
     }

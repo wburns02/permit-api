@@ -1,10 +1,11 @@
-"""CRM models — contacts, deals, notes, commissions, and activities."""
+"""CRM models — contacts, deals, notes, commissions, activities, and webhooks."""
 
 import uuid
+import secrets
 from datetime import datetime, timezone
 
 from sqlalchemy import (
-    Column, String, Text, Float, Date, DateTime, ForeignKey, Index,
+    Column, String, Text, Float, Integer, Boolean, Date, DateTime, ForeignKey, Index,
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from app.database import Base
@@ -102,4 +103,26 @@ class Activity(Base):
     __table_args__ = (
         Index("ix_activities_team_created", "team_id", "created_at"),
         Index("ix_activities_user_created", "user_id", "created_at"),
+    )
+
+
+class Webhook(Base):
+    """User-configured webhook for event notifications (new permits, violations, price changes)."""
+    __tablename__ = "webhooks"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("api_users.id"), nullable=False, index=True)
+    name = Column(String(200))
+    url = Column(Text, nullable=False)
+    event_types = Column(JSONB, default=list)  # ["new_permit", "new_violation", "price_change"]
+    filters = Column(JSONB, default=dict)  # {state: "TX", zip: "78666", permit_type: "roofing"}
+    is_active = Column(Boolean, default=True)
+    secret = Column(String(100), default=lambda: secrets.token_hex(32))
+    last_triggered = Column(DateTime(timezone=True), nullable=True)
+    failure_count = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        Index("ix_webhooks_user", "user_id"),
+        Index("ix_webhooks_active", "user_id", "is_active"),
     )

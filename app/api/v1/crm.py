@@ -1,4 +1,4 @@
-"""CRM endpoints — contacts, deals, pipeline, commissions, leaderboard, teams."""
+"""CRM endpoints — contacts, deals, pipeline, commissions, leaderboard, teams, webhooks."""
 
 import uuid
 from datetime import datetime, timezone, timedelta, date
@@ -12,9 +12,10 @@ from app.database import get_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
-from app.models.crm import Contact, Deal, Note, Commission, Activity
+from app.models.crm import Contact, Deal, Note, Commission, Activity, Webhook
 from app.models.dialer import CallLog, LeadStatus
 from app.models.team import Team, TeamMember
+from app.services.webhook_delivery import deliver_webhook
 
 router = APIRouter(prefix="/crm", tags=["CRM"])
 
@@ -1810,4 +1811,190 @@ async def get_assigned_leads(
         "total": total,
         "page": page,
         "page_size": page_size,
+    }
+
+
+# ---------------------------------------------------------------------------
+# Webhook Management
+# ---------------------------------------------------------------------------
+
+VALID_EVENT_TYPES = {"new_permit", "new_violation", "price_change"}
+
+
+class WebhookCreate(BaseModel):
+    name: str | None = Field(None, max_length=200)
+    url: str = Field(..., min_length=8, max_length=2000)
+    event_types: list[str] = Field(default_factory=lambda: ["new_permit"])
+    filters: dict | None = None
+
+
+class WebhookUpdate(BaseModel):
+    name: str | None = None
+    url: str | None = None
+    event_types: list[str] | None = None
+    filters: dict | None = None
+    is_active: bool | None = None
+
+
+def _webhook_to_dict(w: Webhook) -> dict:
+    return {
+        "id": str(w.id),
+        "name": w.name,
+        "url": w.url,
+        "event_types": w.event_types or [],
+        "filters": w.filters or {},
+        "is_active": w.is_active,
+        "secret": w.secret,
+        "last_triggered": w.last_triggered.isoformat() if w.last_triggered else None,
+        "failure_count": w.failure_count,
+        "created_at": w.created_at.isoformat() if w.created_at else None,
+    }
+
+
+@router.post("/webhooks")
+async def create_webhook(
+    body: WebhookCreate,
+    request: Request,
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create a new webhook. Requires Explorer+."""
+    _require_paid(user)
+
+    # Validate event types
+    invalid = set(body.event_types) - VALID_EVENT_TYPES
+    if invalid:
+        raise HTTPException(status_code=400, detail=f"Invalid event types: {invalid}. Valid: {VALID_EVENT_TYPES}")
+
+    # Max 20 webhooks per user
+    count = await db.scalar(select(func.count()).where(Webhook.user_id == user.id))
+    if count >= 20:
+        raise HTTPException(status_code=400, detail="Maximum 20 webhooks per account.")
+
+    webhook = Webhook(
+        user_id=user.id,
+        name=body.name or "Untitled webhook",
+        url=body.url,
+        event_types=body.event_types,
+        filters=body.filters or {},
+    )
+    db.add(webhook)
+    db.add(_log_usage(user, request, "/v1/crm/webhooks"))
+    await db.commit()
+    await db.refresh(webhook)
+
+    return _webhook_to_dict(webhook)
+
+
+@router.get("/webhooks")
+async def list_webhooks(
+    request: Request,
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """List user's webhooks."""
+    _require_paid(user)
+    result = await db.execute(
+        select(Webhook)
+        .where(Webhook.user_id == user.id)
+        .order_by(Webhook.created_at.desc())
+    )
+    webhooks = result.scalars().all()
+    return {"webhooks": [_webhook_to_dict(w) for w in webhooks], "total": len(webhooks)}
+
+
+@router.put("/webhooks/{webhook_id}")
+async def update_webhook(
+    webhook_id: uuid.UUID,
+    body: WebhookUpdate,
+    request: Request,
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update a webhook."""
+    _require_paid(user)
+    webhook = await db.get(Webhook, webhook_id)
+    if not webhook or webhook.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Webhook not found.")
+
+    if body.event_types is not None:
+        invalid = set(body.event_types) - VALID_EVENT_TYPES
+        if invalid:
+            raise HTTPException(status_code=400, detail=f"Invalid event types: {invalid}")
+        webhook.event_types = body.event_types
+    if body.name is not None:
+        webhook.name = body.name
+    if body.url is not None:
+        webhook.url = body.url
+    if body.filters is not None:
+        webhook.filters = body.filters
+    if body.is_active is not None:
+        webhook.is_active = body.is_active
+        if body.is_active:
+            webhook.failure_count = 0  # reset on re-enable
+
+    db.add(_log_usage(user, request, f"/v1/crm/webhooks/{webhook_id}"))
+    await db.commit()
+    await db.refresh(webhook)
+
+    return _webhook_to_dict(webhook)
+
+
+@router.delete("/webhooks/{webhook_id}")
+async def delete_webhook(
+    webhook_id: uuid.UUID,
+    request: Request,
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a webhook."""
+    _require_paid(user)
+    webhook = await db.get(Webhook, webhook_id)
+    if not webhook or webhook.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Webhook not found.")
+
+    await db.delete(webhook)
+    db.add(_log_usage(user, request, f"/v1/crm/webhooks/{webhook_id}"))
+    await db.commit()
+
+    return {"status": "deleted", "id": str(webhook_id)}
+
+
+@router.post("/webhooks/{webhook_id}/test")
+async def test_webhook(
+    webhook_id: uuid.UUID,
+    request: Request,
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Send a test payload to a webhook."""
+    _require_paid(user)
+    webhook = await db.get(Webhook, webhook_id)
+    if not webhook or webhook.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Webhook not found.")
+
+    test_payload = {
+        "event_type": "test",
+        "message": "This is a test webhook from PermitLookup.",
+        "webhook_id": str(webhook.id),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "sample_data": {
+            "permit_number": "TEST-2026-001",
+            "address": "123 Main St",
+            "city": "Austin",
+            "state": "TX",
+            "zip": "78701",
+            "permit_type": "roofing",
+            "contractor_company": "ABC Roofing LLC",
+            "valuation": 25000,
+            "issue_date": "2026-03-25",
+        },
+    }
+
+    success = await deliver_webhook(webhook.url, test_payload, secret=webhook.secret)
+
+    return {
+        "status": "delivered" if success else "failed",
+        "webhook_id": str(webhook.id),
+        "url": webhook.url,
     }
