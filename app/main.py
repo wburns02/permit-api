@@ -890,6 +890,16 @@ STATIC_DIR = Path(__file__).parent / "static"
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
+# PWA: service worker must be served from root scope
+@app.get("/sw.js", include_in_schema=False)
+async def service_worker():
+    return FileResponse(
+        STATIC_DIR / "sw.js",
+        media_type="application/javascript",
+        headers={"Cache-Control": "no-cache", "Service-Worker-Allowed": "/"},
+    )
+
+
 @app.get("/")
 async def root():
     return FileResponse(STATIC_DIR / "index.html")
