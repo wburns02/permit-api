@@ -1193,6 +1193,7 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
           <a href="#momentum" onclick="showPage('momentum');closeNavDropdown();return false">Market Momentum</a>
           <a href="#compare" onclick="showPage('compare');closeNavDropdown();return false">Property Compare</a>
           <a href="#jurisdiction" onclick="showPage('jurisdiction');closeNavDropdown();return false">Jurisdiction Intel</a>
+          <a href="#batch" onclick="showPage('batch');closeNavDropdown();return false">Batch Lookup</a>
         </div>
       </div>
       <a href="/docs" target="_blank">API Docs</a>
@@ -1208,9 +1209,15 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
     <div class="container">
       <h1>Building Permit Data <br>via API</h1>
       <p>The most comprehensive property intelligence database. <span id="hero-count">923M+</span> records across 50+ data layers from 3,000+ jurisdictions in 50 US states + Canada. Real-time data for contractors, investors, insurers, and analysts.</p>
-      <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);border-radius:20px;padding:6px 16px;margin-top:8px;font-size:13px;color:#22c55e">
-        <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;animation:pulse 1.5s infinite"></span>
-        Live — New permits added daily from 3,000+ jurisdictions nationwide
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px;justify-content:center">
+        <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.25);border-radius:20px;padding:6px 16px;font-size:13px;color:#22c55e">
+          <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;animation:pulse 1.5s infinite"></span>
+          Live — New permits added daily from 3,000+ jurisdictions nationwide
+        </div>
+        <div id="hero-freshness-badge" style="display:none;align-items:center;gap:6px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:20px;padding:5px 14px;font-size:12px;color:#818cf8">
+          <span style="width:6px;height:6px;border-radius:50%;background:#818cf8"></span>
+          <span id="hero-freshness-text">Data last updated: checking...</span>
+        </div>
       </div>
 
       <div class="stats-row">
@@ -1464,6 +1471,84 @@ results.forEach(p =>
           </ul>
           <button onclick="showPage('compare')" style="margin-top:16px;padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600">Compare Properties →</button>
         </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- BATCH LOOKUP PAGE -->
+<div class="page" id="page-batch">
+  <section>
+    <div class="container" style="max-width:1000px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:4px">
+        <div>
+          <h2>Batch Address Lookup</h2>
+          <p class="subtitle" style="margin-bottom:0">Upload up to 500 addresses and get permit, violation, sales, and risk data for each</p>
+        </div>
+        <span style="padding:4px 12px;font-size:12px;font-weight:700;color:#a78bfa;background:rgba(139,92,246,.12);border:1px solid rgba(139,92,246,.25);border-radius:20px">PRO LEADS+</span>
+      </div>
+
+      <!-- Submit Form -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+          <h3 style="margin:0;font-size:16px;font-weight:700">Submit Addresses</h3>
+          <span style="font-size:12px;color:var(--text3)">Paste one address per line, or upload a CSV file</span>
+        </div>
+        <textarea id="batch-addresses" rows="10" placeholder="123 Main St, Austin TX&#10;456 Oak Ave, Dallas TX&#10;789 Pine Rd, Houston TX&#10;..." style="width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;color:var(--text);font-family:monospace;font-size:13px;resize:vertical;margin-bottom:12px"></textarea>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <label style="padding:8px 18px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-size:13px;font-weight:600;cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+            Upload CSV
+            <input type="file" accept=".csv,.txt" id="batch-file-input" onchange="handleBatchFileUpload(this)" style="display:none">
+          </label>
+          <span id="batch-address-count" style="font-size:13px;color:var(--text3)">0 addresses</span>
+          <span style="font-size:12px;color:var(--text3)">Max 500 per batch</span>
+          <div style="flex:1"></div>
+          <button onclick="submitBatch()" id="batch-submit-btn" style="padding:10px 28px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-weight:700;cursor:pointer;transition:all .2s">Submit Batch</button>
+        </div>
+      </div>
+
+      <!-- Active Job Progress -->
+      <div id="batch-progress-area" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3 style="margin:0;font-size:16px;font-weight:700">Processing</h3>
+          <span id="batch-progress-status" style="font-size:13px;font-weight:600;color:#fbbf24">Pending...</span>
+        </div>
+        <div style="background:var(--surface2);border-radius:8px;height:10px;overflow:hidden;margin-bottom:8px">
+          <div id="batch-progress-bar" style="height:100%;background:linear-gradient(90deg,var(--accent),#a78bfa);width:0%;transition:width .5s ease;border-radius:8px"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3)">
+          <span id="batch-progress-text">0 / 0 addresses</span>
+          <span id="batch-progress-time">Estimating...</span>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div id="batch-results-area" style="display:none;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:20px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <h3 style="margin:0;font-size:16px;font-weight:700">Results</h3>
+          <button onclick="exportBatchCSV()" style="padding:6px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);color:var(--text2);font-size:12px;font-weight:600;cursor:pointer">Export CSV</button>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%;border-collapse:collapse;font-size:13px" id="batch-results-table">
+            <thead>
+              <tr style="border-bottom:2px solid var(--border);text-align:left">
+                <th style="padding:10px 12px;font-weight:700;color:var(--text2)">Address</th>
+                <th style="padding:10px 8px;font-weight:700;color:var(--text2);text-align:center">Permits</th>
+                <th style="padding:10px 8px;font-weight:700;color:var(--text2);text-align:center">Violations</th>
+                <th style="padding:10px 8px;font-weight:700;color:var(--text2);text-align:center">Sales</th>
+                <th style="padding:10px 8px;font-weight:700;color:var(--text2);text-align:center">Septic</th>
+                <th style="padding:10px 12px;font-weight:700;color:var(--text2)">Risk Signals</th>
+              </tr>
+            </thead>
+            <tbody id="batch-results-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Job History -->
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px">
+        <h3 style="margin:0 0 16px;font-size:16px;font-weight:700">Batch History</h3>
+        <div id="batch-history-list" style="font-size:13px;color:var(--text3)">Sign in with a Pro Leads+ key to see batch history.</div>
       </div>
     </div>
   </section>
@@ -3730,6 +3815,31 @@ results.forEach(p =>
         <div id="saved-searches-list"></div>
       </div>
 
+      <!-- Data Freshness -->
+      <div style="margin-top:36px">
+        <h3 style="margin-bottom:16px">Data Freshness</h3>
+        <div id="dash-freshness-area" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+          <table style="width:100%;border-collapse:collapse;font-size:13px" id="dash-freshness-table">
+            <thead>
+              <tr style="border-bottom:2px solid var(--border);text-align:left;background:var(--surface2)">
+                <th style="padding:10px 12px;font-weight:700;color:var(--text2)">Data Layer</th>
+                <th style="padding:10px 8px;font-weight:700;color:var(--text2);text-align:right">Records</th>
+                <th style="padding:10px 8px;font-weight:700;color:var(--text2)">Last Updated</th>
+                <th style="padding:10px 8px;font-weight:700;color:var(--text2)">Frequency</th>
+                <th style="padding:10px 12px;font-weight:700;color:var(--text2);text-align:center">Status</th>
+              </tr>
+            </thead>
+            <tbody id="dash-freshness-body">
+              <tr><td colspan="5" style="padding:20px;text-align:center;color:var(--text3)">Loading freshness data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--text3)">
+          <span id="dash-freshness-total"></span>
+          <span id="dash-freshness-last-run"></span>
+        </div>
+      </div>
+
       </div><!-- end dash-content -->
     </div>
   </section>
@@ -4648,7 +4758,7 @@ function showPage(page) {
   // Update active nav link
   document.querySelectorAll('nav .links a, .nav-dropdown-menu a').forEach(a => a.classList.remove('active'));
   document.getElementById('nav-tools-btn')?.classList.remove('has-active');
-  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', dialer: '#dialer', crm: '#crm', analyst: '#analyst', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements', reports: '#reports', watchlist: '#watchlist', playground: '#playground', owners: '#owners', value: '#value', passport: '#passport', momentum: '#momentum', compare: '#compare', jurisdiction: '#jurisdiction', admin: '#admin' };
+  const hashMap = { home: '#search', coverage: '#coverage', pricing: '#pricing', contractors: '#contractors', alerts: '#alerts', leads: '#leads', dialer: '#dialer', crm: '#crm', analyst: '#analyst', risk: '#risk', trends: '#trends', properties: '#properties', market: '#market', feed: '#feed', estimator: '#estimator', requirements: '#requirements', reports: '#reports', watchlist: '#watchlist', playground: '#playground', owners: '#owners', value: '#value', passport: '#passport', momentum: '#momentum', compare: '#compare', jurisdiction: '#jurisdiction', admin: '#admin', batch: '#batch' };
   const activeHash = hashMap[page] || '#search';
   const activeLink = document.querySelector(`a[href="${activeHash}"]`);
   if (activeLink) {
@@ -4666,7 +4776,7 @@ function showPage(page) {
   if (page === 'coverage') loadCoverage();
   if (page === 'alerts') loadAlerts();
   if (page === 'leads') loadLeadsPage();
-  if (page === 'dashboard') { loadDashboard(); loadSavedSearches(); loadUsageChart(); }
+  if (page === 'dashboard') { loadDashboard(); loadSavedSearches(); loadUsageChart(); loadFreshnessTable(); }
   if (page === 'properties') updatePropertyPage();
   if (page === 'feed') { if (!feedItems.length) loadFeed(); }
   if (page === 'market') { loadMarketPageDefaults(); }
@@ -4684,6 +4794,7 @@ function showPage(page) {
   if (page === 'dialer') { initDialerPage(); }
   if (page === 'analyst') { initAnalystPage(); }
   if (page === 'crm') { initCrmPage(); }
+  if (page === 'batch') { initBatchPage(); }
   if (page === 'contractors') {
     showContractorSearch();
     const results = document.getElementById('contractor-results');
@@ -4710,7 +4821,7 @@ function showPage(page) {
 function routeFromHash() {
   const raw = location.hash.replace('#','') || 'home';
   const h = raw.split('?')[0]; // strip query params (e.g. #passport?addr=...)
-  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', dialer: 'dialer', analyst: 'analyst', risk: 'risk', trends: 'trends', properties: 'properties', market: 'market', feed: 'feed', estimator: 'estimator', requirements: 'requirements', reports: 'reports', watchlist: 'watchlist', playground: 'playground', owners: 'owners', value: 'value', passport: 'passport', momentum: 'momentum', compare: 'compare', jurisdiction: 'jurisdiction', admin: 'admin' };
+  const map = { search: 'home', coverage: 'coverage', pricing: 'pricing', dashboard: 'dashboard', contractors: 'contractors', alerts: 'alerts', leads: 'leads', dialer: 'dialer', analyst: 'analyst', risk: 'risk', trends: 'trends', properties: 'properties', market: 'market', feed: 'feed', estimator: 'estimator', requirements: 'requirements', reports: 'reports', watchlist: 'watchlist', playground: 'playground', owners: 'owners', value: 'value', passport: 'passport', momentum: 'momentum', compare: 'compare', jurisdiction: 'jurisdiction', admin: 'admin', batch: 'batch' };
   showPage(map[h] || 'home');
 }
 window.addEventListener('hashchange', routeFromHash);
@@ -14152,6 +14263,298 @@ function escapeHtml(str) {
 }
 
 // ─── END AI ANALYST ─────────────────────────────────────────────────────
+
+// ─── BATCH ADDRESS LOOKUP ──────────────────────────────────────────────
+let batchPollTimer = null;
+let currentBatchJobId = null;
+let batchResults = [];
+
+function initBatchPage() {
+  updateBatchAddressCount();
+  loadBatchHistory();
+  const ta = document.getElementById('batch-addresses');
+  if (ta) ta.addEventListener('input', updateBatchAddressCount);
+}
+
+function updateBatchAddressCount() {
+  const ta = document.getElementById('batch-addresses');
+  const ct = document.getElementById('batch-address-count');
+  if (!ta || !ct) return;
+  const lines = ta.value.split('\n').filter(l => l.trim()).length;
+  ct.textContent = lines + ' address' + (lines !== 1 ? 'es' : '');
+  if (lines > 500) ct.style.color = '#ef4444';
+  else ct.style.color = 'var(--text3)';
+}
+
+function handleBatchFileUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const text = e.target.result;
+    const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+    // If CSV with header, try to find address column
+    if (lines.length > 0 && (lines[0].toLowerCase().includes('address') || lines[0].includes(','))) {
+      const header = lines[0].toLowerCase().split(',');
+      const addrIdx = header.findIndex(h => h.includes('address'));
+      if (addrIdx >= 0) {
+        const addresses = lines.slice(1).map(l => {
+          const parts = l.split(',');
+          return parts[addrIdx] ? parts[addrIdx].replace(/"/g, '').trim() : '';
+        }).filter(a => a);
+        document.getElementById('batch-addresses').value = addresses.join('\n');
+      } else {
+        // No address column, use first column
+        const addresses = lines.slice(1).map(l => l.split(',')[0].replace(/"/g, '').trim()).filter(a => a);
+        document.getElementById('batch-addresses').value = addresses.join('\n');
+      }
+    } else {
+      document.getElementById('batch-addresses').value = lines.join('\n');
+    }
+    updateBatchAddressCount();
+  };
+  reader.readAsText(file);
+}
+
+async function submitBatch() {
+  if (!currentKey) { openSignup(); return; }
+  const ta = document.getElementById('batch-addresses');
+  const addresses = ta.value.split('\n').map(l => l.trim()).filter(l => l);
+  if (!addresses.length) { showToast('Enter at least one address', 'error'); return; }
+  if (addresses.length > 500) { showToast('Maximum 500 addresses per batch', 'error'); return; }
+
+  const btn = document.getElementById('batch-submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Submitting...';
+
+  try {
+    const r = await fetch(API + '/v1/batch/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-API-Key': currentKey },
+      body: JSON.stringify({ addresses }),
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || 'Batch submit failed');
+
+    currentBatchJobId = d.job_id;
+    showToast('Batch submitted — processing ' + addresses.length + ' addresses', 'success');
+
+    // Show progress area
+    document.getElementById('batch-progress-area').style.display = 'block';
+    document.getElementById('batch-progress-status').textContent = 'Pending...';
+    document.getElementById('batch-progress-status').style.color = '#fbbf24';
+    document.getElementById('batch-progress-bar').style.width = '0%';
+    document.getElementById('batch-progress-text').textContent = '0 / ' + addresses.length + ' addresses';
+    document.getElementById('batch-progress-time').textContent = 'Estimating...';
+    document.getElementById('batch-results-area').style.display = 'none';
+
+    // Start polling
+    if (batchPollTimer) clearInterval(batchPollTimer);
+    batchPollTimer = setInterval(() => pollBatchJob(d.job_id, addresses.length), 2000);
+  } catch (e) {
+    showToast(e.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Submit Batch';
+  }
+}
+
+async function pollBatchJob(jobId, total) {
+  try {
+    const r = await fetch(API + '/v1/batch/' + jobId, {
+      headers: { 'X-API-Key': currentKey },
+    });
+    const d = await r.json();
+    if (!r.ok) return;
+
+    const pct = total > 0 ? Math.round((d.processed / total) * 100) : 0;
+    document.getElementById('batch-progress-bar').style.width = pct + '%';
+    document.getElementById('batch-progress-text').textContent = d.processed + ' / ' + total + ' addresses';
+
+    if (d.status === 'processing') {
+      document.getElementById('batch-progress-status').textContent = 'Processing...';
+      document.getElementById('batch-progress-status').style.color = '#818cf8';
+      const eta = total > 0 && d.processed > 0 ? Math.round((total - d.processed) * 0.5) : '...';
+      document.getElementById('batch-progress-time').textContent = eta === '...' ? 'Estimating...' : '~' + eta + 's remaining';
+    } else if (d.status === 'complete') {
+      clearInterval(batchPollTimer);
+      batchPollTimer = null;
+      document.getElementById('batch-progress-status').textContent = 'Complete';
+      document.getElementById('batch-progress-status').style.color = '#22c55e';
+      document.getElementById('batch-progress-bar').style.width = '100%';
+      document.getElementById('batch-progress-time').textContent = 'Done';
+      batchResults = d.results || [];
+      renderBatchResults(batchResults);
+      loadBatchHistory();
+    } else if (d.status === 'failed') {
+      clearInterval(batchPollTimer);
+      batchPollTimer = null;
+      document.getElementById('batch-progress-status').textContent = 'Failed';
+      document.getElementById('batch-progress-status').style.color = '#ef4444';
+      document.getElementById('batch-progress-time').textContent = d.error || 'Unknown error';
+    }
+  } catch (e) {
+    console.error('Batch poll error:', e);
+  }
+}
+
+function renderBatchResults(results) {
+  const area = document.getElementById('batch-results-area');
+  const tbody = document.getElementById('batch-results-body');
+  area.style.display = 'block';
+  tbody.innerHTML = results.map(r => `
+    <tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:8px 12px;font-weight:500;max-width:280px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(r.address)}</td>
+      <td style="padding:8px;text-align:center;font-weight:600;color:${r.permits_found > 0 ? '#22c55e' : 'var(--text3)'}">${r.permits_found}</td>
+      <td style="padding:8px;text-align:center;font-weight:600;color:${r.violations > 0 ? '#ef4444' : 'var(--text3)'}">${r.violations}</td>
+      <td style="padding:8px;text-align:center;font-weight:600;color:${r.sales > 0 ? '#818cf8' : 'var(--text3)'}">${r.sales}</td>
+      <td style="padding:8px;text-align:center;font-weight:600;color:${r.septic > 0 ? '#fbbf24' : 'var(--text3)'}">${r.septic}</td>
+      <td style="padding:8px 12px;font-size:12px;color:var(--text3)">${(r.risk_signals || []).map(s => '<span style="display:inline-block;padding:2px 8px;margin:1px 2px;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.2);border-radius:10px;font-size:11px;color:#fbbf24">' + escapeHtml(s) + '</span>').join('')}</td>
+    </tr>
+  `).join('');
+}
+
+function exportBatchCSV() {
+  if (!batchResults.length) { showToast('No results to export', 'error'); return; }
+  const header = 'Address,Permits Found,Violations,Sales,Septic,Risk Signals\n';
+  const rows = batchResults.map(r =>
+    '"' + (r.address || '').replace(/"/g, '""') + '",' +
+    r.permits_found + ',' + r.violations + ',' + r.sales + ',' + r.septic + ',' +
+    '"' + (r.risk_signals || []).join('; ').replace(/"/g, '""') + '"'
+  ).join('\n');
+  const blob = new Blob([header + rows], { type: 'text/csv' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'batch_results_' + new Date().toISOString().slice(0,10) + '.csv';
+  a.click();
+  showToast('CSV downloaded', 'success');
+}
+
+async function loadBatchHistory() {
+  if (!currentKey) return;
+  try {
+    const r = await fetch(API + '/v1/batch/history', {
+      headers: { 'X-API-Key': currentKey },
+    });
+    if (!r.ok) {
+      if (r.status === 403) {
+        document.getElementById('batch-history-list').innerHTML = '<div style="color:var(--text3);font-size:13px">Batch Address Lookup requires Pro Leads plan or higher. <a href="#pricing" onclick="showPage(\'pricing\')" style="color:var(--accent2)">View Plans</a></div>';
+        return;
+      }
+      return;
+    }
+    const jobs = await r.json();
+    const el = document.getElementById('batch-history-list');
+    if (!jobs.length) {
+      el.innerHTML = '<div style="color:var(--text3)">No batch jobs yet. Submit your first batch above.</div>';
+      return;
+    }
+    el.innerHTML = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr style="border-bottom:2px solid var(--border);text-align:left"><th style="padding:8px 12px;font-weight:700;color:var(--text2)">Job ID</th><th style="padding:8px;font-weight:700;color:var(--text2)">Status</th><th style="padding:8px;font-weight:700;color:var(--text2)">Addresses</th><th style="padding:8px;font-weight:700;color:var(--text2)">Processed</th><th style="padding:8px;font-weight:700;color:var(--text2)">Created</th></tr></thead><tbody>' +
+      jobs.map(j => {
+        const statusColor = j.status === 'complete' ? '#22c55e' : j.status === 'failed' ? '#ef4444' : j.status === 'processing' ? '#818cf8' : '#fbbf24';
+        const created = j.created_at ? new Date(j.created_at).toLocaleString() : '—';
+        return `<tr style="border-bottom:1px solid var(--border);cursor:pointer" onclick="viewBatchJob('${j.job_id}')"><td style="padding:8px 12px;font-family:monospace;font-size:12px">${j.job_id.slice(0,8)}...</td><td style="padding:8px"><span style="padding:2px 10px;border-radius:10px;font-size:12px;font-weight:600;color:${statusColor};background:${statusColor}18;border:1px solid ${statusColor}30">${j.status}</span></td><td style="padding:8px;font-weight:600">${j.total_addresses}</td><td style="padding:8px">${j.processed}</td><td style="padding:8px;color:var(--text3)">${created}</td></tr>`;
+      }).join('') + '</tbody></table></div>';
+  } catch (e) {
+    console.error('Batch history error:', e);
+  }
+}
+
+async function viewBatchJob(jobId) {
+  if (!currentKey) return;
+  try {
+    const r = await fetch(API + '/v1/batch/' + jobId, {
+      headers: { 'X-API-Key': currentKey },
+    });
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.detail || 'Failed to load job');
+    if (d.status === 'complete' && d.results) {
+      batchResults = d.results;
+      renderBatchResults(batchResults);
+    } else {
+      showToast('Job status: ' + d.status, 'info');
+    }
+  } catch (e) {
+    showToast(e.message, 'error');
+  }
+}
+
+// ─── END BATCH LOOKUP ──────────────────────────────────────────────────
+
+// ─── DATA FRESHNESS ────────────────────────────────────────────────────
+let freshnessLoaded = false;
+
+async function loadFreshnessTable() {
+  try {
+    const r = await fetch(API + '/v1/freshness');
+    const d = await r.json();
+    if (!r.ok) throw new Error('Freshness fetch failed');
+
+    const tbody = document.getElementById('dash-freshness-body');
+    if (!tbody) return;
+
+    tbody.innerHTML = d.layers.map(l => {
+      const statusDot = l.status === 'fresh' ? '#22c55e' : l.status === 'warning' ? '#fbbf24' : l.status === 'stale' ? '#ef4444' : '#6b7280';
+      const statusLabel = l.status === 'fresh' ? 'Fresh' : l.status === 'warning' ? 'Warning' : l.status === 'stale' ? 'Stale' : 'Unknown';
+      const updatedStr = l.last_updated ? timeAgo(new Date(l.last_updated)) : 'Unknown';
+      const recordsStr = l.records ? l.records.toLocaleString() : '0';
+      return `<tr style="border-bottom:1px solid var(--border)">
+        <td style="padding:8px 12px;font-weight:600">${escapeHtml(l.name)}</td>
+        <td style="padding:8px;text-align:right;font-family:monospace;font-size:12px">${recordsStr}</td>
+        <td style="padding:8px;color:var(--text2)">${updatedStr}</td>
+        <td style="padding:8px"><span style="padding:2px 10px;border-radius:10px;font-size:11px;background:rgba(99,102,241,.08);color:#818cf8;border:1px solid rgba(99,102,241,.15)">${l.freshness}</span></td>
+        <td style="padding:8px;text-align:center"><span style="display:inline-flex;align-items:center;gap:5px;padding:3px 12px;border-radius:10px;font-size:11px;font-weight:600;color:${statusDot};background:${statusDot}15;border:1px solid ${statusDot}30"><span style="width:6px;height:6px;border-radius:50%;background:${statusDot}"></span>${statusLabel}</span></td>
+      </tr>`;
+    }).join('');
+
+    // Footer totals
+    const totalEl = document.getElementById('dash-freshness-total');
+    if (totalEl) totalEl.textContent = 'Total records: ' + (d.total_records || 0).toLocaleString();
+    const lastRunEl = document.getElementById('dash-freshness-last-run');
+    if (lastRunEl && d.last_scraper_run) lastRunEl.textContent = 'Last scraper run: ' + timeAgo(new Date(d.last_scraper_run));
+
+    freshnessLoaded = true;
+  } catch (e) {
+    console.error('Freshness load error:', e);
+  }
+}
+
+function timeAgo(date) {
+  const now = new Date();
+  const diff = now - date;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return 'Just now';
+  if (mins < 60) return mins + 'm ago';
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return hrs + 'h ago';
+  const days = Math.floor(hrs / 24);
+  if (days < 30) return days + 'd ago';
+  const months = Math.floor(days / 30);
+  return months + 'mo ago';
+}
+
+// Load freshness badge on the search page
+async function loadFreshnessBadge() {
+  try {
+    const r = await fetch(API + '/v1/freshness');
+    const d = await r.json();
+    if (!r.ok) return;
+    const badge = document.getElementById('hero-freshness-badge');
+    const text = document.getElementById('hero-freshness-text');
+    if (!badge || !text) return;
+    if (d.last_scraper_run) {
+      text.textContent = 'Data last updated: ' + timeAgo(new Date(d.last_scraper_run));
+      badge.style.display = 'inline-flex';
+    }
+  } catch (e) {
+    // Silently fail — badge is optional
+  }
+}
+
+// Load freshness badge on page load
+loadFreshnessBadge();
+
+// ─── END DATA FRESHNESS ────────────────────────────────────────────────
 </script>
 <!-- Contact Sales Modal -->
 <div id="contact-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);align-items:center;justify-content:center;backdrop-filter:blur(4px)">

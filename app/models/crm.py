@@ -106,6 +106,25 @@ class Activity(Base):
     )
 
 
+class BatchJob(Base):
+    """Async batch address lookup job."""
+    __tablename__ = "batch_jobs"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("api_users.id"), nullable=False, index=True)
+    status = Column(String(20), default="pending")  # pending/processing/complete/failed
+    total_addresses = Column(Integer, default=0)
+    processed = Column(Integer, default=0)
+    results = Column(JSONB, nullable=True)
+    error = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        Index("ix_batch_jobs_user_created", "user_id", "created_at"),
+    )
+
+
 class Webhook(Base):
     """User-configured webhook for event notifications (new permits, violations, price changes)."""
     __tablename__ = "webhooks"

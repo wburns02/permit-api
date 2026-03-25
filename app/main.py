@@ -25,7 +25,7 @@ from app.models.data_layers import (  # noqa: F401
     PropertySale, PropertyLien,
 )
 from app.models.dialer import CallLog, LeadStatus  # noqa: F401
-from app.models.crm import Contact, Deal, Note, Commission, Activity, Webhook  # noqa: F401
+from app.models.crm import Contact, Deal, Note, Commission, Activity, Webhook, BatchJob  # noqa: F401
 from app.models.quote import Quote  # noqa: F401
 from app.models.team import Team, TeamMember  # noqa: F401
 
@@ -56,6 +56,7 @@ from app.api.v1.crm import router as crm_router
 from app.api.v1.quotes import router as quotes_router
 from app.api.v1.analyst import router as analyst_router
 from app.api.v1.trends import router as trends_router
+from app.api.v1.batch import router as batch_router
 
 logger = logging.getLogger(__name__)
 
@@ -143,6 +144,7 @@ app.include_router(crm_router, prefix="/v1")
 app.include_router(quotes_router, prefix="/v1")
 app.include_router(analyst_router, prefix="/v1")
 app.include_router(trends_router, prefix="/v1")
+app.include_router(batch_router, prefix="/v1")
 
 
 @app.get("/health")
@@ -675,6 +677,26 @@ async def migrate_expansion():
             migrations.append(f"webhooks: {e}")
             await db.rollback()
 
+        # ---- Batch Jobs table ----
+        try:
+            await db.execute(text("""
+                CREATE TABLE IF NOT EXISTS batch_jobs (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    user_id UUID NOT NULL REFERENCES api_users(id),
+                    status VARCHAR(20) DEFAULT 'pending',
+                    total_addresses INTEGER DEFAULT 0,
+                    processed INTEGER DEFAULT 0,
+                    results JSONB,
+                    error TEXT,
+                    created_at TIMESTAMPTZ DEFAULT NOW(),
+                    completed_at TIMESTAMPTZ
+                )
+            """))
+            migrations.append("batch_jobs table created")
+        except Exception as e:
+            migrations.append(f"batch_jobs: {e}")
+            await db.rollback()
+
         # Indexes for new tables
         indexes = [
             "CREATE INDEX IF NOT EXISTS ix_cl_license ON contractor_licenses (license_number)",
@@ -767,6 +789,9 @@ async def migrate_expansion():
             # webhooks indexes
             "CREATE INDEX IF NOT EXISTS ix_webhooks_user ON webhooks (user_id)",
             "CREATE INDEX IF NOT EXISTS ix_webhooks_active ON webhooks (user_id, is_active)",
+            # batch_jobs indexes
+            "CREATE INDEX IF NOT EXISTS ix_batch_jobs_user ON batch_jobs (user_id)",
+            "CREATE INDEX IF NOT EXISTS ix_batch_jobs_user_created ON batch_jobs (user_id, created_at)",
         ]
         for idx_sql in indexes:
             try:
@@ -807,7 +832,7 @@ async def root():
 async def _spa_page():
     return FileResponse(STATIC_DIR / "index.html")
 
-for _path in ("/search", "/coverage", "/pricing", "/dashboard", "/contractors", "/alerts", "/properties", "/market", "/saved-searches", "/admin", "/dialer", "/crm", "/quotes", "/analyst", "/trends"):
+for _path in ("/search", "/coverage", "/pricing", "/dashboard", "/contractors", "/alerts", "/properties", "/market", "/saved-searches", "/admin", "/dialer", "/crm", "/quotes", "/analyst", "/trends", "/batch"):
     app.get(_path, include_in_schema=False)(_spa_page)
 
 
@@ -895,5 +920,9 @@ async def api_info():
             "webhooks_delete": "DELETE /v1/crm/webhooks/{id}",
             "webhooks_test": "POST /v1/crm/webhooks/{id}/test",
             "permits_export_csv": "GET /v1/permits/export?address=...&state=TX",
+            "batch_submit": "POST /v1/batch/submit",
+            "batch_status": "GET /v1/batch/{job_id}",
+            "batch_history": "GET /v1/batch/history",
+            "data_freshness": "GET /v1/freshness",
         },
     }
