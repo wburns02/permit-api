@@ -82,7 +82,8 @@ def build_filter_conditions(filters: dict) -> list:
     if city:
         conditions.append(func.upper(Permit.city) == city.upper())
     if state:
-        conditions.append(func.upper(Permit.state) == state.upper())
+        # Use direct equality — data is uppercase, and this enables partition pruning
+        conditions.append(Permit.state == state.upper())
     if zip_code:
         conditions.append(Permit.zip == zip_code)
     if permit_type:
