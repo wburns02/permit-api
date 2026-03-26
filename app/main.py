@@ -108,6 +108,7 @@ app.add_middleware(
     allow_origins=[
         settings.FRONTEND_URL,
         "https://permits.ecbtx.com",
+        "https://r730-2-1.tailad2d5f.ts.net",
         "http://localhost:5173",
         "http://localhost:3000",
     ],
