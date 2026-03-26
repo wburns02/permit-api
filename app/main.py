@@ -162,7 +162,7 @@ async def health():
 @app.post("/health/db/migrate-expansion")
 async def migrate_expansion():
     """Add new columns and tables for industry expansion."""
-    from app.database import async_session_maker
+    from app.database import primary_session_maker as async_session_maker
     from sqlalchemy import text
     migrations = []
     async with async_session_maker() as db:
@@ -872,18 +872,37 @@ async def migrate_expansion():
 
 @app.get("/health/db")
 async def health_db():
-    """Test database connectivity."""
+    """Test database connectivity for both primary and replica."""
     import time
-    from app.database import async_session_maker
+    from app.database import primary_session_maker, replica_session_maker, _replica_is_separate
     from sqlalchemy import text
+    result = {}
+
+    # Test primary (T430)
     t0 = time.time()
     try:
-        async with async_session_maker() as db:
+        async with primary_session_maker() as db:
             r = await db.execute(text("SELECT reltuples::bigint FROM pg_class WHERE relname = 'permits'"))
             count = r.scalar()
-        return {"status": "ok", "permits": count, "latency_ms": round((time.time() - t0) * 1000)}
+        result["primary"] = {"status": "ok", "permits": count, "latency_ms": round((time.time() - t0) * 1000)}
     except Exception as e:
-        return {"status": "error", "error": str(e), "latency_ms": round((time.time() - t0) * 1000)}
+        result["primary"] = {"status": "error", "error": str(e), "latency_ms": round((time.time() - t0) * 1000)}
+
+    # Test replica (R730-2)
+    if _replica_is_separate:
+        t0 = time.time()
+        try:
+            async with replica_session_maker() as db:
+                r = await db.execute(text("SELECT reltuples::bigint FROM pg_class WHERE relname = 'permits'"))
+                count = r.scalar()
+            result["replica"] = {"status": "ok", "permits": count, "latency_ms": round((time.time() - t0) * 1000)}
+        except Exception as e:
+            result["replica"] = {"status": "error", "error": str(e), "latency_ms": round((time.time() - t0) * 1000)}
+    else:
+        result["replica"] = {"status": "not_configured", "note": "Using primary for all queries"}
+
+    overall = "ok" if result["primary"]["status"] == "ok" else "degraded"
+    return {"status": overall, **result}
 
 
 STATIC_DIR = Path(__file__).parent / "static"

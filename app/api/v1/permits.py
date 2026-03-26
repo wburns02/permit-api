@@ -11,7 +11,7 @@ from sqlalchemy import text
 import csv
 import io
 
-from app.database import get_db
+from app.database import get_read_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
@@ -105,7 +105,7 @@ async def search(
     page: int = Query(1, ge=1, le=20),
     page_size: int = Query(25, ge=1, le=50),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """
     Search permits by address, location, or filters.
@@ -233,7 +233,7 @@ async def bulk_search(
     file: UploadFile = File(..., description="CSV with 'address' column"),
     state: str | None = Query(None, max_length=2),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """
     Bulk permit search. Upload a CSV with an 'address' column.
@@ -330,7 +330,7 @@ async def export_permits_csv(
     permit_type: str | None = Query(None),
     contractor: str | None = Query(None),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Export search results as CSV. Max 500 rows. Requires Explorer+."""
     plan = resolve_plan(user.plan)

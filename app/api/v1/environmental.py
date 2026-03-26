@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy import select, func, and_, case, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import get_read_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
@@ -50,7 +50,7 @@ async def environmental_risk(
     radius_miles: float = Query(1.0, ge=0.1, le=25.0, description="Search radius in miles"),
     state: str | None = Query(None, max_length=2, description="State (for flood zone lookup)"),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """
     Get environmental risk assessment for a location.
@@ -188,7 +188,7 @@ async def search_epa_facilities(
     page: int = Query(1, ge=1, le=20),
     page_size: int = Query(25, ge=1, le=50),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Search EPA-regulated facilities by state, city, or name."""
     plan = resolve_plan(user.plan)
@@ -256,7 +256,7 @@ async def search_epa_facilities(
 async def flood_zone_stats(
     request: Request,
     state: str = Query(..., max_length=2, description="State abbreviation"),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Public endpoint — FEMA flood zone statistics by state."""
     state_upper = state.upper()
@@ -296,7 +296,7 @@ async def flood_zone_stats(
 @router.get("/stats")
 async def environmental_stats(
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Public endpoint — environmental database statistics."""
     epa_total = await fast_count(db, "epa_facilities")

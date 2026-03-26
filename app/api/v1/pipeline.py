@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy import select, func, and_, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import get_read_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
@@ -100,7 +100,7 @@ async def permit_to_sale(
     zip: str = Query(..., min_length=5, max_length=5, description="5-digit ZIP code"),
     months: int = Query(12, ge=1, le=36, description="Lookback period in months"),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """
     Analyze a ZIP code's permit-to-sale pipeline.
@@ -224,7 +224,7 @@ async def hot_zips(
     limit: int = Query(25, ge=1, le=50, description="Number of results"),
     min_permits: int = Query(5, ge=1, description="Minimum permits to qualify"),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """
     Rank ZIP codes by combined permit + market heat score.
@@ -365,7 +365,7 @@ async def hot_zips(
 
 @router.get("/stats")
 async def pipeline_stats(
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """
     Public endpoint — pipeline database statistics.

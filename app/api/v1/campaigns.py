@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db, async_session_maker
+from app.database import get_db, primary_session_maker as async_session_maker
 from app.middleware.api_key_auth import get_current_user
 from app.models.api_key import ApiUser
 from app.models.email_campaign import EmailCampaign, EmailRecipient, EmailUnsubscribe

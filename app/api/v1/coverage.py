@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import get_read_db
 from app.models.permit import Permit, Jurisdiction
 from app.services.search_service import get_coverage
 from app.services.fast_counts import fast_count, safe_query
@@ -18,7 +18,7 @@ router = APIRouter(tags=["Coverage"])
 
 
 @router.get("/coverage")
-async def coverage(db: AsyncSession = Depends(get_db)):
+async def coverage(db: AsyncSession = Depends(get_read_db)):
     """
     Get list of supported jurisdictions with record counts.
 
@@ -47,7 +47,7 @@ async def coverage(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/stats")
-async def get_stats(db: AsyncSession = Depends(get_db)):
+async def get_stats(db: AsyncSession = Depends(get_read_db)):
     """Quick stats for the landing page hero section.
 
     Now connected directly to T430 via Tailscale — uses fast reltuples
@@ -102,7 +102,7 @@ DATA_LAYERS = [
 
 
 @router.get("/freshness")
-async def data_freshness(db: AsyncSession = Depends(get_db)):
+async def data_freshness(db: AsyncSession = Depends(get_read_db)):
     """Data freshness dashboard — shows when each data layer was last updated.
 
     Public endpoint, no auth required. Builds user trust by showing data recency.

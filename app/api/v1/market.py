@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy import select, func, and_, extract, case, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import get_read_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
@@ -27,7 +27,7 @@ async def market_activity(
     state: str | None = Query(None, max_length=2),
     months: int = Query(6, ge=1, le=24, description="Months of history"),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Monthly permit volume, top contractors, avg valuation, type breakdown for an area."""
     _require_pro(user)
@@ -119,7 +119,7 @@ async def market_hotspots(
     min_permits: int = Query(50, ge=1),
     limit: int = Query(25, ge=1, le=50),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """ZIP codes ranked by permit activity and growth rate."""
     _require_pro(user)

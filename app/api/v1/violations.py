@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy import select, func, and_, or_, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import get_read_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
@@ -28,7 +28,7 @@ async def violation_search(
     page: int = Query(1, ge=1, le=20),
     limit: int = Query(25, ge=1, le=50),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """
     Search code violations by address, city, state, status, and type.
@@ -117,7 +117,7 @@ async def property_violations(
     state: str | None = Query(None, max_length=2, description="2-letter state code"),
     city: str | None = Query(None),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """
     Get all code violations for a specific property address.
@@ -178,7 +178,7 @@ async def property_violations(
 @router.get("/stats")
 async def violation_stats(
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Public endpoint — code violation database statistics."""
     total = await fast_count(db, "code_violations")

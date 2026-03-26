@@ -18,7 +18,7 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.database import get_db, async_session_maker
+from app.database import get_read_db
 from app.middleware.api_key_auth import get_current_user
 from app.models.api_key import ApiUser, PlanTier, resolve_plan
 
@@ -233,7 +233,7 @@ async def analyst_query(
     body: AnalystRequest,
     request: Request,
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Natural language query over 800M+ property intelligence records.
 
@@ -383,7 +383,7 @@ async def property_report(
     city: str = Query(None, description="City"),
     state: str = Query(..., min_length=2, max_length=2, description="2-letter state code"),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Generate a comprehensive property report by querying ALL data layers.
 
@@ -949,7 +949,7 @@ async def property_report_html(
     city: str = Query(None, description="City"),
     state: str = Query(..., min_length=2, max_length=2, description="2-letter state code"),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Generate a printable HTML property intelligence report.
 

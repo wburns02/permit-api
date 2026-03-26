@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy import select, func, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import get_read_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
@@ -25,7 +25,7 @@ async def search_entities(
     page: int = Query(1, ge=1, le=20),
     page_size: int = Query(25, ge=1, le=50),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """
     Search business entities (LLCs, Corporations, LPs) by name.
@@ -95,7 +95,7 @@ async def lookup_entity(
     filing_number: str = Query(..., description="Filing/document number"),
     state: str = Query(..., max_length=2, description="State"),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Look up a specific business entity by filing number and state."""
     plan = resolve_plan(user.plan)
@@ -143,7 +143,7 @@ async def search_by_registered_agent(
     page: int = Query(1, ge=1, le=20),
     page_size: int = Query(25, ge=1, le=50),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """
     Find all entities with a specific registered agent.
@@ -199,7 +199,7 @@ async def search_by_registered_agent(
 @router.get("/stats")
 async def entity_stats(
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Public endpoint — business entity database statistics."""
     total = await fast_count(db, "business_entities")

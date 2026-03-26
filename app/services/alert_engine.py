@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import async_session_maker
+from app.database import primary_session_maker as async_session_maker
 from app.models.alert import PermitAlert, AlertFrequency
 from app.models.alert_history import AlertExecutionHistory
 from app.models.api_key import ApiUser

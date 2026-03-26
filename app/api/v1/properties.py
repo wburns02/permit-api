@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException, Request, UploadFil
 from sqlalchemy import select, func, and_, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import get_read_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
@@ -58,7 +58,7 @@ async def property_history(
     request: Request,
     address: str = Query(..., min_length=3, description="Property address"),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Get full permit history and risk signals for a single property."""
     await check_rate_limit(request, lookup_count=1)
@@ -83,7 +83,7 @@ async def bulk_property_report(
     request: Request,
     file: UploadFile = File(..., description="CSV with 'address' column"),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Upload CSV of addresses, get per-property permit history and risk signals."""
     plan = resolve_plan(user.plan)
@@ -140,7 +140,7 @@ async def portfolio_analysis(
     request: Request,
     file: UploadFile = File(..., description="CSV with 'address' column"),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Aggregate risk analysis across a portfolio of properties."""
     plan = resolve_plan(user.plan)

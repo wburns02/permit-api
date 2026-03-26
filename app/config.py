@@ -11,12 +11,14 @@ logger = logging.getLogger(__name__)
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
-    # Database
+    # Database (primary — handles writes)
     DATABASE_URL: str = "postgresql+asyncpg://localhost:5432/permit_api"
+    # Read replica (handles reads — falls back to DATABASE_URL if not set)
+    REPLICA_DATABASE_URL: str | None = None
 
-    @field_validator("DATABASE_URL", mode="before")
+    @field_validator("DATABASE_URL", "REPLICA_DATABASE_URL", mode="before")
     @classmethod
-    def convert_database_url(cls, v: str) -> str:
+    def convert_database_url(cls, v: str | None) -> str | None:
         if v and v.startswith("postgresql://"):
             return v.replace("postgresql://", "postgresql+asyncpg://", 1)
         return v

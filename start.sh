@@ -8,9 +8,9 @@ tailscale up --authkey="${TAILSCALE_AUTHKEY}" --hostname=permit-api-railway
 echo "Tailscale connected, waiting for routes..."
 sleep 5
 
-# Use Tailscale's built-in TCP forwarding via tsnet proxy
-# Forward local port 5432 to T430:5432 through Tailscale
-# Using a Python-based SOCKS5 proxy forwarder since socat SOCKS5 support is limited
+# SOCKS5 TCP proxy: forwards local ports through Tailscale to PostgreSQL servers
+# Port 5432 → T430 (100.122.216.15:5432) — primary, handles writes
+# Port 5433 → R730-2 (100.87.214.106:5432) — replica, handles reads
 python3 -c "
 import socket, threading, struct, sys
 
@@ -46,28 +46,43 @@ def forward(src, dst):
         try: dst.close()
         except: pass
 
-def handle_client(client):
-    try:
-        remote = socks5_connect('100.122.216.15', 5432)
-        t1 = threading.Thread(target=forward, args=(client, remote), daemon=True)
-        t2 = threading.Thread(target=forward, args=(remote, client), daemon=True)
-        t1.start()
-        t2.start()
-        t1.join()
-        t2.join()
-    except Exception as e:
-        print(f'Proxy error: {e}', file=sys.stderr)
-        try: client.close()
-        except: pass
+def make_handler(target_host, target_port, label):
+    def handle_client(client):
+        try:
+            remote = socks5_connect(target_host, target_port)
+            t1 = threading.Thread(target=forward, args=(client, remote), daemon=True)
+            t2 = threading.Thread(target=forward, args=(remote, client), daemon=True)
+            t1.start()
+            t2.start()
+            t1.join()
+            t2.join()
+        except Exception as e:
+            print(f'Proxy error ({label}): {e}', file=sys.stderr)
+            try: client.close()
+            except: pass
+    return handle_client
 
-server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-server.bind(('127.0.0.1', 5432))
-server.listen(50)
-print('SOCKS5 TCP proxy listening on 127.0.0.1:5432 -> R730-2:5432')
-while True:
-    client, addr = server.accept()
-    threading.Thread(target=handle_client, args=(client,), daemon=True).start()
+def start_proxy(local_port, target_host, target_port, label):
+    server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server.bind(('127.0.0.1', local_port))
+    server.listen(50)
+    print(f'SOCKS5 TCP proxy listening on 127.0.0.1:{local_port} -> {label} ({target_host}:{target_port})')
+    handler = make_handler(target_host, target_port, label)
+    while True:
+        client, addr = server.accept()
+        threading.Thread(target=handler, args=(client,), daemon=True).start()
+
+# Primary (T430) — writes
+t_primary = threading.Thread(target=start_proxy, args=(5432, '100.122.216.15', 5432, 'T430-primary'), daemon=True)
+t_primary.start()
+
+# Replica (R730-2) — reads
+t_replica = threading.Thread(target=start_proxy, args=(5433, '100.87.214.106', 5432, 'R730-2-replica'), daemon=True)
+t_replica.start()
+
+# Keep main thread alive
+t_primary.join()
 " &
 sleep 2
 

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy import select, func, and_, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import get_read_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
@@ -21,7 +21,7 @@ async def zip_valuation(
     property_type: str | None = Query(None, description="Filter: Single Family Residential, All Residential, etc."),
     quarters: int = Query(4, ge=1, le=20, description="Number of quarters of history"),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """
     Get property valuation and market data for a ZIP code.
@@ -107,7 +107,7 @@ async def compare_zips(
     request: Request,
     zips: str = Query(..., description="Comma-separated ZIP codes (max 10)"),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Compare latest market data across multiple ZIP codes."""
     plan = resolve_plan(user.plan)
@@ -171,7 +171,7 @@ async def hottest_markets(
     metric: str = Query("median_sale_price", description="Sort metric"),
     limit: int = Query(25, ge=1, le=50),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Get the hottest real estate markets ranked by various metrics."""
     plan = resolve_plan(user.plan)
@@ -248,7 +248,7 @@ async def hottest_markets(
 @router.get("/stats")
 async def valuation_stats(
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Public endpoint — property valuation database statistics."""
     total = await fast_count(db, "property_valuations")

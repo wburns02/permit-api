@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from fastapi import Request, HTTPException
 from fastapi.security import APIKeyHeader
 from sqlalchemy import select, update
-from app.database import async_session_maker
+from app.database import primary_session_maker as async_session_maker
 from app.models.api_key import ApiKey, ApiUser
 
 API_KEY_HEADER = APIKeyHeader(name="X-API-Key", auto_error=False)

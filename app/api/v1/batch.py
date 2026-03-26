@@ -14,7 +14,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
 
-from app.database import get_db
+from app.database import get_db, get_read_db
 from app.config import settings
 from app.middleware.api_key_auth import get_current_user
 from app.models.api_key import ApiUser, PlanTier, resolve_plan
@@ -270,7 +270,7 @@ async def batch_submit(
 @router.get("/history", response_model=list[BatchHistoryItem])
 async def batch_history(
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """List user's past batch jobs."""
     _require_pro_leads(user)
@@ -300,7 +300,7 @@ async def batch_history(
 async def batch_status(
     job_id: uuid.UUID,
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Get batch job status and results when complete."""
     _require_pro_leads(user)

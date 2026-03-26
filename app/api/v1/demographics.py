@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import get_read_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
@@ -37,7 +37,7 @@ async def county_demographics(
     state: str = Query(..., max_length=2, description="State abbreviation"),
     county_fips: str = Query(..., max_length=3, description="County FIPS code (3 digits)"),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """
     Get aggregated demographics for a county — median income, home values,
@@ -110,7 +110,7 @@ async def state_demographics(
     request: Request,
     state: str = Query(..., max_length=2, description="State abbreviation"),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Get aggregated demographics for an entire state."""
     plan = resolve_plan(user.plan)
@@ -189,7 +189,7 @@ async def tract_demographics(
     county_fips: str = Query(..., max_length=3),
     tract: str = Query(..., max_length=6),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Get block-group level demographics for a specific census tract."""
     plan = resolve_plan(user.plan)
@@ -256,7 +256,7 @@ async def tract_demographics(
 @router.get("/stats")
 async def demographics_stats(
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Public endpoint — census demographics database statistics."""
     total = await fast_count(db, "census_demographics")

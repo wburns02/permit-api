@@ -9,7 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timezone
 
 from app.config import settings
-from app.database import get_db, async_session_maker
+from app.database import get_db, primary_session_maker as async_session_maker
 from app.middleware.api_key_auth import get_current_user
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan, PLAN_MIGRATION
 from app.services.stripe_service import (

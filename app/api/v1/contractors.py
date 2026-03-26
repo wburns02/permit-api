@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy import select, func, and_, or_, case, extract
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import get_read_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
@@ -30,7 +30,7 @@ async def search_contractors(
     page: int = Query(1, ge=1, le=20),
     page_size: int = Query(20, ge=1, le=50),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """
     Search contractors by name or company. Returns aggregated contractor profiles
@@ -122,7 +122,7 @@ async def contractor_permits(
     page: int = Query(1, ge=1, le=20),
     page_size: int = Query(25, ge=1, le=50),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """
     Get all permits for a specific contractor. Shows their complete work history.
@@ -266,7 +266,7 @@ async def contractor_risk_score(
     contractor_name: str,
     request: Request,
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """
     Compute a composite risk score (0-100) for a contractor based on permit

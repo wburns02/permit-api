@@ -7,7 +7,7 @@ market momentum, and entity timelines.
 from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import get_read_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
@@ -65,7 +65,7 @@ async def zip_trends(
     zip: str = Query(..., min_length=5, max_length=10, description="ZIP code"),
     months: int = Query(12, ge=1, le=36, description="Months of history"),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """
     ZIP-level temporal analysis: permit velocity, price trends, violations,
@@ -92,7 +92,7 @@ async def contractor_trends(
     name: str = Query(..., min_length=2, max_length=300, description="Contractor name"),
     months: int = Query(24, ge=1, le=60, description="Months of history"),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """
     Track a contractor's activity and risk trajectory over time.
@@ -119,7 +119,7 @@ async def market_trends(
     state: str = Query(..., min_length=2, max_length=2, description="Two-letter state code"),
     months: int = Query(12, ge=1, le=36, description="Months of history"),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """
     State-level market momentum score combining permit velocity, home prices,
@@ -146,7 +146,7 @@ async def entity_trends(
     request: Request,
     name: str = Query(..., min_length=2, max_length=300, description="Entity/LLC name"),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """
     Chronological timeline of an LLC/entity across all data layers:
@@ -169,7 +169,7 @@ async def entity_trends(
 
 @router.get("/stats")
 async def trends_stats(
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Public stats for the temporal analysis engine."""
     from app.services.fast_counts import fast_count
@@ -215,7 +215,7 @@ async def trends_stats(
 async def market_anomalies(
     state: str = Query(None, min_length=2, max_length=2, description="Two-letter state code (optional)"),
     limit: int = Query(20, ge=1, le=50, description="Max anomalies to return"),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Detect unusual patterns across all data layers.
 

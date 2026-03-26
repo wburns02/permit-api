@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy import select, func, and_, or_, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import get_read_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
@@ -24,7 +24,7 @@ async def septic_lookup(
     state: str | None = Query(None, max_length=2),
     zip: str | None = Query(None, max_length=10),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """
     Look up septic/wastewater system info for a property.
@@ -111,7 +111,7 @@ async def nearby_septic(
     lng: float = Query(..., description="Longitude"),
     radius_miles: float = Query(1.0, ge=0.1, le=10.0),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Find septic systems within a radius of a location."""
     plan = resolve_plan(user.plan)
@@ -174,7 +174,7 @@ async def nearby_septic(
 @router.get("/stats")
 async def septic_stats(
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Public endpoint — septic system database statistics."""
     total = await fast_count(db, "septic_systems")

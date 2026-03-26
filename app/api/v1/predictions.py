@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy import select, func, and_, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import get_read_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
@@ -19,7 +19,7 @@ async def zip_prediction(
     request: Request,
     zip: str = Query(..., min_length=5, max_length=5, description="5-digit ZIP code"),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """
     Get permit prediction for a single ZIP code.
@@ -77,7 +77,7 @@ async def hotspots(
     state: str | None = Query(None, max_length=2, description="Filter by 2-letter state code"),
     limit: int = Query(50, ge=1, le=50, description="Number of results"),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """
     Get top predicted ZIP codes ranked by prediction score.
@@ -148,7 +148,7 @@ async def hotspots(
 @router.get("/stats")
 async def prediction_stats(
     request: Request,
-    db: AsyncSession = Depends(get_db),
+    db: AsyncSession = Depends(get_read_db),
 ):
     """Public endpoint — predictive model metadata and statistics."""
     total_predictions = await fast_count(db, "permit_predictions")
