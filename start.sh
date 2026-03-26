@@ -48,7 +48,7 @@ def forward(src, dst):
 
 def handle_client(client):
     try:
-        remote = socks5_connect('100.87.214.106', 5432)
+        remote = socks5_connect('100.122.216.15', 5432)
         t1 = threading.Thread(target=forward, args=(client, remote), daemon=True)
         t2 = threading.Thread(target=forward, args=(remote, client), daemon=True)
         t1.start()
