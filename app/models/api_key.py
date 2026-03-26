@@ -25,10 +25,12 @@ class PlanTier(str, enum.Enum):
     PRO = "pro"                 # legacy alias -> treated as PRO_LEADS
 
 
-# Map legacy plan names to current tiers
+# Map legacy plan names to current tiers (6→4 simplification)
 PLAN_MIGRATION: dict[str, "PlanTier"] = {
-    "starter": PlanTier.EXPLORER,
-    "pro": PlanTier.PRO_LEADS,
+    "starter": PlanTier.EXPLORER,      # → Pro ($79)
+    "pro": PlanTier.PRO_LEADS,         # → Business ($249)
+    "realtime": PlanTier.PRO_LEADS,    # → Business ($249) — merge into Business
+    "intelligence": PlanTier.ENTERPRISE,  # → Enterprise (custom)
 }
 
 

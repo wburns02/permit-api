@@ -49,7 +49,7 @@ class Settings(BaseSettings):
     RATE_LIMIT_STARTER: int = 50        # legacy, mapped to Explorer
     RATE_LIMIT_PRO: int = 150           # legacy, mapped to Pro Leads
     RATE_LIMIT_EXPLORER: int = 50
-    RATE_LIMIT_PRO_LEADS: int = 150
+    RATE_LIMIT_PRO_LEADS: int = 250     # was 150, now "Business" tier gets more
     RATE_LIMIT_REALTIME: int = 500
     RATE_LIMIT_ENTERPRISE: int = 2000
     OVERAGE_COST_CENTS: int = 10  # $0.10 per lookup over limit
