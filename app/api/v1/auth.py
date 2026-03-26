@@ -252,48 +252,19 @@ async def signup(body: SignupRequest, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/demo")
-async def demo_login(db: AsyncSession = Depends(get_db)):
+async def demo_login():
     """
-    Get a demo API key. Creates a demo account if it doesn't exist,
-    or generates a fresh key for the existing demo account.
-    Intended for investors, prospects, and quick exploration.
+    Get the demo API key instantly — no database hit.
+    The demo account is pre-created on T430.
     """
-    demo_email = "demo@permitlookup.com"
-
-    # Check if demo user exists
-    result = await db.execute(
-        select(ApiUser).where(func.lower(ApiUser.email) == demo_email)
-    )
-    user = result.scalar_one_or_none()
-
-    if not user:
-        # Create demo user with Enterprise plan for full access demo
-        user = ApiUser(
-            email=demo_email,
-            company_name="PermitLookup Demo",
-            plan=PlanTier.ENTERPRISE,
-        )
-        db.add(user)
-        await db.flush()
-
-    # Generate a fresh key for this demo session
-    raw_key = ApiKey.generate_key()
-    api_key = ApiKey(
-        user_id=user.id,
-        key_hash=hash_api_key(raw_key),
-        key_prefix=raw_key[:12],
-        name=f"Demo {date.today().isoformat()}",
-    )
-    db.add(api_key)
-    await db.commit()
-
-    plan = resolve_plan(user.plan)
+    # Pre-existing demo key (created directly on T430)
+    # This avoids the slow SOCKS proxy write entirely
+    DEMO_KEY = "pl_live_iQIhA0cTg50qP1nW6ITuzwz7ltHdQF4iYhi_uP8eEYA"
     return {
-        "api_key": raw_key,
-        "user_id": str(user.id),
-        "email": user.email,
-        "company_name": user.company_name,
-        "plan": plan.value,
+        "api_key": DEMO_KEY,
+        "email": "demo@permitlookup.com",
+        "company_name": "PermitLookup Demo",
+        "plan": "enterprise",
         "message": "Demo account ready. Full Enterprise access for exploration.",
     }
 
