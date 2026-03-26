@@ -1726,131 +1726,72 @@ results.forEach(p =>
         </div>
       </div>
 
-      <!-- Intelligence Hero Card -->
-      <div style="margin-bottom:32px;background:linear-gradient(135deg,rgba(245,158,11,.08),rgba(217,119,6,.08));border:2px solid rgba(245,158,11,.4);border-radius:var(--radius);padding:32px;display:flex;align-items:center;gap:40px;flex-wrap:wrap">
-        <div style="flex:1;min-width:280px">
-          <div style="display:inline-block;background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;font-weight:800;font-size:11px;padding:4px 12px;border-radius:4px;text-transform:uppercase;letter-spacing:1px;margin-bottom:12px">Most Powerful</div>
-          <h3 style="font-size:28px;font-weight:800;color:var(--text1);margin-bottom:8px">Intelligence Plan</h3>
-          <p style="color:var(--text2);font-size:15px;margin-bottom:16px;line-height:1.5">AI-powered property intelligence for teams. Predictive permit forecasting, contractor risk scoring, LLC piercing, permit-to-sale pipeline tracking, oil &amp; gas well data, healthcare provider data, international coverage (UK + Australia), and custom ML models on your data. Everything you need to make smarter decisions faster.</p>
-          <div style="display:flex;gap:24px;flex-wrap:wrap;margin-bottom:16px">
-            <div><span style="color:#f59e0b;font-weight:700">5,000</span> <span style="color:var(--text3);font-size:13px">lookups/day</span></div>
-            <div><span style="color:#f59e0b;font-weight:700">50+</span> <span style="color:var(--text3);font-size:13px">data layers</span></div>
-            <div><span style="color:#f59e0b;font-weight:700">835M+</span> <span style="color:var(--text3);font-size:13px">records</span></div>
-            <div><span style="color:#f59e0b;font-weight:700">AI</span> <span style="color:var(--text3);font-size:13px">predictive models</span></div>
-          </div>
-          <div style="display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--text3)">
-            <span style="background:var(--surface2);padding:3px 10px;border-radius:4px">Predictive Analytics</span>
-            <span style="background:var(--surface2);padding:3px 10px;border-radius:4px">Risk Scoring</span>
-            <span style="background:var(--surface2);padding:3px 10px;border-radius:4px">LLC Piercing</span>
-            <span style="background:var(--surface2);padding:3px 10px;border-radius:4px">Pipeline Tracking</span>
-            <span style="background:var(--surface2);padding:3px 10px;border-radius:4px">Deed/Sale History</span>
-            <span style="background:var(--surface2);padding:3px 10px;border-radius:4px">Lien Search</span>
-            <span style="background:var(--surface2);padding:3px 10px;border-radius:4px">Custom ML Models</span>
-            <span style="background:var(--surface2);padding:3px 10px;border-radius:4px">International (US + UK + Australia)</span>
-            <span style="background:var(--surface2);padding:3px 10px;border-radius:4px">Mobile App (PWA)</span>
-          </div>
-        </div>
-        <div style="text-align:center;min-width:200px">
-          <div style="font-size:48px;font-weight:800;color:var(--text1)">$2,499<span style="font-size:18px;font-weight:400;color:var(--text3)">/mo</span></div>
-          <div style="font-size:13px;color:var(--text3);margin-bottom:16px">Everything in Enterprise + AI</div>
-          <a class="btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#000;font-weight:700;font-size:16px;padding:14px 40px;display:inline-block;border-radius:8px;text-decoration:none" href="#" onclick="subscribe('intelligence');return false">Contact Sales</a>
-          <div style="font-size:11px;color:var(--text3);margin-top:8px">Dedicated account manager included</div>
-        </div>
-      </div>
-
-      <!-- Standard Plans -->
+      <!-- Pricing Cards — 4 tiers -->
       <div class="pricing-grid">
         <div class="price-card">
           <div class="plan-name">Free</div>
-          <div class="plan-tagline">Perfect for research &amp; analytics</div>
+          <div class="plan-tagline">Try it out, no credit card needed</div>
           <div class="price">$0</div>
           <div class="limits">10 lookups / day</div>
           <div class="freshness-badge" style="background:linear-gradient(135deg,rgba(107,114,128,.2),rgba(71,85,105,.2));color:#94a3b8;border:1px solid rgba(107,114,128,.3)">&#x2744;&#xFE0F; Cold data only (180+ days)</div>
           <ul>
-            <li>Permit search (835M+ records across 50+ data layers)</li>
-            <li>Basic search + Advanced filters</li>
+            <li>Basic permit search</li>
+            <li>835M+ records across 50 states</li>
+            <li>Advanced filters</li>
             <li>2 monitoring alerts</li>
-            <li>Contractor Intelligence</li>
-            <li>FEMA flood zone stats</li>
             <li>1 API key</li>
           </ul>
-          <a class="btn" href="#" onclick="openSignup();return false">Get Free API Key</a>
+          <a class="btn" href="#" onclick="openSignup();return false">Start Free</a>
         </div>
         <div class="price-card">
-          <div class="plan-name">Explorer</div>
-          <div class="plan-tagline">Great for market research</div>
+          <div class="plan-name">Pro</div>
+          <div class="plan-tagline">For researchers &amp; solo operators</div>
           <div class="price">$79<span>/mo</span></div>
           <div class="limits">50 lookups / day</div>
-          <div class="freshness-badge" style="background:linear-gradient(135deg,rgba(6,182,212,.15),rgba(59,130,246,.15));color:#38bdf8;border:1px solid rgba(6,182,212,.3)">&#x1F324;&#xFE0F; Mild + Cold (90+ days)</div>
+          <div class="freshness-badge" style="background:linear-gradient(135deg,rgba(6,182,212,.15),rgba(59,130,246,.15));color:#38bdf8;border:1px solid rgba(6,182,212,.3)">&#x1F324;&#xFE0F; 90-day data freshness</div>
           <ul>
             <li>Everything in Free</li>
+            <li>Contractor search + profiles</li>
+            <li>Coverage map visualization</li>
             <li>25 monitoring alerts</li>
             <li>Saved searches + email digests</li>
-            <li>Contractor profiles + risk scores</li>
-            <li>Property Intelligence drill-down</li>
-            <li>Census demographics</li>
-            <li>Property valuations by ZIP</li>
             <li>CSV export</li>
             <li>Mobile app (PWA)</li>
           </ul>
-          <a class="btn" href="#" onclick="subscribe('explorer');return false">Subscribe</a>
+          <a class="btn" href="#" onclick="subscribe('explorer');return false">Start Pro</a>
         </div>
         <div class="price-card featured">
-          <div class="plan-name">Pro Leads</div>
-          <div class="plan-tagline">Best for active prospecting</div>
+          <div class="plan-name">Business</div>
+          <div class="plan-tagline">Best for active prospecting teams</div>
           <div class="price">$249<span>/mo</span></div>
-          <div class="limits">150 lookups / day</div>
-          <div class="freshness-badge" style="background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(234,179,8,.15));color:#fbbf24;border:1px solid rgba(245,158,11,.3)">&#x2600;&#xFE0F; Warm + Mild + Cold (30+ days)</div>
+          <div class="limits">250 lookups / day</div>
+          <div class="freshness-badge" style="background:linear-gradient(135deg,rgba(239,68,68,.15),rgba(249,115,22,.15));color:#f87171;border:1px solid rgba(239,68,68,.3)">&#x1F525; All data, no freshness restriction</div>
           <ul>
-            <li>Everything in Explorer</li>
-            <li>100 alerts + webhooks</li>
+            <li>Everything in Pro</li>
             <li><strong>AI Analyst</strong> (natural language queries)</li>
-            <li><strong>Sales Dialer</strong> (click-to-call + AI summaries)</li>
-            <li><strong>CRM</strong> (contacts, deals, pipeline)</li>
-            <li><strong>Quote Builder</strong></li>
+            <li><strong>Risk Score</strong> + Property Reports</li>
+            <li>Contact enrichment (phone + email)</li>
+            <li>100 alerts + webhooks</li>
             <li>Contractor license verification</li>
-            <li>Code violation history</li>
             <li>Business entity / LLC search</li>
-            <li>Septic system data</li>
-            <li>Environmental risk (EPA + FEMA)</li>
-            <li>Property reports ("Carfax for buildings")</li>
             <li>Batch address lookup (500/batch)</li>
             <li>Permit-to-sale pipeline</li>
           </ul>
-          <a class="btn" href="#" onclick="subscribe('pro_leads');return false">Subscribe</a>
-        </div>
-        <div class="price-card">
-          <div class="plan-name">Real-Time</div>
-          <div class="plan-tagline">For sales teams that need leads FIRST</div>
-          <div class="price">$599<span>/mo</span></div>
-          <div class="limits">500 lookups / day</div>
-          <div class="freshness-badge" style="background:linear-gradient(135deg,rgba(239,68,68,.15),rgba(249,115,22,.15));color:#f87171;border:1px solid rgba(239,68,68,.3)">&#x1F525; ALL data including HOT (0-30 days)</div>
-          <ul>
-            <li>Everything in Pro Leads</li>
-            <li>500 alerts + instant notifications</li>
-            <li>Contact enrichment (phone + email)</li>
-            <li><strong>Predictive analytics</strong> (AI permit forecasting)</li>
-            <li><strong>Anomaly detection</strong> (market spike alerts)</li>
-            <li><strong>Temporal trends</strong> (ZIP/contractor/market trajectory)</li>
-            <li>Hot ZIP rankings</li>
-            <li>Real-time permit stream</li>
-            <li>Priority API access</li>
-          </ul>
-          <a class="btn" href="#" onclick="subscribe('realtime');return false">Subscribe</a>
+          <a class="btn" href="#" onclick="subscribe('pro_leads');return false">Start Business</a>
         </div>
         <div class="price-card">
           <div class="plan-name">Enterprise</div>
-          <div class="plan-tagline">Full power, no limits</div>
-          <div class="price">$1,499<span>/mo</span></div>
-          <div class="limits">2,000 lookups / day</div>
-          <div class="freshness-badge" style="background:linear-gradient(135deg,rgba(239,68,68,.15),rgba(249,115,22,.15));color:#f87171;border:1px solid rgba(239,68,68,.3)">&#x1F525; Everything in Real-Time</div>
+          <div class="plan-tagline">Full power for large teams</div>
+          <div class="price" style="font-size:28px">Custom</div>
+          <div class="limits">Unlimited lookups</div>
+          <div class="freshness-badge" style="background:linear-gradient(135deg,rgba(239,68,68,.15),rgba(249,115,22,.15));color:#f87171;border:1px solid rgba(239,68,68,.3)">&#x1F525; Everything in Business + more</div>
           <ul>
-            <li>Everything in Real-Time</li>
-            <li><strong>Team management</strong> + territories</li>
-            <li><strong>Leaderboard</strong> + commission tracking</li>
+            <li>Everything in Business</li>
+            <li>White-label API + webhooks</li>
             <li>Custom data feeds</li>
+            <li><strong>Team management</strong> + territories</li>
             <li>Dedicated support + SLA</li>
-            <li>White-label option</li>
+            <li>Custom ML models on your data</li>
           </ul>
           <a class="btn" href="#" onclick="subscribe('enterprise');return false">Contact Sales</a>
         </div>
@@ -1861,7 +1802,7 @@ results.forEach(p =>
       <div style="margin-top:56px">
         <div class="enrichment-section">
           <h3>Per-Lead Enrichment</h3>
-          <p class="enrich-subtitle">Add contact details to any permit lead. Available on Pro Leads and above.</p>
+          <p class="enrich-subtitle">Add contact details to any permit lead. Available on Business and above.</p>
           <div class="enrichment-grid">
             <div class="enrichment-item">
               <span class="ei-name">Phone Number</span>
@@ -1880,7 +1821,7 @@ results.forEach(p =>
               <span class="ei-price">$5<span style="font-size:12px;font-weight:400;color:var(--text3)">/lead</span></span>
             </div>
           </div>
-          <p class="enrichment-note">Available on Pro Leads ($249/mo) and above. Enrichment credits are pay-as-you-go.</p>
+          <p class="enrichment-note">Available on Business ($249/mo) and above. Enrichment credits are pay-as-you-go.</p>
         </div>
       </div>
 
