@@ -1,4 +1,4 @@
-const CACHE_NAME = 'permitlookup-v1';
+const CACHE_NAME = 'permitlookup-v3';
 const STATIC_ASSETS = [
     '/',
     '/static/manifest.json',
