@@ -315,6 +315,143 @@ Email 3 (Day 7) — The Close:
 | Roofer declines to pay | Low-Medium | Medium | Offer 3 months at $49 or find second pilot from permit data |
 | Data accuracy questioned | Medium | High | Publish freshness dates per jurisdiction on coverage page |
 | TCPA liability from dialer/cold email | Low | Critical | CAN-SPAM compliance in all emails, no auto-dialing |
+| Demo key abuse (data scraping) | Medium | High | Rate-limit demo key to 25 lookups/day; load from env var, not hardcoded |
+| Sending domain blacklisted | Medium | High | SPF/DKIM/DMARC on all 3 domains; warmup 14 days before sending |
+| No uptime monitoring | High | Medium | Add free UptimeRobot monitor on Day 1 |
+
+---
+
+## Appendix A: Pricing Migration Details
+
+### Tier Mapping (Old → New)
+
+| Old Tier (codebase) | Old Price | → New Tier | New Price | New Daily Limit |
+|---------------------|-----------|-----------|-----------|-----------------|
+| FREE | $0 | **Free** | $0 | 10 |
+| STARTER (legacy alias) | — | **Free** | $0 | 10 |
+| EXPLORER | $79 | **Pro** | $79 | 50 |
+| PRO (legacy alias) | — | **Pro** | $79 | 50 |
+| PRO_LEADS | $249 | **Business** | $249 | 250 |
+| REALTIME | $599 | **Business** | $249 | 250 |
+| ENTERPRISE | $1,499 | **Enterprise** | Custom | 2,000 |
+| INTELLIGENCE | $2,499 | **Enterprise** | Custom | 2,000 |
+
+### Database Migration
+
+Since there are zero existing paying customers and only 1 pilot user (roofer), this is a safe migration:
+
+```sql
+-- Update PlanTier enum values (run on T430 primary)
+-- No Alembic — run directly since we have 0 paying customers
+ALTER TYPE plan_tier ADD VALUE IF NOT EXISTS 'pro';
+ALTER TYPE plan_tier ADD VALUE IF NOT EXISTS 'business';
+
+-- Update the pilot roofer to new tier name
+UPDATE api_users SET plan = 'pro' WHERE plan IN ('explorer', 'pro_leads');
+UPDATE api_users SET plan = 'business' WHERE plan IN ('realtime');
+UPDATE api_users SET plan = 'enterprise' WHERE plan IN ('intelligence');
+```
+
+### Stripe Products
+
+Create new Stripe products/prices in dashboard:
+- Pro: $79/mo recurring (new price ID)
+- Business: $249/mo recurring (new price ID)
+- Enterprise: no Stripe product (manual invoicing)
+
+Update `stripe_service.py` with new price IDs.
+
+### Backend Code Changes
+
+- `PlanTier` enum: keep all old values for backward compat, add PRO and BUSINESS
+- `resolve_plan()`: map all legacy names to new names
+- `config.py` rate limits: Free=10, Pro=50, Business=250, Enterprise=2000
+- `stripe_service.py`: new price IDs, new limit functions
+
+---
+
+## Appendix B: Demo Key Security
+
+The demo key (`pl_live_iQIhA0cTg50qP1nW6ITuzwz7ltHdQF4iYhi_uP8eEYA`) is currently:
+- Hardcoded in `auth.py` line 262
+- Returns Enterprise-level access
+- No separate rate limiting
+
+### Fix:
+1. Move demo key to environment variable `DEMO_API_KEY`
+2. Create a `DEMO` plan tier with 25 lookups/day limit
+3. Demo results include fingerprinting (already implemented)
+4. Shadow-throttle demo key if abuse detected (already implemented)
+
+---
+
+## Appendix C: Cold Email Deliverability
+
+### Domain Setup (per sending domain)
+
+| Record | Value |
+|--------|-------|
+| SPF | `v=spf1 include:_spf.instantly.ai ~all` |
+| DKIM | Provided by Instantly.ai during setup |
+| DMARC | `v=DMARC1; p=none; rua=mailto:dmarc@permitdata.io` |
+
+### Warmup Schedule
+
+| Day | Emails/day per domain | Total across 3 domains |
+|-----|----------------------|----------------------|
+| 1-3 | 5 | 15 |
+| 4-7 | 15 | 45 |
+| 8-10 | 30 | 90 |
+| 11-14 | 50 | 150 |
+| 15+ | 100 | 300 (ready for real sends) |
+
+### Email Merge Fields
+
+The subject line "7 new building permits filed in [COUNTY] this week" requires computing actual county-level weekly permit counts. Implementation:
+- Nightly cron query: `SELECT county, state_code, COUNT(*) FROM permits WHERE date_created > NOW() - INTERVAL '7 days' GROUP BY county, state_code`
+- Store in `county_weekly_stats` table
+- Email merge pulls from this table per recipient's county
+
+### Insurance Agent List Source
+
+The 224K contacts are from state insurance commissioner public license databases (11 states), scraped as part of the professional license data pipeline. These are public records, not purchased lists, which satisfies both CAN-SPAM sourcing requirements and Instantly.ai's terms of service.
+
+---
+
+## Appendix D: Nav Page IDs (for implementation)
+
+Items to **keep visible** (exact `showPage()` IDs):
+
+| Display Name | Page ID | Notes |
+|-------------|---------|-------|
+| Search | `home` | Home page with search box |
+| Contractors | `contractors` | Fix: make name param optional |
+| AI Analyst | `analyst` | Fix: verify Claude API key on R730-2 |
+| Pricing | `pricing` | Update tiers |
+| API Docs | `docs` | External link to /docs |
+| Risk Score | `risk` | Wire to analyst/report endpoint |
+| Property Report | `report` | Wire to analyst/report/html |
+| Coverage Map | `coverage` | Fix: populate jurisdictions table |
+| Batch Lookup | `batch` | Verify endpoint works |
+
+Items to **hide** (comment out in nav HTML):
+`alerts`, `leads`, `dialer`, `crm`, `playground`, `watchlist`, `momentum`, `owner-intel`, `value-analytics`, `compare`, `jurisdiction-intel`, `estimator`, `requirements`, `feed`, `passport`
+
+---
+
+## Appendix E: Monthly Operating Costs
+
+| Item | Cost | When |
+|------|------|------|
+| Instantly.ai (cold email) | $97/mo | Day 7 |
+| 3 sending domains | ~$30/yr | Day 7 |
+| Cloudflare | $0 (free tier) | Day 4 |
+| UptimeRobot | $0 (free tier) | Day 1 |
+| Anthropic Claude API | ~$50-200/mo | Already budgeted |
+| SendGrid | $0-20/mo (free tier) | Already set up |
+| Stripe fees | 2.9% + $0.30/txn | On revenue |
+| **Total pre-revenue** | **~$100-130/mo** | |
+| **Breakeven** | **2 Pro customers ($158/mo)** | |
 
 ---
 
