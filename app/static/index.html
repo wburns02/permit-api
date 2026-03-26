@@ -130,7 +130,7 @@ section .subtitle{color:var(--text2);font-size:16px;margin-bottom:40px}
 .state-card .state-label{font-size:12px;color:var(--text3)}
 
 /* Pricing */
-.pricing-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:16px}
+.pricing-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
 .price-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:28px 20px;text-align:center;transition:border-color .2s,transform .2s}
 .price-card:hover{transform:translateY(-2px)}
 .price-card.featured{border-color:var(--accent);position:relative;background:linear-gradient(180deg,rgba(99,102,241,.06) 0%,var(--surface) 100%)}
@@ -1697,7 +1697,7 @@ results.forEach(p =>
             </div>
           </div>
           <div class="freshness-tier">
-            <div class="ft-plan">Explorer</div>
+            <div class="ft-plan">Pro</div>
             <div class="ft-access">
               <span class="ft-dot inactive" style="background:linear-gradient(135deg,#ef4444,#f97316)"></span>
               <span class="ft-dot inactive" style="background:linear-gradient(135deg,#f59e0b,#eab308)"></span>
@@ -1706,16 +1706,7 @@ results.forEach(p =>
             </div>
           </div>
           <div class="freshness-tier" style="border-color:var(--accent)">
-            <div class="ft-plan" style="color:var(--accent2)">Pro Leads</div>
-            <div class="ft-access">
-              <span class="ft-dot inactive" style="background:linear-gradient(135deg,#ef4444,#f97316)"></span>
-              <span class="ft-dot active" style="background:linear-gradient(135deg,#f59e0b,#eab308);color:#fff" title="Warm">&#x2600;&#xFE0F;</span>
-              <span class="ft-dot active" style="background:linear-gradient(135deg,#06b6d4,#3b82f6);color:#fff" title="Mild">&#x1F324;&#xFE0F;</span>
-              <span class="ft-dot active" style="background:linear-gradient(135deg,#6b7280,#475569);color:#fff" title="Cold">&#x2744;&#xFE0F;</span>
-            </div>
-          </div>
-          <div class="freshness-tier">
-            <div class="ft-plan">Real-Time</div>
+            <div class="ft-plan" style="color:var(--accent2)">Business</div>
             <div class="ft-access">
               <span class="ft-dot active" style="background:linear-gradient(135deg,#ef4444,#f97316);color:#fff" title="Hot">&#x1F525;</span>
               <span class="ft-dot active" style="background:linear-gradient(135deg,#f59e0b,#eab308);color:#fff" title="Warm">&#x2600;&#xFE0F;</span>
@@ -4953,6 +4944,34 @@ results.forEach(p =>
   </section>
 </div>
 
+<!-- WELCOME / ONBOARDING PAGE -->
+<div class="page" id="page-welcome" style="display:none">
+  <div style="max-width:700px;margin:60px auto;padding:0 20px;text-align:center">
+    <div style="font-size:48px;margin-bottom:16px">&#x1f389;</div>
+    <h1 style="font-size:32px;margin-bottom:8px">Welcome to PermitLookup!</h1>
+    <p style="color:var(--text2);font-size:16px;margin-bottom:40px">Your account is ready. Here are 3 things to try right now:</p>
+
+    <div style="display:grid;gap:16px;text-align:left">
+      <div onclick="showPage('home')" style="padding:20px;background:var(--surface2);border-radius:12px;border:1px solid var(--border);cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="font-size:20px;font-weight:600;margin-bottom:6px">&#x1f50d; Search Permits in Your Area</div>
+        <p style="color:var(--text3);margin:0;font-size:14px">Try searching "Austin TX" or any US city to see recent building permits, contractor activity, and property data.</p>
+      </div>
+      <div onclick="showPage('analyst')" style="padding:20px;background:var(--surface2);border-radius:12px;border:1px solid var(--border);cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="font-size:20px;font-weight:600;margin-bottom:6px">&#x1f916; Ask the AI Analyst</div>
+        <p style="color:var(--text3);margin:0;font-size:14px">Ask natural language questions like "Show me roofing permits in Dallas over $50K" and get instant answers from 836M+ records.</p>
+      </div>
+      <div onclick="showPage('risk')" style="padding:20px;background:var(--surface2);border-radius:12px;border:1px solid var(--border);cursor:pointer;transition:all .2s" onmouseover="this.style.borderColor='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)'">
+        <div style="font-size:20px;font-weight:600;margin-bottom:6px">&#x1f3e0; Check a Property's Risk Score</div>
+        <p style="color:var(--text3);margin:0;font-size:14px">Enter any address to see permit history, compliance risk, construction quality signals, and contractor activity.</p>
+      </div>
+    </div>
+
+    <div style="margin-top:32px">
+      <button onclick="showPage('home')" style="padding:12px 32px;background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;border-radius:8px;font-size:16px;font-weight:600;cursor:pointer">Start Exploring</button>
+    </div>
+  </div>
+</div>
+
 <!-- SIGNUP MODAL -->
 <div class="modal-overlay" id="signup-modal">
   <div class="modal">
@@ -4978,7 +4997,7 @@ results.forEach(p =>
       <p>Here's your API key. Save it now — it won't be shown again.</p>
       <div class="api-key-display" id="signup-key-display" onclick="copyKey(this)"></div>
       <div class="success-msg" id="signup-copy-msg" style="display:none">✓ Copied to clipboard!</div>
-      <button class="btn-full" onclick="closeSignup();showPage('dashboard')" style="margin-top:16px">Go to Dashboard</button>
+      <button class="btn-full" onclick="closeSignup();showPage('welcome')" style="margin-top:16px">Get Started</button>
     </div>
   </div>
 </div>
@@ -5930,11 +5949,11 @@ async function doSignup() {
       document.getElementById('signup-copy-msg').style.display = '';
     } catch(e) {}
 
-    // Auto-redirect to dashboard after 4 seconds
+    // Auto-redirect to welcome page after 4 seconds
     setTimeout(() => {
       if (document.getElementById('signup-modal').classList.contains('visible')) {
         closeSignup();
-        showPage('dashboard');
+        showPage('welcome');
       }
     }, 4000);
   } catch(e) {
@@ -6066,8 +6085,7 @@ async function demoLogin() {
       showToast('Demo mode activated! Full access for exploration.', 'success');
       const demoCta = document.getElementById('demo-cta');
       if (demoCta) demoCta.style.display = 'none';
-      showPage('search');
-      setTimeout(() => showToast('Welcome! Try searching "Austin TX" or click AI Analyst to ask a question.', 'success', 8000), 1500);
+      showPage('welcome');
     } else {
       showToast('Could not start demo. Try signing up.', 'error');
       openSignup();
