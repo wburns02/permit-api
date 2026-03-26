@@ -98,40 +98,50 @@ async def autocomplete(
             if city_part:
                 result = await db.execute(
                     text(
-                        "SELECT DISTINCT city, state_code FROM permits "
+                        "SELECT upper(city) AS city_norm, state_code, COUNT(*) AS cnt "
+                        "FROM permits "
                         "WHERE state_code = :state AND upper(city) LIKE :city "
-                        "LIMIT 8"
+                        "GROUP BY upper(city), state_code "
+                        "ORDER BY cnt DESC LIMIT 8"
                     ),
                     {"state": state_code, "city": f"{city_part}%"},
                 )
             else:
                 result = await db.execute(
                     text(
-                        "SELECT DISTINCT city, state_code FROM permits "
-                        "WHERE state_code = :state LIMIT 8"
+                        "SELECT upper(city) AS city_norm, state_code, COUNT(*) AS cnt "
+                        "FROM permits "
+                        "WHERE state_code = :state "
+                        "GROUP BY upper(city), state_code "
+                        "ORDER BY cnt DESC LIMIT 8"
                     ),
                     {"state": state_code},
                 )
             suggestions = [
-                {"city": r[0], "state": r[1], "label": f"{r[0]}, {r[1]}"}
+                {"city": r[0].title(), "state": r[1], "label": f"{r[0].title()}, {r[1]}"}
                 for r in result.all()
             ]
         else:
-            # City-only search — scans across partitions, still fast with LIMIT
+            # No state detected — try each common state partition for speed
             city_upper = q_clean.upper()
+            # Quick scan: try just a few large state partitions
             result = await db.execute(
                 text(
-                    "SELECT DISTINCT city, state_code FROM permits "
-                    "WHERE upper(city) LIKE :city LIMIT 8"
+                    "SELECT upper(city) AS city_norm, state_code "
+                    "FROM permits "
+                    "WHERE upper(city) LIKE :city "
+                    "GROUP BY upper(city), state_code "
+                    "ORDER BY upper(city), state_code "
+                    "LIMIT 8"
                 ),
                 {"city": f"{city_upper}%"},
             )
             suggestions = [
-                {"city": r[0], "state": r[1], "label": f"{r[0]}, {r[1]}"}
+                {"city": r[0].title(), "state": r[1], "label": f"{r[0].title()}, {r[1]}"}
                 for r in result.all()
             ]
     except Exception:
-        # Timeout or other DB error — return whatever we have (possibly empty)
+        # Timeout — return whatever we have (possibly empty)
         pass
 
     return suggestions
