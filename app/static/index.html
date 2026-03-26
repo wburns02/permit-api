@@ -1291,6 +1291,11 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
           <button onclick="doSearch()" id="search-btn">Search</button>
           <div id="search-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px;z-index:100;max-height:300px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div>
         </div>
+        <div style="text-align:center;margin-top:16px" id="demo-cta">
+          <button onclick="demoLogin()" style="padding:10px 24px;background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;box-shadow:0 2px 8px rgba(124,58,237,.3)" onmouseover="this.style.transform='translateY(-1px)';this.style.boxShadow='0 4px 12px rgba(124,58,237,.4)'" onmouseout="this.style.transform='';this.style.boxShadow='0 2px 8px rgba(124,58,237,.3)'">
+            Try Demo (Free) — No account needed
+          </button>
+        </div>
         <div class="filters-toggle" style="text-align:center;margin-top:12px">
           <button type="button" onclick="toggleFilters()" id="filters-toggle-btn" style="background:none;border:none;color:var(--text3);font-size:13px;padding:4px 12px;cursor:pointer;transition:color .2s">
             <span id="filters-icon">&#9662;</span> Advanced Filters
@@ -5031,6 +5036,8 @@ document.addEventListener('DOMContentLoaded', () => {
   checkAdminAccess();
   // Set up nav auth state — must run before routing
   if (currentKey) {
+    const demoCta = document.getElementById('demo-cta');
+    if (demoCta) demoCta.style.display = 'none';
     // Validate the key and update nav
     fetch(API + '/v1/me', { headers: { 'X-API-Key': currentKey } })
       .then(r => { if (r.ok) return r.json(); throw new Error('invalid'); })
@@ -5044,6 +5051,8 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.removeItem('pl_api_key');
         localStorage.removeItem('pl_user_email');
         updateNavForAuth(null);
+        const demoCta = document.getElementById('demo-cta');
+        if (demoCta) demoCta.style.display = '';
       });
   } else {
     updateNavForAuth(null);
@@ -6050,7 +6059,10 @@ async function demoLogin() {
       updateNavForAuth({ email: d.email || 'demo@permitlookup.com', plan: d.plan || 'enterprise' });
       checkAdminAccess();
       showToast('Demo mode activated! Full access for exploration.', 'success');
+      const demoCta = document.getElementById('demo-cta');
+      if (demoCta) demoCta.style.display = 'none';
       showPage('search');
+      setTimeout(() => showToast('Welcome! Try searching "Austin TX" or click AI Analyst to ask a question.', 'success', 8000), 1500);
     } else {
       showToast('Could not start demo. Try signing up.', 'error');
       openSignup();
@@ -6172,11 +6184,11 @@ function showCodeTab(tab, lang) {
 }
 
 // Toast
-function showToast(msg, type) {
+function showToast(msg, type, duration) {
   const t = document.getElementById('toast');
   t.textContent = msg;
   t.className = 'toast ' + type + ' visible';
-  setTimeout(() => t.classList.remove('visible'), 3000);
+  setTimeout(() => t.classList.remove('visible'), duration || 3000);
 }
 
 // Contractors
