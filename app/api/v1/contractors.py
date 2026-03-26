@@ -26,8 +26,9 @@ def _escape_like(s: str) -> str:
 @router.get("/search")
 async def search_contractors(
     request: Request,
-    name: str = Query(..., min_length=2, description="Contractor name or company"),
+    name: str | None = Query(None, min_length=2, description="Contractor name or company"),
     state: str | None = Query(None, max_length=2),
+    city: str | None = Query(None, description="City filter"),
     page: int = Query(1, ge=1, le=20),
     page_size: int = Query(20, ge=1, le=50),
     user: ApiUser = Depends(get_current_user),
@@ -41,13 +42,22 @@ async def search_contractors(
     """
     await check_rate_limit(request, lookup_count=1)
 
-    safe_name = _escape_like(name)
-    conditions = [
-        Permit.applicant_name.ilike(f"%{safe_name}%"),
-        Permit.applicant_name.is_not(None),
-    ]
+    # At least one search parameter required
+    if not name and not state and not city:
+        raise HTTPException(
+            status_code=400,
+            detail="At least one search parameter required (name, state, or city).",
+        )
+
+    conditions = [Permit.applicant_name.is_not(None)]
+    if name:
+        safe_name = _escape_like(name)
+        conditions.append(Permit.applicant_name.ilike(f"%{safe_name}%"))
     if state:
         conditions.append(Permit.state == state.upper())
+    if city:
+        safe_city = _escape_like(city)
+        conditions.append(Permit.city.ilike(f"%{safe_city}%"))
 
     where = and_(*conditions)
 
