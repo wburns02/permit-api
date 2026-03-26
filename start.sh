@@ -48,7 +48,7 @@ def forward(src, dst):
 
 def handle_client(client):
     try:
-        remote = socks5_connect('100.122.216.15', 5432)
+        remote = socks5_connect('100.87.214.106', 5432)
         t1 = threading.Thread(target=forward, args=(client, remote), daemon=True)
         t2 = threading.Thread(target=forward, args=(remote, client), daemon=True)
         t1.start()
@@ -64,7 +64,7 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 server.bind(('127.0.0.1', 5432))
 server.listen(50)
-print('SOCKS5 TCP proxy listening on 127.0.0.1:5432 -> T430:5432')
+print('SOCKS5 TCP proxy listening on 127.0.0.1:5432 -> R730-2:5432')
 while True:
     client, addr = server.accept()
     threading.Thread(target=handle_client, args=(client,), daemon=True).start()
