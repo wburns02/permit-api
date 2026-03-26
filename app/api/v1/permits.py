@@ -61,6 +61,82 @@ def _plan_at_least(user_plan: PlanTier, required: PlanTier) -> bool:
     return user_idx >= req_idx
 
 
+# All 50 US states + DC + territories for partition-aware autocomplete
+US_STATES = {
+    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
+    "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
+    "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+    "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
+    "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY",
+    "DC", "PR", "VI", "GU", "AS", "MP",
+}
+
+
+@router.get("/autocomplete")
+async def autocomplete(
+    q: str = Query(..., min_length=2, max_length=100),
+    db: AsyncSession = Depends(get_read_db),
+):
+    """Fast autocomplete suggestions for search box. Returns city+state combos.
+
+    Public endpoint — no auth required. Designed for search UX typeahead.
+    Uses partition pruning when a state code is detected for sub-second response.
+    """
+    await db.execute(text("SET LOCAL statement_timeout = '5s'"))
+    q_clean = q.strip()
+
+    # Detect trailing state code for partition pruning
+    words = q_clean.split()
+    last_word = words[-1].upper() if words else ""
+
+    suggestions: list[dict] = []
+    try:
+        if len(last_word) == 2 and last_word in US_STATES:
+            # Query like "san marcos tx" or "austin, TX" — prune to one partition
+            state_code = last_word
+            city_part = " ".join(words[:-1]).strip().strip(",").upper()
+            if city_part:
+                result = await db.execute(
+                    text(
+                        "SELECT DISTINCT city, state_code FROM permits "
+                        "WHERE state_code = :state AND upper(city) LIKE :city "
+                        "LIMIT 8"
+                    ),
+                    {"state": state_code, "city": f"{city_part}%"},
+                )
+            else:
+                result = await db.execute(
+                    text(
+                        "SELECT DISTINCT city, state_code FROM permits "
+                        "WHERE state_code = :state LIMIT 8"
+                    ),
+                    {"state": state_code},
+                )
+            suggestions = [
+                {"city": r[0], "state": r[1], "label": f"{r[0]}, {r[1]}"}
+                for r in result.all()
+            ]
+        else:
+            # City-only search — scans across partitions, still fast with LIMIT
+            city_upper = q_clean.upper()
+            result = await db.execute(
+                text(
+                    "SELECT DISTINCT city, state_code FROM permits "
+                    "WHERE upper(city) LIKE :city LIMIT 8"
+                ),
+                {"city": f"{city_upper}%"},
+            )
+            suggestions = [
+                {"city": r[0], "state": r[1], "label": f"{r[0]}, {r[1]}"}
+                for r in result.all()
+            ]
+    except Exception:
+        # Timeout or other DB error — return whatever we have (possibly empty)
+        pass
+
+    return suggestions
+
+
 @router.get("/freshness-info")
 async def get_freshness_info(
     user: ApiUser = Depends(get_current_user),
