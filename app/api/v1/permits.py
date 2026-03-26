@@ -96,54 +96,55 @@ async def autocomplete(
             state_code = last_word
             city_part = " ".join(words[:-1]).strip().strip(",").upper()
             if city_part:
+                # Fast: grab raw rows, dedup in Python
                 result = await db.execute(
                     text(
-                        "SELECT DISTINCT upper(trim(city)) AS city_norm, state_code "
-                        "FROM permits "
-                        "WHERE state_code = :state AND upper(trim(city)) LIKE :city "
-                        "AND city NOT LIKE '%,%' AND length(trim(city)) > 1 "
-                        "LIMIT 10"
+                        "SELECT city, state_code FROM permits "
+                        "WHERE state_code = :state AND upper(city) LIKE :city "
+                        "LIMIT 500"
                     ),
                     {"state": state_code, "city": f"{city_part}%"},
                 )
             else:
                 result = await db.execute(
                     text(
-                        "SELECT DISTINCT upper(trim(city)) AS city_norm, state_code "
-                        "FROM permits "
-                        "WHERE state_code = :state "
-                        "AND city NOT LIKE '%,%' AND length(trim(city)) > 1 "
-                        "LIMIT 10"
+                        "SELECT city, state_code FROM permits "
+                        "WHERE state_code = :state LIMIT 500"
                     ),
                     {"state": state_code},
                 )
-            # De-duplicate and clean
+            # De-duplicate in Python (fast — only 500 rows max)
             seen = set()
             for r in result.all():
-                city_clean = r[0].title()
-                if city_clean not in seen and not any(x in city_clean.upper() for x in [' TX', ' CA', ' FL', ' NY']):
+                city_norm = r[0].strip().upper() if r[0] else ""
+                if not city_norm or "," in city_norm or len(city_norm) < 2:
+                    continue
+                city_clean = city_norm.title()
+                if city_clean not in seen:
                     seen.add(city_clean)
                     suggestions.append({"city": city_clean, "state": r[1], "label": f"{city_clean}, {r[1]}"})
                 if len(suggestions) >= 8:
                     break
         else:
-            # No state detected — scan with tight LIMIT
+            # No state detected — scan with tight LIMIT, dedup in Python
             city_upper = q_clean.upper()
             result = await db.execute(
                 text(
-                    "SELECT DISTINCT upper(trim(city)) AS city_norm, state_code "
-                    "FROM permits "
-                    "WHERE upper(trim(city)) LIKE :city "
-                    "AND city NOT LIKE '%,%' AND length(trim(city)) > 1 "
-                    "LIMIT 10"
+                    "SELECT city, state_code FROM permits "
+                    "WHERE upper(city) LIKE :city "
+                    "LIMIT 500"
                 ),
                 {"city": f"{city_upper}%"},
             )
             seen = set()
             for r in result.all():
-                city_clean = r[0].title()
-                if city_clean not in seen:
-                    seen.add(city_clean)
+                city_norm = r[0].strip().upper() if r[0] else ""
+                if not city_norm or "," in city_norm or len(city_norm) < 2:
+                    continue
+                city_clean = city_norm.title()
+                key = f"{city_clean},{r[1]}"
+                if key not in seen:
+                    seen.add(key)
                     suggestions.append({"city": city_clean, "state": r[1], "label": f"{city_clean}, {r[1]}"})
                 if len(suggestions) >= 8:
                     break
