@@ -1278,9 +1278,10 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
       </div>
 
       <div class="search-section">
-        <div class="search-box">
-          <input type="text" id="search-input" placeholder="Search by address... e.g. 123 Main St, Austin TX" autocomplete="off">
+        <div class="search-box" style="position:relative">
+          <input type="text" id="search-input" placeholder="Search permits... e.g. Austin TX, 123 Main St San Marcos TX" autocomplete="off">
           <button onclick="doSearch()" id="search-btn">Search</button>
+          <div id="search-suggestions" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--bg2);border:1px solid var(--border);border-top:none;border-radius:0 0 12px 12px;z-index:100;max-height:300px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.15)"></div>
         </div>
         <div class="filters-toggle" style="text-align:center;margin-top:12px">
           <button type="button" onclick="toggleFilters()" id="filters-toggle-btn" style="background:none;border:none;color:var(--text3);font-size:13px;padding:4px 12px;cursor:pointer;transition:color .2s">
@@ -5040,7 +5041,54 @@ document.addEventListener('DOMContentLoaded', () => {
     updateNavForAuth(null);
   }
   document.getElementById('search-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') doSearch();
+    if (e.key === 'Enter') { hideSuggestions(); doSearch(); }
+    if (e.key === 'Escape') hideSuggestions();
+    if (e.key === 'ArrowDown') {
+      const items = document.querySelectorAll('#search-suggestions .suggest-item');
+      if (items.length) { e.preventDefault(); items[0].focus(); }
+    }
+  });
+
+  // Predictive search / autocomplete
+  let suggestTimeout = null;
+  const searchInput = document.getElementById('search-input');
+  searchInput.addEventListener('input', () => {
+    clearTimeout(suggestTimeout);
+    const q = searchInput.value.trim();
+    if (q.length < 2) { hideSuggestions(); return; }
+    suggestTimeout = setTimeout(() => fetchSuggestions(q), 300);
+  });
+
+  async function fetchSuggestions(q) {
+    try {
+      const base = window.API_BASE || '';
+      const r = await fetch(base + '/v1/permits/autocomplete?q=' + encodeURIComponent(q));
+      if (!r.ok) return hideSuggestions();
+      const items = await r.json();
+      if (!items.length) return hideSuggestions();
+      const box = document.getElementById('search-suggestions');
+      box.innerHTML = items.map(s => {
+        const lbl = (s.label || (s.city + ', ' + s.state)).replace(/'/g, "\\'");
+        return '<div class="suggest-item" tabindex="0" style="padding:10px 16px;cursor:pointer;font-size:14px;color:var(--text1);border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='none'" onclick="selectSuggestion('' + lbl + '')" onkeydown="if(event.key==='Enter')selectSuggestion('' + lbl + '');if(event.key==='ArrowDown'&&this.nextSibling){event.preventDefault();this.nextSibling.focus()};if(event.key==='ArrowUp'&&this.previousSibling){event.preventDefault();this.previousSibling.focus()}">' +
+        '\u{1F4CD} ' + esc(s.city || '') + ', ' + esc(s.state || '') + '</div>';
+      }).join('');
+      box.style.display = '';
+    } catch(e) { hideSuggestions(); }
+  }
+
+  function selectSuggestion(label) {
+    document.getElementById('search-input').value = label;
+    hideSuggestions();
+    doSearch();
+  }
+
+  function hideSuggestions() {
+    const box = document.getElementById('search-suggestions');
+    if (box) box.style.display = 'none';
+  }
+
+  document.addEventListener('click', e => {
+    if (!e.target.closest('.search-box')) hideSuggestions();
   });
   document.getElementById('signup-modal').addEventListener('click', e => {
     if (e.target === e.currentTarget) closeSignup();
@@ -5188,41 +5236,57 @@ function animateNumber(id, target) {
 const US_STATES = {AL:1,AK:1,AZ:1,AR:1,CA:1,CO:1,CT:1,DE:1,FL:1,GA:1,HI:1,ID:1,IL:1,IN:1,IA:1,KS:1,KY:1,LA:1,ME:1,MD:1,MA:1,MI:1,MN:1,MS:1,MO:1,MT:1,NE:1,NV:1,NH:1,NJ:1,NM:1,NY:1,NC:1,ND:1,OH:1,OK:1,OR:1,PA:1,RI:1,SC:1,SD:1,TN:1,TX:1,UT:1,VT:1,VA:1,WA:1,WV:1,WI:1,WY:1,DC:1};
 
 function parseSearchQuery(q) {
-  // Try to parse "city, state" or "city state" or "address, city, state" patterns
   const params = { page_size: '20' };
   const parts = q.split(',').map(s => s.trim()).filter(Boolean);
 
-  if (parts.length >= 2) {
-    // Last part might be state (or "city state")
+  if (parts.length >= 3) {
+    // "address, city, state" format
     const lastPart = parts[parts.length - 1].trim();
+    const lastWords = lastPart.split(/\s+/);
+    const possibleState = lastWords[0].toUpperCase();
+    if (possibleState.length === 2 && US_STATES[possibleState]) {
+      params.state = possibleState;
+      params.city = parts[parts.length - 2].trim();
+      params.address = parts.slice(0, -2).join(', ').trim();
+    } else {
+      params.address = q;
+    }
+  } else if (parts.length === 2) {
+    const lastPart = parts[1].trim();
     const lastWords = lastPart.split(/\s+/);
     const possibleState = lastWords[lastWords.length - 1].toUpperCase();
 
     if (possibleState.length === 2 && US_STATES[possibleState]) {
       params.state = possibleState;
-      // Remove state from last part
       const cityPart = lastWords.length > 1 ? lastWords.slice(0, -1).join(' ') : '';
-      if (parts.length === 2) {
-        // "city, state" or "address, state"
-        const first = parts[0];
-        if (/^\d/.test(first)) {
+      const first = parts[0];
+
+      if (/^\d/.test(first)) {
+        // Starts with digit = address. Try to split city from end after street suffix.
+        const suffixRe = /\b(st|ave|avenue|blvd|boulevard|dr|drive|rd|road|ln|lane|ct|court|pl|place|way|cir|circle|ter|terrace|trl|trail|pkwy|parkway|hwy|highway)\.?\b/gi;
+        let lastIdx = -1, m;
+        while ((m = suffixRe.exec(first)) !== null) { lastIdx = m.index + m[0].length; }
+        if (lastIdx > 0 && lastIdx < first.length) {
+          const afterSuffix = first.substring(lastIdx).replace(/^[\s.,]+/, '').trim();
+          if (afterSuffix) {
+            params.address = first.substring(0, lastIdx).replace(/\.\s*$/, '').trim();
+            params.city = afterSuffix;
+          } else {
+            params.address = first;
+            if (cityPart) params.city = cityPart;
+          }
+        } else {
           params.address = first;
           if (cityPart) params.city = cityPart;
-        } else {
-          params.city = cityPart || first;
-          if (cityPart) params.address = first;
         }
       } else {
-        // "address, city, state"
-        params.address = parts.slice(0, -1).join(', ');
-        if (cityPart) params.city = cityPart;
+        params.city = cityPart || first;
+        if (cityPart) params.address = first;
       }
     } else {
-      // No state detected, use whole thing as address
       params.address = q;
     }
   } else {
-    // Single term — check if it's "city state"
     const words = q.split(/\s+/);
     const last = words[words.length - 1].toUpperCase();
     if (words.length >= 2 && last.length === 2 && US_STATES[last]) {
