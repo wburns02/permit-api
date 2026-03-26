@@ -29,13 +29,40 @@ async def coverage(db: AsyncSession = Depends(get_read_db)):
     total_records = await fast_count(db, "permits")
 
     # State counts from jurisdictions table (much smaller than permits)
-    from app.services.fast_counts import safe_query
     state_rows = await safe_query(db,
         select(Jurisdiction.state, func.sum(Jurisdiction.record_count).label("count"))
         .group_by(Jurisdiction.state)
         .order_by(func.sum(Jurisdiction.record_count).desc())
     )
+
+    # Fallback: get state counts from partition metadata (instant, no table scan)
+    if not state_rows or len(state_rows) == 0:
+        try:
+            fallback = await db.execute(text(
+                "SELECT replace(inhrelid::regclass::text, 'permits_', '') AS state, "
+                "pg_stat_get_live_tuples(inhrelid) AS count "
+                "FROM pg_inherits WHERE inhparent = 'permits'::regclass "
+                "ORDER BY count DESC"
+            ))
+            state_rows = fallback.all()
+        except Exception:
+            state_rows = []
+
     states = {row.state: row.count for row in state_rows if row.state}
+
+    # Fallback: if fast_count returned 0 for partitioned permits table,
+    # sum partition stats instead
+    if total_records == 0:
+        try:
+            partition_sum = await db.execute(text(
+                "SELECT COALESCE(SUM(pg_stat_get_live_tuples(inhrelid)), 0)::bigint AS total "
+                "FROM pg_inherits WHERE inhparent = 'permits'::regclass"
+            ))
+            total_records = int(partition_sum.scalar() or 0)
+        except Exception:
+            # Last resort: sum from states dict if we got partition data
+            if states:
+                total_records = sum(states.values())
 
     return {
         "total_records": total_records,
