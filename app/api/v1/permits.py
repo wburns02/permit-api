@@ -95,59 +95,58 @@ async def autocomplete(
             # Query like "san marcos tx" or "austin, TX" — prune to one partition
             state_code = last_word
             city_part = " ".join(words[:-1]).strip().strip(",").upper()
-            # Exclude dirty data: city names with commas, periods, etc.
-            clean_filter = (
-                "AND city NOT LIKE '%,%' "
-                "AND city NOT LIKE '%.%' "
-                "AND length(trim(city)) > 1 "
-            )
             if city_part:
                 result = await db.execute(
                     text(
-                        "SELECT upper(trim(city)) AS city_norm, state_code, COUNT(*) AS cnt "
+                        "SELECT DISTINCT upper(trim(city)) AS city_norm, state_code "
                         "FROM permits "
                         "WHERE state_code = :state AND upper(trim(city)) LIKE :city "
-                        + clean_filter +
-                        "GROUP BY upper(trim(city)), state_code "
-                        "ORDER BY cnt DESC LIMIT 8"
+                        "AND city NOT LIKE '%,%' AND length(trim(city)) > 1 "
+                        "LIMIT 10"
                     ),
                     {"state": state_code, "city": f"{city_part}%"},
                 )
             else:
                 result = await db.execute(
                     text(
-                        "SELECT upper(trim(city)) AS city_norm, state_code, COUNT(*) AS cnt "
+                        "SELECT DISTINCT upper(trim(city)) AS city_norm, state_code "
                         "FROM permits "
                         "WHERE state_code = :state "
-                        + clean_filter +
-                        "GROUP BY upper(trim(city)), state_code "
-                        "ORDER BY cnt DESC LIMIT 8"
+                        "AND city NOT LIKE '%,%' AND length(trim(city)) > 1 "
+                        "LIMIT 10"
                     ),
                     {"state": state_code},
                 )
-            suggestions = [
-                {"city": r[0].title(), "state": r[1], "label": f"{r[0].title()}, {r[1]}"}
-                for r in result.all()
-            ]
+            # De-duplicate and clean
+            seen = set()
+            for r in result.all():
+                city_clean = r[0].title()
+                if city_clean not in seen and not any(x in city_clean.upper() for x in [' TX', ' CA', ' FL', ' NY']):
+                    seen.add(city_clean)
+                    suggestions.append({"city": city_clean, "state": r[1], "label": f"{city_clean}, {r[1]}"})
+                if len(suggestions) >= 8:
+                    break
         else:
-            # No state detected — try each common state partition for speed
+            # No state detected — scan with tight LIMIT
             city_upper = q_clean.upper()
-            # Quick scan: try just a few large state partitions
             result = await db.execute(
                 text(
-                    "SELECT upper(city) AS city_norm, state_code "
+                    "SELECT DISTINCT upper(trim(city)) AS city_norm, state_code "
                     "FROM permits "
-                    "WHERE upper(city) LIKE :city "
-                    "GROUP BY upper(city), state_code "
-                    "ORDER BY upper(city), state_code "
-                    "LIMIT 8"
+                    "WHERE upper(trim(city)) LIKE :city "
+                    "AND city NOT LIKE '%,%' AND length(trim(city)) > 1 "
+                    "LIMIT 10"
                 ),
                 {"city": f"{city_upper}%"},
             )
-            suggestions = [
-                {"city": r[0].title(), "state": r[1], "label": f"{r[0].title()}, {r[1]}"}
-                for r in result.all()
-            ]
+            seen = set()
+            for r in result.all():
+                city_clean = r[0].title()
+                if city_clean not in seen:
+                    seen.add(city_clean)
+                    suggestions.append({"city": city_clean, "state": r[1], "label": f"{city_clean}, {r[1]}"})
+                if len(suggestions) >= 8:
+                    break
     except Exception:
         # Timeout — return whatever we have (possibly empty)
         pass
