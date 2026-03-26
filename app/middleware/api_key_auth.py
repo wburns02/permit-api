@@ -43,13 +43,16 @@ async def get_current_user(request: Request) -> ApiUser | None:
         if not user:
             raise HTTPException(status_code=403, detail="Account disabled.")
 
-        # Update last_used_at
-        await db.execute(
-            update(ApiKey)
-            .where(ApiKey.id == api_key_obj.id)
-            .values(last_used_at=datetime.now(timezone.utc))
-        )
-        await db.commit()
+        # Update last_used_at — fire and forget, don't block the response
+        try:
+            await db.execute(
+                update(ApiKey)
+                .where(ApiKey.id == api_key_obj.id)
+                .values(last_used_at=datetime.now(timezone.utc))
+            )
+            await db.commit()
+        except Exception:
+            pass  # Non-critical — don't block requests for a timestamp update
 
         # Attach to request state for downstream use
         request.state.user = user
