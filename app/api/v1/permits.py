@@ -95,13 +95,20 @@ async def autocomplete(
             # Query like "san marcos tx" or "austin, TX" — prune to one partition
             state_code = last_word
             city_part = " ".join(words[:-1]).strip().strip(",").upper()
+            # Exclude dirty data: city names with commas, periods, state names embedded
+            clean_filter = (
+                "AND city !~ '[,.]' "
+                "AND length(city) > 1 "
+                "AND upper(city) NOT LIKE '% ' || :state "
+            )
             if city_part:
                 result = await db.execute(
                     text(
-                        "SELECT upper(city) AS city_norm, state_code, COUNT(*) AS cnt "
+                        "SELECT upper(trim(city)) AS city_norm, state_code, COUNT(*) AS cnt "
                         "FROM permits "
-                        "WHERE state_code = :state AND upper(city) LIKE :city "
-                        "GROUP BY upper(city), state_code "
+                        "WHERE state_code = :state AND upper(trim(city)) LIKE :city "
+                        + clean_filter +
+                        "GROUP BY upper(trim(city)), state_code "
                         "ORDER BY cnt DESC LIMIT 8"
                     ),
                     {"state": state_code, "city": f"{city_part}%"},
@@ -109,10 +116,11 @@ async def autocomplete(
             else:
                 result = await db.execute(
                     text(
-                        "SELECT upper(city) AS city_norm, state_code, COUNT(*) AS cnt "
+                        "SELECT upper(trim(city)) AS city_norm, state_code, COUNT(*) AS cnt "
                         "FROM permits "
                         "WHERE state_code = :state "
-                        "GROUP BY upper(city), state_code "
+                        + clean_filter +
+                        "GROUP BY upper(trim(city)), state_code "
                         "ORDER BY cnt DESC LIMIT 8"
                     ),
                     {"state": state_code},
