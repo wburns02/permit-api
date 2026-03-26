@@ -14,7 +14,8 @@ import io
 from app.database import get_read_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
-from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
+from app.models.api_key import ApiUser, PlanTier, resolve_plan
+from app.services.usage_logger import log_usage
 from app.services.search_service import (
     search_permits,
     geo_search_permits,
@@ -185,25 +186,22 @@ async def search(
                 r["owner_details"] = r.get("owner_details")
 
         # Log enrichment usage for billing
-        enrichment_log = UsageLog(
+        log_usage(
             user_id=user.id,
             api_key_id=request.state.api_key.id,
             endpoint=f"/v1/permits/search?enrichment={enrichment.value}",
             lookup_count=result_count,
             ip_address=request.client.host if request.client else None,
         )
-        db.add(enrichment_log)
 
     # Log search usage
-    log = UsageLog(
+    log_usage(
         user_id=user.id,
         api_key_id=request.state.api_key.id,
         endpoint="/v1/permits/search",
         lookup_count=1,
         ip_address=request.client.host if request.client else None,
     )
-    db.add(log)
-    await db.commit()
 
     # Apply security layers (fingerprint, caps, abuse detection, throttle)
     guarded_results, sec_meta = await guard_response(
@@ -298,15 +296,13 @@ async def bulk_search(
         })
 
     # Log usage
-    log = UsageLog(
+    log_usage(
         user_id=user.id,
         api_key_id=request.state.api_key.id,
         endpoint="/v1/permits/bulk",
         lookup_count=len(rows),
         ip_address=request.client.host if request.client else None,
     )
-    db.add(log)
-    await db.commit()
 
     return {
         "results": results,
@@ -392,15 +388,13 @@ async def export_permits_csv(
         writer.writerow([str(v) if v is not None else "" for v in row])
 
     # Log usage
-    log = UsageLog(
+    log_usage(
         user_id=user.id,
         api_key_id=request.state.api_key.id,
         endpoint="/v1/permits/export",
         lookup_count=len(rows),
         ip_address=request.client.host if request.client else None,
     )
-    db.add(log)
-    await db.commit()
 
     output.seek(0)
     return StreamingResponse(

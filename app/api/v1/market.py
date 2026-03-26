@@ -7,7 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_read_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
-from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
+from app.models.api_key import ApiUser, PlanTier, resolve_plan
+from app.services.usage_logger import log_usage
 from app.models.permit import Permit
 
 router = APIRouter(prefix="/market", tags=["Market Intelligence"])
@@ -84,15 +85,13 @@ async def market_activity(
     )
     type_rows = (await db.execute(type_q)).all()
 
-    log = UsageLog(
+    log_usage(
         user_id=user.id,
         api_key_id=request.state.api_key.id,
         endpoint="/v1/market/activity",
         lookup_count=1,
         ip_address=request.client.host if request.client else None,
     )
-    db.add(log)
-    await db.commit()
 
     return {
         "monthly_volume": [
@@ -165,15 +164,13 @@ async def market_hotspots(
         prior_rows = (await db.execute(prior_q)).all()
         growth_data = {r.zip: r.prior_count for r in prior_rows}
 
-    log = UsageLog(
+    log_usage(
         user_id=user.id,
         api_key_id=request.state.api_key.id,
         endpoint="/v1/market/hotspots",
         lookup_count=1,
         ip_address=request.client.host if request.client else None,
     )
-    db.add(log)
-    await db.commit()
 
     results = []
     for r in recent_rows:

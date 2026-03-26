@@ -7,7 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_read_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
-from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
+from app.models.api_key import ApiUser, PlanTier, resolve_plan
+from app.services.usage_logger import log_usage
 from app.models.data_layers import BusinessEntity
 from app.services.fast_counts import fast_count
 from app.services.response_guard import guard_response
@@ -65,15 +66,13 @@ async def search_entities(
     count_q = select(func.count()).select_from(BusinessEntity).where(where)
     total = (await db.execute(count_q)).scalar() or 0
 
-    log = UsageLog(
+    log_usage(
         user_id=user.id,
         api_key_id=request.state.api_key.id,
         endpoint="/v1/entities/search",
         lookup_count=1,
         ip_address=request.client.host if request.client else None,
     )
-    db.add(log)
-    await db.commit()
 
     results_list = [_entity_dict(e) for e in entities]
 
@@ -122,15 +121,13 @@ async def lookup_entity(
     if not entity:
         raise HTTPException(status_code=404, detail="Entity not found.")
 
-    log = UsageLog(
+    log_usage(
         user_id=user.id,
         api_key_id=request.state.api_key.id,
         endpoint="/v1/entities/lookup",
         lookup_count=1,
         ip_address=request.client.host if request.client else None,
     )
-    db.add(log)
-    await db.commit()
 
     return _entity_dict(entity)
 
@@ -177,15 +174,13 @@ async def search_by_registered_agent(
     count_q = select(func.count()).select_from(BusinessEntity).where(where)
     total = (await db.execute(count_q)).scalar() or 0
 
-    log = UsageLog(
+    log_usage(
         user_id=user.id,
         api_key_id=request.state.api_key.id,
         endpoint="/v1/entities/by-agent",
         lookup_count=1,
         ip_address=request.client.host if request.client else None,
     )
-    db.add(log)
-    await db.commit()
 
     return {
         "query": {"agent_name": agent_name, "state": state},

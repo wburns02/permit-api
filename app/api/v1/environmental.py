@@ -8,7 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_read_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
-from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
+from app.models.api_key import ApiUser, PlanTier, resolve_plan
+from app.services.usage_logger import log_usage
 from app.models.data_layers import EpaFacility, FemaFloodZone
 from app.services.fast_counts import fast_count, safe_query
 
@@ -158,15 +159,13 @@ async def environmental_risk(
     elif len(nearby) >= 1:
         risk_score = "Low-Moderate"
 
-    log = UsageLog(
+    log_usage(
         user_id=user.id,
         api_key_id=request.state.api_key.id,
         endpoint="/v1/environmental/risk",
         lookup_count=1,
         ip_address=request.client.host if request.client else None,
     )
-    db.add(log)
-    await db.commit()
 
     return {
         "location": {"lat": lat, "lng": lng, "radius_miles": radius_miles},
@@ -221,15 +220,13 @@ async def search_epa_facilities(
     count_q = select(func.count()).select_from(EpaFacility).where(where)
     total = (await db.execute(count_q)).scalar() or 0
 
-    log = UsageLog(
+    log_usage(
         user_id=user.id,
         api_key_id=request.state.api_key.id,
         endpoint="/v1/environmental/epa/search",
         lookup_count=1,
         ip_address=request.client.host if request.client else None,
     )
-    db.add(log)
-    await db.commit()
 
     return {
         "results": [

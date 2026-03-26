@@ -10,7 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
-from app.models.api_key import ApiUser, UsageLog
+from app.models.api_key import ApiUser
+from app.services.usage_logger import log_usage
 from app.models.saved_search import SavedSearch
 from app.services.search_service import build_filter_conditions, PERMIT_COLUMNS, row_to_dict
 from app.models.permit import Permit
@@ -177,15 +178,15 @@ async def run_saved_search(
 
     # Update last_run_at
     search.last_run_at = datetime.now(timezone.utc)
-    log = UsageLog(
+    await db.commit()
+
+    log_usage(
         user_id=user.id,
         api_key_id=request.state.api_key.id,
         endpoint="/v1/saved-searches/run",
         lookup_count=1,
         ip_address=request.client.host if request.client else None,
     )
-    db.add(log)
-    await db.commit()
 
     return {
         "results": [row_to_dict(r) for r in rows],

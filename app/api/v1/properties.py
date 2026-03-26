@@ -9,7 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_read_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
-from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
+from app.models.api_key import ApiUser, PlanTier, resolve_plan
+from app.services.usage_logger import log_usage
 from app.models.permit import Permit
 from app.services.search_service import normalize_address, PERMIT_COLUMNS, row_to_dict
 from app.services.risk_service import compute_risk_signals
@@ -65,15 +66,13 @@ async def property_history(
 
     result = await _property_history(db, address)
 
-    log = UsageLog(
+    log_usage(
         user_id=user.id,
         api_key_id=request.state.api_key.id,
         endpoint="/v1/properties/history",
         lookup_count=1,
         ip_address=request.client.host if request.client else None,
     )
-    db.add(log)
-    await db.commit()
 
     return result
 
@@ -119,15 +118,13 @@ async def bulk_property_report(
     for addr in addresses:
         results.append(await _property_history(db, addr))
 
-    log = UsageLog(
+    log_usage(
         user_id=user.id,
         api_key_id=request.state.api_key.id,
         endpoint="/v1/properties/bulk-report",
         lookup_count=len(addresses),
         ip_address=request.client.host if request.client else None,
     )
-    db.add(log)
-    await db.commit()
 
     return {
         "total_addresses": len(addresses),
@@ -189,15 +186,13 @@ async def portfolio_analysis(
         for pt, cnt in signals.get("permit_type_breakdown", {}).items():
             type_counts[pt] = type_counts.get(pt, 0) + cnt
 
-    log = UsageLog(
+    log_usage(
         user_id=user.id,
         api_key_id=request.state.api_key.id,
         endpoint="/v1/properties/portfolio-analysis",
         lookup_count=len(addresses),
         ip_address=request.client.host if request.client else None,
     )
-    db.add(log)
-    await db.commit()
 
     return {
         "total_addresses": len(addresses),

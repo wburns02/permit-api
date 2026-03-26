@@ -7,7 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_read_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
-from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
+from app.models.api_key import ApiUser, PlanTier, resolve_plan
+from app.services.usage_logger import log_usage
 from app.models.data_layers import CensusDemographics
 from app.services.fast_counts import fast_count
 
@@ -81,15 +82,13 @@ async def county_demographics(
     if not result or not result.total_population:
         raise HTTPException(status_code=404, detail="No census data found for this county.")
 
-    log = UsageLog(
+    log_usage(
         user_id=user.id,
         api_key_id=request.state.api_key.id,
         endpoint="/v1/demographics/county",
         lookup_count=1,
         ip_address=request.client.host if request.client else None,
     )
-    db.add(log)
-    await db.commit()
 
     return {
         "state": state.upper(),
@@ -151,15 +150,13 @@ async def state_demographics(
     incomes = [c.median_income for c in counties if c.median_income]
     values = [c.median_home_value for c in counties if c.median_home_value]
 
-    log = UsageLog(
+    log_usage(
         user_id=user.id,
         api_key_id=request.state.api_key.id,
         endpoint="/v1/demographics/state",
         lookup_count=1,
         ip_address=request.client.host if request.client else None,
     )
-    db.add(log)
-    await db.commit()
 
     return {
         "state": state.upper(),
@@ -222,15 +219,13 @@ async def tract_demographics(
     if not block_groups:
         raise HTTPException(status_code=404, detail="No census data found for this tract.")
 
-    log = UsageLog(
+    log_usage(
         user_id=user.id,
         api_key_id=request.state.api_key.id,
         endpoint="/v1/demographics/tract",
         lookup_count=1,
         ip_address=request.client.host if request.client else None,
     )
-    db.add(log)
-    await db.commit()
 
     return {
         "state": state.upper(),

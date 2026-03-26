@@ -8,7 +8,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_read_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
-from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
+from app.models.api_key import ApiUser, PlanTier, resolve_plan
+from app.services.usage_logger import log_usage
 from app.models.data_layers import PropertyLien
 from app.services.fast_counts import fast_count
 
@@ -80,15 +81,13 @@ async def lien_search(
     result = await db.execute(query)
     liens = result.scalars().all()
 
-    log = UsageLog(
+    log_usage(
         user_id=user.id,
         api_key_id=request.state.api_key.id,
         endpoint="/v1/liens/search",
         lookup_count=1,
         ip_address=request.client.host if request.client else None,
     )
-    db.add(log)
-    await db.commit()
 
     return {
         "query": {
@@ -142,15 +141,13 @@ async def property_liens(
     satisfied_count = sum(1 for l in liens if l.status and l.status.lower() in ("satisfied", "terminated", "released"))
     total_amount = sum(l.amount for l in liens if l.amount)
 
-    log = UsageLog(
+    log_usage(
         user_id=user.id,
         api_key_id=request.state.api_key.id,
         endpoint="/v1/liens/property",
         lookup_count=1,
         ip_address=request.client.host if request.client else None,
     )
-    db.add(log)
-    await db.commit()
 
     return {
         "query": {"address": address, "state": state},

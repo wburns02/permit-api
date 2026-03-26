@@ -7,7 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_read_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
-from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
+from app.models.api_key import ApiUser, PlanTier, resolve_plan
+from app.services.usage_logger import log_usage
 from app.models.data_layers import ContractorLicense
 from app.services.fast_counts import fast_count
 from app.services.response_guard import guard_response
@@ -62,15 +63,13 @@ async def verify_license(
     result = await db.execute(query)
     licenses = result.scalars().all()
 
-    log = UsageLog(
+    log_usage(
         user_id=user.id,
         api_key_id=request.state.api_key.id,
         endpoint="/v1/licenses/verify",
         lookup_count=1,
         ip_address=request.client.host if request.client else None,
     )
-    db.add(log)
-    await db.commit()
 
     return {
         "query": {"name": name, "state": state, "license_number": license_number},
@@ -154,15 +153,13 @@ async def search_licenses(
     count_q = select(func.count()).select_from(ContractorLicense).where(where)
     total = (await db.execute(count_q)).scalar() or 0
 
-    log = UsageLog(
+    log_usage(
         user_id=user.id,
         api_key_id=request.state.api_key.id,
         endpoint="/v1/licenses/search",
         lookup_count=1,
         ip_address=request.client.host if request.client else None,
     )
-    db.add(log)
-    await db.commit()
 
     results_list = [
         {

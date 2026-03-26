@@ -9,7 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_read_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
-from app.models.api_key import ApiUser, PlanTier, UsageLog, resolve_plan
+from app.models.api_key import ApiUser, PlanTier, resolve_plan
+from app.services.usage_logger import log_usage
 from app.models.permit import Permit
 from app.models.data_layers import ContractorLicense
 from app.services.response_guard import guard_response
@@ -79,15 +80,13 @@ async def search_contractors(
     total = (await db.execute(count_q)).scalar() or 0
 
     # Log usage
-    log = UsageLog(
+    log_usage(
         user_id=user.id,
         api_key_id=request.state.api_key.id,
         endpoint="/v1/contractors/search",
         lookup_count=1,
         ip_address=request.client.host if request.client else None,
     )
-    db.add(log)
-    await db.commit()
 
     results_list = [
         {
@@ -159,15 +158,13 @@ async def contractor_permits(
             count_q = select(func.count()).select_from(Permit).where(where)
             total = (await db.execute(count_q)).scalar()
 
-    log = UsageLog(
+    log_usage(
         user_id=user.id,
         api_key_id=request.state.api_key.id,
         endpoint="/v1/contractors/permits",
         lookup_count=1,
         ip_address=request.client.host if request.client else None,
     )
-    db.add(log)
-    await db.commit()
 
     return {
         "contractor": contractor_name,
@@ -364,15 +361,13 @@ async def contractor_risk_score(
         contributing_factors.append("No significant risk factors identified")
 
     # ----- Log usage -----
-    log = UsageLog(
+    log_usage(
         user_id=user.id,
         api_key_id=request.state.api_key.id,
         endpoint="/v1/contractors/risk-score",
         lookup_count=1,
         ip_address=request.client.host if request.client else None,
     )
-    db.add(log)
-    await db.commit()
 
     return {
         "contractor": contractor_name,
