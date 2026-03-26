@@ -95,11 +95,11 @@ async def autocomplete(
             # Query like "san marcos tx" or "austin, TX" — prune to one partition
             state_code = last_word
             city_part = " ".join(words[:-1]).strip().strip(",").upper()
-            # Exclude dirty data: city names with commas, periods, state names embedded
+            # Exclude dirty data: city names with commas, periods, etc.
             clean_filter = (
-                "AND city !~ '[,.]' "
-                "AND length(city) > 1 "
-                "AND upper(city) NOT LIKE '% ' || :state "
+                "AND city NOT LIKE '%,%' "
+                "AND city NOT LIKE '%.%' "
+                "AND length(trim(city)) > 1 "
             )
             if city_part:
                 result = await db.execute(
