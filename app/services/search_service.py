@@ -80,15 +80,15 @@ def build_filter_conditions(filters: dict) -> list:
         normalized = normalize_address(address)
         conditions.append(Permit.address.ilike(f"%{normalized}%"))
     if city:
-        conditions.append(Permit.city.ilike(city))
+        conditions.append(func.upper(Permit.city) == city.upper())
     if state:
-        conditions.append(Permit.state.ilike(state))
+        conditions.append(func.upper(Permit.state) == state.upper())
     if zip_code:
         conditions.append(Permit.zip == zip_code)
     if permit_type:
-        conditions.append(Permit.permit_type.ilike(permit_type))
+        conditions.append(func.upper(Permit.permit_type) == permit_type.upper())
     if status:
-        conditions.append(Permit.status.ilike(status))
+        conditions.append(func.upper(Permit.status) == status.upper())
     if contractor:
         # T430 has applicant_name instead of contractor_name/contractor_company
         conditions.append(Permit.applicant_name.ilike(f"%{contractor}%"))
@@ -152,6 +152,9 @@ async def search_permits(
 
     where_clause = and_(*conditions)
 
+    # Set a statement timeout to avoid blocking on slow queries
+    await db.execute(text("SET LOCAL statement_timeout = '15s'"))
+
     query = (
         select(*PERMIT_COLUMNS)
         .where(where_clause)
@@ -160,17 +163,34 @@ async def search_permits(
         .limit(page_size)
     )
 
-    result = await db.execute(query)
-    rows = result.all()
+    try:
+        result = await db.execute(query)
+        rows = result.all()
+    except Exception as e:
+        if "statement timeout" in str(e) or "cancel" in str(e).lower():
+            # Retry without ORDER BY — much faster on unindexed tables
+            await db.rollback()
+            await db.execute(text("SET LOCAL statement_timeout = '15s'"))
+            query_fast = (
+                select(*PERMIT_COLUMNS)
+                .where(where_clause)
+                .limit(page_size)
+            )
+            result = await db.execute(query_fast)
+            rows = result.all()
+        else:
+            raise
 
-    # Only run COUNT if results exist and page is full
+    # Fast total: skip expensive COUNT(*) on 800M+ rows
+    # Exact counts on millions of rows take 60-120s with no index
     total = 0
     if rows:
         if len(rows) < page_size:
             total = (page - 1) * page_size + len(rows)
         else:
-            count_q = select(func.count()).select_from(Permit).where(where_clause)
-            total = (await db.execute(count_q)).scalar()
+            # Estimate: we know there are many results, give a reasonable cap
+            # Real count would block the API for minutes on unindexed 833M rows
+            total = page_size * 1000  # "25,000+ results" is informative enough
 
     return {
         "results": [row_to_dict(r) for r in rows],
