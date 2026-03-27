@@ -1,9 +1,14 @@
-"""Contractor search and profile endpoints."""
+"""Contractor search and profile endpoints.
+
+Searches contractor_licenses (503K records — FL, CA) and prospect_contacts
+(16M records — TX, IL, IA, CO, etc.) instead of permits.applicant_name which
+is NULL for all 835M rows.
+"""
 
 from datetime import date
 
 from fastapi import APIRouter, Depends, Query, HTTPException, Request
-from sqlalchemy import select, func, and_, or_, case, extract
+from sqlalchemy import select, func, and_, or_, case, extract, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_read_db
@@ -16,6 +21,9 @@ from app.models.data_layers import ContractorLicense
 from app.services.response_guard import guard_response
 
 router = APIRouter(prefix="/contractors", tags=["Contractors"])
+
+# States covered by the contractor_licenses table
+_LICENSE_STATES = {"FL", "CA"}
 
 
 def _escape_like(s: str) -> str:
@@ -35,10 +43,10 @@ async def search_contractors(
     db: AsyncSession = Depends(get_read_db),
 ):
     """
-    Search contractors by name or company. Returns aggregated contractor profiles
-    with permit counts, active jurisdictions, and specialties.
+    Search contractors by name, state, or city.
 
-    Uses applicant_name from the permits table (T430 schema).
+    Queries contractor_licenses (FL, CA) and prospect_contacts (TX, IL, IA,
+    CO, etc.) — the two tables that actually contain contractor data.
     """
     await check_rate_limit(request, lookup_count=1)
 
@@ -49,45 +57,141 @@ async def search_contractors(
             detail="At least one search parameter required (name, state, or city).",
         )
 
-    conditions = [Permit.applicant_name.is_not(None)]
-    if name:
-        safe_name = _escape_like(name)
-        conditions.append(Permit.applicant_name.ilike(f"%{safe_name}%"))
-    if state:
-        conditions.append(Permit.state == state.upper())
-    if city:
-        safe_city = _escape_like(city)
-        conditions.append(Permit.city.ilike(f"%{safe_city}%"))
+    norm_state = state.upper() if state else None
+    name_pattern = f"%{_escape_like(name)}%" if name else None
+    city_pattern = f"%{_escape_like(city)}%" if city else None
+    offset = (page - 1) * page_size
 
-    where = and_(*conditions)
+    results_list: list[dict] = []
+    total = 0
 
-    query = (
-        select(
-            Permit.applicant_name.label("contractor"),
-            func.count().label("total_permits"),
-            func.count(func.distinct(Permit.county)).label("counties"),
-            func.count(func.distinct(Permit.state)).label("states"),
-            func.min(Permit.issue_date).label("first_permit"),
-            func.max(Permit.issue_date).label("last_permit"),
-            func.array_agg(func.distinct(Permit.permit_type)).label("permit_types"),
-            func.array_agg(func.distinct(Permit.state)).label("active_states"),
+    # Set query timeout to prevent runaway scans
+    await db.execute(text("SET LOCAL statement_timeout = '10s'"))
+
+    # ------------------------------------------------------------------
+    # 1. Query contractor_licenses (FL, CA)
+    # ------------------------------------------------------------------
+    search_licenses = (norm_state is None or norm_state in _LICENSE_STATES)
+
+    if search_licenses:
+        cl_conditions = []
+        if norm_state:
+            cl_conditions.append(ContractorLicense.state == norm_state)
+        else:
+            # When no state filter, include license states
+            pass
+        if name:
+            safe = _escape_like(name)
+            cl_conditions.append(
+                or_(
+                    ContractorLicense.business_name.ilike(f"%{safe}%"),
+                    ContractorLicense.full_business_name.ilike(f"%{safe}%"),
+                )
+            )
+        if city:
+            cl_conditions.append(ContractorLicense.city.ilike(city_pattern))
+
+        cl_where = and_(*cl_conditions) if cl_conditions else True
+
+        # Count
+        count_q = select(func.count()).select_from(ContractorLicense).where(cl_where)
+        cl_total = (await db.execute(count_q)).scalar() or 0
+
+        # Data
+        cl_query = (
+            select(
+                ContractorLicense.business_name,
+                ContractorLicense.license_number,
+                ContractorLicense.classifications,
+                ContractorLicense.status,
+                ContractorLicense.state,
+                ContractorLicense.city,
+                ContractorLicense.phone,
+                ContractorLicense.source,
+            )
+            .where(cl_where)
+            .order_by(ContractorLicense.business_name)
+            .limit(page_size)
+            .offset(offset)
         )
-        .where(where)
-        .group_by(Permit.applicant_name)
-        .order_by(func.count().desc())
-        .offset((page - 1) * page_size)
-        .limit(page_size)
-    )
+        cl_rows = (await db.execute(cl_query)).all()
 
-    result = await db.execute(query)
-    rows = result.all()
+        for r in cl_rows:
+            results_list.append({
+                "name": r.business_name,
+                "license_number": r.license_number,
+                "license_type": r.classifications,
+                "status": r.status,
+                "state": r.state,
+                "city": r.city,
+                "phone": r.phone,
+                "email": None,
+                "source": r.source,
+            })
+        total += cl_total
 
-    # Count total
-    count_q = (
-        select(func.count(func.distinct(Permit.applicant_name)))
-        .where(where)
-    )
-    total = (await db.execute(count_q)).scalar() or 0
+    # ------------------------------------------------------------------
+    # 2. Query prospect_contacts for states NOT in contractor_licenses
+    #    (or when no state filter is given)
+    # ------------------------------------------------------------------
+    search_prospects = (norm_state is None or norm_state not in _LICENSE_STATES)
+
+    if search_prospects:
+        # How many slots remain on this page after license results
+        remaining = page_size - len(results_list)
+        # Adjust offset: if licenses consumed some total, shift prospect offset
+        if search_licenses and norm_state is None:
+            prospect_offset = max(0, offset - cl_total)
+        else:
+            prospect_offset = offset
+
+        if remaining > 0 or not search_licenses:
+            if not search_licenses:
+                remaining = page_size
+                prospect_offset = offset
+
+            params: dict = {
+                "state": norm_state,
+                "name_pattern": name_pattern,
+                "city_pattern": city_pattern,
+                "limit": remaining,
+                "offset": prospect_offset,
+            }
+
+            pc_count_sql = text("""
+                SELECT count(*)
+                FROM prospect_contacts
+                WHERE (:state IS NULL OR state = :state)
+                AND (:name_pattern IS NULL OR name ILIKE :name_pattern)
+                AND (:city_pattern IS NULL OR city ILIKE :city_pattern)
+            """)
+            pc_total = (await db.execute(pc_count_sql, params)).scalar() or 0
+
+            pc_query = text("""
+                SELECT name, license_number, license_type, status,
+                       state, city, phone, email, source
+                FROM prospect_contacts
+                WHERE (:state IS NULL OR state = :state)
+                AND (:name_pattern IS NULL OR name ILIKE :name_pattern)
+                AND (:city_pattern IS NULL OR city ILIKE :city_pattern)
+                ORDER BY name
+                LIMIT :limit OFFSET :offset
+            """)
+            pc_rows = (await db.execute(pc_query, params)).all()
+
+            for r in pc_rows:
+                results_list.append({
+                    "name": r.name,
+                    "license_number": r.license_number,
+                    "license_type": r.license_type,
+                    "status": r.status,
+                    "state": r.state,
+                    "city": r.city,
+                    "phone": r.phone,
+                    "email": r.email,
+                    "source": r.source,
+                })
+            total += pc_total
 
     # Log usage
     log_usage(
@@ -98,25 +202,147 @@ async def search_contractors(
         ip_address=request.client.host if request.client else None,
     )
 
-    results_list = [
-        {
-            "contractor": r.contractor,
-            "total_permits": r.total_permits,
-            "counties": r.counties,
-            "states": r.states,
-            "first_active": r.first_permit.isoformat() if r.first_permit else None,
-            "last_active": r.last_permit.isoformat() if r.last_permit else None,
-            "permit_types": [t for t in (r.permit_types or []) if t],
-            "active_states": [s for s in (r.active_states or []) if s],
-        }
-        for r in rows
-    ]
-
     # Apply security layers
     guarded_results, sec_meta = await guard_response(request, results_list, page=page)
 
     return {
         "results": guarded_results,
+        "total": total,
+        "page": page,
+        "page_size": page_size,
+    }
+
+
+@router.get("/{contractor_name}/details")
+async def contractor_details(
+    contractor_name: str,
+    request: Request,
+    state: str | None = Query(None, max_length=2),
+    page: int = Query(1, ge=1, le=20),
+    page_size: int = Query(25, ge=1, le=50),
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_read_db),
+):
+    """
+    Get license details for a specific contractor across both
+    contractor_licenses and prospect_contacts tables.
+    """
+    await check_rate_limit(request, lookup_count=1)
+
+    await db.execute(text("SET LOCAL statement_timeout = '10s'"))
+
+    safe_name = _escape_like(contractor_name)
+    norm_state = state.upper() if state else None
+    offset = (page - 1) * page_size
+    results: list[dict] = []
+    total = 0
+
+    # Search contractor_licenses
+    cl_conditions = [
+        or_(
+            ContractorLicense.business_name.ilike(f"%{safe_name}%"),
+            ContractorLicense.full_business_name.ilike(f"%{safe_name}%"),
+        )
+    ]
+    if norm_state:
+        cl_conditions.append(ContractorLicense.state == norm_state)
+
+    cl_where = and_(*cl_conditions)
+    cl_count = (await db.execute(
+        select(func.count()).select_from(ContractorLicense).where(cl_where)
+    )).scalar() or 0
+
+    cl_rows = (await db.execute(
+        select(
+            ContractorLicense.business_name,
+            ContractorLicense.license_number,
+            ContractorLicense.classifications,
+            ContractorLicense.status,
+            ContractorLicense.state,
+            ContractorLicense.city,
+            ContractorLicense.phone,
+            ContractorLicense.address,
+            ContractorLicense.issue_date,
+            ContractorLicense.expiration_date,
+            ContractorLicense.source,
+        )
+        .where(cl_where)
+        .order_by(ContractorLicense.business_name)
+        .limit(page_size)
+        .offset(offset)
+    )).all()
+
+    for r in cl_rows:
+        results.append({
+            "name": r.business_name,
+            "license_number": r.license_number,
+            "license_type": r.classifications,
+            "status": r.status,
+            "state": r.state,
+            "city": r.city,
+            "phone": r.phone,
+            "email": None,
+            "address": r.address,
+            "issue_date": r.issue_date.isoformat() if r.issue_date else None,
+            "expiration_date": r.expiration_date.isoformat() if r.expiration_date else None,
+            "source": r.source,
+        })
+    total += cl_count
+
+    # Search prospect_contacts
+    remaining = page_size - len(results)
+    if remaining > 0:
+        pc_offset = max(0, offset - cl_count)
+        params = {
+            "name_pattern": f"%{safe_name}%",
+            "state": norm_state,
+            "limit": remaining,
+            "offset": pc_offset,
+        }
+        pc_count = (await db.execute(text("""
+            SELECT count(*) FROM prospect_contacts
+            WHERE name ILIKE :name_pattern
+            AND (:state IS NULL OR state = :state)
+        """), params)).scalar() or 0
+
+        pc_rows = (await db.execute(text("""
+            SELECT name, license_number, license_type, status,
+                   state, city, phone, email, address, source
+            FROM prospect_contacts
+            WHERE name ILIKE :name_pattern
+            AND (:state IS NULL OR state = :state)
+            ORDER BY name
+            LIMIT :limit OFFSET :offset
+        """), params)).all()
+
+        for r in pc_rows:
+            results.append({
+                "name": r.name,
+                "license_number": r.license_number,
+                "license_type": r.license_type,
+                "status": r.status,
+                "state": r.state,
+                "city": r.city,
+                "phone": r.phone,
+                "email": r.email,
+                "address": r.address,
+                "issue_date": None,
+                "expiration_date": None,
+                "source": r.source,
+            })
+        total += pc_count
+
+    log_usage(
+        user_id=user.id,
+        api_key_id=request.state.api_key.id,
+        endpoint="/v1/contractors/details",
+        lookup_count=1,
+        ip_address=request.client.host if request.client else None,
+    )
+
+    return {
+        "contractor": contractor_name,
+        "results": results,
         "total": total,
         "page": page,
         "page_size": page_size,
@@ -135,8 +361,10 @@ async def contractor_permits(
 ):
     """
     Get all permits for a specific contractor. Shows their complete work history.
+    Note: This queries permits.applicant_name which may be sparse.
     """
     await check_rate_limit(request, lookup_count=1)
+    await db.execute(text("SET LOCAL statement_timeout = '10s'"))
 
     from app.services.search_service import PERMIT_COLUMNS, row_to_dict
 
