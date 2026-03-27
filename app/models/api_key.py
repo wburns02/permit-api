@@ -60,6 +60,7 @@ class ApiUser(Base):
     plan = Column(PGEnum(PlanTier, name="plan_tier"), default=PlanTier.FREE, nullable=False)
     stripe_customer_id = Column(String(255), unique=True)
     stripe_subscription_id = Column(String(255))
+    webhook_url = Column(String(500))  # CRM webhook URL for batch export
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 

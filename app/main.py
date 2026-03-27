@@ -74,6 +74,17 @@ async def lifespan(app: FastAPI):
         logger.warning("Database not available at startup: %s", e)
         logger.warning("API will start but database endpoints will fail until DB is connected")
 
+    # Auto-migrate: add webhook_url column if it doesn't exist
+    try:
+        from sqlalchemy import text as _text
+        from app.database import primary_engine
+        async with primary_engine.begin() as conn:
+            await conn.execute(_text(
+                "ALTER TABLE api_users ADD COLUMN IF NOT EXISTS webhook_url VARCHAR(500)"
+            ))
+    except Exception as e:
+        logger.warning("Could not apply webhook_url migration: %s", e)
+
     # Start alert scheduler
     from app.services.scheduler import start_scheduler, stop_scheduler
     try:

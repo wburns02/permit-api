@@ -968,3 +968,150 @@ async def property_report_html(
     )
     html = _build_html_report(report)
     return HTMLResponse(content=html)
+
+
+# ---------------------------------------------------------------------------
+# Webhook Configuration & Delivery
+# ---------------------------------------------------------------------------
+
+class WebhookConfigRequest(BaseModel):
+    webhook_url: str | None = Field(None, max_length=500)
+
+
+class WebhookSendRequest(BaseModel):
+    rows: list[dict]
+    source_query: str = ""
+
+
+@router.put("/webhook/config")
+async def configure_webhook(
+    body: WebhookConfigRequest,
+    user: ApiUser = Depends(get_current_user),
+):
+    """Save or clear the user's CRM webhook URL."""
+    _require_pro_leads(user)
+
+    from app.database import primary_session_maker
+    from sqlalchemy import update
+    from app.models.api_key import ApiUser as ApiUserModel
+
+    async with primary_session_maker() as db:
+        await db.execute(
+            update(ApiUserModel)
+            .where(ApiUserModel.id == user.id)
+            .values(webhook_url=body.webhook_url)
+        )
+        await db.commit()
+
+    return {"status": "ok", "webhook_url": body.webhook_url}
+
+
+@router.get("/webhook/config")
+async def get_webhook_config(
+    user: ApiUser = Depends(get_current_user),
+):
+    """Get the user's current webhook URL."""
+    _require_pro_leads(user)
+
+    from app.database import replica_session_maker
+    from sqlalchemy import select
+    from app.models.api_key import ApiUser as ApiUserModel
+
+    async with replica_session_maker() as db:
+        result = await db.execute(
+            select(ApiUserModel.webhook_url).where(ApiUserModel.id == user.id)
+        )
+        url = result.scalar_one_or_none()
+
+    return {"webhook_url": url}
+
+
+@router.post("/webhook/test")
+async def test_webhook(
+    user: ApiUser = Depends(get_current_user),
+):
+    """Send a test payload to the user's configured webhook URL."""
+    _require_pro_leads(user)
+
+    from app.database import replica_session_maker
+    from sqlalchemy import select
+    from app.models.api_key import ApiUser as ApiUserModel
+    from app.services.webhook_delivery import deliver_webhook
+
+    async with replica_session_maker() as db:
+        result = await db.execute(
+            select(ApiUserModel.webhook_url).where(ApiUserModel.id == user.id)
+        )
+        url = result.scalar_one_or_none()
+
+    if not url:
+        raise HTTPException(status_code=400, detail="No webhook URL configured. Set one first via PUT /analyst/webhook/config.")
+
+    test_payload = {
+        "source": "PermitLookup AI Analyst",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "event": "test",
+        "count": 1,
+        "leads": [{
+            "permit_number": "TEST-001",
+            "address": "123 Test Street",
+            "city": "Austin",
+            "state": "TX",
+            "zip": "78701",
+            "description": "Test webhook payload from PermitLookup",
+            "date": "2026-03-27",
+            "valuation": 50000,
+            "contact_name": "Test Contact",
+            "phone": "555-000-0000",
+            "contractor": "Test Contractor LLC",
+            "source_query": "Webhook test",
+        }],
+    }
+
+    success = await deliver_webhook(url, test_payload)
+    if not success:
+        raise HTTPException(status_code=502, detail="Webhook delivery failed. Check that the URL accepts POST requests with JSON body.")
+
+    return {"status": "ok", "message": "Test payload delivered successfully."}
+
+
+@router.post("/webhook/send")
+async def send_to_webhook(
+    body: WebhookSendRequest,
+    user: ApiUser = Depends(get_current_user),
+):
+    """Proxy selected analyst rows to the user's configured webhook URL."""
+    _require_pro_leads(user)
+
+    if not body.rows:
+        raise HTTPException(status_code=400, detail="No rows to send.")
+    if len(body.rows) > 50:
+        raise HTTPException(status_code=400, detail="Maximum 50 rows per webhook send.")
+
+    from app.database import replica_session_maker
+    from sqlalchemy import select
+    from app.models.api_key import ApiUser as ApiUserModel
+    from app.services.webhook_delivery import deliver_webhook
+
+    async with replica_session_maker() as db:
+        result = await db.execute(
+            select(ApiUserModel.webhook_url).where(ApiUserModel.id == user.id)
+        )
+        url = result.scalar_one_or_none()
+
+    if not url:
+        raise HTTPException(status_code=400, detail="No webhook URL configured.")
+
+    payload = {
+        "source": "PermitLookup AI Analyst",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "count": len(body.rows),
+        "leads": body.rows,
+        "source_query": body.source_query,
+    }
+
+    success = await deliver_webhook(url, payload)
+    if not success:
+        raise HTTPException(status_code=502, detail="Webhook delivery failed after retries.")
+
+    return {"status": "ok", "delivered": len(body.rows)}
