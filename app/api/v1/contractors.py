@@ -150,30 +150,30 @@ async def search_contractors(
                 remaining = page_size
                 prospect_offset = offset
 
-            params: dict = {
-                "state": norm_state,
-                "name_pattern": name_pattern,
-                "city_pattern": city_pattern,
-                "limit": remaining,
-                "offset": prospect_offset,
-            }
+            # Build WHERE clause dynamically to avoid asyncpg ambiguous param errors
+            pc_conditions = ["1=1"]
+            params: dict = {"limit": remaining, "offset": prospect_offset}
 
-            pc_count_sql = text("""
-                SELECT count(*)
-                FROM prospect_contacts
-                WHERE (:state IS NULL OR state = :state)
-                AND (:name_pattern IS NULL OR name ILIKE :name_pattern)
-                AND (:city_pattern IS NULL OR city ILIKE :city_pattern)
-            """)
+            if norm_state:
+                pc_conditions.append("state = :state")
+                params["state"] = norm_state
+            if name_pattern:
+                pc_conditions.append("name ILIKE :name_pattern")
+                params["name_pattern"] = name_pattern
+            if city_pattern:
+                pc_conditions.append("city ILIKE :city_pattern")
+                params["city_pattern"] = city_pattern
+
+            pc_where = " AND ".join(pc_conditions)
+
+            pc_count_sql = text(f"SELECT count(*) FROM prospect_contacts WHERE {pc_where}")
             pc_total = (await db.execute(pc_count_sql, params)).scalar() or 0
 
-            pc_query = text("""
+            pc_query = text(f"""
                 SELECT name, license_number, license_type, status,
                        state, city, phone, email, source
                 FROM prospect_contacts
-                WHERE (:state IS NULL OR state = :state)
-                AND (:name_pattern IS NULL OR name ILIKE :name_pattern)
-                AND (:city_pattern IS NULL OR city ILIKE :city_pattern)
+                WHERE {pc_where}
                 ORDER BY name
                 LIMIT :limit OFFSET :offset
             """)
@@ -293,27 +293,31 @@ async def contractor_details(
     remaining = page_size - len(results)
     if remaining > 0:
         pc_offset = max(0, offset - cl_count)
-        params = {
+        pc_conditions = ["name ILIKE :name_pattern"]
+        pc_params: dict = {
             "name_pattern": f"%{safe_name}%",
-            "state": norm_state,
             "limit": remaining,
             "offset": pc_offset,
         }
-        pc_count = (await db.execute(text("""
-            SELECT count(*) FROM prospect_contacts
-            WHERE name ILIKE :name_pattern
-            AND (:state IS NULL OR state = :state)
-        """), params)).scalar() or 0
+        if norm_state:
+            pc_conditions.append("state = :state")
+            pc_params["state"] = norm_state
 
-        pc_rows = (await db.execute(text("""
+        pc_where = " AND ".join(pc_conditions)
+
+        pc_count = (await db.execute(
+            text(f"SELECT count(*) FROM prospect_contacts WHERE {pc_where}"),
+            pc_params,
+        )).scalar() or 0
+
+        pc_rows = (await db.execute(text(f"""
             SELECT name, license_number, license_type, status,
                    state, city, phone, email, address, source
             FROM prospect_contacts
-            WHERE name ILIKE :name_pattern
-            AND (:state IS NULL OR state = :state)
+            WHERE {pc_where}
             ORDER BY name
             LIMIT :limit OFFSET :offset
-        """), params)).all()
+        """), pc_params)).all()
 
         for r in pc_rows:
             results.append({
