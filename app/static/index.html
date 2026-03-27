@@ -4953,7 +4953,7 @@ results.forEach(p =>
 </footer>
 
 <script>
-const API = 'https://r730-2-1.tailad2d5f.ts.net';
+const API = '';
 let currentKey = localStorage.getItem('pl_api_key') || '';
 let currentPage = 'home';
 
@@ -5038,17 +5038,28 @@ document.addEventListener('DOMContentLoaded', () => {
 
   async function fetchSuggestions(q) {
     try {
-      const base = window.API_BASE || '';
-      const r = await fetch(base + '/v1/permits/autocomplete?q=' + encodeURIComponent(q));
+      const r = await fetch('/v1/permits/autocomplete?q=' + encodeURIComponent(q));
       if (!r.ok) return hideSuggestions();
       const items = await r.json();
       if (!items.length) return hideSuggestions();
       const box = document.getElementById('search-suggestions');
-      box.innerHTML = items.map(s => {
-        const lbl = (s.label || (s.city + ', ' + s.state)).replace(/'/g, "\\'");
-        return '<div class="suggest-item" tabindex="0" style="padding:10px 16px;cursor:pointer;font-size:14px;color:var(--text1);border-bottom:1px solid var(--border);transition:background .15s" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background='none'" onclick="selectSuggestion('' + lbl + '')" onkeydown="if(event.key==='Enter')selectSuggestion('' + lbl + '');if(event.key==='ArrowDown'&&this.nextSibling){event.preventDefault();this.nextSibling.focus()};if(event.key==='ArrowUp'&&this.previousSibling){event.preventDefault();this.previousSibling.focus()}">' +
-        '\u{1F4CD} ' + esc(s.city || '') + ', ' + esc(s.state || '') + '</div>';
-      }).join('');
+      box.innerHTML = '';
+      items.forEach(function(s) {
+        var div = document.createElement('div');
+        div.className = 'suggest-item';
+        div.tabIndex = 0;
+        div.style.cssText = 'padding:10px 16px;cursor:pointer;font-size:14px;color:var(--text1);border-bottom:1px solid var(--border);transition:background .15s';
+        div.textContent = '\ud83d\udccd ' + (s.city || '') + ', ' + (s.state || '');
+        div.onmouseover = function() { this.style.background = 'var(--bg3)'; };
+        div.onmouseout = function() { this.style.background = 'none'; };
+        div.onclick = function() { selectSuggestion(s.label || (s.city + ', ' + s.state)); };
+        div.onkeydown = function(e) {
+          if (e.key === 'Enter') selectSuggestion(s.label || (s.city + ', ' + s.state));
+          if (e.key === 'ArrowDown' && this.nextSibling) { e.preventDefault(); this.nextSibling.focus(); }
+          if (e.key === 'ArrowUp' && this.previousSibling) { e.preventDefault(); this.previousSibling.focus(); }
+        };
+        box.appendChild(div);
+      });
       box.style.display = '';
     } catch(e) { hideSuggestions(); }
   }
@@ -15472,6 +15483,23 @@ if ('serviceWorker' in navigator) {
             .catch(err => console.warn('SW registration failed:', err));
     });
 }
+</script>
+<script>
+// Failsafe stats loader — runs 2s after load if stats are still empty
+window.addEventListener("load", function() {
+  setTimeout(function() {
+    var el = document.getElementById("stat-permits");
+    if (el && (!el.textContent || el.textContent.trim() === "")) {
+      fetch("/v1/stats").then(function(r){return r.json()}).then(function(d){
+        function setNum(id,val){var e=document.getElementById(id);if(e){e.classList.remove("loading");e.textContent=val.toLocaleString()}}
+        setNum("stat-permits",d.total_permits);
+        setNum("stat-jurisdictions",d.total_jurisdictions);
+        setNum("stat-states",d.total_states);
+        console.log("Stats loaded via fallback");
+      }).catch(function(e){console.error("Stats fallback failed",e)});
+    }
+  }, 2000);
+});
 </script>
 </body>
 </html>
