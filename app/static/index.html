@@ -14965,7 +14965,21 @@ async function analystSubmit() {
       }
     }
     responseBubble.innerHTML = `<div style="max-width:100%;width:100%;padding:20px;background:var(--surface);border:1px solid var(--border);border-radius:16px 16px 16px 4px">
-      <div style="font-size:14px;line-height:1.6;color:var(--text);margin-bottom:8px">${escapeHtml(data.summary)}</div>
+      <div style="font-size:14px;line-height:1.6;color:var(--text);margin-bottom:8px">${(function(){
+        const lines = data.summary.split('\\n');
+        const suggestions = lines.filter(l => l.trim().startsWith('>>'));
+        const clean = lines.filter(l => !l.trim().startsWith('>>')).join(' ').trim();
+        let h = escapeHtml(clean);
+        if (suggestions.length) {
+          h += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">';
+          suggestions.forEach(s => {
+            const t = s.replace(/^>>\s*/, '').trim();
+            h += '<button class="analyst-chip" onclick="analystAsk(\x27' + escapeHtml(t).replace(/'/g, "\\\x27") + '\x27)">' + escapeHtml(t) + '</button>';
+          });
+          h += '</div>';
+        }
+        return h;
+      })()}</div>
       <div style="display:flex;flex-wrap:wrap;gap:12px;font-size:11px;color:var(--text3);margin-bottom:4px">
         <span>${data.row_count} result${data.row_count !== 1 ? 's' : ''}</span>
         <span>${data.execution_time_ms}ms</span>

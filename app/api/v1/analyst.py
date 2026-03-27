@@ -338,21 +338,42 @@ async def analyst_query(
     if serialized_rows:
         # Send first 20 rows to keep token usage reasonable
         sample = json.dumps(serialized_rows[:20], default=str, indent=2)
+
+        # Sparse results get funnel explanation + broadening suggestions
+        if len(serialized_rows) < 5:
+            summary_prompt = (
+                f"A user asked: \"{body.question}\"\n\n"
+                f"The query returned only {len(serialized_rows)} result(s). "
+                f"Here is the data:\n{sample}\n\n"
+                f"Write a concise summary of these results. "
+                f"IMPORTANT: The query returned very few results. "
+                f"First, explain the filter funnel — describe how each filter in the user's question "
+                f"likely narrowed the results. Use approximate counts based on your knowledge of typical "
+                f"permit volumes (e.g., 'A city like Austin likely has hundreds of permits per week, "
+                f"but filtering to roofing narrows it significantly, and the $10K minimum cuts it further'). "
+                f"Be specific and helpful.\n\n"
+                f"Then suggest 2-3 broader searches the user could try to find more leads. "
+                f"Format each suggestion on its own line starting with >> like:\n"
+                f">> Roofing permits in Austin this week with phone numbers\n"
+                f">> All permits in Austin this week over $10K with phone numbers\n\n"
+                f"Make suggestions that remove one filter at a time so the user can see which filter to relax. "
+                f"Do NOT use markdown formatting."
+            )
+        else:
+            summary_prompt = (
+                f"A user asked: \"{body.question}\"\n\n"
+                f"The query returned {len(serialized_rows)} results. "
+                f"Here is a sample of the data:\n{sample}\n\n"
+                f"Write a concise, insightful 2-4 sentence summary of these results. "
+                f"Highlight the most interesting findings, patterns, or notable data points. "
+                f"Be specific with numbers and names. Do NOT use markdown formatting."
+            )
+
         try:
             summary_response = client.messages.create(
                 model="claude-sonnet-4-6",
                 max_tokens=500,
-                messages=[{
-                    "role": "user",
-                    "content": (
-                        f"A user asked: \"{body.question}\"\n\n"
-                        f"The query returned {len(serialized_rows)} results. "
-                        f"Here is a sample of the data:\n{sample}\n\n"
-                        f"Write a concise, insightful 2-4 sentence summary of these results. "
-                        f"Highlight the most interesting findings, patterns, or notable data points. "
-                        f"Be specific with numbers and names. Do NOT use markdown formatting."
-                    ),
-                }],
+                messages=[{"role": "user", "content": summary_prompt}],
             )
             summary = summary_response.content[0].text.strip()
         except Exception as e:
