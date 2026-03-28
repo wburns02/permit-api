@@ -253,10 +253,11 @@ async def analyst_query(
     t0 = time.time()
 
     # ── Step 1: Generate SQL from natural language ─────────────────────
+    # Use Haiku for SQL generation — fast (sub-second) and accurate for structured tasks
     try:
         sql_response = client.messages.create(
-            model="claude-sonnet-4-6",
-            max_tokens=1000,
+            model="claude-haiku-4-5-20251001",
+            max_tokens=300,
             messages=[{
                 "role": "user",
                 "content": (
@@ -291,8 +292,8 @@ async def analyst_query(
         # Try to get Claude to fix the query
         try:
             fix_response = client.messages.create(
-                model="claude-sonnet-4-6",
-                max_tokens=1000,
+                model="claude-haiku-4-5-20251001",
+                max_tokens=300,
                 messages=[{
                     "role": "user",
                     "content": (
@@ -371,8 +372,8 @@ async def analyst_query(
 
         try:
             summary_response = client.messages.create(
-                model="claude-sonnet-4-6",
-                max_tokens=500,
+                model="claude-haiku-4-5-20251001",
+                max_tokens=400,
                 messages=[{"role": "user", "content": summary_prompt}],
             )
             summary = summary_response.content[0].text.strip()
