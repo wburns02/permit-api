@@ -14966,14 +14966,14 @@ async function analystSubmit() {
     }
     responseBubble.innerHTML = `<div style="max-width:100%;width:100%;padding:20px;background:var(--surface);border:1px solid var(--border);border-radius:16px 16px 16px 4px">
       <div style="font-size:14px;line-height:1.6;color:var(--text);margin-bottom:8px">${(function(){
-        const lines = data.summary.split('\\n');
-        const suggestions = lines.filter(l => l.trim().startsWith('>>'));
-        const clean = lines.filter(l => !l.trim().startsWith('>>')).join(' ').trim();
+        const parts = data.summary.split(/>>/).map(s => s.trim()).filter(Boolean);
+        const clean = parts[0] || '';
+        const suggestions = parts.slice(1).filter(s => s.length > 10);
         let h = escapeHtml(clean);
         if (suggestions.length) {
           h += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:12px">';
           suggestions.forEach(s => {
-            const t = s.replace(/^>>\s*/, '').trim();
+            const t = s.replace(/\s*\(.*?\)\s*$/, '').trim();
             h += '<button class="analyst-chip" onclick="analystAsk(\x27' + escapeHtml(t).replace(/'/g, "\\\x27") + '\x27)">' + escapeHtml(t) + '</button>';
           });
           h += '</div>';
@@ -15261,9 +15261,13 @@ async function _analystLoadIntel(address, city, state, cacheKey) {
   try {
     const params = new URLSearchParams({ address, state });
     if (city) params.set('city', city);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 8000);
     const resp = await fetch(API + '/v1/analyst/report?' + params.toString(), {
       headers: { 'X-API-Key': currentKey },
+      signal: controller.signal,
     });
+    clearTimeout(timeout);
     if (!resp.ok) throw new Error('Report failed');
     const data = await resp.json();
 
