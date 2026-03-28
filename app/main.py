@@ -92,8 +92,37 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("Failed to start alert scheduler: %s", e)
 
+    # Start DB health watchdog — kills process if DB unreachable 3x in a row
+    # Railway auto-restarts crashed containers, which resets the Tailscale tunnel
+    import asyncio
+    import os
+    import signal
+
+    async def _db_watchdog():
+        from app.database import replica_session_maker
+        from sqlalchemy import text
+        consecutive_failures = 0
+        while True:
+            await asyncio.sleep(30)
+            try:
+                async with replica_session_maker() as db:
+                    await asyncio.wait_for(
+                        db.execute(text("SELECT 1")),
+                        timeout=10.0,
+                    )
+                consecutive_failures = 0
+            except Exception as e:
+                consecutive_failures += 1
+                logger.warning("DB watchdog: failure %d/3 — %s", consecutive_failures, e)
+                if consecutive_failures >= 3:
+                    logger.error("DB watchdog: 3 consecutive failures, killing process for Railway restart")
+                    os.kill(os.getpid(), signal.SIGTERM)
+
+    watchdog_task = asyncio.create_task(_db_watchdog())
+
     yield
 
+    watchdog_task.cancel()
     try:
         stop_scheduler()
     except Exception:
@@ -164,11 +193,29 @@ app.include_router(campaigns_router, prefix="/v1")
 
 @app.get("/health")
 async def health():
-    return {
-        "status": "healthy",
-        "version": settings.VERSION,
-        "environment": settings.ENVIRONMENT,
-    }
+    """Health check — returns 503 if DB is unreachable (Railway uses this to detect unhealthy containers)."""
+    import asyncio
+    from app.database import replica_session_maker
+    from sqlalchemy import text
+    db_ok = False
+    try:
+        async with replica_session_maker() as db:
+            await asyncio.wait_for(db.execute(text("SELECT 1")), timeout=5.0)
+        db_ok = True
+    except Exception:
+        pass
+
+    status_code = 200 if db_ok else 503
+    from fastapi.responses import JSONResponse
+    return JSONResponse(
+        status_code=status_code,
+        content={
+            "status": "healthy" if db_ok else "unhealthy",
+            "database": "connected" if db_ok else "unreachable",
+            "version": settings.VERSION,
+            "environment": settings.ENVIRONMENT,
+        },
+    )
 
 
 @app.post("/health/db/migrate-expansion")
