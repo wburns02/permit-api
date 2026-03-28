@@ -337,8 +337,8 @@ async def analyst_query(
 
     # ── Step 4: Summarize results with Claude ─────────────────────────
     if serialized_rows:
-        # Send first 20 rows to keep token usage reasonable
-        sample = json.dumps(serialized_rows[:20], default=str, indent=2)
+        # Send first 5 rows compact — keeps prompt small for speed
+        sample = json.dumps(serialized_rows[:5], default=str, separators=(',', ':'))
 
         # Sparse results get funnel explanation + broadening suggestions
         if len(serialized_rows) < 5:
@@ -362,18 +362,14 @@ async def analyst_query(
             )
         else:
             summary_prompt = (
-                f"A user asked: \"{body.question}\"\n\n"
-                f"The query returned {len(serialized_rows)} results. "
-                f"Here is a sample of the data:\n{sample}\n\n"
-                f"Write a concise, insightful 2-4 sentence summary of these results. "
-                f"Highlight the most interesting findings, patterns, or notable data points. "
-                f"Be specific with numbers and names. Do NOT use markdown formatting."
+                f"Question: \"{body.question}\" — {len(serialized_rows)} results. Sample:\n{sample}\n\n"
+                f"2-3 sentence summary. Be specific with numbers/names. No markdown."
             )
 
         try:
             summary_response = client.messages.create(
                 model="claude-haiku-4-5-20251001",
-                max_tokens=400,
+                max_tokens=250,
                 messages=[{"role": "user", "content": summary_prompt}],
             )
             summary = summary_response.content[0].text.strip()
