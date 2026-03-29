@@ -282,8 +282,9 @@ async def analyst_query(
 
     logger.info("[Analyst:%s] user=%s question=%r sql=%s", query_id, user.id, body.question, safe_sql)
 
-    # ── Step 3: Execute the SQL ───────────────────────────────────────
+    # ── Step 3: Execute the SQL (with 8s timeout to prevent slow queries hanging) ──
     try:
+        await db.execute(text("SET LOCAL statement_timeout = '8000'"))
         result = await db.execute(text(safe_sql))
         columns = list(result.keys())
         rows = [dict(zip(columns, row)) for row in result.fetchall()]
