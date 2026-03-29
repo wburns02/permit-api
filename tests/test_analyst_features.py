@@ -196,7 +196,7 @@ class TestFrontendHTML:
 
     def test_broadening_suggestions(self):
         """Filter funnel suggestion chip rendering exists."""
-        assert "startsWith('>>')" in self.html
+        assert "split(/>>/)" in self.html
 
     def test_responsive_panel(self):
         """Mobile responsive CSS for panel exists."""
