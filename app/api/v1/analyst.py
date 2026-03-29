@@ -42,7 +42,7 @@ def _get_client():
         return None
     if not ANTHROPIC_API_KEY:
         return None
-    return Anthropic(api_key=ANTHROPIC_API_KEY)
+    return Anthropic(api_key=ANTHROPIC_API_KEY, timeout=15.0)
 
 
 # ---------------------------------------------------------------------------
