@@ -119,8 +119,8 @@ CRITICAL COLUMN NAME RULES — follow these EXACTLY:
 QUERY RULES:
 - ALWAYS use LIMIT 50 on every query to prevent huge result sets
 - Use ILIKE for all text searches (case insensitive)
-- For recent/fresh data with contractor phones, prefer hot_leads table
-- For historical/bulk data, use permits table
+- For recent/fresh data (this week, this month, recent, new, latest), ALWAYS use hot_leads table — it has the freshest data updated daily. The permits table has historical data but is often weeks behind.
+- Only use the permits table for historical queries (last year, 2024, etc.) or when user explicitly asks for historical/all-time data
 - When user says "this month" use CURRENT_DATE - interval '30 days'
 - When user says "this week" use CURRENT_DATE - interval '7 days'
 - When user says "this year" use date_trunc('year', CURRENT_DATE)
