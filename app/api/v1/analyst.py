@@ -50,13 +50,19 @@ class _ProxyClient:
 
     def create(self, model: str, max_tokens: int, messages: list[dict], **kwargs):
         # Call localhost:9877 which tunnels through SOCKS5 to R730-2:9877
-        resp = _httpx.post(
-            f"{self.proxy_url}/v1/messages",
-            json={"model": model, "max_tokens": max_tokens, "messages": messages},
-            timeout=15.0,
-        )
-        resp.raise_for_status()
-        data = resp.json()
+        logger.info("Proxy: calling %s/v1/messages model=%s", self.proxy_url, model)
+        try:
+            resp = _httpx.post(
+                f"{self.proxy_url}/v1/messages",
+                json={"model": model, "max_tokens": max_tokens, "messages": messages},
+                timeout=15.0,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            logger.info("Proxy: got response, %d chars", len(str(data)))
+        except Exception as e:
+            logger.error("Proxy: FAILED — %s: %s", type(e).__name__, e)
+            raise
 
         class _Content:
             def __init__(self, text):
