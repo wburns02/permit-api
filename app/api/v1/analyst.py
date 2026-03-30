@@ -340,9 +340,15 @@ async def analyst_query(
         serialized_rows.append(clean)
 
     exec_ms = int((time.time() - t0) * 1000)
+    logger.info("[Analyst:%s] DB done in %.1fs, %d rows", query_id, time.time() - t0, len(serialized_rows))
 
     # ── Step 4: Summarize results with Claude ─────────────────────────
-    if serialized_rows:
+    # Skip summary if we've already used >8s (prevents timeout on summary call)
+    elapsed = time.time() - t0
+    if elapsed > 8.0 and serialized_rows:
+        logger.warning("[Analyst:%s] Skipping summary — already at %.1fs", query_id, elapsed)
+        summary = f"Found {len(serialized_rows)} results for your query."
+    elif serialized_rows:
         # Send first 5 rows compact — keeps prompt small for speed
         sample = json.dumps(serialized_rows[:5], default=str, separators=(',', ':'))
 
