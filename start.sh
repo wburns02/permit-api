@@ -2,7 +2,7 @@
 set -e
 
 echo "Starting Tailscale..."
-tailscaled --tun=userspace-networking --socks5-server=localhost:1055 --outbound-http-proxy-listen=localhost:1056 &
+tailscaled --tun=userspace-networking --socks5-server=localhost:1055 &
 sleep 3
 tailscale up --authkey="${TAILSCALE_AUTHKEY}" --hostname=permit-api-railway
 echo "Tailscale connected, waiting for routes..."
