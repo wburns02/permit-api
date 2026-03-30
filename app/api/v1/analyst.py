@@ -44,10 +44,11 @@ def _get_client():
         return None
     if not ANTHROPIC_API_KEY:
         return None
-    # Use a direct httpx client with NO proxy to avoid Tailscale's
-    # outbound HTTP proxy intercepting Anthropic API calls
-    http_client = _httpx.Client(proxy=None, timeout=15.0) if _httpx else None
-    return Anthropic(api_key=ANTHROPIC_API_KEY, timeout=15.0, http_client=http_client)
+    # Clear ALL proxy env vars so httpx goes direct to api.anthropic.com
+    import os
+    for var in ('HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'ALL_PROXY', 'all_proxy'):
+        os.environ.pop(var, None)
+    return Anthropic(api_key=ANTHROPIC_API_KEY, timeout=15.0)
 
 
 # ---------------------------------------------------------------------------
