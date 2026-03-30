@@ -253,10 +253,12 @@ async def analyst_query(
 
     query_id = str(uuid.uuid4())[:12]
     t0 = time.time()
+    logger.info("[Analyst:%s] START question=%r", query_id, body.question)
 
     # ── Step 1: Generate SQL from natural language ─────────────────────
     # Use Haiku for SQL generation — fast (sub-second) and accurate for structured tasks
     try:
+        t_sql = time.time()
         sql_response = client.messages.create(
             model="claude-haiku-4-5-20251001",
             max_tokens=300,
@@ -271,6 +273,7 @@ async def analyst_query(
             }],
         )
         raw_sql = sql_response.content[0].text.strip()
+        logger.info("[Analyst:%s] SQL generated in %.1fs", query_id, time.time() - t_sql)
     except Exception as e:
         logger.error("SQL generation failed for query %s: %s", query_id, e)
         raise HTTPException(status_code=502, detail=f"AI SQL generation failed: {e}")
