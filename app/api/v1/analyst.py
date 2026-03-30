@@ -44,11 +44,18 @@ def _get_client():
         return None
     if not ANTHROPIC_API_KEY:
         return None
-    # Clear ALL proxy env vars so httpx goes direct to api.anthropic.com
-    import os
-    for var in ('HTTP_PROXY', 'HTTPS_PROXY', 'http_proxy', 'https_proxy', 'ALL_PROXY', 'all_proxy'):
-        os.environ.pop(var, None)
-    return Anthropic(api_key=ANTHROPIC_API_KEY, timeout=15.0)
+    # Route Anthropic API calls through Tailscale SOCKS5 proxy (localhost:1055)
+    # This is necessary because --tun=userspace-networking captures all outbound
+    # TCP and routes it through unreliable relay. The SOCKS5 proxy is more stable.
+    try:
+        http_client = _httpx.Client(
+            proxy="socks5://127.0.0.1:1055",
+            timeout=15.0,
+        )
+        return Anthropic(api_key=ANTHROPIC_API_KEY, timeout=15.0, http_client=http_client)
+    except Exception:
+        # Fallback if SOCKS5 proxy isn't available (e.g., local dev)
+        return Anthropic(api_key=ANTHROPIC_API_KEY, timeout=15.0)
 
 
 # ---------------------------------------------------------------------------
