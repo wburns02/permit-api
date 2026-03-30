@@ -87,7 +87,4 @@ t_primary.join()
 sleep 2
 
 echo "Starting PermitLookup API..."
-# Ensure Anthropic API calls go direct, NOT through Tailscale proxy
-unset HTTP_PROXY HTTPS_PROXY http_proxy https_proxy ALL_PROXY all_proxy
-export NO_PROXY="*"
-exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080}
+exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080} --timeout-keep-alive 30
