@@ -2,7 +2,7 @@
 set -e
 
 echo "Starting Tailscale..."
-tailscaled --tun=userspace-networking --socks5-server=localhost:1055 &
+tailscaled --tun=userspace-networking --socks5-server=localhost:1055 --outbound-http-proxy-listen=localhost:1056 &
 sleep 3
 tailscale up --authkey="${TAILSCALE_AUTHKEY}" --hostname=permit-api-railway
 echo "Tailscale connected, waiting for routes..."
@@ -87,4 +87,8 @@ t_primary.join()
 sleep 2
 
 echo "Starting PermitLookup API..."
+# Set HTTP proxy for outbound HTTPS (Tailscale outbound proxy)
+# This ensures httpx (used by Anthropic SDK) routes through Tailscale correctly
+export HTTPS_PROXY=http://localhost:1056
+export HTTP_PROXY=http://localhost:1056
 exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080} --timeout-keep-alive 30
