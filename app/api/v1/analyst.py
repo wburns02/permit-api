@@ -128,6 +128,8 @@ QUERY RULES:
 - Always include useful columns in SELECT (address, city, state, etc.)
 - For aggregations, use meaningful aliases
 - Never use SELECT * — always specify columns
+- CRITICAL: When searching for trade/work types (roofing, plumbing, electrical, etc.), ALWAYS search the description column with ILIKE, NOT permit_type. permit_type contains codes like 'BP', 'PP', 'EP', NOT trade names. Example: WHERE description ILIKE '%roof%' (correct) vs WHERE permit_type ILIKE '%roof%' (WRONG — will return 0 results)
+- For broader trade matching, also check work_class: (description ILIKE '%roof%' OR work_class ILIKE '%roof%')
 """
 
 # ---------------------------------------------------------------------------
