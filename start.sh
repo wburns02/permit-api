@@ -2,7 +2,7 @@
 set -e
 
 echo "Starting Tailscale..."
-tailscaled --tun=userspace-networking --socks5-server=localhost:1055 &
+tailscaled --tun=userspace-networking --socks5-server=localhost:1055 --outbound-http-proxy-listen=localhost:1056 &
 sleep 3
 tailscale up --authkey="${TAILSCALE_AUTHKEY}" --hostname=permit-api-railway
 echo "Tailscale connected, waiting for routes..."
@@ -80,6 +80,10 @@ t_primary.start()
 # Replica (R730-2) — reads
 t_replica = threading.Thread(target=start_proxy, args=(5433, '100.87.214.106', 5432, 'R730-2-replica'), daemon=True)
 t_replica.start()
+
+# Anthropic proxy (R730-2) — AI API calls
+t_anthropic = threading.Thread(target=start_proxy, args=(9877, '100.87.214.106', 9877, 'R730-2-anthropic-proxy'), daemon=True)
+t_anthropic.start()
 
 # Keep main thread alive
 t_primary.join()

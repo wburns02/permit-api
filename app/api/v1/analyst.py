@@ -36,9 +36,9 @@ try:
 except ImportError:
     _httpx = None
 
-# Anthropic proxy on R730-2 (direct internet, no Tailscale tun issues)
+# Anthropic proxy on R730-2, accessed via SOCKS5 TCP tunnel (localhost:9877 → R730-2:9877)
 # Railway's userspace-networking breaks direct HTTPS to api.anthropic.com
-ANTHROPIC_PROXY_URL = "http://100.87.214.106:9877"
+ANTHROPIC_PROXY_URL = "http://127.0.0.1:9877"
 
 
 class _ProxyClient:
@@ -49,12 +49,11 @@ class _ProxyClient:
         self.messages = self
 
     def create(self, model: str, max_tokens: int, messages: list[dict], **kwargs):
-        # Route through SOCKS5 proxy (same as DB connections — proven stable)
+        # Call localhost:9877 which tunnels through SOCKS5 to R730-2:9877
         resp = _httpx.post(
             f"{self.proxy_url}/v1/messages",
             json={"model": model, "max_tokens": max_tokens, "messages": messages},
             timeout=15.0,
-            proxy="socks5://127.0.0.1:1055",
         )
         resp.raise_for_status()
         data = resp.json()
