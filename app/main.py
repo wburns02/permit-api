@@ -205,6 +205,15 @@ async def health():
     except Exception:
         pass
 
+    # Test Anthropic proxy tunnel (localhost:9877 → R730-2:9877)
+    proxy_ok = False
+    try:
+        import httpx
+        r = httpx.get("http://127.0.0.1:9877/health", timeout=5.0)
+        proxy_ok = r.status_code == 200
+    except Exception as e:
+        proxy_ok = str(e)
+
     status_code = 200 if db_ok else 503
     from fastapi.responses import JSONResponse
     return JSONResponse(
@@ -212,6 +221,7 @@ async def health():
         content={
             "status": "healthy" if db_ok else "unhealthy",
             "database": "connected" if db_ok else "unreachable",
+            "anthropic_proxy": "connected" if proxy_ok is True else str(proxy_ok),
             "version": settings.VERSION,
             "environment": settings.ENVIRONMENT,
         },
