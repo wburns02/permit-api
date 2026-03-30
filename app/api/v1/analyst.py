@@ -33,8 +33,10 @@ ANTHROPIC_API_KEY = getattr(settings, "ANTHROPIC_API_KEY", None) or None
 
 try:
     from anthropic import Anthropic
+    import httpx as _httpx
 except ImportError:
     Anthropic = None
+    _httpx = None
 
 
 def _get_client():
@@ -42,7 +44,10 @@ def _get_client():
         return None
     if not ANTHROPIC_API_KEY:
         return None
-    return Anthropic(api_key=ANTHROPIC_API_KEY, timeout=15.0)
+    # Use a direct httpx client with NO proxy to avoid Tailscale's
+    # outbound HTTP proxy intercepting Anthropic API calls
+    http_client = _httpx.Client(proxy=None, timeout=15.0) if _httpx else None
+    return Anthropic(api_key=ANTHROPIC_API_KEY, timeout=15.0, http_client=http_client)
 
 
 # ---------------------------------------------------------------------------
