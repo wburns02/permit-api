@@ -49,10 +49,12 @@ class _ProxyClient:
         self.messages = self
 
     def create(self, model: str, max_tokens: int, messages: list[dict], **kwargs):
+        # Route through SOCKS5 proxy (same as DB connections — proven stable)
         resp = _httpx.post(
             f"{self.proxy_url}/v1/messages",
             json={"model": model, "max_tokens": max_tokens, "messages": messages},
             timeout=15.0,
+            proxy="socks5://127.0.0.1:1055",
         )
         resp.raise_for_status()
         data = resp.json()
