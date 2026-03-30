@@ -32,19 +32,48 @@ router = APIRouter(prefix="/analyst", tags=["AI Analyst"])
 ANTHROPIC_API_KEY = getattr(settings, "ANTHROPIC_API_KEY", None) or None
 
 try:
-    from anthropic import Anthropic
     import httpx as _httpx
 except ImportError:
-    Anthropic = None
     _httpx = None
+
+# Anthropic proxy on R730-2 (direct internet, no Tailscale tun issues)
+# Railway's userspace-networking breaks direct HTTPS to api.anthropic.com
+ANTHROPIC_PROXY_URL = "http://100.87.214.106:9877"
+
+
+class _ProxyClient:
+    """Lightweight client that calls our Anthropic proxy on R730-2."""
+
+    def __init__(self, proxy_url: str):
+        self.proxy_url = proxy_url
+        self.messages = self
+
+    def create(self, model: str, max_tokens: int, messages: list[dict], **kwargs):
+        resp = _httpx.post(
+            f"{self.proxy_url}/v1/messages",
+            json={"model": model, "max_tokens": max_tokens, "messages": messages},
+            timeout=15.0,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+
+        class _Content:
+            def __init__(self, text):
+                self.text = text
+
+        class _Response:
+            def __init__(self, content_list):
+                self.content = [_Content(c["text"]) for c in content_list]
+
+        return _Response(data["content"])
 
 
 def _get_client():
-    if not Anthropic:
+    if not _httpx:
         return None
     if not ANTHROPIC_API_KEY:
         return None
-    return Anthropic(api_key=ANTHROPIC_API_KEY, timeout=15.0)
+    return _ProxyClient(ANTHROPIC_PROXY_URL)
 
 
 # ---------------------------------------------------------------------------
