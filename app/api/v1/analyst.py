@@ -32,55 +32,17 @@ router = APIRouter(prefix="/analyst", tags=["AI Analyst"])
 ANTHROPIC_API_KEY = getattr(settings, "ANTHROPIC_API_KEY", None) or None
 
 try:
-    import httpx as _httpx
+    from anthropic import Anthropic
 except ImportError:
-    _httpx = None
-
-# Anthropic proxy on R730-2, accessed via SOCKS5 TCP tunnel (localhost:9877 → R730-2:9877)
-# Railway's userspace-networking breaks direct HTTPS to api.anthropic.com
-ANTHROPIC_PROXY_URL = "http://127.0.0.1:9877"
-
-
-class _ProxyClient:
-    """Lightweight client that calls our Anthropic proxy on R730-2."""
-
-    def __init__(self, proxy_url: str):
-        self.proxy_url = proxy_url
-        self.messages = self
-
-    def create(self, model: str, max_tokens: int, messages: list[dict], **kwargs):
-        # Call localhost:9877 which tunnels through SOCKS5 to R730-2:9877
-        logger.info("Proxy: calling %s/v1/messages model=%s", self.proxy_url, model)
-        try:
-            resp = _httpx.post(
-                f"{self.proxy_url}/v1/messages",
-                json={"model": model, "max_tokens": max_tokens, "messages": messages},
-                timeout=15.0,
-            )
-            resp.raise_for_status()
-            data = resp.json()
-            logger.info("Proxy: got response, %d chars", len(str(data)))
-        except Exception as e:
-            logger.error("Proxy: FAILED — %s: %s", type(e).__name__, e)
-            raise
-
-        class _Content:
-            def __init__(self, text):
-                self.text = text
-
-        class _Response:
-            def __init__(self, content_list):
-                self.content = [_Content(c["text"]) for c in content_list]
-
-        return _Response(data["content"])
+    Anthropic = None
 
 
 def _get_client():
-    if not _httpx:
+    if not Anthropic:
         return None
     if not ANTHROPIC_API_KEY:
         return None
-    return _ProxyClient(ANTHROPIC_PROXY_URL)
+    return Anthropic(api_key=ANTHROPIC_API_KEY, timeout=15.0)
 
 
 # ---------------------------------------------------------------------------
