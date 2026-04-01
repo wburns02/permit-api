@@ -23,6 +23,10 @@ class CallLog(Base):
     ai_summary = Column(Text)
     action_items = Column(JSONB)  # [{task, due_date, status}]
     callback_date = Column(DateTime(timezone=True))
+    twilio_call_sid = Column(String(64))  # Twilio's call identifier
+    recording_url = Column(Text)  # URL to dual-channel recording
+    recording_duration = Column(Integer)  # Recording length in seconds
+    transcript = Column(Text)  # Full transcript text
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
 
 

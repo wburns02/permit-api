@@ -85,6 +85,21 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("Could not apply webhook_url migration: %s", e)
 
+    # Auto-migrate: add softphone columns to call_logs
+    try:
+        async with primary_engine.begin() as conn:
+            for col, typ in [
+                ("twilio_call_sid", "VARCHAR(64)"),
+                ("recording_url", "TEXT"),
+                ("recording_duration", "INTEGER"),
+                ("transcript", "TEXT"),
+            ]:
+                await conn.execute(_text(
+                    f"ALTER TABLE call_logs ADD COLUMN IF NOT EXISTS {col} {typ}"
+                ))
+    except Exception as e:
+        logger.warning("Could not apply softphone migration: %s", e)
+
     # Start alert scheduler
     from app.services.scheduler import start_scheduler, stop_scheduler
     try:
