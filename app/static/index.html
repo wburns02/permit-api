@@ -1191,6 +1191,38 @@ footer{padding:40px 0;border-top:1px solid var(--border);text-align:center;color
   /* Hide elements not needed in app mode */
   .hero p a[href*="api"]{display:none}
 }
+
+/* Floating Soft Phone */
+#softphone-fab{position:fixed;bottom:24px;right:24px;z-index:2000;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(34,197,94,.35);font-size:24px;display:flex;align-items:center;justify-content:center;transition:all .2s}
+#softphone-fab:hover{transform:scale(1.1);box-shadow:0 6px 24px rgba(34,197,94,.45)}
+#softphone-fab.active{background:linear-gradient(135deg,#ef4444,#dc2626);box-shadow:0 4px 16px rgba(239,68,68,.35)}
+#softphone-widget{position:fixed;bottom:90px;right:24px;z-index:2001;width:360px;background:var(--surface);border:1px solid var(--border);border-radius:16px;box-shadow:0 8px 32px rgba(0,0,0,.4);display:none;flex-direction:column;overflow:hidden;max-height:80vh}
+#softphone-widget.visible{display:flex}
+.sp-header{padding:12px 16px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+.sp-header .sp-title{font-size:13px;font-weight:600;color:var(--text)}
+.sp-header button{background:none;border:none;color:var(--text3);cursor:pointer;font-size:16px}
+.sp-body{padding:16px;flex:1;overflow-y:auto}
+.sp-number-row{display:flex;gap:8px;margin-bottom:12px}
+.sp-number-row input{flex:1;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--surface2);color:var(--text);font-size:15px;font-family:var(--font)}
+.sp-call-btn{width:100%;padding:12px;border:none;border-radius:10px;font-size:15px;font-weight:700;cursor:pointer;transition:all .15s;font-family:var(--font)}
+.sp-call-btn.dial{background:linear-gradient(135deg,#22c55e,#16a34a);color:#fff;box-shadow:0 4px 12px rgba(34,197,94,.25)}
+.sp-call-btn.dial:hover{filter:brightness(1.1)}
+.sp-call-btn.hangup{background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff}
+.sp-call-btn.mute{background:var(--surface2);color:var(--text2);border:1px solid var(--border);flex:1}
+.sp-call-btn.mute.active{background:rgba(239,68,68,.1);color:var(--red);border-color:var(--red)}
+.sp-status{text-align:center;padding:8px 0;font-size:13px;color:var(--text2)}
+.sp-timer{font-size:24px;font-weight:700;color:var(--text);text-align:center;padding:8px 0;font-variant-numeric:tabular-nums}
+.sp-transcript{background:var(--surface2);border-radius:8px;padding:12px;max-height:200px;overflow-y:auto;margin:12px 0;font-size:12px;line-height:1.6}
+.sp-transcript .interim{color:var(--text3);font-style:italic}
+.sp-transcript .final{color:var(--text)}
+.sp-actions{display:flex;gap:8px;margin-top:8px}
+.sp-lead-info{font-size:12px;color:var(--text2);padding:8px 0;border-bottom:1px solid var(--border);margin-bottom:8px}
+.sp-lead-info strong{color:var(--text)}
+.sp-wrapup{padding:12px 0}
+.sp-wrapup .summary{font-size:13px;color:var(--text);line-height:1.5;margin-bottom:12px;padding:10px;background:var(--surface2);border-radius:8px}
+.sp-dispositions{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.sp-dispositions button{padding:6px 12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);color:var(--text2);font-size:11px;cursor:pointer;font-family:var(--font);transition:all .15s}
+.sp-dispositions button:hover,.sp-dispositions button.selected{border-color:var(--accent);color:var(--accent2);background:rgba(99,102,241,.08)}
 </style>
 </head>
 <body>
@@ -13395,22 +13427,14 @@ function selectDisposition(btn) {
 
 function dialerCall() {
   if (!currentDialerLead) return;
-  const phone = currentDialerLead.contractor_phone || currentDialerLead.applicant_phone;
-  if (!phone) { showToast('No phone number available', 'error'); return; }
-  // Start timer
-  dialerTimerStart = Date.now();
-  dialerCallSeconds = 0;
-  document.getElementById('dialer-timer').textContent = '0:00';
-  document.getElementById('dialer-timer-wrap').style.display = '';
-  if (dialerTimerInterval) clearInterval(dialerTimerInterval);
-  dialerTimerInterval = setInterval(() => {
-    dialerCallSeconds = Math.floor((Date.now() - dialerTimerStart) / 1000);
-    const m = Math.floor(dialerCallSeconds / 60);
-    const s = dialerCallSeconds % 60;
-    document.getElementById('dialer-timer').textContent = m + ':' + String(s).padStart(2, '0');
-  }, 1000);
-  // Open tel: link
-  window.open('tel:' + phone.replace(/[^\d+]/g, ''), '_self');
+  var phone = currentDialerLead.contractor_phone || currentDialerLead.applicant_phone || currentDialerLead.phone || '';
+  if (!phone) { showToast('No phone number for this lead', 'error'); return; }
+  openSoftphone(phone, {
+    name: currentDialerLead.contractor_name || currentDialerLead.applicant_name || '',
+    address: (currentDialerLead.address || '') + ', ' + (currentDialerLead.city || '') + ' ' + (currentDialerLead.state || ''),
+    permit_number: currentDialerLead.permit_number || '',
+    lead_id: currentDialerLead.id || '',
+  });
 }
 
 function dialerStopTimer() {
@@ -15209,7 +15233,7 @@ function analystOpenPanel(tblId, idx) {
       + '<div class="lead-name">' + esc(name) + '</div>'
       + '<div class="lead-address">' + esc(fullAddr) + '</div>'
       + '<div class="lead-phone">\u{1f4de} ' + esc(phone) + '</div>'
-      + '<a href="tel:' + esc(phone) + '" class="analyst-call-btn">\u{1f4de} Call Now</a>'
+      + '<button onclick="openSoftphone(\'' + esc(phone).replace(/'/g, "\\'") + '\',{name:\'' + esc(name).replace(/'/g, "\\'") + '\',address:\'' + esc(fullAddr).replace(/'/g, "\\'") + '\',permit_number:\'' + esc(permitNum).replace(/'/g, "\\'") + '\'})" class="analyst-call-btn">\u{1f4de} Call Now</button>'
       + '<div class="analyst-secondary-actions">'
       + '<button onclick="navigator.clipboard.writeText(\'' + esc(phone).replace(/'/g, "\\'") + '\');showToast(\'Phone copied\',\'success\')">\u{1f4cb} Copy Phone</button>'
       + '<button onclick="sessionStorage.setItem(\'analyst_dialer_queue\',JSON.stringify([' + JSON.stringify(JSON.stringify(row)) + ']));showPage(\'dialer\')">\u{1f4f1} Send to Dialer</button>'
@@ -16105,6 +16129,232 @@ window.addEventListener("load", function() {
     }
   }, 2000);
 });
+</script>
+<!-- Floating Soft Phone -->
+<button id="softphone-fab" onclick="toggleSoftphone()" title="Soft Phone" style="display:none">&#x1f4de;</button>
+<div id="softphone-widget">
+  <div class="sp-header">
+    <span class="sp-title">&#x1f4de; PermitLookup Dialer</span>
+    <button onclick="toggleSoftphone()">&#x2715;</button>
+  </div>
+  <div class="sp-body">
+    <div id="sp-lead-info" class="sp-lead-info" style="display:none"></div>
+    <div id="sp-idle">
+      <div class="sp-number-row">
+        <input type="tel" id="sp-number" placeholder="+1 (512) 555-1234">
+      </div>
+      <button class="sp-call-btn dial" id="sp-dial-btn" onclick="softphoneDial()">&#x1f4de; Call</button>
+    </div>
+    <div id="sp-calling" style="display:none">
+      <div class="sp-status" id="sp-status">Connecting...</div>
+      <div class="sp-timer" id="sp-timer">00:00</div>
+      <div class="sp-transcript" id="sp-transcript"></div>
+      <div class="sp-actions">
+        <button class="sp-call-btn mute" id="sp-mute-btn" onclick="softphoneToggleMute()">&#x1f507; Mute</button>
+        <button class="sp-call-btn hangup" onclick="softphoneHangup()">&#x1f4f5; Hang Up</button>
+      </div>
+    </div>
+    <div id="sp-wrapup" class="sp-wrapup" style="display:none">
+      <div class="sp-status">Call ended</div>
+      <div id="sp-summary" class="summary"></div>
+      <div class="sp-dispositions" id="sp-dispositions">
+        <button onclick="spSetDisposition(this,'connected')">Connected</button>
+        <button onclick="spSetDisposition(this,'voicemail')">Voicemail</button>
+        <button onclick="spSetDisposition(this,'no_answer')">No Answer</button>
+        <button onclick="spSetDisposition(this,'callback')">Callback</button>
+        <button onclick="spSetDisposition(this,'sold')">Sold</button>
+      </div>
+      <textarea id="sp-notes" placeholder="Call notes..." style="width:100%;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);color:var(--text);font-size:12px;font-family:var(--font);resize:vertical;min-height:60px"></textarea>
+      <button class="sp-call-btn dial" onclick="softphoneSave()" style="margin-top:8px">&#x1f4be; Save & Close</button>
+    </div>
+  </div>
+</div>
+<script src="https://sdk.twilio.com/js/client/releases/1.14.3/twilio.js"></script>
+<script>
+// ─── SOFT PHONE ─────────────────────────────────────────────────────────
+
+var spDevice = null;
+var spCall = null;
+var spTimer = null;
+var spTimerStart = null;
+var spTranscriptWs = null;
+var spRoomKey = '';
+var spLeadContext = null;
+var spDisposition = '';
+var spCallSid = '';
+var spTranscriptLines = [];
+
+if (currentKey) document.getElementById('softphone-fab').style.display = 'flex';
+
+function toggleSoftphone() {
+  var w = document.getElementById('softphone-widget');
+  w.classList.toggle('visible');
+}
+
+function openSoftphone(phone, leadCtx) {
+  document.getElementById('softphone-fab').style.display = 'flex';
+  document.getElementById('softphone-widget').classList.add('visible');
+  document.getElementById('sp-number').value = phone || '';
+  spLeadContext = leadCtx || null;
+  if (leadCtx) {
+    var info = document.getElementById('sp-lead-info');
+    info.style.display = '';
+    info.innerHTML = '<strong>' + escapeHtml(leadCtx.name || leadCtx.address || '') + '</strong><br>' + escapeHtml(leadCtx.address || '') + (leadCtx.permit_number ? '<br>Permit: ' + escapeHtml(leadCtx.permit_number) : '');
+  }
+  document.getElementById('sp-idle').style.display = '';
+  document.getElementById('sp-calling').style.display = 'none';
+  document.getElementById('sp-wrapup').style.display = 'none';
+}
+
+async function initTwilioDevice() {
+  if (spDevice) return;
+  if (!currentKey) { showToast('Sign in first', 'error'); return; }
+  try {
+    var resp = await fetch(API + '/v1/dialer/token', { headers: { 'X-API-Key': currentKey } });
+    if (!resp.ok) throw new Error('Token failed: ' + resp.status);
+    var data = await resp.json();
+    spDevice = new Twilio.Device(data.token, { logLevel: 'warn', codecPreferences: ['opus', 'pcmu'] });
+    spDevice.on('registered', function() { console.log('Twilio device registered'); });
+    spDevice.on('error', function(err) { console.error('Twilio error:', err); showToast('Phone error: ' + err.message, 'error'); });
+    await spDevice.register();
+    console.log('Twilio device ready');
+  } catch (e) {
+    console.error('Twilio init failed:', e);
+    showToast('Could not initialize phone: ' + e.message, 'error');
+    spDevice = null;
+  }
+}
+
+async function softphoneDial() {
+  var number = document.getElementById('sp-number').value.trim();
+  if (!number) { showToast('Enter a phone number', 'error'); return; }
+  await initTwilioDevice();
+  if (!spDevice) return;
+  spRoomKey = number.replace(/[^0-9]/g, '');
+  if (spRoomKey.length === 10) spRoomKey = '1' + spRoomKey;
+  document.getElementById('sp-idle').style.display = 'none';
+  document.getElementById('sp-calling').style.display = '';
+  document.getElementById('sp-wrapup').style.display = 'none';
+  document.getElementById('sp-status').textContent = 'Calling ' + number + '...';
+  document.getElementById('sp-timer').textContent = '00:00';
+  document.getElementById('sp-transcript').innerHTML = '';
+  spTranscriptLines = [];
+  spDisposition = '';
+  document.getElementById('softphone-fab').classList.add('active');
+  try {
+    spCall = await spDevice.connect({ params: { To: number } });
+    spCall.on('accept', function() {
+      document.getElementById('sp-status').textContent = 'Connected';
+      spTimerStart = Date.now();
+      spTimer = setInterval(updateSpTimer, 1000);
+      spCallSid = spCall.parameters ? spCall.parameters.CallSid || '' : '';
+      connectTranscriptWs();
+    });
+    spCall.on('disconnect', function() { handleSpCallEnd(); });
+    spCall.on('cancel', function() { handleSpCallEnd(); });
+    spCall.on('reject', function() { handleSpCallEnd(); });
+    spCall.on('error', function(err) { showToast('Call error: ' + err.message, 'error'); handleSpCallEnd(); });
+  } catch (e) {
+    showToast('Call failed: ' + e.message, 'error');
+    handleSpCallEnd();
+  }
+}
+
+function softphoneHangup() { if (spCall) { spCall.disconnect(); spCall = null; } }
+
+function softphoneToggleMute() {
+  if (!spCall) return;
+  var muted = !spCall.isMuted();
+  spCall.mute(muted);
+  var btn = document.getElementById('sp-mute-btn');
+  btn.classList.toggle('active', muted);
+  btn.innerHTML = muted ? '&#x1f50a; Unmute' : '&#x1f507; Mute';
+}
+
+function updateSpTimer() {
+  if (!spTimerStart) return;
+  var elapsed = Math.floor((Date.now() - spTimerStart) / 1000);
+  document.getElementById('sp-timer').textContent = String(Math.floor(elapsed / 60)).padStart(2, '0') + ':' + String(elapsed % 60).padStart(2, '0');
+}
+
+function connectTranscriptWs() {
+  if (!spRoomKey) return;
+  var proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  var url = proto + '//' + location.host + '/ws/call-transcript/' + spRoomKey;
+  try {
+    spTranscriptWs = new WebSocket(url);
+    spTranscriptWs.onmessage = function(e) {
+      try {
+        var msg = JSON.parse(e.data);
+        if (msg.type === 'pong') return;
+        var div = document.getElementById('sp-transcript');
+        if (msg.is_final) {
+          spTranscriptLines.push(msg.text);
+          var el = div.querySelector('.interim-live');
+          if (el) el.remove();
+          div.innerHTML += '<div class="final">' + escapeHtml(msg.text) + '</div>';
+        } else {
+          var interim = div.querySelector('.interim-live');
+          if (!interim) { interim = document.createElement('div'); interim.className = 'interim interim-live'; div.appendChild(interim); }
+          interim.textContent = msg.text;
+        }
+        div.scrollTop = div.scrollHeight;
+      } catch (err) {}
+    };
+  } catch (e) { console.warn('Transcript WS failed:', e); }
+}
+
+async function handleSpCallEnd() {
+  if (spTimer) { clearInterval(spTimer); spTimer = null; }
+  if (spTranscriptWs) { spTranscriptWs.close(); spTranscriptWs = null; }
+  document.getElementById('softphone-fab').classList.remove('active');
+  spCall = null;
+  document.getElementById('sp-calling').style.display = 'none';
+  document.getElementById('sp-wrapup').style.display = '';
+  var elapsed = spTimerStart ? Math.floor((Date.now() - spTimerStart) / 1000) : 0;
+  var transcript = spTranscriptLines.join(' ');
+  if (currentKey) {
+    try {
+      var logBody = { phone_number: document.getElementById('sp-number').value, duration_seconds: elapsed, disposition: 'connected', notes: '', twilio_call_sid: spCallSid };
+      if (spLeadContext && spLeadContext.lead_id) logBody.lead_id = spLeadContext.lead_id;
+      var resp = await fetch(API + '/v1/dialer/log', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-API-Key': currentKey }, body: JSON.stringify(logBody) });
+      if (resp.ok) {
+        var logData = await resp.json();
+        if (transcript && logData.call_id) {
+          document.getElementById('sp-summary').innerHTML = '<em>Analyzing call...</em>';
+          var wrapResp = await fetch(API + '/v1/dialer/' + logData.call_id + '/wrap-up', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-API-Key': currentKey }, body: JSON.stringify({ transcript: transcript, lead_context: spLeadContext || {} }) });
+          if (wrapResp.ok) {
+            var wrapData = await wrapResp.json();
+            document.getElementById('sp-summary').innerHTML = escapeHtml(wrapData.summary || 'Call completed.');
+            if (wrapData.action_items && wrapData.action_items.length) { document.getElementById('sp-summary').innerHTML += '<br><strong>Action items:</strong><br>' + wrapData.action_items.map(function(a) { return '\u2022 ' + escapeHtml(a.task || a); }).join('<br>'); }
+          } else { document.getElementById('sp-summary').textContent = 'Call completed. ' + elapsed + 's duration.'; }
+        } else { document.getElementById('sp-summary').textContent = 'Call completed. ' + elapsed + 's duration.'; }
+      }
+    } catch (e) { document.getElementById('sp-summary').textContent = 'Call completed. Could not save log.'; }
+  }
+}
+
+function spSetDisposition(btn, disp) {
+  spDisposition = disp;
+  document.querySelectorAll('.sp-dispositions button').forEach(function(b) { b.classList.remove('selected'); });
+  btn.classList.add('selected');
+}
+
+async function softphoneSave() {
+  if (spDisposition && currentKey) {
+    try { await fetch(API + '/v1/dialer/disposition', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-API-Key': currentKey }, body: JSON.stringify({ phone_number: document.getElementById('sp-number').value, status: spDisposition }) }); } catch (e) {}
+  }
+  showToast('Call saved', 'success');
+  document.getElementById('sp-idle').style.display = '';
+  document.getElementById('sp-calling').style.display = 'none';
+  document.getElementById('sp-wrapup').style.display = 'none';
+  document.getElementById('sp-number').value = '';
+  document.getElementById('sp-notes').value = '';
+  document.getElementById('sp-lead-info').style.display = 'none';
+  document.getElementById('sp-summary').innerHTML = '';
+  spLeadContext = null;
+  toggleSoftphone();
+}
 </script>
 </body>
 </html>
