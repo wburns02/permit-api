@@ -257,22 +257,36 @@ async def analyst_query(
 
     # ── Step 1: Generate SQL from natural language ─────────────────────
     # Use Haiku for SQL generation — fast (sub-second) and accurate for structured tasks
+    # Retry up to 2 times on 529 (overloaded)
     try:
         t_sql = time.time()
-        sql_response = client.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=300,
-            messages=[{
-                "role": "user",
-                "content": (
-                    f"{SCHEMA_CONTEXT}\n\n"
-                    f"Generate a PostgreSQL query to answer this question. "
-                    f"Return ONLY the raw SQL — no explanation, no markdown, no code fences.\n\n"
-                    f"Question: {body.question}"
-                ),
-            }],
-        )
-        raw_sql = sql_response.content[0].text.strip()
+        raw_sql = None
+        for _attempt in range(3):
+            try:
+                sql_response = client.messages.create(
+                    model="claude-haiku-4-5-20251001",
+                    max_tokens=300,
+                    messages=[{
+                        "role": "user",
+                        "content": (
+                            f"{SCHEMA_CONTEXT}\n\n"
+                            f"Generate a PostgreSQL query to answer this question. "
+                            f"Return ONLY the raw SQL — no explanation, no markdown, no code fences.\n\n"
+                            f"Question: {body.question}"
+                        ),
+                    }],
+                )
+                raw_sql = sql_response.content[0].text.strip()
+                break
+            except Exception as retry_err:
+                if "529" in str(retry_err) or "overloaded" in str(retry_err).lower():
+                    logger.warning("[Analyst:%s] Anthropic overloaded, retry %d/3", query_id, _attempt + 1)
+                    import asyncio
+                    await asyncio.sleep(2)
+                    continue
+                raise
+        if not raw_sql:
+            raise Exception("Anthropic API overloaded after 3 retries")
         logger.info("[Analyst:%s] SQL generated in %.1fs", query_id, time.time() - t_sql)
     except Exception as e:
         logger.error("SQL generation failed for query %s: %s", query_id, e)
