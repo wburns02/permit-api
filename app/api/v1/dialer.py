@@ -693,3 +693,160 @@ async def get_history(
         "page": page,
         "page_size": page_size,
     }
+
+
+# ---------------------------------------------------------------------------
+# Twilio Voice — browser soft phone endpoints
+# ---------------------------------------------------------------------------
+
+import logging as _logging
+_logger = _logging.getLogger(__name__)
+
+from fastapi import Form
+from fastapi.responses import PlainTextResponse
+
+
+@router.get("/token")
+async def get_twilio_token(
+    user: ApiUser = Depends(get_current_user),
+):
+    """Generate a Twilio Access Token for browser calling."""
+    _require_paid(user)
+
+    from app.services.twilio_voice import generate_access_token, is_configured
+
+    if not is_configured():
+        raise HTTPException(status_code=503, detail="Voice calling not configured")
+
+    identity = f"user_{str(user.id)[:8]}"
+    token = generate_access_token(identity)
+    if not token:
+        raise HTTPException(status_code=503, detail="Failed to generate voice token")
+
+    return {"token": token, "identity": identity}
+
+
+@router.post("/twiml/outbound", response_class=PlainTextResponse)
+async def twiml_outbound(request: Request, To: str = Form("")):
+    """TwiML webhook — Twilio calls this when browser initiates outbound call.
+
+    No auth — this is called by Twilio, not by our frontend.
+    """
+    from app.services.twilio_voice import build_outbound_twiml
+
+    host = request.headers.get("host", "permits.ecbtx.com")
+    to_number = To
+
+    if not to_number:
+        form = await request.form()
+        to_number = form.get("To", "")
+
+    if not to_number:
+        return PlainTextResponse(
+            "<Response><Say>No phone number provided.</Say></Response>",
+            media_type="text/xml",
+        )
+
+    _logger.info("TwiML outbound: To=%s host=%s", to_number, host)
+    twiml = build_outbound_twiml(to_number, host)
+    return PlainTextResponse(twiml, media_type="text/xml")
+
+
+@router.post("/recording-callback")
+async def recording_callback(request: Request, db: AsyncSession = Depends(get_db)):
+    """Twilio calls this when a recording is ready. No auth — Twilio webhook."""
+    form = await request.form()
+    call_sid = form.get("CallSid", "")
+    recording_sid = form.get("RecordingSid", "")
+    recording_url = form.get("RecordingUrl", "")
+    recording_duration = form.get("RecordingDuration", "0")
+
+    _logger.info("Recording callback: call_sid=%s recording_sid=%s duration=%s", call_sid, recording_sid, recording_duration)
+
+    if call_sid:
+        from sqlalchemy import update
+        await db.execute(
+            update(CallLog)
+            .where(CallLog.twilio_call_sid == call_sid)
+            .values(
+                recording_url=f"{recording_url}.mp3" if recording_url else None,
+                recording_duration=int(recording_duration) if recording_duration else None,
+            )
+        )
+        await db.commit()
+
+    return {"status": "ok"}
+
+
+@router.post("/status-callback")
+async def status_callback(request: Request, db: AsyncSession = Depends(get_db)):
+    """Twilio calls this on call status changes. No auth — Twilio webhook."""
+    form = await request.form()
+    call_sid = form.get("CallSid", "")
+    call_status = form.get("CallStatus", "")
+    call_duration = form.get("CallDuration", "0")
+
+    _logger.info("Status callback: call_sid=%s status=%s duration=%s", call_sid, call_status, call_duration)
+
+    if call_sid and call_status == "completed":
+        from sqlalchemy import update
+        await db.execute(
+            update(CallLog)
+            .where(CallLog.twilio_call_sid == call_sid)
+            .values(duration_seconds=int(call_duration) if call_duration else None)
+        )
+        await db.commit()
+
+    return {"status": "ok"}
+
+
+# ---------------------------------------------------------------------------
+# Post-call wrap-up — AI analysis of transcript
+# ---------------------------------------------------------------------------
+
+class WrapUpRequest(BaseModel):
+    transcript: str = ""
+    lead_context: dict = {}
+
+
+@router.post("/{call_id}/wrap-up")
+async def wrap_up_call(
+    call_id: str,
+    body: WrapUpRequest,
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate AI summary from call transcript."""
+    _require_paid(user)
+
+    from app.services.call_intelligence import analyze_transcription
+    from app.services.transcript_manager import transcript_manager
+
+    transcript_text = body.transcript.strip()
+    if not transcript_text:
+        transcript_text = transcript_manager.get_transcript(call_id)
+
+    if not transcript_text:
+        raise HTTPException(status_code=400, detail="No transcript available")
+
+    result = await analyze_transcription(transcript_text, body.lead_context or None)
+
+    try:
+        call_uuid = uuid.UUID(call_id)
+        from sqlalchemy import update
+        await db.execute(
+            update(CallLog)
+            .where(CallLog.id == call_uuid)
+            .values(
+                transcript=transcript_text,
+                ai_summary=result.get("summary", ""),
+                action_items=result.get("action_items", []),
+            )
+        )
+        await db.commit()
+    except (ValueError, Exception) as e:
+        _logger.warning("Could not update call log %s: %s", call_id, e)
+
+    transcript_manager.clear_transcript(call_id)
+
+    return result
