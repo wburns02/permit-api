@@ -16169,16 +16169,9 @@ window.addEventListener("load", function() {
     </div>
   </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/@twilio/voice-sdk@2.18.1/dist/twilio.min.js"></script>
 <script>
 // ─── SOFT PHONE ─────────────────────────────────────────────────────────
-// Dynamically load Twilio Voice SDK 2.x (old 1.14.3 CDN is dead)
-(function(){
-  var s = document.createElement('script');
-  s.src = 'https://cdn.jsdelivr.net/npm/@twilio/voice-sdk@2/dist/twilio.min.js';
-  s.onload = function(){ console.log('Twilio Voice SDK loaded'); };
-  s.onerror = function(){ console.error('Failed to load Twilio Voice SDK'); };
-  document.head.appendChild(s);
-})();
 
 var spDevice = null;
 var spCall = null;
@@ -16216,13 +16209,9 @@ function openSoftphone(phone, leadCtx) {
 async function initTwilioDevice() {
   if (spDevice) return;
   if (!currentKey) { showToast('Sign in first', 'error'); return; }
-  // Wait for SDK to load (dynamic script)
   if (typeof Twilio === 'undefined' || !Twilio.Device) {
-    for (var i = 0; i < 30; i++) {
-      await new Promise(r => setTimeout(r, 200));
-      if (typeof Twilio !== 'undefined' && Twilio.Device) break;
-    }
-    if (typeof Twilio === 'undefined' || !Twilio.Device) throw new Error('Twilio SDK failed to load');
+    showToast('Phone SDK not loaded. Try refreshing the page.', 'error');
+    return;
   }
   try {
     var resp = await fetch(API + '/v1/dialer/token', { headers: { 'X-API-Key': currentKey } });
