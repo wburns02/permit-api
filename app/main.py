@@ -995,14 +995,32 @@ async def service_worker():
     )
 
 
+_INDEX_HTML_CACHE: str | None = None
+
+def _get_index_html() -> str:
+    """Read index.html and patch the dead Twilio SDK URL at runtime."""
+    global _INDEX_HTML_CACHE
+    if _INDEX_HTML_CACHE is None:
+        raw = (STATIC_DIR / "index.html").read_text()
+        # Old SDK 1.14.3 is 403'd — replace with Voice SDK 2.x
+        raw = raw.replace(
+            'https://sdk.twilio.com/js/client/releases/1.14.3/twilio.js',
+            'https://cdn.jsdelivr.net/npm/@twilio/voice-sdk@2/dist/twilio.min.js',
+        )
+        _INDEX_HTML_CACHE = raw
+    return _INDEX_HTML_CACHE
+
+
 @app.get("/")
 async def root():
-    return FileResponse(STATIC_DIR / "index.html", headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(_get_index_html(), headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 
 # SPA catch-all routes — serve index.html for frontend pages
 async def _spa_page():
-    return FileResponse(STATIC_DIR / "index.html", headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
+    from fastapi.responses import HTMLResponse
+    return HTMLResponse(_get_index_html(), headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
 
 for _path in ("/search", "/coverage", "/pricing", "/dashboard", "/contractors", "/alerts", "/properties", "/market", "/saved-searches", "/admin", "/dialer", "/crm", "/quotes", "/analyst", "/trends", "/batch", "/campaigns", "/unsubscribe"):
     app.get(_path, include_in_schema=False)(_spa_page)
