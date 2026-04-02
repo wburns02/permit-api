@@ -121,7 +121,7 @@ QUERY RULES:
 - Use ILIKE for all text searches (case insensitive)
 - TABLE SELECTION (CRITICAL — read carefully):
   * hot_leads: ONLY for TX cities (Austin, Houston, Dallas, Waco, etc.) + recent/fresh data with phone numbers. Has ~10K records. Do NOT use for FL, CA, NY, or any non-TX state — it will return 0 results.
-  * contractor_licenses: Use for contractor lookups, rankings, "top contractors", license verification. Covers FL, CA, and more. 503K rows, fast.
+  * contractor_licenses: Use for contractor lookups, rankings, "top contractors", license verification. Covers FL (260K), CA (243K). 503K rows, fast. NOTE: the status column is often NULL — do NOT filter on status unless the user asks. Do NOT join contractor_licenses to permits — just query contractor_licenses directly.
   * permits: Use for historical queries, all-time data, or states not covered by hot_leads. 760M rows — always use a narrow WHERE clause + LIMIT.
   * If the query mentions Florida, California, New York, or any state other than Texas: DO NOT use hot_leads. Use contractor_licenses or permits instead.
 - When user says "this month" use CURRENT_DATE - interval '30 days'
