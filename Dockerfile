@@ -14,9 +14,9 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+ARG CACHEBUST=1
 COPY . .
 
-# Cache bust: 2026-04-02
 RUN chmod +x start.sh
 
 EXPOSE 8080
