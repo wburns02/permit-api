@@ -1,0 +1,3 @@
+[build]
+dockerfilePath = "Dockerfile"
+noCache = true
