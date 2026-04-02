@@ -118,6 +118,8 @@ async def lifespan(app: FastAPI):
         from app.database import replica_session_maker
         from sqlalchemy import text
         consecutive_failures = 0
+        # Grace period: Tailscale needs time to establish routes on fresh deploy
+        await asyncio.sleep(90)
         while True:
             await asyncio.sleep(30)
             try:
@@ -129,9 +131,9 @@ async def lifespan(app: FastAPI):
                 consecutive_failures = 0
             except Exception as e:
                 consecutive_failures += 1
-                logger.warning("DB watchdog: failure %d/3 — %s", consecutive_failures, e)
-                if consecutive_failures >= 3:
-                    logger.error("DB watchdog: 3 consecutive failures, killing process for Railway restart")
+                logger.warning("DB watchdog: failure %d/%d — %s", consecutive_failures, 5, e)
+                if consecutive_failures >= 5:
+                    logger.error("DB watchdog: 5 consecutive failures, killing process for Railway restart")
                     os.kill(os.getpid(), signal.SIGTERM)
 
     watchdog_task = asyncio.create_task(_db_watchdog())
