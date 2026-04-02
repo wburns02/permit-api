@@ -115,15 +115,15 @@ async def lifespan(app: FastAPI):
     import signal
 
     async def _db_watchdog():
-        from app.database import replica_session_maker
+        from app.database import primary_session_maker
         from sqlalchemy import text
         consecutive_failures = 0
         # Grace period: Tailscale needs time to establish routes on fresh deploy
-        await asyncio.sleep(90)
+        await asyncio.sleep(120)
         while True:
             await asyncio.sleep(30)
             try:
-                async with replica_session_maker() as db:
+                async with primary_session_maker() as db:
                     await asyncio.wait_for(
                         db.execute(text("SELECT 1")),
                         timeout=10.0,
