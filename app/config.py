@@ -80,7 +80,7 @@ class Settings(BaseSettings):
     # Environment
     ENVIRONMENT: str = "development"
     DEBUG: bool = True
-    VERSION: str = "0.1.0"
+    VERSION: str = "0.2.0"
 
     # Anthropic Claude API (AI call summaries + analysis)
     ANTHROPIC_API_KEY: str | None = None
