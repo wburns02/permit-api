@@ -159,7 +159,8 @@ async def search_permits(
     query = (
         select(*PERMIT_COLUMNS)
         .where(where_clause)
-        .order_by(Permit.issue_date.desc().nullslast())
+        .distinct(Permit.permit_number, Permit.address)
+        .order_by(Permit.permit_number, Permit.address, Permit.issue_date.desc().nullslast())
         .offset((page - 1) * page_size)
         .limit(page_size)
     )
@@ -175,6 +176,7 @@ async def search_permits(
             query_fast = (
                 select(*PERMIT_COLUMNS)
                 .where(where_clause)
+                .distinct(Permit.permit_number, Permit.address)
                 .limit(page_size)
             )
             result = await db.execute(query_fast)
