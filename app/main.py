@@ -60,6 +60,7 @@ from app.api.v1.trends import router as trends_router
 from app.api.v1.batch import router as batch_router
 from app.api.v1.campaigns import router as campaigns_router
 from app.api.v1.dialer_ws import router as dialer_ws_router
+from app.api.v1.freshness import router as freshness_router
 
 logger = logging.getLogger(__name__)
 
@@ -208,6 +209,7 @@ app.include_router(trends_router, prefix="/v1")
 app.include_router(batch_router, prefix="/v1")
 app.include_router(campaigns_router, prefix="/v1")
 app.include_router(dialer_ws_router)  # WebSocket routes at root (no /v1 prefix)
+app.include_router(freshness_router, prefix="/v1")
 
 
 @app.get("/health")
