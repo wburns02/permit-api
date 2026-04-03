@@ -106,7 +106,7 @@ noaa_storm_events: id, event_type, state, county, begin_date, damage_property,
     begin_lat, begin_lng, event_narrative
 
 epa_facilities (3M): id, name, address, city, state (2-letter), zip, lat, lng, source
-fema_flood_zones (5.5M): id, dfirm_id, fld_zone, sfha_tf, state_abbrev, state_fips
+fema_flood_zones (5.5M): id, dfirm_id, fld_zone, sfha_tf, state_abbrev, state_fips — WARNING: has NO address, city, or zip columns. Cannot be joined to permits by address. Only useful for state-level flood zone statistics.
 census_demographics (242K): id, state_fips, county_fips, tract, population,
     median_income, median_home_value, homeownership_rate
 
