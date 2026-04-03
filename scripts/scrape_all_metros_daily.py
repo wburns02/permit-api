@@ -86,25 +86,24 @@ METROS = {
     "nj_statewide": {
         "name": "New Jersey (Statewide)", "state": "NJ",
         "url": "https://data.nj.gov/resource/w9se-dmra.json",
-        "date_field": "date_cert_of_occupancy", "records": 2676188,
+        "date_field": "permitdate", "records": 2676188,
         "fields": {
-            "permit_number": "permit_number", "permit_type": "use_group",
-            "work_class": "construction_type", "description": "type_of_work",
-            "address": lambda r: f"{r.get('street_no','')} {r.get('street_name','')}".strip(),
-            "city": "municipality", "zip": None,
-            "valuation": "estimated_cost", "sqft": "total_floor_area",
+            "permit_number": "permitno", "permit_type": "permittypedesc",
+            "work_class": "usegroupdesc", "description": "permittypedesc",
+            "city": "muniname", "zip": None,
+            "valuation": "constcost", "sqft": "squarefeet",
         },
     },
     "orlando": {
         "name": "Orlando", "state": "FL",
         "url": "https://data.cityoforlando.net/resource/ryhf-m453.json",
-        "date_field": "issue_date", "records": 1092099,
+        "date_field": "processed_date", "records": 1092099,
         "fields": {
-            "permit_number": "permit_number", "permit_type": "permit_type",
-            "work_class": "work_class", "description": "description",
-            "address": "address", "city": lambda r: "Orlando", "zip": "zip",
-            "valuation": "value", "sqft": "sqft",
-            "applicant_name": "owner_name",
+            "permit_number": "permit_number", "permit_type": "application_type",
+            "work_class": "worktype", "description": "project_name",
+            "address": "permit_address", "city": lambda r: "Orlando",
+            "valuation": "estimated_cost", "sqft": "square_footage",
+            "applicant_name": "property_owner_name",
         },
     },
     "chicago": {
@@ -166,13 +165,12 @@ METROS = {
     "seattle": {
         "name": "Seattle", "state": "WA",
         "url": "https://cos-data.seattle.gov/resource/76t5-zqzr.json",
-        "date_field": "issue_date", "records": 188501,
+        "date_field": None, "records": 188501,
         "fields": {
-            "permit_number": "application_permit_number", "permit_type": "permit_type",
-            "work_class": "action_type", "description": "description",
-            "address": "address", "city": lambda r: "Seattle", "zip": "zip",
-            "contractor_company": "contractor",
-            "valuation": "value",
+            "permit_number": "permitnum", "permit_type": "permittypemapped",
+            "work_class": "permitclassmapped", "description": "description",
+            "address": "originaladdress1", "city": lambda r: "Seattle", "zip": "originalzip",
+            "contractor_company": "contractorcompanyname",
             "lat": "latitude", "lng": "longitude",
         },
     },
@@ -216,12 +214,12 @@ METROS = {
     "dallas": {
         "name": "Dallas", "state": "TX",
         "url": "https://www.dallasopendata.com/resource/e7gq-4sah.json",
-        "date_field": "issue_date", "records": 126840,
+        "date_field": "issued_date", "records": 126840,
         "fields": {
-            "permit_number": "permit_num", "permit_type": "type",
-            "description": "work",
-            "address": "address", "city": lambda r: "Dallas", "zip": "zip",
-            "contractor_company": "contractor",  # has phone embedded, needs parsing
+            "permit_number": "permit_number", "permit_type": "permit_type",
+            "description": "work_description",
+            "address": "street_address", "city": lambda r: "Dallas", "zip": "zip_code",
+            "contractor_company": "contractor",
             "valuation": "value", "sqft": "area",
         },
     },
@@ -332,23 +330,79 @@ def scrape_metro(conn, metro_key, config, days=7):
     source = f"metro_{metro_key}"
 
     since = (date.today() - timedelta(days=days)).isoformat()
+    since_ts = f"{since}T00:00:00"
     log(f"=== {name}, {state} (last {days} days) ===")
 
     cur = conn.cursor()
     total = 0
     offset = 0
 
-    # Count fresh
+    # Auto-detect working date filter format
+    # Try multiple $where formats since Socrata APIs change schemas
+    working_where = None
+    date_candidates = [date_field] if date_field else []
+
+    # Also try common date field names in case the API changed columns
+    for alt in ["issue_date", "issued_date", "issuance_date", "issueddate",
+                "processed_date", "applied_date", "permit_date", "permitdate",
+                "date_opened", "certdate", date_field]:
+        if alt and alt not in date_candidates:
+            date_candidates.append(alt)
+
+    for df in date_candidates:
+        for fmt in [
+            f"$where={df}>='{since_ts}'",
+            f"$where={df}>='{since}'",
+            f"$where={df}>'{since_ts}'",
+            f"$where={df}>'{since}'",
+        ]:
+            try:
+                test_url = f"{base_url}?{fmt}&$limit=1"
+                test_resp = httpx.get(test_url, timeout=15)
+                if test_resp.status_code == 200:
+                    working_where = fmt
+                    if df != date_field:
+                        log(f"  Auto-healed: date field '{date_field}' -> '{df}'")
+                    break
+            except Exception:
+                continue
+        if working_where:
+            break
+
+    if not working_where:
+        # Fallback: no date filter, just get recent records by order
+        log(f"  WARNING: No date filter works. Fetching most recent records without date filter.")
+        working_where = "$order=:id DESC"
+        # Try to find ANY sortable field
+        try:
+            test_resp = httpx.get(f"{base_url}?$limit=1", timeout=15)
+            if test_resp.status_code == 200:
+                sample = test_resp.json()
+                if sample:
+                    keys = list(sample[0].keys())
+                    for k in keys:
+                        if "date" in k.lower():
+                            working_where = f"$order={k} DESC"
+                            log(f"  Fallback: sorting by '{k}'")
+                            break
+        except Exception:
+            pass
+
+    log(f"  Using: {working_where}")
+
+    # Count fresh (optional, don't fail on this)
+    available = None
     try:
-        r = httpx.get(f"{base_url}?$select=count(*)&$where={date_field}>='{since}'", timeout=30)
-        available = int(r.json()[0]["count"])
-        log(f"  Fresh permits: {available:,}")
-    except Exception as e:
-        log(f"  Count failed: {e}, proceeding anyway")
-        available = None
+        count_url = f"{base_url}?$select=count(*)&{working_where}"
+        r = httpx.get(count_url, timeout=15)
+        if r.status_code == 200:
+            available = int(r.json()[0].get("count", 0))
+            log(f"  Fresh permits: {available:,}")
+    except Exception:
+        pass
 
     while True:
-        url = f"{base_url}?$where={date_field}>='{since}'&$order={date_field} DESC&$limit=5000&$offset={offset}"
+        url = f"{base_url}?{working_where}&$limit=5000&$offset={offset}"
         try:
             resp = httpx.get(url, timeout=60)
             resp.raise_for_status()
