@@ -359,6 +359,55 @@ async def analyst_query(
     exec_ms = int((time.time() - t0) * 1000)
     logger.info("[Analyst:%s] DB done in %.1fs, %d rows", query_id, time.time() - t0, len(serialized_rows))
 
+    # ── Step 3b: Sonnet fallback — if Haiku returned 0, retry with smarter model ──
+    upgraded = False
+    if not serialized_rows and (time.time() - t0) < 6.0:
+        logger.info("[Analyst:%s] 0 results from Haiku — upgrading to Sonnet", query_id)
+        try:
+            sonnet_response = client.messages.create(
+                model="claude-sonnet-4-6",
+                max_tokens=400,
+                messages=[{
+                    "role": "user",
+                    "content": (
+                        f"{SCHEMA_CONTEXT}\n\n"
+                        f"A previous attempt to answer this question returned 0 results. "
+                        f"The failed SQL was: {safe_sql}\n\n"
+                        f"Generate a BETTER PostgreSQL query that will actually return results. "
+                        f"Try a different table or relax the filters. "
+                        f"Return ONLY the raw SQL — no explanation.\n\n"
+                        f"Question: {body.question}"
+                    ),
+                }],
+            )
+            upgraded_sql = _validate_sql(sonnet_response.content[0].text.strip())
+            logger.info("[Analyst:%s] Sonnet SQL: %s", query_id, upgraded_sql)
+            await db.execute(text("SET LOCAL statement_timeout = '8000'"))
+            result2 = await db.execute(text(upgraded_sql))
+            columns2 = list(result2.keys())
+            rows2 = [dict(zip(columns2, row)) for row in result2.fetchall()]
+            if rows2:
+                serialized_rows = []
+                for row in rows2:
+                    clean = {}
+                    for k, v in row.items():
+                        if isinstance(v, (datetime,)):
+                            clean[k] = v.isoformat()
+                        elif isinstance(v, uuid.UUID):
+                            clean[k] = str(v)
+                        elif hasattr(v, "isoformat"):
+                            clean[k] = v.isoformat()
+                        else:
+                            clean[k] = v
+                    serialized_rows.append(clean)
+                safe_sql = upgraded_sql
+                upgraded = True
+                logger.info("[Analyst:%s] Sonnet found %d rows", query_id, len(serialized_rows))
+        except Exception as e:
+            logger.warning("[Analyst:%s] Sonnet fallback failed: %s", query_id, e)
+
+    exec_ms = int((time.time() - t0) * 1000)
+
     # ── Step 4: Summarize results with Claude ─────────────────────────
     # Skip summary if we've already used >8s (prevents timeout on summary call)
     elapsed = time.time() - t0
@@ -407,6 +456,9 @@ async def analyst_query(
             summary = f"Found {len(serialized_rows)} results for your query."
     else:
         summary = "No results found. Try broadening your search or rephrasing the question."
+
+    if upgraded and serialized_rows:
+        summary = "\u2728 Upgraded AI found results. " + summary
 
     return AnalystResponse(
         question=body.question,
