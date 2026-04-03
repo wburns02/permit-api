@@ -69,18 +69,20 @@ def s(v, maxlen=500):
 METROS = {
     "nyc": {
         "name": "New York City", "state": "NY",
-        "url": "https://data.cityofnewyork.us/resource/ipu4-2q9a.json",
-        "date_field": "issuance_date", "records": 3985625,
+        # ipu4-2q9a (DOB Permit Issuance) stalled at 2020-06-05; switched to
+        # rbx6-tga4 (DOB NOW: Build – Approved Permits) which updates daily.
+        "url": "https://data.cityofnewyork.us/resource/rbx6-tga4.json",
+        "date_field": "issued_date", "records": 918212,
         "fields": {
-            "permit_number": "job__", "permit_type": "permit_type",
-            "work_class": "permit_subtype", "description": "job_description",
-            "address": lambda r: f"{r.get('house__','')} {r.get('street_name','')}".strip(),
+            "permit_number": "work_permit", "permit_type": "work_type",
+            "work_class": "filing_reason", "description": "job_description",
+            "address": lambda r: f"{r.get('house_no','')} {r.get('street_name','')}".strip(),
             "city": "borough", "zip": "zip_code",
-            "contractor_company": "permittee_s_business_name",
-            "contractor_phone": "permittee_s_phone__",
-            "applicant_name": "owner_s_business_name",
-            "applicant_phone": "owner_s_phone__",
-            "lat": "gis_latitude", "lng": "gis_longitude",
+            "contractor_company": "applicant_business_name",
+            "contractor_phone": None,
+            "applicant_name": "owner_name",
+            "applicant_phone": None,
+            "lat": "latitude", "lng": "longitude",
         },
     },
     "nj_statewide": {
@@ -122,17 +124,19 @@ METROS = {
     },
     "la": {
         "name": "Los Angeles", "state": "CA",
-        "url": "https://data.lacity.org/resource/vdg9-hy7c.json",
-        "date_field": "issue_date", "records": 544931,
+        # vdg9-hy7c (LA BUILD PERMITS) stalled at 2023-05-19; switched to
+        # pi9x-tg5x (Building and Safety - Building Permits Issued from 2020 to Present)
+        # which updates daily and has 380K+ records through 2026.
+        "url": "https://data.lacity.org/resource/pi9x-tg5x.json",
+        "date_field": "issue_date", "records": 382758,
         "fields": {
-            "permit_number": "permit_number", "permit_type": "permit_type",
-            "work_class": "permit_sub_type", "description": "work_description",
-            "address": lambda r: f"{r.get('address_start','')} {r.get('street_name','')} {r.get('suffix','')}".strip(),
+            "permit_number": "permit_nbr", "permit_type": "permit_type",
+            "work_class": "permit_sub_type", "description": "work_desc",
+            "address": "primary_address",
             "city": lambda r: "Los Angeles", "zip": "zip_code",
-            "contractor_company": "contractors_business_name",
-            "valuation": "valuation", "sqft": "floor_area_l_a_zoning_code_definition",
-            "applicant_name": lambda r: f"{r.get('applicant_first_name','')} {r.get('applicant_last_name','')}".strip(),
-            "lat": "latitude", "lng": "longitude",
+            "contractor_company": None,
+            "valuation": "valuation",
+            "lat": "lat", "lng": "lon",
         },
     },
     "henderson": {
