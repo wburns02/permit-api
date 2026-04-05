@@ -73,8 +73,23 @@ async def get_db():
 
 
 async def get_read_db():
-    """Read-only session — routed to replica for search/stats/analyst endpoints."""
-    async with replica_session_maker() as session:
+    """Read-only session — tries replica first, falls back to primary if unreachable."""
+    if _replica_is_separate:
+        try:
+            async with replica_session_maker() as session:
+                # Quick connectivity test
+                from sqlalchemy import text
+                await session.execute(text("SELECT 1"))
+                try:
+                    yield session
+                finally:
+                    await session.close()
+                return
+        except Exception as e:
+            logger.warning("Replica unreachable, falling back to primary: %s", e)
+
+    # Fallback to primary
+    async with primary_session_maker() as session:
         try:
             yield session
         finally:

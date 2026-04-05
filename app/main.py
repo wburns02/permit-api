@@ -214,25 +214,39 @@ app.include_router(freshness_router, prefix="/v1")
 
 @app.get("/health")
 async def health():
-    """Health check — returns 503 if DB is unreachable (Railway uses this to detect unhealthy containers)."""
+    """Health check — returns 503 only if PRIMARY DB is unreachable. Replica failure is non-fatal."""
     import asyncio
-    from app.database import replica_session_maker
+    from app.database import primary_session_maker, replica_session_maker, _replica_is_separate
     from sqlalchemy import text
-    db_ok = False
+
+    primary_ok = False
     try:
-        async with replica_session_maker() as db:
+        async with primary_session_maker() as db:
             await asyncio.wait_for(db.execute(text("SELECT 1")), timeout=5.0)
-        db_ok = True
+        primary_ok = True
     except Exception:
         pass
 
-    status_code = 200 if db_ok else 503
+    replica_ok = False
+    if _replica_is_separate:
+        try:
+            async with replica_session_maker() as db:
+                await asyncio.wait_for(db.execute(text("SELECT 1")), timeout=5.0)
+            replica_ok = True
+        except Exception:
+            pass
+    else:
+        replica_ok = primary_ok
+
+    # App is healthy if primary works (replica failure is degraded, not down)
+    status_code = 200 if primary_ok else 503
     from fastapi.responses import JSONResponse
     return JSONResponse(
         status_code=status_code,
         content={
-            "status": "healthy" if db_ok else "unhealthy",
-            "database": "connected" if db_ok else "unreachable",
+            "status": "healthy" if primary_ok else "unhealthy",
+            "database": "connected" if primary_ok else "unreachable",
+            "replica": "connected" if replica_ok else "down (using primary fallback)",
             "version": settings.VERSION,
             "environment": settings.ENVIRONMENT,
         },
