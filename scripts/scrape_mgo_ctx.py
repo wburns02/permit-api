@@ -155,10 +155,15 @@ def fetch_permits(session, jurisdiction_id, jurisdiction_name, days=None):
                 if permit:
                     all_permits.append(permit)
 
-            total = data.get("totalCount", data.get("total", 0))
             offset += PAGE_SIZE
 
-            if offset >= total or len(items) < PAGE_SIZE:
+            # Stop when we get fewer items than requested (last page)
+            if len(items) < PAGE_SIZE:
+                break
+
+            # Safety cap: don't fetch more than 50K per jurisdiction
+            if offset >= 50000:
+                log(f"    Hit 50K cap for {jurisdiction_name}")
                 break
 
         except Exception as e:
