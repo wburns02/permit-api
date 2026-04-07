@@ -12,7 +12,7 @@ from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -68,7 +68,7 @@ def _decode_jwt(token: str) -> dict:
 # ---------------------------------------------------------------------------
 
 class SetupRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
     name: str | None = None
 
@@ -83,7 +83,7 @@ class SetupResponse(BaseModel):
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 
