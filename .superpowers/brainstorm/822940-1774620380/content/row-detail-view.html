@@ -1,0 +1,89 @@
+<h2>When you click a permit row, what opens?</h2>
+<p class="subtitle">This is the primary interaction — how users drill into a lead</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Slide-out Panel (Right Side)</h3>
+      <p>Panel slides in from the right covering ~40% of the screen. Table stays visible behind it. User can scan the list and click through rows quickly without losing context.</p>
+      <div style="margin-top:12px;padding:16px;background:var(--surface-alt);border-radius:8px;font-size:13px;">
+        <div style="display:flex;gap:12px;">
+          <div style="flex:1;opacity:0.5;">
+            <div style="background:var(--border);height:8px;border-radius:4px;margin-bottom:6px;width:80%"></div>
+            <div style="background:var(--border);height:8px;border-radius:4px;margin-bottom:6px;width:60%"></div>
+            <div style="background:var(--border);height:8px;border-radius:4px;margin-bottom:6px;width:70%"></div>
+            <div style="background:var(--border);height:8px;border-radius:4px;margin-bottom:6px;width:50%"></div>
+            <div style="background:var(--border);height:8px;border-radius:4px;width:65%"></div>
+          </div>
+          <div style="flex:0 0 40%;background:var(--surface);border:2px solid var(--accent);border-radius:8px;padding:12px;">
+            <div style="font-weight:700;font-size:11px;margin-bottom:8px;color:var(--accent);">PERMIT DETAIL</div>
+            <div style="background:var(--border);height:6px;border-radius:3px;margin-bottom:5px;width:90%"></div>
+            <div style="background:var(--border);height:6px;border-radius:3px;margin-bottom:5px;width:70%"></div>
+            <div style="display:flex;gap:6px;margin-top:10px;">
+              <div style="background:var(--accent);height:24px;border-radius:4px;flex:1;opacity:0.6"></div>
+              <div style="background:#22c55e;height:24px;border-radius:4px;flex:1;opacity:0.6"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pros-cons" style="margin-top:12px;">
+        <div class="pros"><h4>Pros</h4><ul><li>Fast scanning — click through rows without page changes</li><li>Familiar pattern (Gmail, Salesforce, HubSpot)</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Limited width for complex data</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Full-Screen Detail Page</h3>
+      <p>Clicking a row navigates to a dedicated permit detail page. Full property report with all linked data — permits, violations, sales, liens, flood zones, demographics.</p>
+      <div style="margin-top:12px;padding:16px;background:var(--surface-alt);border-radius:8px;font-size:13px;">
+        <div style="border:2px solid var(--accent);border-radius:8px;padding:12px;">
+          <div style="font-weight:700;font-size:11px;margin-bottom:8px;color:var(--accent);">← Back to results &nbsp; | &nbsp; FULL PROPERTY REPORT</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+            <div style="background:var(--border);height:40px;border-radius:4px;"></div>
+            <div style="background:var(--border);height:40px;border-radius:4px;"></div>
+            <div style="background:var(--border);height:40px;border-radius:4px;"></div>
+            <div style="background:var(--border);height:40px;border-radius:4px;"></div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:10px;">
+            <div style="background:var(--accent);height:24px;border-radius:4px;flex:1;opacity:0.6"></div>
+            <div style="background:#22c55e;height:24px;border-radius:4px;flex:1;opacity:0.6"></div>
+            <div style="background:#f59e0b;height:24px;border-radius:4px;flex:1;opacity:0.6"></div>
+          </div>
+        </div>
+      </div>
+      <div class="pros-cons" style="margin-top:12px;">
+        <div class="pros"><h4>Pros</h4><ul><li>Room for rich data (maps, linked permits, full history)</li><li>Can show everything from the /analyst/report endpoint</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Loses list context — have to navigate back and forth</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Expandable Row (Inline Accordion)</h3>
+      <p>Clicking a row expands it in-place, pushing other rows down. Shows key details + action buttons right in the table flow.</p>
+      <div style="margin-top:12px;padding:16px;background:var(--surface-alt);border-radius:8px;font-size:13px;">
+        <div style="background:var(--border);height:8px;border-radius:4px;margin-bottom:6px;width:100%"></div>
+        <div style="border:2px solid var(--accent);border-radius:4px;padding:10px;margin-bottom:6px;background:var(--surface);">
+          <div style="background:var(--border);height:6px;border-radius:3px;margin-bottom:5px;width:80%"></div>
+          <div style="background:var(--border);height:6px;border-radius:3px;margin-bottom:5px;width:60%"></div>
+          <div style="display:flex;gap:6px;margin-top:8px;">
+            <div style="background:var(--accent);height:20px;border-radius:4px;flex:0 0 60px;opacity:0.6"></div>
+            <div style="background:#22c55e;height:20px;border-radius:4px;flex:0 0 60px;opacity:0.6"></div>
+          </div>
+        </div>
+        <div style="background:var(--border);height:8px;border-radius:4px;margin-bottom:6px;width:100%"></div>
+        <div style="background:var(--border);height:8px;border-radius:4px;width:100%"></div>
+      </div>
+      <div class="pros-cons" style="margin-top:12px;">
+        <div class="pros"><h4>Pros</h4><ul><li>Never leaves the table — minimal context switching</li><li>Simple to build</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Limited space for rich data</li><li>Can feel cramped with action buttons + details</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>

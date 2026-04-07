@@ -1,0 +1,119 @@
+<h2>Slide-out Panel Layout</h2>
+<p class="subtitle">Opens from right when any row is clicked — 420px wide, full height</p>
+
+<div class="split">
+  <!-- Left: Table (dimmed to show context) -->
+  <div style="flex:1;opacity:0.4;">
+    <div class="mockup">
+      <div class="mockup-header">Results Table (behind panel)</div>
+      <div class="mockup-body" style="padding:8px;">
+        <div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);font-size:11px;color:var(--text-secondary);">
+          <span style="width:24px;">☐</span>
+          <span style="width:60px;">DATE</span>
+          <span style="width:80px;">PERMIT</span>
+          <span style="flex:1;">ADDRESS</span>
+        </div>
+        <div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:11px;opacity:0.5">
+          <div style="display:flex;gap:8px;"><span style="width:24px;">☐</span><span style="width:60px;">3d ago</span><span style="width:80px;">TX-2026...</span><span>1717 Lake Shore Dr</span></div>
+        </div>
+        <div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:11px;background:rgba(139,92,246,0.08);border-left:2px solid #8b5cf6;">
+          <div style="display:flex;gap:8px;"><span style="width:24px;">☑</span><span style="width:60px;">3d ago</span><span style="width:80px;">TX-2026...</span><span>2203 N Navarro St</span></div>
+        </div>
+        <div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:11px;opacity:0.5">
+          <div style="display:flex;gap:8px;"><span style="width:24px;">☐</span><span style="width:60px;">3d ago</span><span style="width:80px;">2026-03...</span><span>7811 HIGH HOLLOW DR</span></div>
+        </div>
+        <div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:11px;opacity:0.5">
+          <div style="display:flex;gap:8px;"><span style="width:24px;">☐</span><span style="width:60px;">3d ago</span><span style="width:80px;">2026-03...</span><span>6809 WILLAMETTE DR</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Slide-out Panel -->
+  <div style="flex:0 0 420px;">
+    <div class="mockup">
+      <div class="mockup-header" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>Permit Detail</span>
+        <span style="display:flex;gap:12px;font-size:12px;color:var(--text-secondary);">
+          <span title="Previous">▲</span>
+          <span title="Next">▼</span>
+          <span title="Close">✕</span>
+        </span>
+      </div>
+      <div class="mockup-body" style="padding:0;">
+
+        <!-- ACTION ZONE — top 30% -->
+        <div style="padding:20px;background:linear-gradient(135deg,rgba(99,102,241,0.06),rgba(139,92,246,0.06));border-bottom:1px solid var(--border);">
+          <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">Lead Contact</div>
+          <div style="font-size:20px;font-weight:700;margin-bottom:2px;">Tony Blake</div>
+          <div style="font-size:13px;color:var(--text-secondary);margin-bottom:4px;">2203 N Navarro St, Victoria, TX 77901</div>
+          <div style="font-size:18px;font-weight:600;color:#8b5cf6;margin-bottom:16px;letter-spacing:0.5px;">📞 (361) 555-7016</div>
+
+          <!-- BIG CALL BUTTON -->
+          <a style="display:flex;align-items:center;justify-content:center;gap:8px;padding:14px;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;border-radius:12px;font-size:16px;font-weight:700;text-decoration:none;margin-bottom:10px;cursor:pointer;box-shadow:0 4px 12px rgba(34,197,94,0.3);">
+            📞 Call Now
+          </a>
+
+          <!-- Secondary actions -->
+          <div style="display:flex;gap:8px;">
+            <div style="flex:1;padding:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;text-align:center;font-size:12px;cursor:pointer;">📋 Copy Phone</div>
+            <div style="flex:1;padding:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;text-align:center;font-size:12px;cursor:pointer;">📱 Send to Dialer</div>
+            <div style="flex:1;padding:8px;background:var(--surface);border:1px solid var(--border);border-radius:8px;text-align:center;font-size:12px;cursor:pointer;">📄 Full Report</div>
+          </div>
+        </div>
+
+        <!-- PERMIT SUMMARY — middle -->
+        <div style="padding:16px;border-bottom:1px solid var(--border);">
+          <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Permit Details</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;">
+            <div>
+              <div style="font-size:10px;color:var(--text-secondary);">PERMIT #</div>
+              <div style="font-weight:600;">TX-2026-D016</div>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--text-secondary);">DATE</div>
+              <div style="font-weight:600;">Mar 25, 2026</div>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--text-secondary);">VALUATION</div>
+              <div style="font-weight:600;color:#22c55e;">$22,000</div>
+            </div>
+            <div>
+              <div style="font-size:10px;color:var(--text-secondary);">STATUS</div>
+              <div style="font-weight:600;">Issued</div>
+            </div>
+          </div>
+          <div style="margin-top:10px;">
+            <div style="font-size:10px;color:var(--text-secondary);">DESCRIPTION</div>
+            <div style="font-size:13px;line-height:1.5;">Storm damage roof and siding repair in Victoria valued at $22,000</div>
+          </div>
+          <div style="margin-top:8px;">
+            <div style="font-size:10px;color:var(--text-secondary);">CONTRACTOR</div>
+            <div style="font-size:13px;">Tony Blake — Licensed Roofing</div>
+          </div>
+        </div>
+
+        <!-- INTELLIGENCE — bottom, lazy-loaded -->
+        <div style="padding:16px;">
+          <div style="font-size:11px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Property Intelligence</div>
+          <div style="font-size:12px;color:var(--text-secondary);font-style:italic;padding:20px;text-align:center;background:var(--surface-alt);border-radius:8px;">
+            <div style="margin-bottom:6px;">⏳ Loading linked data...</div>
+            <div style="font-size:11px;">Permits · Violations · Sales · Liens · Flood · Demographics</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:24px;">
+  <h3>Key Behaviors</h3>
+  <ul style="font-size:14px;line-height:1.8;color:var(--text-secondary);">
+    <li><strong>Open:</strong> Click any row → panel slides in from right (200ms ease)</li>
+    <li><strong>Navigate:</strong> ▲/▼ buttons or j/k keys move to prev/next row, panel updates instantly</li>
+    <li><strong>Close:</strong> ✕ button, Escape key, or click outside panel</li>
+    <li><strong>No phone?</strong> Call button replaced with "No phone on file" + "View Full Report" promoted to primary</li>
+    <li><strong>Intelligence:</strong> Fetches from /analyst/report only when panel opens — skeleton loader while waiting</li>
+  </ul>
+</div>

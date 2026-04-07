@@ -1,0 +1,68 @@
+<h2>Approach: Actionable AI Analyst Results</h2>
+<p class="subtitle">One approach, broken into 4 layers — each builds on the last</p>
+
+<div class="options">
+  <div class="option" data-choice="approve" onclick="toggleSelect(this)">
+    <div class="letter">✓</div>
+    <div class="content">
+      <h3>Approve This Approach</h3>
+      <p>Click here if the 4 layers below look right, and we'll move to detailed design.</p>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:32px;">
+  <h3>Layer 1: Enhanced Table</h3>
+  <p>Transform the static results table into an interactive data grid.</p>
+  <ul style="font-size:14px;line-height:1.8;color:var(--text-secondary);">
+    <li><strong>Date column</strong> — auto-detect date fields (issue_date, date_created, sale_date, etc.), normalize to "DATE" header, format as relative ("2d ago") with full date on hover</li>
+    <li><strong>Checkbox column</strong> — first column, select individual rows or "select all"</li>
+    <li><strong>Clickable rows</strong> — hover highlight, pointer cursor, click opens slide-out panel</li>
+    <li><strong>Phone icon</strong> — if phone number exists in the row data, show a phone icon inline for instant tel: click</li>
+    <li><strong>Row status indicators</strong> — subtle color/icon showing if row has phone, has email, has owner name (data quality at a glance)</li>
+  </ul>
+</div>
+
+<div class="section">
+  <h3>Layer 2: Slide-out Detail Panel</h3>
+  <p>Right-side panel, ~420px wide, action-first layout.</p>
+  <ul style="font-size:14px;line-height:1.8;color:var(--text-secondary);">
+    <li><strong>Top 30%: Action Zone</strong> — big name/address, massive "Call Now" button (tel: link), phone number displayed large, secondary buttons: "Send to Dialer", "Copy Phone", "View Full Report"</li>
+    <li><strong>Middle: Permit Summary</strong> — permit number, type, status, date, valuation, description, contractor info</li>
+    <li><strong>Bottom: Intelligence</strong> — lazy-loaded from /analyst/report endpoint: linked permits, violations, sales history, flood zone, demographics. Loads on demand so the panel opens fast.</li>
+    <li><strong>Navigation</strong> — up/down arrows or keyboard (j/k) to move between rows without closing the panel</li>
+  </ul>
+</div>
+
+<div class="section">
+  <h3>Layer 3: Batch Actions Bar</h3>
+  <p>Sticky bar appears at bottom when 1+ rows are selected.</p>
+  <ul style="font-size:14px;line-height:1.8;color:var(--text-secondary);">
+    <li><strong>"X selected"</strong> count with "Select All" / "Clear" buttons</li>
+    <li><strong>Export CSV</strong> — downloads selected rows as CSV</li>
+    <li><strong>Copy to Clipboard</strong> — tab-delimited, paste into Sheets/Excel/CRM</li>
+    <li><strong>Send to Webhook</strong> — pushes selected rows as JSON to user's configured webhook URL (set in account settings)</li>
+    <li><strong>Send All to Dialer</strong> — queues all selected rows with phone numbers to the #dialer page</li>
+  </ul>
+</div>
+
+<div class="section">
+  <h3>Layer 4: Webhook Configuration</h3>
+  <p>Minimal settings addition — no complex integration needed.</p>
+  <ul style="font-size:14px;line-height:1.8;color:var(--text-secondary);">
+    <li><strong>Account settings</strong> — "CRM Webhook URL" field where user pastes their Zapier/Make/n8n webhook</li>
+    <li><strong>Test button</strong> — sends a sample payload so user can verify it works</li>
+    <li><strong>Payload format</strong> — standard JSON array of permit objects, documented in API docs page</li>
+    <li><strong>No auth complexity</strong> — webhook URL itself is the auth (standard Zapier pattern)</li>
+  </ul>
+</div>
+
+<div class="section" style="margin-top:24px;padding:20px;background:var(--surface-alt);border-radius:12px;">
+  <h3 style="margin-bottom:8px;">What's NOT in scope</h3>
+  <ul style="font-size:14px;line-height:1.8;color:var(--text-secondary);">
+    <li>Built-in soft phone (Twilio WebRTC) — that's spec #2</li>
+    <li>Native CRM integrations (GHL, HubSpot, Salesforce) — webhook covers them all for now</li>
+    <li>Call logging/recording — comes with soft phone spec</li>
+    <li>AI call scripts/talking points — future feature</li>
+  </ul>
+</div>

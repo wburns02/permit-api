@@ -1,0 +1,2 @@
+{"type":"server-started","port":62059,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:62059","screen_dir":"/home/will/permit-api/.superpowers/brainstorm/822940-1774620380/content","state_dir":"/home/will/permit-api/.superpowers/brainstorm/822940-1774620380/state"}
+{"type":"server-stopped","reason":"idle timeout"}

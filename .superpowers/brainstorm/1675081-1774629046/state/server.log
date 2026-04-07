@@ -1,0 +1,7 @@
+{"type":"server-started","port":62018,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:62018","screen_dir":"/home/will/permit-api/.superpowers/brainstorm/1675081-1774629046/content","state_dir":"/home/will/permit-api/.superpowers/brainstorm/1675081-1774629046/state"}
+{"type":"screen-added","file":"/home/will/permit-api/.superpowers/brainstorm/1675081-1774629046/content/approach.html"}
+{"source":"user-event","type":"click","text":"✓\n    \n      Approve This Approach\n      Click here if the 4 layers below look right, and we'll move to detailed design.","choice":"approve","id":null,"timestamp":1774629077525}
+{"type":"screen-added","file":"/home/will/permit-api/.superpowers/brainstorm/1675081-1774629046/content/panel-mockup.html"}
+{"type":"screen-added","file":"/home/will/permit-api/.superpowers/brainstorm/1675081-1774629046/content/panel-mockup-v2.html"}
+{"type":"screen-added","file":"/home/will/permit-api/.superpowers/brainstorm/1675081-1774629046/content/waiting.html"}
+{"type":"server-stopped","reason":"idle timeout"}
