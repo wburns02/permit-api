@@ -1,18 +1,23 @@
 #!/usr/bin/env python3
 """
-MGO Connect Central Texas Scraper — pulls permits from ALL CTX jurisdictions
-in MGO Connect and loads them into hot_leads.
+MGO Connect Scraper — pulls permits from MGO Connect jurisdictions
+and loads them into hot_leads.
 
-Wraps the San Marcos scraper's auth + API logic for 20 CTX jurisdictions.
+Supports Central TX, all Texas, or all 433 nationwide jurisdictions.
+Rate-limited to 2 seconds between jurisdictions to be polite.
 
 Usage:
     python3 scrape_mgo_ctx.py                    # All CTX, last 90 days
     python3 scrape_mgo_ctx.py --days 30          # Last 30 days
     python3 scrape_mgo_ctx.py --jurisdiction 43  # Single jurisdiction
-    python3 scrape_mgo_ctx.py --all              # All time
+    python3 scrape_mgo_ctx.py --all-tx           # All 105 Texas jurisdictions
+    python3 scrape_mgo_ctx.py --nationwide        # All 433 jurisdictions (slow, polite)
+    python3 scrape_mgo_ctx.py --all              # All time (no date filter)
 
-Cron (daily 5:20 AM, after Central TX Socrata):
+Cron (daily):
     20 5 * * * cd /home/will/permit-api-live && python3 scripts/scrape_mgo_ctx.py --days 7 >> /tmp/mgo_ctx.log 2>&1
+    0 2 * * 6 cd /home/will/permit-api-live && python3 scripts/scrape_mgo_ctx.py --all-tx --days 30 >> /tmp/mgo_all_tx.log 2>&1
+    0 1 * * 0 cd /home/will/permit-api-live && python3 scripts/scrape_mgo_ctx.py --nationwide --days 30 >> /tmp/mgo_nationwide.log 2>&1
 """
 
 import argparse
@@ -72,6 +77,28 @@ CTX_JURISDICTIONS = {
     125: "Travis County",
     231: "Williamson County",
 }
+
+
+RATE_LIMIT_SECONDS = 2  # Pause between jurisdictions to be polite
+
+
+def fetch_all_jurisdictions(session, state_filter=None):
+    """Fetch all jurisdictions from MGO API. Optionally filter by state."""
+    try:
+        resp = session.get(f"{API_BASE}/api/v3/cp/public/jurisdictions", timeout=30)
+        jurisdictions = resp.json().get("data", [])
+        result = {}
+        for j in jurisdictions:
+            jid = j.get("jurisdictionID")
+            jname = j.get("jurisdictionName")
+            state = j.get("stateID")
+            if jid and jname:
+                if state_filter is None or state == state_filter:
+                    result[jid] = jname
+        return result
+    except Exception as e:
+        log(f"ERROR fetching jurisdictions: {e}")
+        return {}
 
 
 def log(msg):
@@ -286,6 +313,8 @@ def main():
     parser.add_argument("--days", type=int, default=90, help="Days of history (default 90)")
     parser.add_argument("--jurisdiction", type=int, help="Single jurisdiction ID")
     parser.add_argument("--all", action="store_true", help="Fetch all time (no date filter)")
+    parser.add_argument("--all-tx", action="store_true", help="All 105 Texas jurisdictions")
+    parser.add_argument("--nationwide", action="store_true", help="All 433 jurisdictions nationwide (slow)")
     args = parser.parse_args()
 
     days = None if args.all else args.days
@@ -308,19 +337,29 @@ def main():
     # Select jurisdictions
     if args.jurisdiction:
         jurisdictions = {args.jurisdiction: CTX_JURISDICTIONS.get(args.jurisdiction, f"ID-{args.jurisdiction}")}
+    elif args.nationwide:
+        jurisdictions = fetch_all_jurisdictions(session)
+        log(f"Nationwide mode: {len(jurisdictions)} jurisdictions")
+    elif args.all_tx:
+        jurisdictions = fetch_all_jurisdictions(session, state_filter="TX")
+        log(f"All-TX mode: {len(jurisdictions)} jurisdictions")
     else:
         jurisdictions = CTX_JURISDICTIONS
 
     total_loaded = 0
     results = []
 
-    for jid, jname in jurisdictions.items():
-        log(f"  [{jname}] (ID: {jid})...")
+    for i, (jid, jname) in enumerate(jurisdictions.items()):
+        log(f"  [{i+1}/{len(jurisdictions)}] {jname} (ID: {jid})...")
         permits = fetch_permits(session, jid, jname, days=days)
         loaded = load_to_hot_leads(conn, permits)
         total_loaded += loaded
         results.append((jname, len(permits), loaded))
         log(f"    → {len(permits)} fetched, {loaded} loaded")
+
+        # Rate limit between jurisdictions
+        if i < len(jurisdictions) - 1:
+            time.sleep(RATE_LIMIT_SECONDS)
 
     # Summary
     log("")
