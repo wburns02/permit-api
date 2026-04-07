@@ -247,12 +247,15 @@ def parse_permits_from_html(html, city_code, city_name, state):
 
         # Address handling — some cities include it inline, some don't
         raw_address = get_col(addr_idx) if addr_idx >= 0 else ""
-        # Clean up duplicate addresses (some portals repeat "123 Main St, City, ST 12345 123 Main St")
+        # Clean up duplicate addresses — some portals show address twice:
+        # "18118 EVANS ST, OMAHA, NE 68022 18118 EVANS ST 18118 EVANS ST"
+        # Strategy: use double-space split (Accela separates parts with two spaces),
+        # then take the first meaningful chunk
         if raw_address:
-            # Remove trailing duplicate — the first occurrence of the address
-            parts = raw_address.split(" ", 1)
-            if parts:
-                addr_clean = raw_address.split("  ")[0].strip()
+            # Split on double spaces first
+            addr_parts = [p.strip() for p in raw_address.split("  ") if p.strip()]
+            if addr_parts:
+                addr_clean = addr_parts[0]
             else:
                 addr_clean = raw_address.strip()
         else:
