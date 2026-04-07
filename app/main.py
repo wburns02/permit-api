@@ -29,6 +29,7 @@ from app.models.crm import Contact, Deal, Note, Commission, Activity, Webhook, B
 from app.models.quote import Quote  # noqa: F401
 from app.models.team import Team, TeamMember  # noqa: F401
 from app.models.email_campaign import EmailCampaign, EmailRecipient, EmailUnsubscribe  # noqa: F401
+from app.models.pricing import PricingBenchmark  # noqa: F401
 
 # Import routers
 from app.api.v1.permits import router as permits_router
@@ -62,6 +63,7 @@ from app.api.v1.campaigns import router as campaigns_router
 from app.api.v1.dialer_ws import router as dialer_ws_router
 from app.api.v1.freshness import router as freshness_router
 from app.api.v1.hman_auth import router as hman_auth_router
+from app.api.v1.pricing import router as pricing_router
 
 logger = logging.getLogger(__name__)
 
@@ -222,6 +224,7 @@ app.include_router(campaigns_router, prefix="/v1")
 app.include_router(dialer_ws_router)  # WebSocket routes at root (no /v1 prefix)
 app.include_router(freshness_router, prefix="/v1")
 app.include_router(hman_auth_router, prefix="/v1")
+app.include_router(pricing_router, prefix="/v1")
 
 
 @app.get("/health")
