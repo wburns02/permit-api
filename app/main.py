@@ -61,6 +61,7 @@ from app.api.v1.batch import router as batch_router
 from app.api.v1.campaigns import router as campaigns_router
 from app.api.v1.dialer_ws import router as dialer_ws_router
 from app.api.v1.freshness import router as freshness_router
+from app.api.v1.hman_auth import router as hman_auth_router
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +87,16 @@ async def lifespan(app: FastAPI):
             ))
     except Exception as e:
         logger.warning("Could not apply webhook_url migration: %s", e)
+
+    # Auto-migrate: add password_hash column for H-Man CRM JWT auth
+    try:
+        from app.database import primary_engine
+        async with primary_engine.begin() as conn:
+            await conn.execute(_text(
+                "ALTER TABLE api_users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(64)"
+            ))
+    except Exception as e:
+        logger.warning("Could not apply password_hash migration: %s", e)
 
     # Auto-migrate: add softphone columns to call_logs
     try:
@@ -210,6 +221,7 @@ app.include_router(batch_router, prefix="/v1")
 app.include_router(campaigns_router, prefix="/v1")
 app.include_router(dialer_ws_router)  # WebSocket routes at root (no /v1 prefix)
 app.include_router(freshness_router, prefix="/v1")
+app.include_router(hman_auth_router, prefix="/v1")
 
 
 @app.get("/health")
