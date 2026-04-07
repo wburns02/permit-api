@@ -177,17 +177,8 @@ app = FastAPI(
 # CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        settings.FRONTEND_URL,
-        "https://permits.ecbtx.com",
-        "https://r730-2-1.tailad2d5f.ts.net",
-        "http://localhost:5173",
-        "http://localhost:3000",
-        "https://hmanelectrical-production.up.railway.app",
-        "https://hman.ecbtx.com",
-        "http://localhost:5175",
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "X-API-Key", "Authorization"],
     max_age=3600,
