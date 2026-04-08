@@ -3,23 +3,24 @@
 OpenGov / ViewPoint Cloud Permit Scraper
 
 Authenticates via Auth0 implicit grant (captures Bearer token from URL fragment),
-then fetches permit records from each configured portal via the REST API.
+then fetches permit records from each configured portal via the GraphQL API.
 Loads into hot_leads on T430 (100.122.216.15, db: permits).
 
 Auth:
   - Auth0 domain: accounts.viewpointcloud.com
   - Client ID: Kne3XYPvChciFOG9DvQ01Ukm1wyBTdTQ
-  - One token works for ALL 214 portals (universal Auth0 tenant)
-  - Token is cached to disk and reused until expiry
+  - One token works for ALL portals (universal Auth0 tenant)
+  - Token is cached to disk and reused until expiry (24h)
 
-API:
-  - Records: GET https://api-east.viewpointcloud.com/v2/{community}/records
-  - Filter by date via ?filter[updatedAt][gte]={iso_date}
-  - Paginated via ?page[number]={n}&page[size]=100
+API (GraphQL, NOT REST):
+  - Endpoint: POST https://records.viewpointcloud.com/graphql
+  - Community passed via 'community' HTTP header (NOT URL path)
+  - Query: getRecords(where: {isEnabled: true}, page: {page: N, size: 100})
+  - Uses inline fragments: ... on RecordPaginated { records { ... } page { total } }
 
 Usage:
-    python3 scrape_opengov.py                    # First 10 portals, last 90 days
-    python3 scrape_opengov.py --all              # All 214 portals
+    python3 scrape_opengov.py                    # First 10 portals
+    python3 scrape_opengov.py --all              # All portals
     python3 scrape_opengov.py --community stpetersburgfl  # Single portal
     python3 scrape_opengov.py --days 7           # Last 7 days
     python3 scrape_opengov.py --dry-run          # Don't write to DB
@@ -34,7 +35,7 @@ import time
 import uuid
 from datetime import datetime, date, timedelta
 from pathlib import Path
-from urllib.parse import urlencode
+from urllib.parse import urlencode, urlparse
 
 try:
     import requests
@@ -62,16 +63,12 @@ AUTH0_CLIENT_ID = "Kne3XYPvChciFOG9DvQ01Ukm1wyBTdTQ"
 AUTH0_AUDIENCE = "viewpointcloud.com/api/production"
 AUTH0_PORTAL = "stpetersburgfl"  # Any portal works for auth
 
-# Auth credentials — try willwalterburns@gmail.com first, then will@macseptic.com
-# The JWT in auth_token.json was issued to will@macseptic.com
+# Auth credentials
 OPENGOV_EMAIL = os.getenv("OPENGOV_EMAIL", "willwalterburns@gmail.com")
-OPENGOV_PASSWORD = os.getenv("OPENGOV_PASSWORD", "z4pFUuvq7xE7YXi")
+OPENGOV_PASSWORD = os.getenv("OPENGOV_PASSWORD", "#Espn2025")
 
-# Alternative credentials (account that had a working token)
-OPENGOV_EMAIL_ALT = os.getenv("OPENGOV_EMAIL_ALT", "will@macseptic.com")
-OPENGOV_PASSWORD_ALT = os.getenv("OPENGOV_PASSWORD_ALT", "")
-
-API_BASE = "https://api-east.viewpointcloud.com/v2"
+# GraphQL API endpoint (NOT the REST API which returns empty data)
+GRAPHQL_ENDPOINT = "https://records.viewpointcloud.com/graphql"
 PAGE_SIZE = 100
 
 DB_HOST = os.getenv("DB_HOST", "100.122.216.15")
@@ -379,9 +376,16 @@ def save_token(access_token, expires_at_ms):
 
 def _try_login_playwright(email, password):
     """
-    Try a single login attempt via Playwright.
+    Login via Playwright Auth0 implicit grant flow.
+    Captures the Bearer token from the URL fragment (#access_token=...) on redirect.
+
+    The key technique: use page.on("framenavigated") to capture the token from the
+    redirect URL BEFORE the SPA can consume it from the hash fragment.
+
     Returns (token, expires_at_ms) or (None, 0).
     """
+    from urllib.parse import urlparse
+
     redirect_uri = f"https://{AUTH0_PORTAL}.portal.opengov.com"
     nonce = "opengov_scraper_" + str(int(time.time()))
 
@@ -400,11 +404,13 @@ def _try_login_playwright(email, password):
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         context = browser.new_context(
-            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36",
             viewport={"width": 1280, "height": 800}
         )
         page = context.new_page()
 
+        # Critical: capture token from framenavigated event
+        # The SPA reads and clears the URL hash, so we must intercept it here
         def on_frame_navigated(frame):
             if frame == page.main_frame:
                 url = frame.url
@@ -413,135 +419,81 @@ def _try_login_playwright(email, password):
                     if token_data:
                         captured["token"] = token_data["access_token"]
                         captured["expires_at"] = token_data["expires_at"]
-                        print("[Auth] Token captured from redirect URL!")
+                        print(f"[Auth] Token captured! len={len(captured['token'])}")
 
         page.on("framenavigated", on_frame_navigated)
 
         try:
-            page.goto(auth_url, timeout=30000)
+            # Navigate to Auth0 authorize URL
+            # Use domcontentloaded instead of networkidle to avoid waiting for SPA load
+            page.goto(auth_url, timeout=30000, wait_until="domcontentloaded")
+            time.sleep(2)
 
+            # Check if already redirected with token (e.g., from session cookie)
             if captured["token"]:
                 browser.close()
                 return captured["token"], captured["expires_at"]
 
-            # Auth0 Lock widget has both email+password on same page
+            # Also check page URL directly
+            if "access_token=" in page.url:
+                token_data = _parse_token_from_url(page.url)
+                if token_data:
+                    captured["token"] = token_data["access_token"]
+                    captured["expires_at"] = token_data["expires_at"]
+                    browser.close()
+                    return captured["token"], captured["expires_at"]
+
+            # Wait for Auth0 Lock login form
             try:
-                page.wait_for_selector('input[type="email"]', timeout=10000)
+                page.wait_for_selector('input[name="email"], input[type="email"]', timeout=10000)
             except PlaywrightTimeout:
+                print("[Auth] No login form found")
                 browser.close()
                 return None, 0
 
-            # Fill email and password together (Auth0 Lock shows both)
-            time.sleep(1)  # let the widget finish rendering
-            email_input = page.query_selector('input[type="email"]')
-            pwd_input = page.query_selector('input[type="password"]')
-
-            if email_input:
-                email_input.click()
-                email_input.fill(email)
-            if pwd_input:
-                pwd_input.click()
-                pwd_input.fill(password)
+            # Fill email and password (Auth0 Lock shows both fields)
+            page.fill('input[name="email"]', email)
+            page.fill('input[name="password"]', password)
 
             # Click submit
             submit_btn = page.query_selector('button[type="submit"]')
             if submit_btn:
                 submit_btn.click()
+            else:
+                print("[Auth] No submit button found")
+                browser.close()
+                return None, 0
 
-            # Wait for redirect or error
-            time.sleep(8)
+            # Wait for redirect with token (up to 20 seconds)
+            for i in range(20):
+                time.sleep(1)
+                if captured["token"]:
+                    break
+                # Also poll the URL directly as a fallback
+                try:
+                    current_url = page.url
+                    if "access_token=" in current_url:
+                        token_data = _parse_token_from_url(current_url)
+                        if token_data:
+                            captured["token"] = token_data["access_token"]
+                            captured["expires_at"] = token_data["expires_at"]
+                            break
+                except Exception:
+                    pass
 
-            # Check for error
-            error_el = page.query_selector('.auth0-lock-error-msg, .auth0-global-message-error')
-            if error_el:
-                err_text = error_el.inner_text().strip()
-                if err_text:
-                    print(f"[Auth] Login error: {err_text}")
-                    browser.close()
-                    return None, 0
-
-            # Check redirect URL
-            current_url = page.url
-            if "access_token=" in current_url:
-                token_data = _parse_token_from_url(current_url)
-                if token_data:
-                    captured["token"] = token_data["access_token"]
-                    captured["expires_at"] = token_data["expires_at"]
-
-            # Wait more if needed
+            # Check for login errors
             if not captured["token"]:
                 try:
-                    page.wait_for_function(
-                        "() => window.location.href.includes('access_token=')",
-                        timeout=15000
-                    )
-                    current_url = page.url
-                    token_data = _parse_token_from_url(current_url)
-                    if token_data:
-                        captured["token"] = token_data["access_token"]
-                        captured["expires_at"] = token_data["expires_at"]
-                except PlaywrightTimeout:
+                    error_el = page.query_selector('.auth0-lock-error-msg, .auth0-global-message-error')
+                    if error_el:
+                        err_text = error_el.inner_text().strip()
+                        if err_text:
+                            print(f"[Auth] Login error: {err_text}")
+                except Exception:
                     pass
 
         except Exception as e:
             print(f"[Auth] Playwright error: {e}")
-        finally:
-            browser.close()
-
-    return captured["token"], captured["expires_at"]
-
-
-def _try_silent_auth():
-    """
-    Try to get a token using saved storage_state (session cookies).
-    Returns (token, expires_at_ms) or (None, 0).
-    """
-    storage_state_candidates = [
-        Path("/home/will/ReactCRM/scrapers/opengov/storage_state.json"),
-        Path("/home/will/scrapers/opengov/storage_state.json"),
-    ]
-    storage_state = next((p for p in storage_state_candidates if p.exists()), None)
-    if not storage_state:
-        return None, 0
-
-    print("[Auth] Trying silent auth with saved session state...")
-
-    redirect_uri = f"https://{AUTH0_PORTAL}.portal.opengov.com"
-    params = {
-        "client_id": AUTH0_CLIENT_ID,
-        "response_type": "token id_token",
-        "redirect_uri": redirect_uri,
-        "scope": "openid profile email",
-        "audience": AUTH0_AUDIENCE,
-        "nonce": "silent_" + str(int(time.time())),
-        "prompt": "none"  # silent — only works if session is valid
-    }
-    auth_url = f"https://{AUTH0_DOMAIN}/authorize?" + urlencode(params)
-    captured = {"token": None, "expires_at": 0}
-
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        try:
-            context = browser.new_context(
-                user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-                storage_state=str(storage_state)
-            )
-            page = context.new_page()
-
-            def on_nav(frame):
-                if frame == page.main_frame:
-                    url = frame.url
-                    if "access_token=" in url:
-                        token_data = _parse_token_from_url(url)
-                        if token_data:
-                            captured["token"] = token_data["access_token"]
-                            captured["expires_at"] = token_data["expires_at"]
-
-            page.on("framenavigated", on_nav)
-            page.goto(auth_url, timeout=20000)
-            time.sleep(5)
-        except Exception as e:
-            print(f"[Auth] Silent auth error: {e}")
         finally:
             browser.close()
 
@@ -556,21 +508,10 @@ def authenticate(token_override=None):
     Strategy (in order):
     1. --token flag or OPENGOV_TOKEN env var (direct override)
     2. Cached token from disk (if not expired)
-    3. Silent auth using saved browser session (if session cookies still valid)
-    4. Full login with OPENGOV_EMAIL / OPENGOV_PASSWORD credentials
-
-    Args:
-        token_override: If provided, use this token directly (skip auth)
+    3. Full login with Playwright (Auth0 Lock widget)
 
     Returns:
         access_token string
-
-    To get a fresh token manually:
-    1. Open https://stpetersburgfl.portal.opengov.com in browser
-    2. Log in with your OpenGov account
-    3. Open DevTools > Network, find any request to api-east.viewpointcloud.com
-    4. Copy the Authorization: Bearer <token> header value
-    5. Run: python3 scrape_opengov.py --token <that_token> ...
     """
     # Use manually provided token if given
     if token_override:
@@ -587,53 +528,32 @@ def authenticate(token_override=None):
         print(f"[Auth] Using cached token (valid for ~{remaining_hours}h)")
         return cached_token
 
-    print("[Auth] Token expired or missing — re-authenticating...")
+    print("[Auth] Token expired or missing -- re-authenticating...")
 
-    # Try silent auth (uses saved browser session cookies)
-    token, expires_at_ms = _try_silent_auth()
-    if token:
-        save_token(token, expires_at_ms)
-        print("[Auth] Silent auth successful!")
-        return token
-
-    # Try full login with credentials
-    credential_sets = []
+    # Full login with credentials
     if OPENGOV_EMAIL and OPENGOV_PASSWORD:
-        credential_sets.append((OPENGOV_EMAIL, OPENGOV_PASSWORD))
-    if OPENGOV_EMAIL_ALT and OPENGOV_PASSWORD_ALT:
-        credential_sets.append((OPENGOV_EMAIL_ALT, OPENGOV_PASSWORD_ALT))
-
-    for email, password in credential_sets:
-        print(f"[Auth] Trying login: {email}")
-        token, expires_at_ms = _try_login_playwright(email, password)
+        print(f"[Auth] Logging in as {OPENGOV_EMAIL}")
+        token, expires_at_ms = _try_login_playwright(OPENGOV_EMAIL, OPENGOV_PASSWORD)
         if token:
             save_token(token, expires_at_ms)
             print("[Auth] Authentication successful!")
             return token
-        print(f"[Auth] Failed for {email}")
+        print(f"[Auth] Login failed for {OPENGOV_EMAIL}")
 
     raise RuntimeError(
         "[Auth] Failed to obtain access token.\n\n"
         "  To fix:\n"
-        "  1. Get a fresh token from the browser:\n"
-        "     - Open https://stpetersburgfl.portal.opengov.com\n"
-        "     - Log in with your OpenGov citizen account\n"
-        "     - Open DevTools (F12) > Network tab\n"
-        "     - Find any request to api-east.viewpointcloud.com\n"
-        "     - Copy the 'Authorization' header value (without 'Bearer ')\n"
-        "     - Run: python3 scrape_opengov.py --token <paste_token_here>\n\n"
-        "  2. Or reset password for willwalterburns@gmail.com at:\n"
-        "     https://accounts.viewpointcloud.com (check Gmail for reset email)\n\n"
-        "  3. Or set env vars:\n"
-        "     OPENGOV_EMAIL=your@email OPENGOV_PASSWORD=yourpass python3 scrape_opengov.py\n"
-        "  4. Or set OPENGOV_TOKEN=<bearer_token> in env"
+        "  1. Provide a token directly:\n"
+        "     python3 scrape_opengov.py --token <bearer_token>\n\n"
+        "  2. Or set env vars:\n"
+        "     OPENGOV_EMAIL=your@email OPENGOV_PASSWORD=yourpass python3 scrape_opengov.py\n\n"
+        "  3. Or set OPENGOV_TOKEN=<bearer_token> in env"
     )
 
 
 def _parse_token_from_url(url):
     """Parse access_token and expires_in from URL fragment (#access_token=...&expires_in=...)."""
     try:
-        from urllib.parse import urlparse, parse_qs
         fragment = urlparse(url).fragment
         if not fragment:
             return None
@@ -650,40 +570,77 @@ def _parse_token_from_url(url):
     return None
 
 
-# ── API ──────────────────────────────────────────────────────────────────────
+# ── GraphQL API ─────────────────────────────────────────────────────────────
 
-def fetch_records_page(community, token, since_date, page_num):
+# GraphQL query to fetch permit records with all available fields
+RECORDS_QUERY = """
+query GetRecords($where: RecordsWhereInput!, $page: PageInput!, $sort: RecordSort) {
+    getRecords(where: $where, page: $page, sort: $sort) {
+        ... on RecordPaginated {
+            records {
+                recordID
+                recordNo
+                fullAddress
+                recordTypeID
+                recordType {
+                    categoryID
+                    category { name }
+                }
+                status
+                isEnabled
+                dateCreated
+                lastUpdatedDate
+                description
+                city
+                state
+                postalCode
+                streetNo
+                streetName
+                ownerName
+                latitude
+                longitude
+                applicantFullName
+                applicantFirstName
+                applicantLastName
+            }
+            page { total page size }
+        }
+    }
+}
+"""
+
+
+def fetch_records_page(community, token, page_num):
     """
-    Fetch one page of records from the ViewPointCloud REST API.
+    Fetch one page of records via the GraphQL API.
     Returns (records_list, total_count).
     """
-    url = f"{API_BASE}/{community}/records"
-    params = {
-        "filter[updatedAt][gte]": since_date.isoformat() + "T00:00:00.000Z",
-        "page[number]": page_num,
-        "page[size]": PAGE_SIZE,
-        "sort": "-updatedAt"
-    }
-
     headers = {
         "Authorization": f"Bearer {token}",
         "Accept": "application/json",
         "Content-Type": "application/json",
-        "Origin": f"https://{community}.portal.opengov.com",
-        "Referer": f"https://{community}.portal.opengov.com/"
+        "community": community,
+    }
+
+    variables = {
+        "where": {"isEnabled": True},
+        "page": {"page": page_num, "size": PAGE_SIZE},
+        "sort": {"field": "lastUpdatedDate", "direction": "DESC"},
     }
 
     try:
-        resp = requests.get(url, params=params, headers=headers, timeout=30)
+        resp = requests.post(
+            GRAPHQL_ENDPOINT,
+            headers=headers,
+            json={"query": RECORDS_QUERY, "variables": variables},
+            timeout=30,
+        )
 
         if resp.status_code == 401:
-            print(f"  [API] 401 Unauthorized for {community} — token may be invalid")
+            print(f"  [API] 401 Unauthorized for {community} -- token may be invalid")
             return [], 0
-        if resp.status_code == 404:
-            print(f"  [API] 404 for {community} — portal may not exist or be inactive")
-            return [], -1  # -1 signals skip
         if resp.status_code == 429:
-            print(f"  [API] Rate limited on {community} — waiting 10s")
+            print(f"  [API] Rate limited on {community} -- waiting 10s")
             time.sleep(10)
             return [], 0
         if not resp.ok:
@@ -691,8 +648,17 @@ def fetch_records_page(community, token, since_date, page_num):
             return [], 0
 
         data = resp.json()
-        records = data.get("data", [])
-        total = data.get("meta", {}).get("total", 0)
+
+        # Check for GraphQL errors
+        if data.get("errors"):
+            msg = data["errors"][0].get("message", "")
+            print(f"  [API] GraphQL error for {community}: {msg[:150]}")
+            return [], -1  # -1 signals skip
+
+        # Extract records from the response
+        get_records = (data.get("data") or {}).get("getRecords") or {}
+        records = get_records.get("records") or []
+        total = (get_records.get("page") or {}).get("total", 0)
         return records, total
 
     except requests.exceptions.Timeout:
@@ -703,64 +669,110 @@ def fetch_records_page(community, token, since_date, page_num):
         return [], 0
 
 
-def scrape_portal(jurisdiction, token, since_date):
+def scrape_portal(jurisdiction, token, since_date=None):
     """
-    Scrape all records from one portal since the given date.
+    Scrape records from one portal, sorted by lastUpdatedDate DESC.
+    Stops paginating once records are older than since_date.
     Returns list of transformed records.
     """
     community = jurisdiction["id"]
     name = jurisdiction["name"]
     state = jurisdiction["state"]
-    county = jurisdiction.get("county", "")
 
     print(f"\n  Portal: {name}, {state} ({community})")
-    print(f"  Fetching records since {since_date}...")
 
     all_records = []
     page_num = 1
     total = None
+    stop_early = False
 
     while True:
-        raw_records, count = fetch_records_page(community, token, since_date, page_num)
+        raw_records, count = fetch_records_page(community, token, page_num)
 
         if count == -1:
-            # Portal not found — skip
+            # Portal error -- skip
             break
 
         if total is None and count:
             total = count
-            pages_needed = (total + PAGE_SIZE - 1) // PAGE_SIZE
-            print(f"  Total records: {total} (~{pages_needed} pages)")
+            print(f"  Total records in portal: {total:,}")
 
         if not raw_records:
-            if page_num == 1:
-                print(f"  No records returned (may require different auth scope)")
+            if page_num == 1 and total and total > 0:
+                print(f"  Total={total:,} but 0 records returned (may need higher access)")
+            elif page_num == 1:
+                print(f"  No records returned")
             break
 
-        print(f"  Page {page_num}: {len(raw_records)} records")
-
+        # Transform and filter by since_date
+        page_kept = 0
+        oldest_on_page = None
         for raw in raw_records:
+            # Track the oldest record on this page (for early stop)
+            updated_at = raw.get("lastUpdatedDate") or raw.get("dateCreated") or ""
+            if updated_at:
+                try:
+                    record_date = datetime.fromisoformat(updated_at.replace("Z", "+00:00")).date()
+                    if oldest_on_page is None or record_date < oldest_on_page:
+                        oldest_on_page = record_date
+                except Exception:
+                    pass
+
             record = transform_record(raw, jurisdiction)
             if record:
+                # Apply date filter: skip records older than since_date
+                if since_date:
+                    record_updated = None
+                    updated_str = raw.get("lastUpdatedDate") or raw.get("dateCreated") or ""
+                    if updated_str:
+                        try:
+                            record_updated = datetime.fromisoformat(updated_str.replace("Z", "+00:00")).date()
+                        except Exception:
+                            pass
+                    if record_updated and record_updated < since_date:
+                        continue
                 all_records.append(record)
+                page_kept += 1
+
+        print(f"  Page {page_num}: {len(raw_records)} fetched, {page_kept} kept ({len(all_records)} total)")
+
+        # Early stop: if results are sorted by date DESC and the oldest record
+        # on this page is before our cutoff, no point paginating further
+        if since_date and oldest_on_page and oldest_on_page < since_date:
+            print(f"  Reached records from {oldest_on_page} (before {since_date}) -- stopping")
+            break
 
         # Check if there are more pages
-        if len(raw_records) < PAGE_SIZE:
+        # Note: API may return fewer records than page size (nulls/filtered),
+        # so use total count, not len(raw_records)
+        if total and page_num * PAGE_SIZE >= total:
+            break
+        if not raw_records:
             break
 
         page_num += 1
         time.sleep(RATE_PAGE)
 
-    print(f"  Done: {len(all_records)} records from {name}")
+    print(f"  Done: {len(all_records):,} records from {name}")
     return all_records
 
 
-def transform_record(raw, jurisdiction):
-    """Transform a ViewPointCloud API record to hot_leads schema."""
-    attrs = raw.get("attributes", {}) if isinstance(raw.get("attributes"), dict) else {}
+# Status code mapping for OpenGov records
+STATUS_MAP = {
+    0: "Draft",
+    1: "Submitted",
+    2: "In Review",
+    3: "Approved",
+    4: "Denied",
+    5: "Expired",
+    -1: "Cancelled",
+}
 
+
+def transform_record(raw, jurisdiction):
+    """Transform a GraphQL record to hot_leads schema."""
     # Parse issue_date
-    created_at = attrs.get("createdAt") or attrs.get("dateCreated") or ""
+    created_at = raw.get("dateCreated") or ""
     issue_date = None
     if created_at:
         try:
@@ -769,58 +781,36 @@ def transform_record(raw, jurisdiction):
             pass
 
     # Parse address
-    address = (
-        attrs.get("address") or
-        attrs.get("projectAddress") or
-        attrs.get("workAddress") or
-        ""
-    ).strip()
-
-    city = (
-        attrs.get("city") or
-        attrs.get("projectCity") or
-        jurisdiction["name"]
-    ).strip()
-
-    state = attrs.get("state") or jurisdiction["state"]
-    if len(state) > 2:
+    address = (raw.get("fullAddress") or "").strip()
+    city = (raw.get("city") or jurisdiction["name"]).strip()
+    state = raw.get("state") or jurisdiction["state"]
+    if state and len(state) > 2:
         state = jurisdiction["state"]
 
-    permit_number = (
-        attrs.get("recordNumber") or
-        attrs.get("projectNumber") or
-        raw.get("id") or
-        ""
-    )
+    permit_number = raw.get("recordNo") or str(raw.get("recordID", ""))
 
-    permit_type = (
-        attrs.get("recordType") or
-        attrs.get("workType") or
-        attrs.get("type") or
-        ""
-    )
+    # Get permit type from nested recordType
+    record_type = raw.get("recordType") or {}
+    category = record_type.get("category") or {}
+    permit_type = category.get("name") or ""
 
-    status = (
-        attrs.get("status") or
-        attrs.get("projectStatus") or
-        ""
-    )
+    # Map numeric status to string
+    raw_status = raw.get("status")
+    if isinstance(raw_status, int):
+        status = STATUS_MAP.get(raw_status, f"Status_{raw_status}")
+    else:
+        status = str(raw_status or "")
 
-    description = (
-        attrs.get("description") or
-        attrs.get("projectDescription") or
-        attrs.get("workDescription") or
+    description = (raw.get("description") or "").strip()
+    applicant_name = (
+        raw.get("applicantFullName") or
+        " ".join(filter(None, [raw.get("applicantFirstName"), raw.get("applicantLastName")])) or
         ""
-    )
-
-    applicant_name = attrs.get("applicantName") or ""
-    owner_name = attrs.get("ownerName") or ""
-    contractor_name = attrs.get("contractorName") or ""
-    contractor_company = attrs.get("contractorCompany") or attrs.get("contractorBusinessName") or ""
-    zip_code = attrs.get("zipCode") or attrs.get("zip") or ""
-    lat = attrs.get("latitude") or attrs.get("projectLat")
-    lng = attrs.get("longitude") or attrs.get("projectLng")
-    valuation = attrs.get("valuation") or attrs.get("projectValue")
+    ).strip()
+    owner_name = (raw.get("ownerName") or "").strip()
+    zip_code = (raw.get("postalCode") or "").strip()
+    lat = raw.get("latitude")
+    lng = raw.get("longitude")
 
     # Only include records with at least a permit number or address
     if not permit_number and not address:
@@ -839,11 +829,11 @@ def transform_record(raw, jurisdiction):
         "lng": float(lng) if lng else None,
         "issue_date": issue_date,
         "status": status[:100] if status else None,
-        "valuation": float(valuation) if valuation else None,
+        "valuation": None,  # Not available in GraphQL response
         "applicant_name": applicant_name[:200] if applicant_name else None,
         "owner_name": owner_name[:200] if owner_name else None,
-        "contractor_name": contractor_name[:200] if contractor_name else None,
-        "contractor_company": contractor_company[:200] if contractor_company else None,
+        "contractor_name": None,  # Not directly available
+        "contractor_company": None,  # Not directly available
         "jurisdiction": f"{jurisdiction['name']}, {jurisdiction['state']}",
         "source": f"opengov_{jurisdiction['id']}",
     }
@@ -991,13 +981,13 @@ def main():
         sys.exit(1)
 
     # Test the token on one portal before the full run
-    print("\n[Pre-flight] Testing token on stpetersburgfl...")
-    test_records, test_count = fetch_records_page("stpetersburgfl", token, since_date, 1)
+    print("\n[Pre-flight] Testing token on sandyspringsga (GraphQL)...")
+    test_records, test_count = fetch_records_page("sandyspringsga", token, 1)
     if test_count == 0 and not test_records:
-        print("[Pre-flight] WARNING: Got 0 records from test portal — auth may have failed")
-        print("[Pre-flight] Continuing anyway (portal may just have no recent records)...")
+        print("[Pre-flight] WARNING: Got 0 records from test portal -- auth may have failed")
+        print("[Pre-flight] Continuing anyway...")
     else:
-        print(f"[Pre-flight] OK — got {len(test_records)} records (total: {test_count})")
+        print(f"[Pre-flight] OK -- got {len(test_records)} records (total: {test_count:,})")
 
     # Scrape each portal
     grand_total_scraped = 0
