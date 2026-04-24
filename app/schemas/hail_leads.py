@@ -105,6 +105,8 @@ class HailLeadOwner(BaseModel):
     phones: list[HailLeadPhone] = Field(default_factory=list)
     emails: list[str] = Field(default_factory=list)
     mailing_address: str | None = None
+    age: int | None = None
+    deceased: bool | None = None
 
 
 class HailLeadDetail(BaseModel):

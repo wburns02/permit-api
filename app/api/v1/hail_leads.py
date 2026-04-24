@@ -266,7 +266,7 @@ def _list_select_sql(order_by: str) -> str:
                 hl.hail_lead_score                                    AS score,
                 COALESCE(aph.prior_roof_permits, 0)                    AS prior_roof_permits,
                 aph.last_roof_permit_date                             AS last_roof_permit_date,
-                (hle.lead_id IS NOT NULL)                             AS owner_enriched
+                (hle.address_norm IS NOT NULL)                        AS owner_enriched
             FROM hail_leads hl
             LEFT JOIN hail_leads_categorized hc
                    USING (lead_id, storm_event_id)
@@ -469,8 +469,23 @@ async def hail_leads_export_csv(
                 COALESCE(aph.prior_roof_permits, 0)                    AS prior_roof_permits,
                 tyb.year_built                                        AS year_built,
                 hle.owner_name                                        AS owner_name,
-                hle.phones                                            AS phones,
-                hle.emails                                            AS emails
+                COALESCE(
+                  (CASE WHEN hle.phone_1 IS NOT NULL THEN jsonb_build_array(
+                    jsonb_build_object('number', hle.phone_1, 'type', hle.phone_1_type, 'score', hle.phone_1_score, 'dnc', hle.phone_1_dnc)
+                  ) ELSE '[]'::jsonb END)
+                  || (CASE WHEN hle.phone_2 IS NOT NULL THEN jsonb_build_array(
+                    jsonb_build_object('number', hle.phone_2, 'dnc', hle.phone_2_dnc)
+                  ) ELSE '[]'::jsonb END)
+                  || (CASE WHEN hle.phone_3 IS NOT NULL THEN jsonb_build_array(
+                    jsonb_build_object('number', hle.phone_3, 'dnc', hle.phone_3_dnc)
+                  ) ELSE '[]'::jsonb END),
+                  '[]'::jsonb
+                )                                                      AS phones,
+                COALESCE(
+                  (CASE WHEN hle.email_1 IS NOT NULL THEN jsonb_build_array(hle.email_1) ELSE '[]'::jsonb END)
+                  || (CASE WHEN hle.email_2 IS NOT NULL THEN jsonb_build_array(hle.email_2) ELSE '[]'::jsonb END),
+                  '[]'::jsonb
+                )                                                      AS emails
             FROM hail_leads hl
             LEFT JOIN hail_leads_categorized hc
                    USING (lead_id, storm_event_id)
@@ -858,10 +873,23 @@ async def hail_lead_detail(
             tyb.living_area_sqft                                      AS living_area_sqft,
             tyb.appraised_value                                       AS appraised_value,
             hle.owner_name                                            AS owner_name,
-            hle.phones                                                AS owner_phones,
-            hle.emails                                                AS owner_emails,
-            hle.mailing_address                                       AS owner_mailing_address,
-            (hle.lead_id IS NOT NULL OR hle.address_norm IS NOT NULL) AS owner_enriched
+            hle.phone_1                                               AS phone_1,
+            hle.phone_1_type                                          AS phone_1_type,
+            hle.phone_1_score                                         AS phone_1_score,
+            hle.phone_1_dnc                                           AS phone_1_dnc,
+            hle.phone_2                                               AS phone_2,
+            hle.phone_2_dnc                                           AS phone_2_dnc,
+            hle.phone_3                                               AS phone_3,
+            hle.phone_3_dnc                                           AS phone_3_dnc,
+            hle.email_1                                               AS email_1,
+            hle.email_2                                               AS email_2,
+            hle.mailing_street                                        AS mailing_street,
+            hle.mailing_city                                          AS mailing_city,
+            hle.mailing_state                                         AS mailing_state,
+            hle.mailing_zip                                           AS mailing_zip,
+            hle.age                                                   AS age,
+            hle.deceased                                              AS deceased,
+            (hle.address_norm IS NOT NULL)                            AS owner_enriched
         FROM hail_leads hl
         LEFT JOIN hail_leads_categorized hc USING (lead_id, storm_event_id)
         LEFT JOIN address_permit_history aph
@@ -926,35 +954,47 @@ async def hail_lead_detail(
 
     owner: HailLeadOwner | None
     if row["owner_enriched"]:
-        phones_raw = row["owner_phones"] or []
         phones: list[HailLeadPhone] = []
-        for p in phones_raw:
-            if not isinstance(p, dict):
-                continue
-            num = p.get("number")
-            if not num:
-                continue
+        if row["phone_1"]:
             phones.append(HailLeadPhone(
-                number=str(num),
-                type=p.get("type"),
-                dnc=p.get("dnc"),
-                score=p.get("score"),
+                number=str(row["phone_1"]),
+                type=row["phone_1_type"],
+                dnc=row["phone_1_dnc"],
+                score=(
+                    int(row["phone_1_score"])
+                    if row["phone_1_score"] is not None else None
+                ),
             ))
-        emails_raw = row["owner_emails"] or []
+        if row["phone_2"]:
+            phones.append(HailLeadPhone(
+                number=str(row["phone_2"]),
+                dnc=row["phone_2_dnc"],
+            ))
+        if row["phone_3"]:
+            phones.append(HailLeadPhone(
+                number=str(row["phone_3"]),
+                dnc=row["phone_3_dnc"],
+            ))
         emails: list[str] = []
-        for e in emails_raw:
-            if isinstance(e, dict):
-                v = e.get("email")
-                if v:
-                    emails.append(str(v))
-            elif e:
-                emails.append(str(e))
+        if row["email_1"]:
+            emails.append(str(row["email_1"]))
+        if row["email_2"]:
+            emails.append(str(row["email_2"]))
+
+        mailing_parts = [
+            row["mailing_street"], row["mailing_city"],
+            row["mailing_state"], row["mailing_zip"],
+        ]
+        mailing_address = ", ".join([p for p in mailing_parts if p]) or None
+
         owner = HailLeadOwner(
             enriched=True,
             owner_name=row["owner_name"],
             phones=phones,
             emails=emails,
-            mailing_address=row["owner_mailing_address"],
+            mailing_address=mailing_address,
+            age=int(row["age"]) if row["age"] is not None else None,
+            deceased=bool(row["deceased"]) if row["deceased"] is not None else None,
         )
     else:
         owner = None
