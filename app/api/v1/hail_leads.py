@@ -33,7 +33,12 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
-from app.database import get_db, get_read_db
+from app.database import (
+    get_db,
+    get_read_db,
+    primary_session_maker,
+    replica_session_maker,
+)
 from app.schemas.hail_leads import (
     HailLeadAddressHistory,
     HailLeadDetail,
@@ -324,15 +329,30 @@ async def hail_leads_list(
         f"WHERE {where_sql}) _q"
     )
 
-    # Cap count lookup so page requests remain snappy on huge filter sets.
-    await db.execute(text("SET LOCAL statement_timeout = '20s'"))
-
+    # Run the count in a SEPARATE session so a statement_timeout abort here
+    # does not poison the main (list) transaction. In Postgres a
+    # QueryCanceledError taints the whole transaction, and subsequent queries
+    # fail with InFailedSQLTransactionError until ROLLBACK.
+    # If count fails/times out we return total=-1; existing frontend handles it.
+    total = -1
     try:
-        total_row = await db.execute(text(count_sql), params)
-        total = int(total_row.scalar() or 0)
+        async with replica_session_maker() as count_session:
+            try:
+                await count_session.execute(
+                    text("SET LOCAL statement_timeout = '30s'")
+                )
+                total_row = await count_session.execute(text(count_sql), params)
+                total = int(total_row.scalar() or 0)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "hail-leads count failed, returning -1: %s", exc
+                )
+                await count_session.rollback()
+                total = -1
     except Exception as exc:  # noqa: BLE001
-        logger.warning("hail-leads count failed, returning -1: %s", exc)
-        total = -1  # signal "unknown"
+        # Session-open failure — e.g., replica unreachable. Don't block list.
+        logger.warning("hail-leads count session open failed: %s", exc)
+        total = -1
 
     offset = (page - 1) * page_size
     page_params = {**params, "_limit": page_size, "_offset": offset}
@@ -858,8 +878,17 @@ async def hail_lead_detail(
         LIMIT 1
     """)
 
-    result = await db.execute(q, {"lead_id": lead_id})
-    row = result.mappings().first()
+    try:
+        result = await db.execute(q, {"lead_id": lead_id})
+        row = result.mappings().first()
+    except Exception as exc:  # noqa: BLE001
+        # Malformed lead_id (e.g., not a UUID) or driver-level error on the
+        # parameter cast — treat as not-found rather than 500.
+        logger.info("hail lead detail lookup failed for %r: %s", lead_id, exc)
+        await db.rollback()
+        raise HTTPException(
+            status_code=404, detail=f"Lead not found: {lead_id}"
+        ) from exc
     if not row:
         raise HTTPException(status_code=404, detail=f"Lead not found: {lead_id}")
 
