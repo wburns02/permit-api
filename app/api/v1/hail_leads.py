@@ -264,7 +264,7 @@ def _list_select_sql(order_by: str) -> str:
                 hl.description                                        AS permit_description,
                 hl.contractor_company                                 AS competitor_contractor,
                 hl.hail_lead_score                                    AS score,
-                COALESCE(aph.roof_permit_count, 0)                    AS prior_roof_permits,
+                COALESCE(aph.prior_roof_permits, 0)                    AS prior_roof_permits,
                 aph.last_roof_permit_date                             AS last_roof_permit_date,
                 (hle.lead_id IS NOT NULL)                             AS owner_enriched
             FROM hail_leads hl
@@ -466,7 +466,7 @@ async def hail_leads_export_csv(
                 hl.description                                        AS description,
                 hl.contractor_company                                 AS contractor,
                 hl.hail_lead_score                                    AS score,
-                COALESCE(aph.roof_permit_count, 0)                    AS prior_roof_permits,
+                COALESCE(aph.prior_roof_permits, 0)                    AS prior_roof_permits,
                 tyb.year_built                                        AS year_built,
                 hle.owner_name                                        AS owner_name,
                 hle.phones                                            AS phones,
@@ -849,7 +849,7 @@ async def hail_lead_detail(
             hc.lead_category                                          AS lead_category,
             aph.address_norm                                          AS address_norm,
             aph.permit_count                                          AS total_permits,
-            aph.roof_permit_count                                     AS prior_roof_permits,
+            aph.prior_roof_permits                                     AS prior_roof_permits,
             aph.earliest_permit_date                                  AS earliest_permit_date,
             aph.latest_permit_date                                    AS latest_permit_date,
             aph.last_roof_permit_date                                 AS last_roof_permit_date,
