@@ -104,6 +104,11 @@ class Settings(BaseSettings):
     # Sentry
     SENTRY_DSN: str | None = None
 
+    # Hail Leads (demo auth + BatchData skip-trace)
+    DEMO_API_KEY: str = ""          # X-API-Key header for /v1/hail-leads/*
+    DEMO_ADMIN_KEY: str = ""        # X-Admin-Key header for POST /v1/hail-leads/enrich
+    BATCHDATA_API_KEY: str | None = None  # Bearer token for api.batchdata.com
+
     @model_validator(mode="after")
     def validate_production(self) -> "Settings":
         if self.ENVIRONMENT.lower() in ("production", "prod"):

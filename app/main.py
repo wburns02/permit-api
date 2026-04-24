@@ -64,6 +64,7 @@ from app.api.v1.dialer_ws import router as dialer_ws_router
 from app.api.v1.freshness import router as freshness_router
 from app.api.v1.hman_auth import router as hman_auth_router
 from app.api.v1.pricing import router as pricing_router
+from app.api.v1.hail_leads import router as hail_leads_router
 
 logger = logging.getLogger(__name__)
 
@@ -219,6 +220,7 @@ app.include_router(dialer_ws_router)  # WebSocket routes at root (no /v1 prefix)
 app.include_router(freshness_router, prefix="/v1")
 app.include_router(hman_auth_router, prefix="/v1")
 app.include_router(pricing_router, prefix="/v1")
+app.include_router(hail_leads_router, prefix="/v1")
 
 
 @app.get("/health")
