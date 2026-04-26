@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime
 from typing import Literal
 from pydantic import BaseModel, Field
 
@@ -141,3 +141,62 @@ class HailLeadsEnrichResponse(BaseModel):
     skipped: int
     failed: int
     errors: list[str] = Field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Health (system observability)
+# ---------------------------------------------------------------------------
+
+CronStatus = Literal["ok", "stale", "missing"]
+
+
+class MaterializedViewFreshness(BaseModel):
+    """Freshness of a materialized view (row count + data age + last analyze)."""
+    name: str
+    row_count: int
+    last_data_at: datetime | None
+    hours_since_data: float | None
+    last_analyzed_at: datetime | None
+    hours_since_analyze: float | None
+
+
+class StormSourceFreshness(BaseModel):
+    """Freshness of an upstream storm-data source table."""
+    source: str
+    latest_report_date: date | None
+    days_since: int | None
+    rows_last_7d: int
+    rows_last_30d: int
+
+
+class FreshLeadsCounts(BaseModel):
+    """Hail-leads counts by recency window."""
+    this_week: int
+    last_week: int
+    last_30d: int
+
+
+class CoverageStat(BaseModel):
+    """Coverage of an enrichment cache vs total addresses."""
+    name: str
+    enriched_rows: int
+    total_addresses: int
+    percent_covered: float
+
+
+class CronHeartbeat(BaseModel):
+    """Last-seen heartbeat for a recurring backend job."""
+    name: str
+    last_seen_at: datetime | None
+    hours_since: float | None
+    status: CronStatus
+
+
+class HailLeadsHealth(BaseModel):
+    """Overall health snapshot for the hail-leads pipeline."""
+    generated_at: datetime
+    materialized_views: list[MaterializedViewFreshness]
+    storm_sources: list[StormSourceFreshness]
+    fresh_leads: FreshLeadsCounts
+    coverage: list[CoverageStat]
+    crons: list[CronHeartbeat]

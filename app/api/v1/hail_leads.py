@@ -23,7 +23,7 @@ from __future__ import annotations
 import csv
 import io
 import logging
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 import httpx
@@ -40,6 +40,9 @@ from app.database import (
     replica_session_maker,
 )
 from app.schemas.hail_leads import (
+    CoverageStat,
+    CronHeartbeat,
+    FreshLeadsCounts,
     HailLeadAddressHistory,
     HailLeadDetail,
     HailLeadListItem,
@@ -50,9 +53,12 @@ from app.schemas.hail_leads import (
     HailLeadStorm,
     HailLeadsEnrichRequest,
     HailLeadsEnrichResponse,
+    HailLeadsHealth,
     HailLeadsStats,
     LeadCategory,
+    MaterializedViewFreshness,
     SortKey,
+    StormSourceFreshness,
 )
 
 logger = logging.getLogger(__name__)
@@ -233,6 +239,459 @@ async def hail_leads_stats(
         latest_storm_date=latest_storm_date,
         fresh_leads_this_week=fresh_leads_this_week,
         hail_events_last_year=hail_events_last_year,
+    )
+
+
+# ---------------------------------------------------------------------------
+# 1.5) GET /health  (system observability)
+# Static route — placed BEFORE /{lead_id}.
+# ---------------------------------------------------------------------------
+
+# Cron-status thresholds (hours).
+_CRON_OK_HOURS = 26.0
+_CRON_STALE_HOURS = 50.0
+
+
+async def _safe_scalar(
+    sql: str,
+    params: dict[str, Any] | None = None,
+    *,
+    label: str = "",
+    default: Any = None,
+) -> Any:
+    """Run a single-scalar query in its own session with a 10s timeout.
+
+    Each subquery gets its own session so a statement_timeout abort or a
+    missing-table error does not poison the parent transaction (mirrors the
+    pattern used by hail_leads_list for its count subquery).
+    """
+    try:
+        async with replica_session_maker() as session:
+            try:
+                await session.execute(text("SET LOCAL statement_timeout = '10s'"))
+                row = await session.execute(text(sql), params or {})
+                return row.scalar()
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "hail-leads health subquery failed (%s): %s", label, exc
+                )
+                await session.rollback()
+                return default
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "hail-leads health session open failed (%s): %s", label, exc
+        )
+        return default
+
+
+def _hours_between(now: datetime, then: datetime | None) -> float | None:
+    """Hours between `then` and `now`, or None if `then` is None."""
+    if then is None:
+        return None
+    if then.tzinfo is None:
+        then = then.replace(tzinfo=timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    return round((now - then).total_seconds() / 3600.0, 2)
+
+
+def _to_datetime(v: Any) -> datetime | None:
+    """Best-effort coerce a DB scalar to a UTC datetime."""
+    if v is None:
+        return None
+    if isinstance(v, datetime):
+        return v
+    if isinstance(v, date):
+        return datetime(v.year, v.month, v.day, tzinfo=timezone.utc)
+    return None
+
+
+def _to_date(v: Any) -> date | None:
+    """Best-effort coerce a DB scalar to a date."""
+    if v is None:
+        return None
+    if isinstance(v, datetime):
+        return v.date()
+    if isinstance(v, date):
+        return v
+    return None
+
+
+def _cron_status(hours_since: float | None) -> str:
+    """Map hours-since-last-seen to status enum."""
+    if hours_since is None:
+        return "missing"
+    if hours_since < _CRON_OK_HOURS:
+        return "ok"
+    if hours_since < _CRON_STALE_HOURS:
+        return "stale"
+    return "missing"
+
+
+async def _mv_freshness(
+    name: str, *, data_col: str
+) -> MaterializedViewFreshness:
+    """Build the freshness record for a materialized view."""
+    row_count_raw = await _safe_scalar(
+        "SELECT GREATEST(reltuples, 0)::bigint FROM pg_class WHERE relname = :n",
+        {"n": name},
+        label=f"{name}.row_count",
+        default=0,
+    )
+    row_count = int(row_count_raw or 0)
+
+    last_data_raw = await _safe_scalar(
+        f"SELECT MAX({data_col}) FROM {name}",
+        label=f"{name}.last_data",
+    )
+    last_data_at = _to_datetime(last_data_raw)
+
+    last_analyze_raw = await _safe_scalar(
+        "SELECT GREATEST(last_analyze, last_vacuum) "
+        "FROM pg_stat_user_tables WHERE relname = :n",
+        {"n": name},
+        label=f"{name}.last_analyze",
+    )
+    last_analyzed_at = _to_datetime(last_analyze_raw)
+
+    now = datetime.now(timezone.utc)
+    return MaterializedViewFreshness(
+        name=name,
+        row_count=row_count,
+        last_data_at=last_data_at,
+        hours_since_data=_hours_between(now, last_data_at),
+        last_analyzed_at=last_analyzed_at,
+        hours_since_analyze=_hours_between(now, last_analyzed_at),
+    )
+
+
+async def _detect_date_column(table: str, candidates: list[str]) -> str | None:
+    """Return the first candidate column that exists on `table`."""
+    for col in candidates:
+        exists = await _safe_scalar(
+            "SELECT 1 FROM information_schema.columns "
+            "WHERE table_name = :t AND column_name = :c LIMIT 1",
+            {"t": table, "c": col},
+            label=f"detect.{table}.{col}",
+        )
+        if exists:
+            return col
+    return None
+
+
+async def _table_exists(table: str) -> bool:
+    """Return True iff `table` exists in the current database."""
+    exists = await _safe_scalar(
+        "SELECT 1 FROM information_schema.tables "
+        "WHERE table_name = :t LIMIT 1",
+        {"t": table},
+        label=f"exists.{table}",
+    )
+    return bool(exists)
+
+
+async def _storm_source_freshness(
+    *, source: str, candidates: list[str]
+) -> StormSourceFreshness:
+    """Build a StormSourceFreshness record by detecting the date column."""
+    if not await _table_exists(source):
+        return StormSourceFreshness(
+            source=source,
+            latest_report_date=None,
+            days_since=None,
+            rows_last_7d=0,
+            rows_last_30d=0,
+        )
+
+    date_col = await _detect_date_column(source, candidates)
+    if not date_col:
+        return StormSourceFreshness(
+            source=source,
+            latest_report_date=None,
+            days_since=None,
+            rows_last_7d=0,
+            rows_last_30d=0,
+        )
+
+    latest_raw = await _safe_scalar(
+        f"SELECT MAX({date_col})::date FROM {source}",
+        label=f"{source}.latest",
+    )
+    latest = _to_date(latest_raw)
+    days_since = (date.today() - latest).days if latest else None
+
+    rows_7d_raw = await _safe_scalar(
+        f"SELECT COUNT(*) FROM {source} "
+        f"WHERE {date_col} >= CURRENT_DATE - INTERVAL '7 days'",
+        label=f"{source}.rows_7d",
+        default=0,
+    )
+    rows_30d_raw = await _safe_scalar(
+        f"SELECT COUNT(*) FROM {source} "
+        f"WHERE {date_col} >= CURRENT_DATE - INTERVAL '30 days'",
+        label=f"{source}.rows_30d",
+        default=0,
+    )
+
+    return StormSourceFreshness(
+        source=source,
+        latest_report_date=latest,
+        days_since=days_since,
+        rows_last_7d=int(rows_7d_raw or 0),
+        rows_last_30d=int(rows_30d_raw or 0),
+    )
+
+
+async def _fresh_leads_counts() -> FreshLeadsCounts:
+    """Hail-leads counts for several recency windows."""
+    this_week = await _safe_scalar(
+        "SELECT COUNT(*) FROM hail_leads "
+        "WHERE storm_date >= CURRENT_DATE - INTERVAL '7 days'",
+        label="fresh.this_week",
+        default=0,
+    )
+    last_week = await _safe_scalar(
+        "SELECT COUNT(*) FROM hail_leads "
+        "WHERE storm_date >= CURRENT_DATE - INTERVAL '14 days' "
+        "AND storm_date <  CURRENT_DATE - INTERVAL '7 days'",
+        label="fresh.last_week",
+        default=0,
+    )
+    last_30d = await _safe_scalar(
+        "SELECT COUNT(*) FROM hail_leads "
+        "WHERE storm_date >= CURRENT_DATE - INTERVAL '30 days'",
+        label="fresh.last_30d",
+        default=0,
+    )
+    return FreshLeadsCounts(
+        this_week=int(this_week or 0),
+        last_week=int(last_week or 0),
+        last_30d=int(last_30d or 0),
+    )
+
+
+async def _coverage_stats() -> list[CoverageStat]:
+    """Build TCAD + enrichment coverage rows.
+
+    Denominator is reltuples on address_permit_history (fast approximation).
+    """
+    denom_raw = await _safe_scalar(
+        "SELECT GREATEST(reltuples, 0)::bigint FROM pg_class "
+        "WHERE relname = 'address_permit_history'",
+        label="coverage.denom",
+        default=0,
+    )
+    denom = int(denom_raw or 0)
+
+    out: list[CoverageStat] = []
+
+    for name in ("tcad_year_built", "hail_leads_enriched"):
+        if not await _table_exists(name):
+            out.append(CoverageStat(
+                name=name,
+                enriched_rows=0,
+                total_addresses=denom,
+                percent_covered=0.0,
+            ))
+            continue
+
+        rows_raw = await _safe_scalar(
+            f"SELECT COUNT(*) FROM {name}",
+            label=f"coverage.{name}",
+            default=0,
+        )
+        rows = int(rows_raw or 0)
+        pct = round((rows / denom) * 100.0, 1) if denom > 0 else 0.0
+        out.append(CoverageStat(
+            name=name,
+            enriched_rows=rows,
+            total_addresses=denom,
+            percent_covered=pct,
+        ))
+
+    return out
+
+
+async def _cron_heartbeats() -> list[CronHeartbeat]:
+    """Build cron heartbeat rows.
+
+    First tries a `cron_heartbeat` table; if absent, infers from data:
+        - spc_load                          → MAX(date) on spc_storm_reports
+        - storm_events_load                 → MAX(date) on storm_events
+        - mv_refresh_hail_leads             → pg_stat_user_tables.last_analyze
+        - mv_refresh_address_permit_history → same for address_permit_history
+        - tcad_scrape                       → MAX(scraped_at) on tcad_year_built (best-effort)
+    """
+    now = datetime.now(timezone.utc)
+    out: list[CronHeartbeat] = []
+
+    if await _table_exists("cron_heartbeat"):
+        try:
+            async with replica_session_maker() as session:
+                await session.execute(text("SET LOCAL statement_timeout = '10s'"))
+                rows = (await session.execute(text(
+                    "SELECT name, MAX(beat_at) AS last_seen "
+                    "FROM cron_heartbeat GROUP BY name"
+                ))).mappings().all()
+                for r in rows:
+                    last_seen = _to_datetime(r["last_seen"])
+                    hrs = _hours_between(now, last_seen)
+                    out.append(CronHeartbeat(
+                        name=str(r["name"]),
+                        last_seen_at=last_seen,
+                        hours_since=hrs,
+                        status=_cron_status(hrs),
+                    ))
+                if out:
+                    return out
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("cron_heartbeat read failed: %s", exc)
+
+    # Inferred-from-data fallbacks ----------------------------------------
+
+    # spc_load
+    spc_col = await _detect_date_column(
+        "spc_storm_reports",
+        ["report_date", "event_date", "begin_date", "begin_date_time", "date"],
+    ) if await _table_exists("spc_storm_reports") else None
+    spc_last = None
+    if spc_col:
+        spc_last = _to_datetime(await _safe_scalar(
+            f"SELECT MAX({spc_col}) FROM spc_storm_reports",
+            label="cron.spc_load",
+        ))
+    spc_hrs = _hours_between(now, spc_last)
+    out.append(CronHeartbeat(
+        name="spc_load",
+        last_seen_at=spc_last,
+        hours_since=spc_hrs,
+        status=_cron_status(spc_hrs),
+    ))
+
+    # storm_events_load
+    se_col = await _detect_date_column(
+        "storm_events",
+        ["begin_date_time", "begin_date", "event_date", "report_date", "date"],
+    ) if await _table_exists("storm_events") else None
+    se_last = None
+    if se_col:
+        se_last = _to_datetime(await _safe_scalar(
+            f"SELECT MAX({se_col}) FROM storm_events",
+            label="cron.storm_events_load",
+        ))
+    se_hrs = _hours_between(now, se_last)
+    out.append(CronHeartbeat(
+        name="storm_events_load",
+        last_seen_at=se_last,
+        hours_since=se_hrs,
+        status=_cron_status(se_hrs),
+    ))
+
+    # MV refresh heartbeats — use pg_stat_user_tables.last_analyze.
+    for cron_name, relname in (
+        ("mv_refresh_hail_leads", "hail_leads"),
+        ("mv_refresh_address_permit_history", "address_permit_history"),
+    ):
+        ts_raw = await _safe_scalar(
+            "SELECT GREATEST(last_analyze, last_vacuum) "
+            "FROM pg_stat_user_tables WHERE relname = :n",
+            {"n": relname},
+            label=f"cron.{cron_name}",
+        )
+        ts = _to_datetime(ts_raw)
+        hrs = _hours_between(now, ts)
+        out.append(CronHeartbeat(
+            name=cron_name,
+            last_seen_at=ts,
+            hours_since=hrs,
+            status=_cron_status(hrs),
+        ))
+
+    # tcad_scrape — pick first available timestamp column.
+    tcad_last = None
+    if await _table_exists("tcad_year_built"):
+        tcad_col = await _detect_date_column(
+            "tcad_year_built",
+            ["scraped_at", "updated_at", "created_at", "inserted_at"],
+        )
+        if tcad_col:
+            tcad_last = _to_datetime(await _safe_scalar(
+                f"SELECT MAX({tcad_col}) FROM tcad_year_built",
+                label="cron.tcad_scrape",
+            ))
+    tcad_hrs = _hours_between(now, tcad_last)
+    out.append(CronHeartbeat(
+        name="tcad_scrape",
+        last_seen_at=tcad_last,
+        hours_since=tcad_hrs,
+        status=_cron_status(tcad_hrs),
+    ))
+
+    return out
+
+
+@router.get(
+    "/health",
+    response_model=HailLeadsHealth,
+    dependencies=[Depends(require_demo_key)],
+)
+async def hail_leads_health() -> HailLeadsHealth:
+    """System observability snapshot for the hail-leads pipeline.
+
+    Returns:
+      - materialized_views: row count + data age + last analyze for hail_leads
+        and address_permit_history.
+      - storm_sources: latest report date + recent row counts for the upstream
+        storm-data tables (storm_events, spc_storm_reports).
+      - fresh_leads: lead counts in the last 7d / prior 7d / last 30d.
+      - coverage: enrichment coverage as a percent of address_permit_history.
+      - crons: heartbeats for spc_load / storm_events_load / mv_refresh_* /
+        tcad_scrape (read from cron_heartbeat if present, else inferred).
+
+    Each subquery runs in its own short-timeout session and degrades to
+    null/0 on failure so a single broken table can't 500 the whole endpoint.
+    """
+    mvs = [
+        await _mv_freshness("hail_leads", data_col="storm_date"),
+        await _mv_freshness(
+            "address_permit_history", data_col="latest_permit_date"
+        ),
+    ]
+
+    storm_sources = [
+        await _storm_source_freshness(
+            source="storm_events",
+            candidates=[
+                "begin_date_time",
+                "begin_date",
+                "event_date",
+                "report_date",
+                "date",
+            ],
+        ),
+        await _storm_source_freshness(
+            source="spc_storm_reports",
+            candidates=[
+                "report_date",
+                "event_date",
+                "begin_date",
+                "begin_date_time",
+                "date",
+            ],
+        ),
+    ]
+
+    fresh = await _fresh_leads_counts()
+    coverage = await _coverage_stats()
+    crons = await _cron_heartbeats()
+
+    return HailLeadsHealth(
+        generated_at=datetime.now(timezone.utc),
+        materialized_views=mvs,
+        storm_sources=storm_sources,
+        fresh_leads=fresh,
+        coverage=coverage,
+        crons=crons,
     )
 
 
