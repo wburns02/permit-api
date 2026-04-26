@@ -23,6 +23,7 @@ from __future__ import annotations
 import csv
 import io
 import logging
+from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
@@ -96,6 +97,24 @@ def require_admin_key(request: Request) -> None:
     provided = (request.headers.get("X-Admin-Key") or "").strip()
     if provided != expected:
         raise HTTPException(status_code=401, detail="Invalid or missing X-Admin-Key.")
+
+
+# ---------------------------------------------------------------------------
+# Read session helper — replica-first with primary fallback (health helpers only)
+# ---------------------------------------------------------------------------
+
+@asynccontextmanager
+async def _read_session():
+    """Yield a read session, preferring replica but falling back to primary."""
+    try:
+        async with replica_session_maker() as session:
+            await session.execute(text("SELECT 1"))
+            yield session
+            return
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Health: replica unreachable, using primary: %s", exc)
+    async with primary_session_maker() as session:
+        yield session
 
 
 # ---------------------------------------------------------------------------
@@ -266,7 +285,7 @@ async def _safe_scalar(
     pattern used by hail_leads_list for its count subquery).
     """
     try:
-        async with replica_session_maker() as session:
+        async with _read_session() as session:
             try:
                 await session.execute(text("SET LOCAL statement_timeout = '10s'"))
                 row = await session.execute(text(sql), params or {})
@@ -527,7 +546,7 @@ async def _cron_heartbeats() -> list[CronHeartbeat]:
 
     if await _table_exists("cron_heartbeat"):
         try:
-            async with replica_session_maker() as session:
+            async with _read_session() as session:
                 await session.execute(text("SET LOCAL statement_timeout = '10s'"))
                 rows = (await session.execute(text(
                     "SELECT name, MAX(beat_at) AS last_seen "
