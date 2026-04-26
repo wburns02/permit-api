@@ -177,9 +177,18 @@ async def refresh_if_stale(threshold_hours: float = 6.0) -> None:
 
     if not needed:
         logger.info(
-            "MV boot-refresh skipped — both heartbeats fresh within %sh",
+            "MV boot-refresh skipped — both heartbeats fresh within %sh; "
+            "running ANALYZE only so pg_stat freshness still advances",
             threshold_hours,
         )
+        for _, relname in _MVS:
+            try:
+                async with primary_session_maker() as db:
+                    await db.execute(text(f"ANALYZE {relname}"))
+                    await db.commit()
+                logger.info("ANALYZE %s ok", relname)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("ANALYZE %s failed: %s", relname, exc)
         return
 
     logger.info(
