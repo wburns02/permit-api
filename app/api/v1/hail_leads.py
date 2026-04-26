@@ -728,6 +728,36 @@ async def hail_leads_health() -> HailLeadsHealth:
 
 
 # ---------------------------------------------------------------------------
+# Manual MV refresh trigger (admin-only, static — must come before /{lead_id})
+# ---------------------------------------------------------------------------
+
+@router.post(
+    "/refresh-mvs",
+    dependencies=[Depends(require_admin_key)],
+)
+async def hail_leads_refresh_mvs() -> dict[str, str]:
+    """Trigger an immediate REFRESH of hail-leads materialized views.
+
+    Runs in the background — returns 202-style payload immediately. The
+    APScheduler job at 04:25 UTC handles the regular cadence; this endpoint
+    is for one-off manual kicks (e.g., after a fix deploys but the boot-time
+    refresh's staleness gate skipped it).
+    """
+    import asyncio as _asyncio
+
+    from app.services.mv_refresh import refresh_hail_leads_mvs
+
+    _asyncio.create_task(refresh_hail_leads_mvs())
+    return {
+        "status": "kicked off",
+        "detail": (
+            "REFRESH MATERIALIZED VIEW running in background; check "
+            "/v1/hail-leads/health in ~5-15 min for updated cron heartbeats."
+        ),
+    }
+
+
+# ---------------------------------------------------------------------------
 # 2) GET / (list with filters)
 # NOTE: must come BEFORE the /{lead_id} catch-all.
 # ---------------------------------------------------------------------------
