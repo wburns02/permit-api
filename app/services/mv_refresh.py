@@ -60,6 +60,16 @@ async def _refresh_one(cron_name: str, relname: str) -> None:
                 last_error = f"{type(exc2).__name__}: {exc2}"
                 logger.exception("MV %s: plain REFRESH also failed", relname)
 
+        # ANALYZE after a successful REFRESH so pg_stat_user_tables.last_analyze
+        # advances — the /health endpoint's mv freshness KPI reads from there.
+        if last_error is None:
+            try:
+                await db.execute(text(f"ANALYZE {relname}"))
+                await db.commit()
+            except Exception as exc:  # noqa: BLE001
+                await db.rollback()
+                logger.warning("ANALYZE %s failed (non-fatal): %s", relname, exc)
+
         duration = round(time.monotonic() - started, 2)
 
         row_count: int | None = None
