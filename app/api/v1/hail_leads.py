@@ -103,16 +103,29 @@ def require_admin_key(request: Request) -> None:
 # Read session helper — replica-first with primary fallback (health helpers only)
 # ---------------------------------------------------------------------------
 
+# Cache replica-dead state so we don't re-probe (and re-wait for connection
+# reset) on every subquery within a single /health invocation. TTL is short
+# so a recovering replica is picked back up within a minute.
+_REPLICA_DEAD_UNTIL: float = 0.0
+_REPLICA_DEAD_TTL_SEC: float = 60.0
+
+
 @asynccontextmanager
 async def _read_session():
     """Yield a read session, preferring replica but falling back to primary."""
-    try:
-        async with replica_session_maker() as session:
-            await session.execute(text("SELECT 1"))
-            yield session
-            return
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Health: replica unreachable, using primary: %s", exc)
+    global _REPLICA_DEAD_UNTIL
+    import time
+
+    now = time.monotonic()
+    if now >= _REPLICA_DEAD_UNTIL:
+        try:
+            async with replica_session_maker() as session:
+                await session.execute(text("SELECT 1"))
+                yield session
+                return
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Health: replica unreachable, using primary: %s", exc)
+            _REPLICA_DEAD_UNTIL = now + _REPLICA_DEAD_TTL_SEC
     async with primary_session_maker() as session:
         yield session
 
