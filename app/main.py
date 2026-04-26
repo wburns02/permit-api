@@ -116,12 +116,37 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("Could not apply softphone migration: %s", e)
 
-    # Start alert scheduler
+    # Auto-migrate: cron_heartbeat table for the hail-leads observability page.
+    try:
+        async with primary_engine.begin() as conn:
+            await conn.execute(_text("""
+                CREATE TABLE IF NOT EXISTS cron_heartbeat (
+                    name TEXT PRIMARY KEY,
+                    beat_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    duration_seconds REAL,
+                    row_count BIGINT,
+                    last_error TEXT
+                )
+            """))
+    except Exception as e:
+        logger.warning("Could not create cron_heartbeat table: %s", e)
+
+    # Start alert scheduler (also schedules hail-leads MV refresh at 04:25 UTC)
     from app.services.scheduler import start_scheduler, stop_scheduler
     try:
         start_scheduler()
     except Exception as e:
         logger.warning("Failed to start alert scheduler: %s", e)
+
+    # Boot-time MV refresh — gated on cron_heartbeat staleness (>6h) so that
+    # restart loops never re-trigger a 17M-row REFRESH. Fires in the
+    # background so /health stays responsive during the rebuild.
+    try:
+        import asyncio as _asyncio
+        from app.services.mv_refresh import refresh_in_background
+        _asyncio.create_task(refresh_in_background())
+    except Exception as e:
+        logger.warning("Failed to schedule boot MV refresh: %s", e)
 
     # Start DB health watchdog — kills process if DB unreachable 3x in a row
     # Railway auto-restarts crashed containers, which resets the Tailscale tunnel

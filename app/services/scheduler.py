@@ -7,6 +7,7 @@ from apscheduler.triggers.cron import CronTrigger
 
 from app.models.alert import AlertFrequency
 from app.services.alert_engine import run_frequency_batch
+from app.services.mv_refresh import refresh_hail_leads_mvs
 
 logger = logging.getLogger(__name__)
 
@@ -45,8 +46,22 @@ def start_scheduler():
         replace_existing=True,
     )
 
+    # Hail-leads MV refresh: 04:25 UTC daily (matches retired T430 cron slot).
+    # Two MVs refreshed sequentially in one job; each refresh writes its own
+    # cron_heartbeat row.
+    scheduler.add_job(
+        refresh_hail_leads_mvs,
+        trigger=CronTrigger(hour=4, minute=25),
+        id="hail_leads_mv_refresh",
+        name="Hail-leads MV refresh",
+        replace_existing=True,
+    )
+
     scheduler.start()
-    logger.info("Alert scheduler started (instant=5min, daily=6am UTC, weekly=Mon 6am UTC)")
+    logger.info(
+        "Scheduler started (alerts: instant=5min, daily=6am UTC, weekly=Mon 6am UTC; "
+        "hail-leads MV refresh=4:25am UTC)"
+    )
 
 
 def stop_scheduler():
