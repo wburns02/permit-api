@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Literal
+from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 
@@ -201,3 +201,31 @@ class HailLeadsHealth(BaseModel):
     coverage: list[CoverageStat]
     crons: list[CronHeartbeat]
     debug: dict[str, str] | None = None
+
+
+# ---------------------------------------------------------------------------
+# Schema dump (temporary — used to design the SPC sibling MV)
+# ---------------------------------------------------------------------------
+
+class ColumnInfo(BaseModel):
+    """A single column on a Postgres relation."""
+    column_name: str
+    data_type: str
+    is_nullable: bool
+
+
+class TableSchemaInfo(BaseModel):
+    """Schema + a one-row sample for a single relation."""
+    name: str
+    exists: bool
+    columns: list[ColumnInfo] = Field(default_factory=list)
+    row_count: int = -1
+    sample_row: dict[str, Any] | None = None
+
+
+class HailLeadsSchemas(BaseModel):
+    """Schema dump of the three relations behind hail_leads."""
+    generated_at: datetime
+    storm_events: TableSchemaInfo
+    spc_storm_reports: TableSchemaInfo
+    hail_leads: TableSchemaInfo

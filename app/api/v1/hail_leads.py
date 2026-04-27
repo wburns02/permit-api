@@ -20,8 +20,10 @@ Data sources (all on primary Postgres at 100.122.216.15:5432/permits):
 
 from __future__ import annotations
 
+import asyncio
 import csv
 import io
+import json
 import logging
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta, timezone
@@ -41,6 +43,7 @@ from app.database import (
     replica_session_maker,
 )
 from app.schemas.hail_leads import (
+    ColumnInfo,
     CoverageStat,
     CronHeartbeat,
     FreshLeadsCounts,
@@ -55,11 +58,13 @@ from app.schemas.hail_leads import (
     HailLeadsEnrichRequest,
     HailLeadsEnrichResponse,
     HailLeadsHealth,
+    HailLeadsSchemas,
     HailLeadsStats,
     LeadCategory,
     MaterializedViewFreshness,
     SortKey,
     StormSourceFreshness,
+    TableSchemaInfo,
 )
 
 logger = logging.getLogger(__name__)
@@ -764,6 +769,145 @@ async def hail_leads_refresh_mvs() -> dict[str, str]:
             "/v1/hail-leads/health in ~5-15 min for updated cron heartbeats."
         ),
     }
+
+
+# ---------------------------------------------------------------------------
+# Schema dump (temporary — used to design the SPC sibling MV).
+# Static route — placed BEFORE /{lead_id}. Will be removed in the same PR
+# that adds hail_leads_spc.
+# ---------------------------------------------------------------------------
+
+_SCHEMA_QUERY_TIMEOUT_SEC = 5.0
+
+
+def _json_safe_row(row: dict[str, Any]) -> dict[str, Any]:
+    """Coerce a DB row into a JSON-safe dict (datetimes -> str, etc.)."""
+    return json.loads(json.dumps(dict(row), default=str))
+
+
+async def _schema_for_relation(name: str) -> TableSchemaInfo:
+    """Dump columns + reltuples + a one-row sample for `name`.
+
+    Each subquery runs in its own primary session with a 5s statement_timeout
+    and an asyncio.wait_for outer budget so a stuck table can't block the
+    other two. On any failure we degrade to safe defaults.
+    """
+    columns: list[ColumnInfo] = []
+    row_count: int = -1
+    sample_row: dict[str, Any] | None = None
+    exists: bool = False
+
+    # 1) Columns from information_schema --------------------------------
+    async def _load_columns() -> None:
+        nonlocal columns, exists
+        async with primary_session_maker() as session:
+            await session.execute(text("SET LOCAL statement_timeout = '5s'"))
+            result = await session.execute(
+                text(
+                    "SELECT column_name, data_type, is_nullable "
+                    "FROM information_schema.columns "
+                    "WHERE table_name = :n "
+                    "ORDER BY ordinal_position"
+                ),
+                {"n": name},
+            )
+            rows = result.mappings().all()
+            columns = [
+                ColumnInfo(
+                    column_name=str(r["column_name"]),
+                    data_type=str(r["data_type"]),
+                    is_nullable=(str(r["is_nullable"]).upper() == "YES"),
+                )
+                for r in rows
+            ]
+            exists = bool(columns)
+
+    try:
+        await asyncio.wait_for(
+            _load_columns(), timeout=_SCHEMA_QUERY_TIMEOUT_SEC
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("_schemas columns(%s) failed: %s", name, exc)
+
+    # 2) Row count via pg_class.reltuples -------------------------------
+    async def _load_row_count() -> None:
+        nonlocal row_count
+        async with primary_session_maker() as session:
+            await session.execute(text("SET LOCAL statement_timeout = '5s'"))
+            result = await session.execute(
+                text(
+                    "SELECT GREATEST(reltuples, 0)::bigint "
+                    "FROM pg_class WHERE relname = :n"
+                ),
+                {"n": name},
+            )
+            scalar = result.scalar()
+            row_count = int(scalar) if scalar is not None else -1
+
+    try:
+        await asyncio.wait_for(
+            _load_row_count(), timeout=_SCHEMA_QUERY_TIMEOUT_SEC
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("_schemas row_count(%s) failed: %s", name, exc)
+        row_count = -1
+
+    # 3) Sample row (one row, JSON-coerced) -----------------------------
+    if exists:
+        async def _load_sample() -> None:
+            nonlocal sample_row
+            async with primary_session_maker() as session:
+                await session.execute(
+                    text("SET LOCAL statement_timeout = '5s'")
+                )
+                # Identifier comes from a fixed allowlist passed by caller —
+                # not user input — so f-string interpolation is safe here.
+                result = await session.execute(
+                    text(f"SELECT * FROM {name} LIMIT 1")
+                )
+                row = result.mappings().first()
+                sample_row = _json_safe_row(dict(row)) if row else None
+
+        try:
+            await asyncio.wait_for(
+                _load_sample(), timeout=_SCHEMA_QUERY_TIMEOUT_SEC
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("_schemas sample(%s) failed: %s", name, exc)
+            sample_row = None
+
+    return TableSchemaInfo(
+        name=name,
+        exists=exists,
+        columns=columns,
+        row_count=row_count,
+        sample_row=sample_row,
+    )
+
+
+@router.get(
+    "/_schemas",
+    response_model=HailLeadsSchemas,
+    dependencies=[Depends(require_demo_key)],
+)
+async def hail_leads_schemas() -> HailLeadsSchemas:
+    """One-shot schema dump for storm_events, spc_storm_reports, hail_leads.
+
+    Used to design the upcoming SPC sibling MV. Will be removed in the same
+    PR that adds hail_leads_spc. Each relation is dumped in its own session
+    with a 5s statement timeout and a 5s asyncio budget so a single bad
+    table can't block the others.
+    """
+    storm_events = await _schema_for_relation("storm_events")
+    spc_storm_reports = await _schema_for_relation("spc_storm_reports")
+    hail_leads = await _schema_for_relation("hail_leads")
+
+    return HailLeadsSchemas(
+        generated_at=datetime.now(timezone.utc),
+        storm_events=storm_events,
+        spc_storm_reports=spc_storm_reports,
+        hail_leads=hail_leads,
+    )
 
 
 # ---------------------------------------------------------------------------
