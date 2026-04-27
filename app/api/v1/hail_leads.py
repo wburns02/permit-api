@@ -797,10 +797,32 @@ async def hail_leads_diag(
     mv_definition: str | None = None
     viewdef_attempts = (
         (
+            "pg_depend_dependencies",
+            # If pg_get_viewdef and pg_matviews block on relation locks held
+            # by REFRESH, the next-best thing is to list which tables/views
+            # the matview depends on (via pg_depend). That answers our
+            # diagnostic question (storm_events vs spc_storm_reports)
+            # without needing the full SQL text.
+            "SELECT string_agg(DISTINCT dep_class.relname || ' (' || "
+            "    CASE dep_class.relkind WHEN 'r' THEN 'table' "
+            "                            WHEN 'v' THEN 'view' "
+            "                            WHEN 'm' THEN 'matview' "
+            "                            ELSE dep_class.relkind::text END "
+            "    || ')', ', ' ORDER BY dep_class.relname || ' (' || "
+            "    CASE dep_class.relkind WHEN 'r' THEN 'table' "
+            "                            WHEN 'v' THEN 'view' "
+            "                            WHEN 'm' THEN 'matview' "
+            "                            ELSE dep_class.relkind::text END || ')') "
+            "FROM pg_class mv "
+            "JOIN pg_rewrite r ON r.ev_class = mv.oid "
+            "JOIN pg_depend d ON d.objid = r.oid AND d.classid = 'pg_rewrite'::regclass "
+            "JOIN pg_class dep_class ON dep_class.oid = d.refobjid "
+            "WHERE mv.relname = 'hail_leads' AND mv.relkind = 'm' "
+            "AND dep_class.relname <> 'hail_leads' "
+            "AND dep_class.relkind IN ('r','v','m')",
+        ),
+        (
             "pg_rewrite_direct",
-            # Read the rule action text directly from pg_rewrite, joined to
-            # pg_class by oid. Avoids pg_matviews (which blocks on REFRESH)
-            # and pg_get_viewdef() (which takes a relation lock).
             "SELECT pg_get_ruledef(r.oid, true) "
             "FROM pg_rewrite r "
             "JOIN pg_class c ON c.oid = r.ev_class "
@@ -812,8 +834,7 @@ async def hail_leads_diag(
         (
             "pg_matviews",
             "SELECT definition FROM pg_matviews "
-            "WHERE matviewname = 'hail_leads' "
-            "AND schemaname = 'public'",
+            "WHERE matviewname = 'hail_leads'",
         ),
         (
             "pg_get_viewdef_oid",
