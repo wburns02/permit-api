@@ -45,6 +45,7 @@ class HailLeadListItem(BaseModel):
     permit_description: str | None
     competitor_contractor: str | None
     score: float | None
+    storm_source: str | None
     prior_roof_permits: int | None
     last_roof_permit_date: date | None
     owner_enriched: bool

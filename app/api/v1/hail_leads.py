@@ -941,6 +941,7 @@ async def hail_leads_list(
             permit_description=r["permit_description"],
             competitor_contractor=r["competitor_contractor"],
             score=float(r["score"]) if r["score"] is not None else None,
+            storm_source=r["storm_source"],
             prior_roof_permits=int(r["prior_roof_permits"]) if r["prior_roof_permits"] is not None else 0,
             last_roof_permit_date=r["last_roof_permit_date"],
             owner_enriched=bool(r["owner_enriched"]),
