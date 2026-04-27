@@ -791,32 +791,23 @@ async def hail_leads_diag(
     the injected session, and only reads pg_catalog tables (pg_get_viewdef,
     pg_matviews, pg_class.reltuples). No scans of hail_leads itself.
     """
-    # MV definition — try pg_get_viewdef first; fall back to pg_matviews.
+    # MV definition — read from pg_matviews (a system catalog view backed by
+    # pg_rewrite). We deliberately avoid pg_get_viewdef('hail_leads'::regclass)
+    # because it can block on the relation lock when a REFRESH MATERIALIZED
+    # VIEW (non-concurrent) is in progress.
     mv_definition: str | None = None
     try:
         row = await db.execute(text(
-            "SELECT pg_get_viewdef('hail_leads'::regclass, true)"
+            "SELECT definition FROM pg_matviews "
+            "WHERE matviewname = 'hail_leads'"
         ))
         mv_definition = row.scalar()
     except Exception as exc:  # noqa: BLE001
-        logger.warning("diag pg_get_viewdef failed: %s", exc)
+        logger.warning("diag pg_matviews lookup failed: %s", exc)
         try:
             await db.rollback()
         except Exception:  # noqa: BLE001
             pass
-    if not mv_definition:
-        try:
-            row = await db.execute(text(
-                "SELECT definition FROM pg_matviews "
-                "WHERE matviewname = 'hail_leads'"
-            ))
-            mv_definition = row.scalar()
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("diag pg_matviews lookup failed: %s", exc)
-            try:
-                await db.rollback()
-            except Exception:  # noqa: BLE001
-                pass
 
     # Cheap reltuples lookups — same pattern as /stats.
     mv_row_count = 0
