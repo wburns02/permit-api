@@ -799,24 +799,44 @@ async def hail_leads_diag(
     import asyncio as _asyncio
 
     async def _read_viewdef() -> str | None:
-        async with replica_session_maker() as s:
-            try:
-                await s.execute(text("SET LOCAL statement_timeout = '5s'"))
-                r = await s.execute(text(
-                    "SELECT definition FROM pg_matviews "
-                    "WHERE matviewname = 'hail_leads'"
-                ))
-                return r.scalar()
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("diag _read_viewdef inner: %s", exc)
+        # Try multiple paths in priority order. Each in its own transaction
+        # so a failure in one doesn't poison the next.
+        attempts = (
+            (
+                "pg_matviews",
+                "SELECT definition FROM pg_matviews "
+                "WHERE matviewname = 'hail_leads'",
+            ),
+            (
+                "pg_get_viewdef_oid",
+                "SELECT pg_get_viewdef(c.oid, true) "
+                "FROM pg_class c WHERE c.relname = 'hail_leads' "
+                "AND c.relkind = 'm' LIMIT 1",
+            ),
+            (
+                "information_schema",
+                "SELECT view_definition FROM information_schema.views "
+                "WHERE table_name = 'hail_leads'",
+            ),
+        )
+        for label, sql in attempts:
+            async with replica_session_maker() as s:
                 try:
-                    await s.rollback()
-                except Exception:  # noqa: BLE001
-                    pass
-                return None
+                    await s.execute(text("SET LOCAL statement_timeout = '4s'"))
+                    r = await s.execute(text(sql))
+                    val = r.scalar()
+                    if val:
+                        return str(val)
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("diag viewdef %s failed: %s", label, exc)
+                    try:
+                        await s.rollback()
+                    except Exception:  # noqa: BLE001
+                        pass
+        return None
 
     try:
-        mv_definition = await _asyncio.wait_for(_read_viewdef(), timeout=8)
+        mv_definition = await _asyncio.wait_for(_read_viewdef(), timeout=15)
     except _asyncio.TimeoutError:
         logger.warning("diag _read_viewdef wait_for timed out")
     except Exception as exc:  # noqa: BLE001
