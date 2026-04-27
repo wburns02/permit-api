@@ -197,8 +197,14 @@ async def lifespan(app: FastAPI):
     # `hail_leads_unified` is a cheap UNION ALL fronted by the API so a single
     # query surfaces leads from BOTH sources with a `storm_source` discriminator.
     # CREATE MATERIALIZED VIEW IF NOT EXISTS is idempotent — safe across redeploys.
+    # On a fresh DB this MV creation walks 17M+ hot_leads rows and inserts ~2.4M
+    # — the `IF NOT EXISTS` short-circuits cleanly when the MV already exists,
+    # but if it has to actually build, give it a generous timeout. Lock timeout
+    # stays short so we don't hang if some other session holds locks.
     try:
         async with primary_engine.begin() as conn:
+            await conn.execute(_text("SET LOCAL lock_timeout = '15s'"))
+            await conn.execute(_text("SET LOCAL statement_timeout = '30min'"))
             await conn.execute(_text("""
                 CREATE MATERIALIZED VIEW IF NOT EXISTS hail_leads_spc AS
                 WITH storms AS (
@@ -273,8 +279,16 @@ async def lifespan(app: FastAPI):
     # Unified view: UNION ALL of hail_leads_categorized (NOAA) + hail_leads_spc (SPC).
     # Adds a `storm_source` discriminator. Created with CREATE OR REPLACE so
     # column changes propagate cleanly across redeploys.
+    # CREATE OR REPLACE VIEW needs an AccessExclusiveLock; if the production
+    # API has a long-running list query holding an AccessShareLock on the view,
+    # the migration would hang lifespan indefinitely (Railway never exits the
+    # "Waiting for application startup" state). A short statement_timeout makes
+    # it fail fast — the existing view stays in place, since we use IF NOT
+    # EXISTS / OR REPLACE patterns and the prior session created it via psql.
     try:
         async with primary_engine.begin() as conn:
+            await conn.execute(_text("SET LOCAL lock_timeout = '15s'"))
+            await conn.execute(_text("SET LOCAL statement_timeout = '30s'"))
             await conn.execute(_text("""
                 CREATE OR REPLACE VIEW hail_leads_unified AS
                 SELECT
