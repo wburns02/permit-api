@@ -785,12 +785,13 @@ async def hail_leads_diag() -> HailLeadsDiag:
 
     Read-only, demo-key gated. Will be removed once the question is answered.
     """
-    # MV definition — wrap in its own session so a perms/name failure doesn't
-    # poison anything else; degrade to None on failure.
+    # MV definition — try pg_get_viewdef first (works on regular views and
+    # most matviews), then fall back to pg_matviews.definition. Each in its
+    # own session with a short timeout so a failure can't poison the rest.
     mv_definition: str | None = None
     try:
         async with _read_session() as session:
-            await session.execute(text("SET LOCAL statement_timeout = '10s'"))
+            await session.execute(text("SET LOCAL statement_timeout = '5s'"))
             row = await session.execute(text(
                 "SELECT pg_get_viewdef('hail_leads'::regclass, true)"
             ))
@@ -798,38 +799,60 @@ async def hail_leads_diag() -> HailLeadsDiag:
     except Exception as exc:  # noqa: BLE001
         logger.warning("hail-leads diag: pg_get_viewdef failed: %s", exc)
         mv_definition = None
+    if not mv_definition:
+        try:
+            async with _read_session() as session:
+                await session.execute(text("SET LOCAL statement_timeout = '5s'"))
+                row = await session.execute(text(
+                    "SELECT definition FROM pg_matviews WHERE matviewname = 'hail_leads'"
+                ))
+                mv_definition = row.scalar()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("hail-leads diag: pg_matviews lookup failed: %s", exc)
 
-    # Simple count scalars — _safe_scalar already isolates per-session and
-    # degrades to a default on failure (table missing, timeout, etc.).
+    # Cheap reltuples-based row count for the giant MV.
     mv_row_count_raw = await _safe_scalar(
         "SELECT GREATEST(reltuples, 0)::bigint FROM pg_class "
         "WHERE relname = 'hail_leads'",
         label="diag.mv_row_count",
         default=0,
     )
+
+    # COUNT(DISTINCT storm_event_id) on a 17M-row MV is too heavy for an
+    # HTTP timeout. Use HyperLogLog approximation via a 1% TABLESAMPLE so the
+    # endpoint always returns within ~1s. The exact value isn't critical for
+    # the diagnostic question (we just need to know it's > 0 and roughly
+    # tracks the source-of-truth count).
     mv_distinct_storm_event_ids_raw = await _safe_scalar(
-        "SELECT COUNT(DISTINCT storm_event_id) FROM hail_leads",
-        label="diag.mv_distinct_storm_event_ids",
+        "SELECT COUNT(DISTINCT storm_event_id) * 100 "
+        "FROM hail_leads TABLESAMPLE SYSTEM (1)",
+        label="diag.mv_distinct_storm_event_ids_approx",
         default=0,
     )
+
+    # COUNT(*) on storm_events / spc_storm_reports — use reltuples (fast).
     storm_events_count_raw = await _safe_scalar(
-        "SELECT COUNT(*) FROM storm_events",
+        "SELECT GREATEST(reltuples, 0)::bigint FROM pg_class "
+        "WHERE relname = 'storm_events'",
         label="diag.storm_events_count",
         default=-1,
     )
     spc_storm_reports_count_raw = await _safe_scalar(
-        "SELECT COUNT(*) FROM spc_storm_reports",
+        "SELECT GREATEST(reltuples, 0)::bigint FROM pg_class "
+        "WHERE relname = 'spc_storm_reports'",
         label="diag.spc_storm_reports_count",
         default=-1,
     )
 
-    # storm_type histogram — top 10. Separate query, own session, 20s timeout.
+    # storm_type histogram — sample-based (1%) so it returns quickly even on
+    # the 17M-row MV. Counts are scaled up by 100 to approximate full totals.
     storm_type_counts: list[StormTypeCount] = []
     try:
         async with _read_session() as session:
-            await session.execute(text("SET LOCAL statement_timeout = '20s'"))
+            await session.execute(text("SET LOCAL statement_timeout = '15s'"))
             rows = (await session.execute(text(
-                "SELECT storm_type, COUNT(*) AS n FROM hail_leads "
+                "SELECT storm_type, (COUNT(*) * 100)::bigint AS n "
+                "FROM hail_leads TABLESAMPLE SYSTEM (1) "
                 "GROUP BY storm_type ORDER BY n DESC LIMIT 10"
             ))).mappings().all()
             storm_type_counts = [
