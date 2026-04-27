@@ -131,6 +131,65 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("Could not create cron_heartbeat table: %s", e)
 
+    # Auto-migrate: storm_events table for the NOAA storm-events loader.
+    # DDL is byte-identical to CREATE_TABLE_SQL in
+    # permit-api-live/scripts/backfill_noaa_storm_events.py so the new
+    # APScheduler-driven loader writes to the same shape T430 was using.
+    try:
+        async with primary_engine.begin() as conn:
+            await conn.execute(_text("""
+                CREATE TABLE IF NOT EXISTS storm_events (
+                    event_id BIGINT PRIMARY KEY,
+                    episode_id BIGINT,
+                    state TEXT,
+                    state_fips INT,
+                    year INT,
+                    event_type TEXT,
+                    cz_type TEXT,
+                    cz_fips INT,
+                    cz_name TEXT,
+                    wfo TEXT,
+                    begin_datetime TIMESTAMP,
+                    end_datetime TIMESTAMP,
+                    cz_timezone TEXT,
+                    injuries_direct INT,
+                    injuries_indirect INT,
+                    deaths_direct INT,
+                    deaths_indirect INT,
+                    damage_property TEXT,
+                    damage_crops TEXT,
+                    source TEXT,
+                    magnitude DOUBLE PRECISION,
+                    magnitude_type TEXT,
+                    flood_cause TEXT,
+                    tor_f_scale TEXT,
+                    begin_location TEXT,
+                    end_location TEXT,
+                    begin_lat DOUBLE PRECISION,
+                    begin_lon DOUBLE PRECISION,
+                    end_lat DOUBLE PRECISION,
+                    end_lon DOUBLE PRECISION,
+                    episode_narrative TEXT,
+                    event_narrative TEXT,
+                    scraped_at DATE NOT NULL
+                )
+            """))
+            await conn.execute(_text(
+                "CREATE INDEX IF NOT EXISTS idx_storm_begin ON storm_events (begin_datetime)"
+            ))
+            await conn.execute(_text(
+                "CREATE INDEX IF NOT EXISTS idx_storm_type ON storm_events (event_type)"
+            ))
+            await conn.execute(_text(
+                "CREATE INDEX IF NOT EXISTS idx_storm_cz ON storm_events (state, cz_name)"
+            ))
+            await conn.execute(_text(
+                "CREATE INDEX IF NOT EXISTS idx_storm_geo ON storm_events (begin_lat, begin_lon) "
+                "WHERE begin_lat IS NOT NULL AND begin_lon IS NOT NULL"
+            ))
+    except Exception as e:
+        logger.warning("Could not create storm_events table: %s", e)
+
     # Start alert scheduler (also schedules hail-leads MV refresh at 04:25 UTC)
     from app.services.scheduler import start_scheduler, stop_scheduler
     try:

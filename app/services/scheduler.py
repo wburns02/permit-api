@@ -8,6 +8,7 @@ from apscheduler.triggers.cron import CronTrigger
 from app.models.alert import AlertFrequency
 from app.services.alert_engine import run_frequency_batch
 from app.services.mv_refresh import refresh_hail_leads_mvs
+from app.services.noaa_loader import load_noaa_storm_events
 
 logger = logging.getLogger(__name__)
 
@@ -57,10 +58,22 @@ def start_scheduler():
         replace_existing=True,
     )
 
+    # NOAA storm_events weekly load: Monday 05:00 UTC. Pulls the
+    # current calendar year's CSV from NCEI, filters to TEXAS, and
+    # upserts. Replaces the deprecated T430 cron that ran the
+    # backfill_noaa_storm_events.py CLI script.
+    scheduler.add_job(
+        load_noaa_storm_events,
+        trigger=CronTrigger(day_of_week="mon", hour=5, minute=0),
+        id="noaa_storm_events_load",
+        name="NOAA Storm Events weekly load",
+        replace_existing=True,
+    )
+
     scheduler.start()
     logger.info(
         "Scheduler started (alerts: instant=5min, daily=6am UTC, weekly=Mon 6am UTC; "
-        "hail-leads MV refresh=4:25am UTC)"
+        "hail-leads MV refresh=4:25am UTC; NOAA storm_events load=Mon 5:00am UTC)"
     )
 
 
