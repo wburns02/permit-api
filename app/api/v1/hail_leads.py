@@ -556,7 +556,12 @@ async def _cron_heartbeats() -> list[CronHeartbeat]:
     """
     now = datetime.now(timezone.utc)
     out: list[CronHeartbeat] = []
+    seen_names: set[str] = set()
 
+    # Read cron_heartbeat first — these are the source of truth when present.
+    # Crons not represented in the table fall back to inferred-from-data
+    # values further down. (We don't short-circuit on the first hit anymore;
+    # different crons land in the table at different times.)
     if await _table_exists("cron_heartbeat"):
         try:
             async with _read_session() as session:
@@ -574,56 +579,59 @@ async def _cron_heartbeats() -> list[CronHeartbeat]:
                         hours_since=hrs,
                         status=_cron_status(hrs),
                     ))
-                if out:
-                    return out
+                    seen_names.add(str(r["name"]))
         except Exception as exc:  # noqa: BLE001
             logger.warning("cron_heartbeat read failed: %s", exc)
 
-    # Inferred-from-data fallbacks ----------------------------------------
+    # Inferred-from-data fallbacks for crons NOT in cron_heartbeat ---------
 
     # spc_load
-    spc_col = await _detect_date_column(
-        "spc_storm_reports",
-        ["report_date", "event_date", "begin_date", "begin_date_time", "date"],
-    ) if await _table_exists("spc_storm_reports") else None
-    spc_last = None
-    if spc_col:
-        spc_last = _to_datetime(await _safe_scalar(
-            f"SELECT MAX({spc_col}) FROM spc_storm_reports",
-            label="cron.spc_load",
+    if "spc_load" not in seen_names:
+        spc_col = await _detect_date_column(
+            "spc_storm_reports",
+            ["report_date", "event_date", "begin_date", "begin_date_time", "date"],
+        ) if await _table_exists("spc_storm_reports") else None
+        spc_last = None
+        if spc_col:
+            spc_last = _to_datetime(await _safe_scalar(
+                f"SELECT MAX({spc_col}) FROM spc_storm_reports",
+                label="cron.spc_load",
+            ))
+        spc_hrs = _hours_between(now, spc_last)
+        out.append(CronHeartbeat(
+            name="spc_load",
+            last_seen_at=spc_last,
+            hours_since=spc_hrs,
+            status=_cron_status(spc_hrs),
         ))
-    spc_hrs = _hours_between(now, spc_last)
-    out.append(CronHeartbeat(
-        name="spc_load",
-        last_seen_at=spc_last,
-        hours_since=spc_hrs,
-        status=_cron_status(spc_hrs),
-    ))
 
     # storm_events_load
-    se_col = await _detect_date_column(
-        "storm_events",
-        ["begin_date_time", "begin_date", "event_date", "report_date", "date"],
-    ) if await _table_exists("storm_events") else None
-    se_last = None
-    if se_col:
-        se_last = _to_datetime(await _safe_scalar(
-            f"SELECT MAX({se_col}) FROM storm_events",
-            label="cron.storm_events_load",
+    if "storm_events_load" not in seen_names:
+        se_col = await _detect_date_column(
+            "storm_events",
+            ["begin_date_time", "begin_date", "event_date", "report_date", "date"],
+        ) if await _table_exists("storm_events") else None
+        se_last = None
+        if se_col:
+            se_last = _to_datetime(await _safe_scalar(
+                f"SELECT MAX({se_col}) FROM storm_events",
+                label="cron.storm_events_load",
+            ))
+        se_hrs = _hours_between(now, se_last)
+        out.append(CronHeartbeat(
+            name="storm_events_load",
+            last_seen_at=se_last,
+            hours_since=se_hrs,
+            status=_cron_status(se_hrs),
         ))
-    se_hrs = _hours_between(now, se_last)
-    out.append(CronHeartbeat(
-        name="storm_events_load",
-        last_seen_at=se_last,
-        hours_since=se_hrs,
-        status=_cron_status(se_hrs),
-    ))
 
     # MV refresh heartbeats — use pg_stat_user_tables.last_analyze.
     for cron_name, relname in (
         ("mv_refresh_hail_leads", "hail_leads"),
         ("mv_refresh_address_permit_history", "address_permit_history"),
     ):
+        if cron_name in seen_names:
+            continue
         ts_raw = await _safe_scalar(
             "SELECT GREATEST(last_analyze, last_vacuum) "
             "FROM pg_stat_user_tables WHERE relname = :n",
@@ -640,24 +648,25 @@ async def _cron_heartbeats() -> list[CronHeartbeat]:
         ))
 
     # tcad_scrape — pick first available timestamp column.
-    tcad_last = None
-    if await _table_exists("tcad_year_built"):
-        tcad_col = await _detect_date_column(
-            "tcad_year_built",
-            ["scraped_at", "updated_at", "created_at", "inserted_at"],
-        )
-        if tcad_col:
-            tcad_last = _to_datetime(await _safe_scalar(
-                f"SELECT MAX({tcad_col}) FROM tcad_year_built",
-                label="cron.tcad_scrape",
-            ))
-    tcad_hrs = _hours_between(now, tcad_last)
-    out.append(CronHeartbeat(
-        name="tcad_scrape",
-        last_seen_at=tcad_last,
-        hours_since=tcad_hrs,
-        status=_cron_status(tcad_hrs),
-    ))
+    if "tcad_scrape" not in seen_names:
+        tcad_last = None
+        if await _table_exists("tcad_year_built"):
+            tcad_col = await _detect_date_column(
+                "tcad_year_built",
+                ["scraped_at", "updated_at", "created_at", "inserted_at"],
+            )
+            if tcad_col:
+                tcad_last = _to_datetime(await _safe_scalar(
+                    f"SELECT MAX({tcad_col}) FROM tcad_year_built",
+                    label="cron.tcad_scrape",
+                ))
+        tcad_hrs = _hours_between(now, tcad_last)
+        out.append(CronHeartbeat(
+            name="tcad_scrape",
+            last_seen_at=tcad_last,
+            hours_since=tcad_hrs,
+            status=_cron_status(tcad_hrs),
+        ))
 
     return out
 
