@@ -13,6 +13,11 @@ requires X-Admin-Key (settings.DEMO_ADMIN_KEY).
 Data sources (all on primary Postgres at 100.122.216.15:5432/permits):
     hail_leads               — materialized view (17.3M rows) joining storm_events × hot_leads
     hail_leads_categorized   — view adding lead_category (roof_replace/siding/gutter/solar)
+    hail_leads_spc           — materialized view (2.4M rows) joining spc_storm_reports × hot_leads
+    hail_leads_unified       — view UNION ALL of hail_leads_categorized + hail_leads_spc with
+                                a `storm_source` column ('storm_events' | 'spc_storm_reports').
+                                All list/detail queries route through this so leads from BOTH
+                                upstream storm sources surface in the product.
     address_permit_history   — materialized view (828K rows) of per-address permit counts
     hail_leads_enriched      — cache table of BatchData skip-trace results
     tcad_year_built          — cache table of TCAD year-built / sqft / appraised value
@@ -20,10 +25,8 @@ Data sources (all on primary Postgres at 100.122.216.15:5432/permits):
 
 from __future__ import annotations
 
-import asyncio
 import csv
 import io
-import json
 import logging
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta, timezone
@@ -43,7 +46,6 @@ from app.database import (
     replica_session_maker,
 )
 from app.schemas.hail_leads import (
-    ColumnInfo,
     CoverageStat,
     CronHeartbeat,
     FreshLeadsCounts,
@@ -58,13 +60,11 @@ from app.schemas.hail_leads import (
     HailLeadsEnrichRequest,
     HailLeadsEnrichResponse,
     HailLeadsHealth,
-    HailLeadsSchemas,
     HailLeadsStats,
     LeadCategory,
     MaterializedViewFreshness,
     SortKey,
     StormSourceFreshness,
-    TableSchemaInfo,
 )
 
 logger = logging.getLogger(__name__)
@@ -163,11 +163,15 @@ def _build_filter_sql(
     min_days_after: int | None,
     max_days_after: int | None,
 ) -> tuple[str, dict[str, Any]]:
-    """Return (where_sql, params) for list/export endpoints."""
+    """Return (where_sql, params) for list/export endpoints.
+
+    Predicates target columns on `hail_leads_unified` (alias `hl`), which has
+    `lead_category` baked in (no separate categorized view join needed).
+    """
     params: dict[str, Any] = {}
     clauses: list[str] = [
         "hl.storm_type = 'Hail'",
-        "hc.lead_category = ANY(:_allowed_categories)",
+        "hl.lead_category = ANY(:_allowed_categories)",
         "hl.address !~ '^[0-9]+$'",
         "hl.address IS NOT NULL",
         f"COALESCE(hl.description, '') !~* '{_FALSE_POSITIVE_REGEX}'",
@@ -186,7 +190,7 @@ def _build_filter_sql(
     if category:
         if category not in _ALLOWED_CATEGORIES:
             raise HTTPException(status_code=400, detail=f"Invalid category: {category}")
-        clauses.append("hc.lead_category = :category")
+        clauses.append("hl.lead_category = :category")
         params["category"] = category
     if min_hail_inches is not None:
         clauses.append("hl.storm_magnitude >= :min_hail_inches")
@@ -226,12 +230,17 @@ def _sort_expression(sort: str) -> str:
 async def hail_leads_stats(
     db: AsyncSession = Depends(get_read_db),
 ) -> HailLeadsStats:
-    """Headline KPIs for the hail-leads dashboard header."""
-    # Use pg_class reltuples for fast approximate count on the big MV.
-    # reltuples is -1 after CREATE but refreshed by ANALYZE/REFRESH.
+    """Headline KPIs for the hail-leads dashboard header.
+
+    `total_leads` is summed across both source MVs (hail_leads + hail_leads_spc)
+    via reltuples — fast, approximate, sufficient for a dashboard header.
+    """
+    # Use pg_class reltuples summed across both source MVs for fast
+    # approximate count. reltuples is -1 after CREATE but refreshed by
+    # ANALYZE/REFRESH (we ANALYZE both MVs in mv_refresh).
     total_leads_row = await db.execute(text(
-        "SELECT GREATEST(reltuples, 0)::bigint AS n "
-        "FROM pg_class WHERE relname = 'hail_leads'"
+        "SELECT COALESCE(SUM(GREATEST(reltuples, 0)), 0)::bigint AS n "
+        "FROM pg_class WHERE relname IN ('hail_leads', 'hail_leads_spc')"
     ))
     total_leads = int(total_leads_row.scalar() or 0)
 
@@ -242,30 +251,46 @@ async def hail_leads_stats(
     ))
     unique_addresses = int(uniq_row.scalar() or 0)
 
-    # Counties covered — distinct county count (small, fast).
+    # Counties covered — distinct county count across both MVs.
     counties_row = await db.execute(text(
-        "SELECT COUNT(DISTINCT county) FROM hail_leads WHERE county IS NOT NULL"
+        "SELECT COUNT(DISTINCT county) FROM ("
+        " SELECT county FROM hail_leads WHERE county IS NOT NULL "
+        " UNION SELECT county FROM hail_leads_spc WHERE county IS NOT NULL"
+        ") _q"
     ))
     counties_covered = int(counties_row.scalar() or 0)
 
-    # Latest storm date — fast (indexed).
+    # Latest storm date — across both MVs.
     latest_storm_row = await db.execute(text(
-        "SELECT MAX(storm_date) FROM hail_leads"
+        "SELECT GREATEST("
+        "  (SELECT MAX(storm_date) FROM hail_leads),"
+        "  (SELECT MAX(storm_date) FROM hail_leads_spc)"
+        ")"
     ))
     latest_storm_date = latest_storm_row.scalar()
 
-    # Fresh leads this week — storms in last 7 days.
+    # Fresh leads this week — storms in last 7 days, both sources.
     fresh_row = await db.execute(text(
-        "SELECT COUNT(*) FROM hail_leads "
-        "WHERE storm_date >= CURRENT_DATE - INTERVAL '7 days'"
+        "SELECT "
+        " (SELECT COUNT(*) FROM hail_leads "
+        "    WHERE storm_date >= CURRENT_DATE - INTERVAL '7 days') "
+        " + "
+        " (SELECT COUNT(*) FROM hail_leads_spc "
+        "    WHERE storm_date >= CURRENT_DATE - INTERVAL '7 days')"
     ))
     fresh_leads_this_week = int(fresh_row.scalar() or 0)
 
-    # Hail events in last year — distinct storm_event_id where type='Hail'.
+    # Hail events in last year — distinct storm IDs where type='Hail'.
+    # NOAA: storm_event_id (bigint). SPC: storm_report_id (text).
     hail_events_row = await db.execute(text(
-        "SELECT COUNT(DISTINCT storm_event_id) FROM hail_leads "
-        "WHERE storm_type = 'Hail' "
-        "AND storm_date >= CURRENT_DATE - INTERVAL '365 days'"
+        "SELECT "
+        " (SELECT COUNT(DISTINCT storm_event_id) FROM hail_leads "
+        "    WHERE storm_type = 'Hail' "
+        "    AND storm_date >= CURRENT_DATE - INTERVAL '365 days') "
+        " + "
+        " (SELECT COUNT(DISTINCT storm_report_id) FROM hail_leads_spc "
+        "    WHERE storm_type = 'Hail' "
+        "    AND storm_date >= CURRENT_DATE - INTERVAL '365 days')"
     ))
     hail_events_last_year = int(hail_events_row.scalar() or 0)
 
@@ -480,22 +505,26 @@ async def _storm_source_freshness(
 
 
 async def _fresh_leads_counts() -> FreshLeadsCounts:
-    """Hail-leads counts for several recency windows."""
+    """Hail-leads counts for several recency windows.
+
+    Reads from `hail_leads_unified` so leads from both NOAA storm_events and
+    SPC storm reports surface in the freshness KPI.
+    """
     this_week = await _safe_scalar(
-        "SELECT COUNT(*) FROM hail_leads "
+        "SELECT COUNT(*) FROM hail_leads_unified "
         "WHERE storm_date >= CURRENT_DATE - INTERVAL '7 days'",
         label="fresh.this_week",
         default=0,
     )
     last_week = await _safe_scalar(
-        "SELECT COUNT(*) FROM hail_leads "
+        "SELECT COUNT(*) FROM hail_leads_unified "
         "WHERE storm_date >= CURRENT_DATE - INTERVAL '14 days' "
         "AND storm_date <  CURRENT_DATE - INTERVAL '7 days'",
         label="fresh.last_week",
         default=0,
     )
     last_30d = await _safe_scalar(
-        "SELECT COUNT(*) FROM hail_leads "
+        "SELECT COUNT(*) FROM hail_leads_unified "
         "WHERE storm_date >= CURRENT_DATE - INTERVAL '30 days'",
         label="fresh.last_30d",
         default=0,
@@ -633,6 +662,7 @@ async def _cron_heartbeats() -> list[CronHeartbeat]:
     # MV refresh heartbeats — use pg_stat_user_tables.last_analyze.
     for cron_name, relname in (
         ("mv_refresh_hail_leads", "hail_leads"),
+        ("mv_refresh_hail_leads_spc", "hail_leads_spc"),
         ("mv_refresh_address_permit_history", "address_permit_history"),
     ):
         if cron_name in seen_names:
@@ -699,6 +729,7 @@ async def hail_leads_health() -> HailLeadsHealth:
     """
     mvs = [
         await _mv_freshness("hail_leads", data_col="storm_date"),
+        await _mv_freshness("hail_leads_spc", data_col="storm_date"),
         await _mv_freshness(
             "address_permit_history", data_col="latest_permit_date"
         ),
@@ -772,145 +803,6 @@ async def hail_leads_refresh_mvs() -> dict[str, str]:
 
 
 # ---------------------------------------------------------------------------
-# Schema dump (temporary — used to design the SPC sibling MV).
-# Static route — placed BEFORE /{lead_id}. Will be removed in the same PR
-# that adds hail_leads_spc.
-# ---------------------------------------------------------------------------
-
-_SCHEMA_QUERY_TIMEOUT_SEC = 5.0
-
-
-def _json_safe_row(row: dict[str, Any]) -> dict[str, Any]:
-    """Coerce a DB row into a JSON-safe dict (datetimes -> str, etc.)."""
-    return json.loads(json.dumps(dict(row), default=str))
-
-
-async def _schema_for_relation(name: str) -> TableSchemaInfo:
-    """Dump columns + reltuples + a one-row sample for `name`.
-
-    Each subquery runs in its own primary session with a 5s statement_timeout
-    and an asyncio.wait_for outer budget so a stuck table can't block the
-    other two. On any failure we degrade to safe defaults.
-    """
-    columns: list[ColumnInfo] = []
-    row_count: int = -1
-    sample_row: dict[str, Any] | None = None
-    exists: bool = False
-
-    # 1) Columns from information_schema --------------------------------
-    async def _load_columns() -> None:
-        nonlocal columns, exists
-        async with primary_session_maker() as session:
-            await session.execute(text("SET LOCAL statement_timeout = '5s'"))
-            result = await session.execute(
-                text(
-                    "SELECT column_name, data_type, is_nullable "
-                    "FROM information_schema.columns "
-                    "WHERE table_name = :n "
-                    "ORDER BY ordinal_position"
-                ),
-                {"n": name},
-            )
-            rows = result.mappings().all()
-            columns = [
-                ColumnInfo(
-                    column_name=str(r["column_name"]),
-                    data_type=str(r["data_type"]),
-                    is_nullable=(str(r["is_nullable"]).upper() == "YES"),
-                )
-                for r in rows
-            ]
-            exists = bool(columns)
-
-    try:
-        await asyncio.wait_for(
-            _load_columns(), timeout=_SCHEMA_QUERY_TIMEOUT_SEC
-        )
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("_schemas columns(%s) failed: %s", name, exc)
-
-    # 2) Row count via pg_class.reltuples -------------------------------
-    async def _load_row_count() -> None:
-        nonlocal row_count
-        async with primary_session_maker() as session:
-            await session.execute(text("SET LOCAL statement_timeout = '5s'"))
-            result = await session.execute(
-                text(
-                    "SELECT GREATEST(reltuples, 0)::bigint "
-                    "FROM pg_class WHERE relname = :n"
-                ),
-                {"n": name},
-            )
-            scalar = result.scalar()
-            row_count = int(scalar) if scalar is not None else -1
-
-    try:
-        await asyncio.wait_for(
-            _load_row_count(), timeout=_SCHEMA_QUERY_TIMEOUT_SEC
-        )
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("_schemas row_count(%s) failed: %s", name, exc)
-        row_count = -1
-
-    # 3) Sample row (one row, JSON-coerced) -----------------------------
-    if exists:
-        async def _load_sample() -> None:
-            nonlocal sample_row
-            async with primary_session_maker() as session:
-                await session.execute(
-                    text("SET LOCAL statement_timeout = '5s'")
-                )
-                # Identifier comes from a fixed allowlist passed by caller —
-                # not user input — so f-string interpolation is safe here.
-                result = await session.execute(
-                    text(f"SELECT * FROM {name} LIMIT 1")
-                )
-                row = result.mappings().first()
-                sample_row = _json_safe_row(dict(row)) if row else None
-
-        try:
-            await asyncio.wait_for(
-                _load_sample(), timeout=_SCHEMA_QUERY_TIMEOUT_SEC
-            )
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("_schemas sample(%s) failed: %s", name, exc)
-            sample_row = None
-
-    return TableSchemaInfo(
-        name=name,
-        exists=exists,
-        columns=columns,
-        row_count=row_count,
-        sample_row=sample_row,
-    )
-
-
-@router.get(
-    "/_schemas",
-    response_model=HailLeadsSchemas,
-    dependencies=[Depends(require_demo_key)],
-)
-async def hail_leads_schemas() -> HailLeadsSchemas:
-    """One-shot schema dump for storm_events, spc_storm_reports, hail_leads.
-
-    Used to design the upcoming SPC sibling MV. Will be removed in the same
-    PR that adds hail_leads_spc. Each relation is dumped in its own session
-    with a 5s statement timeout and a 5s asyncio budget so a single bad
-    table can't block the others.
-    """
-    storm_events = await _schema_for_relation("storm_events")
-    spc_storm_reports = await _schema_for_relation("spc_storm_reports")
-    hail_leads = await _schema_for_relation("hail_leads")
-
-    return HailLeadsSchemas(
-        generated_at=datetime.now(timezone.utc),
-        storm_events=storm_events,
-        spc_storm_reports=spc_storm_reports,
-        hail_leads=hail_leads,
-    )
-
-
-# ---------------------------------------------------------------------------
 # 2) GET / (list with filters)
 # NOTE: must come BEFORE the /{lead_id} catch-all.
 # ---------------------------------------------------------------------------
@@ -934,16 +826,15 @@ def _list_select_sql(order_by: str) -> str:
                 hl.storm_magnitude                                    AS hail_size_inches,
                 hl.issue_date                                         AS permit_date,
                 hl.days_after_storm                                   AS days_after_storm,
-                hc.lead_category                                      AS lead_category,
+                hl.lead_category                                      AS lead_category,
                 hl.description                                        AS permit_description,
                 hl.contractor_company                                 AS competitor_contractor,
                 hl.hail_lead_score                                    AS score,
+                hl.storm_source                                       AS storm_source,
                 COALESCE(aph.prior_roof_permits, 0)                    AS prior_roof_permits,
                 aph.last_roof_permit_date                             AS last_roof_permit_date,
                 (hle.address_norm IS NOT NULL)                        AS owner_enriched
-            FROM hail_leads hl
-            LEFT JOIN hail_leads_categorized hc
-                   USING (lead_id, storm_event_id)
+            FROM hail_leads_unified hl
             LEFT JOIN address_permit_history aph
                    ON aph.address_norm = {_ADDRESS_NORM_SQL}
                   AND aph.zip = hl.zip
@@ -994,8 +885,7 @@ async def hail_leads_list(
     # Count (over collapsed distinct set)
     count_sql = (
         f"SELECT COUNT(*) FROM (SELECT DISTINCT hl.lead_id "
-        f"FROM hail_leads hl "
-        f"LEFT JOIN hail_leads_categorized hc USING (lead_id, storm_event_id) "
+        f"FROM hail_leads_unified hl "
         f"LEFT JOIN address_permit_history aph "
         f"  ON aph.address_norm = {_ADDRESS_NORM_SQL} AND aph.zip = hl.zip "
         f"LEFT JOIN hail_leads_enriched hle "
@@ -1094,6 +984,7 @@ _EXPORT_COLUMNS = [
     "Address", "City", "Zip", "County", "Storm Date", "Hail Size",
     "Permit Date", "Days After", "Category", "Description", "Competitor",
     "Year Built", "Prior Roofs", "Owner Name", "Phone 1", "Email 1",
+    "Storm Source",
 ]
 
 
@@ -1136,10 +1027,11 @@ async def hail_leads_export_csv(
                 hl.storm_magnitude                                    AS hail_size_inches,
                 hl.issue_date                                         AS permit_date,
                 hl.days_after_storm                                   AS days_after_storm,
-                hc.lead_category                                      AS lead_category,
+                hl.lead_category                                      AS lead_category,
                 hl.description                                        AS description,
                 hl.contractor_company                                 AS contractor,
                 hl.hail_lead_score                                    AS score,
+                hl.storm_source                                       AS storm_source,
                 COALESCE(aph.prior_roof_permits, 0)                    AS prior_roof_permits,
                 tyb.year_built                                        AS year_built,
                 hle.owner_name                                        AS owner_name,
@@ -1160,9 +1052,7 @@ async def hail_leads_export_csv(
                   || (CASE WHEN hle.email_2 IS NOT NULL THEN jsonb_build_array(hle.email_2) ELSE '[]'::jsonb END),
                   '[]'::jsonb
                 )                                                      AS emails
-            FROM hail_leads hl
-            LEFT JOIN hail_leads_categorized hc
-                   USING (lead_id, storm_event_id)
+            FROM hail_leads_unified hl
             LEFT JOIN address_permit_history aph
                    ON aph.address_norm = {_ADDRESS_NORM_SQL}
                   AND aph.zip = hl.zip
@@ -1216,6 +1106,7 @@ async def hail_leads_export_csv(
             r["owner_name"] or "",
             phone_1,
             email_1,
+            r["storm_source"] or "",
         ])
 
     buf.seek(0)
@@ -1251,7 +1142,7 @@ async def _fetch_leads_for_enrich(
             hl.state            AS state,
             hl.zip              AS zip,
             {_ADDRESS_NORM_SQL} AS address_norm
-        FROM hail_leads hl
+        FROM hail_leads_unified hl
         WHERE hl.lead_id::text = ANY(:lead_ids)
         ORDER BY hl.lead_id, hl.hail_lead_score DESC NULLS LAST
     """)
@@ -1535,7 +1426,8 @@ async def hail_lead_detail(
             hl.description                                            AS description,
             hl.valuation                                              AS valuation,
             hl.contractor_company                                     AS contractor,
-            hc.lead_category                                          AS lead_category,
+            hl.lead_category                                          AS lead_category,
+            hl.storm_source                                           AS storm_source,
             aph.address_norm                                          AS address_norm,
             aph.permit_count                                          AS total_permits,
             aph.prior_roof_permits                                     AS prior_roof_permits,
@@ -1564,8 +1456,7 @@ async def hail_lead_detail(
             hle.age                                                   AS age,
             hle.deceased                                              AS deceased,
             (hle.address_norm IS NOT NULL)                            AS owner_enriched
-        FROM hail_leads hl
-        LEFT JOIN hail_leads_categorized hc USING (lead_id, storm_event_id)
+        FROM hail_leads_unified hl
         LEFT JOIN address_permit_history aph
                ON aph.address_norm = {_ADDRESS_NORM_SQL}
               AND aph.zip = hl.zip

@@ -1,6 +1,7 @@
 """Materialized-view refresh job for the hail-leads pipeline.
 
-`hail_leads` (storm × permit join, ~17M rows) and `address_permit_history`
+`hail_leads` (NOAA storm_events × hot_leads, ~17M rows), `hail_leads_spc`
+(SPC storm_reports × hot_leads, ~2.4M rows), and `address_permit_history`
 (per-address permit aggregate, ~848K rows) are refreshed nightly. This module
 is the only place those refreshes live now — the previous T430 cron is
 deprecated.
@@ -23,6 +24,7 @@ logger = logging.getLogger(__name__)
 
 _MVS = (
     ("mv_refresh_hail_leads", "hail_leads"),
+    ("mv_refresh_hail_leads_spc", "hail_leads_spc"),
     ("mv_refresh_address_permit_history", "address_permit_history"),
 )
 

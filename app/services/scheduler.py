@@ -48,8 +48,8 @@ def start_scheduler():
     )
 
     # Hail-leads MV refresh: 04:25 UTC daily (matches retired T430 cron slot).
-    # Two MVs refreshed sequentially in one job; each refresh writes its own
-    # cron_heartbeat row.
+    # Three MVs refreshed sequentially in one job (hail_leads, hail_leads_spc,
+    # address_permit_history); each refresh writes its own cron_heartbeat row.
     scheduler.add_job(
         refresh_hail_leads_mvs,
         trigger=CronTrigger(hour=4, minute=25),

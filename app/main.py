@@ -190,6 +190,114 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("Could not create storm_events table: %s", e)
 
+    # Auto-migrate: hail_leads_spc materialized view + hail_leads_unified view.
+    # `hail_leads_spc` mirrors `hail_leads`'s output shape but joins
+    # spc_storm_reports × hot_leads, so SPC-sourced storms (loaded daily) reach
+    # the product even when storm_events (NOAA, weekly) is stale.
+    # `hail_leads_unified` is a cheap UNION ALL fronted by the API so a single
+    # query surfaces leads from BOTH sources with a `storm_source` discriminator.
+    # CREATE MATERIALIZED VIEW IF NOT EXISTS is idempotent — safe across redeploys.
+    try:
+        async with primary_engine.begin() as conn:
+            await conn.execute(_text("""
+                CREATE MATERIALIZED VIEW IF NOT EXISTS hail_leads_spc AS
+                WITH storms AS (
+                    SELECT report_id, report_type, size_in AS magnitude,
+                           report_date AS storm_date,
+                           UPPER(county) AS county_upper,
+                           state, lat AS begin_lat, lon AS begin_lon,
+                           comments AS damage_property
+                      FROM spc_storm_reports
+                     WHERE report_type IN ('hail','wind','torn')
+                       AND state = 'TX'
+                       AND report_date >= '2020-01-01'
+                ), leads AS (
+                    SELECT id, permit_number, address, city, state, zip, county,
+                           upper(county) AS county_upper, lat, lng, issue_date,
+                           permit_type, work_class, description, valuation,
+                           contractor_company, contractor_phone, owner_name, source, jurisdiction,
+                           lower(coalesce(description,''))~'(roof|shingle|siding|gutter|fence|awning|hail)'
+                        OR lower(coalesce(work_class,''))~'(roof|re-?roof|reroof|siding)'
+                        OR lower(coalesce(permit_type,''))~'(roof|siding)' AS is_roofish
+                      FROM hot_leads
+                     WHERE state = 'TX' AND issue_date IS NOT NULL AND issue_date >= '2020-01-01'
+                )
+                SELECT l.id AS lead_id, l.permit_number, l.address, l.city, l.state, l.zip, l.county,
+                       l.lat, l.lng, l.issue_date, l.permit_type, l.work_class, l.description,
+                       l.valuation, l.contractor_company, l.contractor_phone, l.owner_name,
+                       l.source, l.jurisdiction, l.is_roofish,
+                       NULL::bigint AS storm_event_id,
+                       s.report_id AS storm_report_id,
+                       CASE s.report_type
+                           WHEN 'hail' THEN 'Hail'
+                           WHEN 'wind' THEN 'Thunderstorm Wind'
+                           WHEN 'torn' THEN 'Tornado'
+                           ELSE INITCAP(s.report_type)
+                       END AS storm_type,
+                       s.magnitude AS storm_magnitude, s.storm_date,
+                       (l.issue_date - s.storm_date)::integer AS days_after_storm,
+                       s.damage_property AS storm_damage_report,
+                       GREATEST(0, 365 - (CURRENT_DATE - s.storm_date))::double precision / 365.0 *
+                           coalesce(s.magnitude,1.0) *
+                           CASE WHEN l.is_roofish THEN 2.5 ELSE 1.0 END AS hail_lead_score,
+                       CASE
+                           WHEN lower(coalesce(l.description,''))~'(solar|photovoltaic|\\bpv\\b|pv system|solar panel)' THEN 'solar'
+                           WHEN lower(coalesce(l.description,''))~'(\\bre-?roof\\b|reroof|new roof|replace.*roof(?!.*solar)|tear off|tear-off|roof.*replac|replace.*shingle|shingle.*replace|re-?shingl|strip.*roof|roof.*strip|cover.*replace|deck.*replace.*roof|full roof replace)' THEN 'roof_replace'
+                           WHEN lower(coalesce(l.description,''))~'(siding.*replace|replace.*siding|new siding|reside\\s)' THEN 'siding'
+                           WHEN lower(coalesce(l.description,''))~'(gutter|downspout|leader)' THEN 'gutter'
+                           WHEN lower(coalesce(l.description,''))~'(fence.*replace|replace.*fence|new fence|storm damage.*fence)' THEN 'fence'
+                           WHEN lower(coalesce(l.description,''))~'(window.*replace|replace.*window|storm window|hail.*window)' THEN 'window'
+                           WHEN l.is_roofish THEN 'other_roof'
+                           ELSE 'non_roof'
+                       END AS lead_category
+                  FROM leads l
+                  JOIN storms s ON s.county_upper = l.county_upper
+                              AND l.issue_date >= s.storm_date
+                              AND l.issue_date <= s.storm_date + INTERVAL '120 days'
+            """))
+            await conn.execute(_text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_hail_leads_spc_lead_report "
+                "ON hail_leads_spc (lead_id, storm_report_id)"
+            ))
+            await conn.execute(_text(
+                "CREATE INDEX IF NOT EXISTS ix_hail_leads_spc_storm_date "
+                "ON hail_leads_spc (storm_date)"
+            ))
+            await conn.execute(_text(
+                "CREATE INDEX IF NOT EXISTS ix_hail_leads_spc_county "
+                "ON hail_leads_spc (county)"
+            ))
+    except Exception as e:
+        logger.warning("Could not create hail_leads_spc MV: %s", e)
+
+    # Unified view: UNION ALL of hail_leads_categorized (NOAA) + hail_leads_spc (SPC).
+    # Adds a `storm_source` discriminator. Created with CREATE OR REPLACE so
+    # column changes propagate cleanly across redeploys.
+    try:
+        async with primary_engine.begin() as conn:
+            await conn.execute(_text("""
+                CREATE OR REPLACE VIEW hail_leads_unified AS
+                SELECT
+                    lead_id, permit_number, address, city, state, zip, county, lat, lng, issue_date,
+                    permit_type, work_class, description, valuation, contractor_company, contractor_phone,
+                    owner_name, source, jurisdiction, is_roofish, storm_event_id, storm_type, storm_magnitude,
+                    storm_date, days_after_storm, storm_damage_report, hail_lead_score, lead_category,
+                    'storm_events'::text AS storm_source,
+                    NULL::text           AS storm_report_id
+                  FROM hail_leads_categorized
+                UNION ALL
+                SELECT
+                    lead_id, permit_number, address, city, state, zip, county, lat, lng, issue_date,
+                    permit_type, work_class, description, valuation, contractor_company, contractor_phone,
+                    owner_name, source, jurisdiction, is_roofish, storm_event_id, storm_type, storm_magnitude,
+                    storm_date, days_after_storm, storm_damage_report, hail_lead_score, lead_category,
+                    'spc_storm_reports'::text AS storm_source,
+                    storm_report_id
+                  FROM hail_leads_spc
+            """))
+    except Exception as e:
+        logger.warning("Could not create hail_leads_unified view: %s", e)
+
     # Start alert scheduler (also schedules hail-leads MV refresh at 04:25 UTC)
     from app.services.scheduler import start_scheduler, stop_scheduler
     try:
