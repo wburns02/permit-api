@@ -791,56 +791,41 @@ async def hail_leads_diag(
     the injected session, and only reads pg_catalog tables (pg_get_viewdef,
     pg_matviews, pg_class.reltuples). No scans of hail_leads itself.
     """
-    # MV definition — defer to a fresh autocommit connection so we don't
-    # poison the main /stats-style transaction if pg_matviews/pg_get_viewdef
-    # blocks. We try pg_get_viewdef from pg_class.relname → oid lookup, then
-    # fall back to pg_matviews. Each in its own short-lived connection.
+    # MV definition — try multiple paths on the SAME injected session
+    # (the same db that successfully runs reltuples lookups). Catch each
+    # exception to prevent transaction poisoning between attempts.
     mv_definition: str | None = None
-    import asyncio as _asyncio
-
-    async def _read_viewdef() -> str | None:
-        # Try multiple paths in priority order. Each in its own transaction
-        # so a failure in one doesn't poison the next.
-        attempts = (
-            (
-                "pg_matviews",
-                "SELECT definition FROM pg_matviews "
-                "WHERE matviewname = 'hail_leads'",
-            ),
-            (
-                "pg_get_viewdef_oid",
-                "SELECT pg_get_viewdef(c.oid, true) "
-                "FROM pg_class c WHERE c.relname = 'hail_leads' "
-                "AND c.relkind = 'm' LIMIT 1",
-            ),
-            (
-                "information_schema",
-                "SELECT view_definition FROM information_schema.views "
-                "WHERE table_name = 'hail_leads'",
-            ),
-        )
-        for label, sql in attempts:
-            async with replica_session_maker() as s:
-                try:
-                    await s.execute(text("SET LOCAL statement_timeout = '4s'"))
-                    r = await s.execute(text(sql))
-                    val = r.scalar()
-                    if val:
-                        return str(val)
-                except Exception as exc:  # noqa: BLE001
-                    logger.warning("diag viewdef %s failed: %s", label, exc)
-                    try:
-                        await s.rollback()
-                    except Exception:  # noqa: BLE001
-                        pass
-        return None
-
-    try:
-        mv_definition = await _asyncio.wait_for(_read_viewdef(), timeout=15)
-    except _asyncio.TimeoutError:
-        logger.warning("diag _read_viewdef wait_for timed out")
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("diag _read_viewdef outer: %s", exc)
+    viewdef_attempts = (
+        (
+            "pg_matviews",
+            "SELECT definition FROM pg_matviews "
+            "WHERE matviewname = 'hail_leads'",
+        ),
+        (
+            "pg_get_viewdef_oid",
+            "SELECT pg_get_viewdef(c.oid, true) "
+            "FROM pg_class c WHERE c.relname = 'hail_leads' "
+            "AND c.relkind = 'm' LIMIT 1",
+        ),
+        (
+            "information_schema",
+            "SELECT view_definition FROM information_schema.views "
+            "WHERE table_name = 'hail_leads'",
+        ),
+    )
+    for label, sql in viewdef_attempts:
+        try:
+            r = await db.execute(text(sql))
+            val = r.scalar()
+            if val:
+                mv_definition = str(val)
+                break
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("diag viewdef %s failed: %s", label, exc)
+            try:
+                await db.rollback()
+            except Exception:  # noqa: BLE001
+                pass
 
     # Cheap reltuples lookups — same pattern as /stats.
     mv_row_count = 0
