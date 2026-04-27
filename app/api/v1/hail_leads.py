@@ -843,20 +843,23 @@ async def hail_leads_diag(
             "AND c.relkind = 'm' LIMIT 1",
         ),
     )
+    debug: dict[str, str] = {}
     for label, sql in viewdef_attempts:
         try:
             await db.execute(text("SET LOCAL statement_timeout = '4s'"))
             r = await db.execute(text(sql))
             val = r.scalar()
+            debug[label] = f"ok scalar={'NULL' if val is None else f'len={len(str(val))}'}"
             if val:
                 mv_definition = str(val)
                 break
         except Exception as exc:  # noqa: BLE001
             logger.warning("diag viewdef %s failed: %s", label, exc)
+            debug[label] = f"err {type(exc).__name__}: {str(exc)[:200]}"
             try:
                 await db.rollback()
-            except Exception:  # noqa: BLE001
-                pass
+            except Exception as exc2:  # noqa: BLE001
+                debug[label + ".rollback"] = f"err {type(exc2).__name__}: {str(exc2)[:200]}"
 
     # Cheap reltuples lookups — same pattern as /stats.
     mv_row_count = 0
@@ -913,6 +916,7 @@ async def hail_leads_diag(
         mv_storm_type_counts=[],
         storm_events_count=storm_events_count,
         spc_storm_reports_count=spc_storm_reports_count,
+        debug=debug or None,
     )
 
 

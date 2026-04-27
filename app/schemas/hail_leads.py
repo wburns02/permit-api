@@ -220,3 +220,4 @@ class HailLeadsDiag(BaseModel):
     mv_storm_type_counts: list[StormTypeCount]
     storm_events_count: int
     spc_storm_reports_count: int
+    debug: dict[str, str] | None = None
