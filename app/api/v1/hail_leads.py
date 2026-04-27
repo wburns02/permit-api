@@ -824,6 +824,7 @@ async def hail_leads_diag(
     )
     for label, sql in viewdef_attempts:
         try:
+            await db.execute(text("SET LOCAL statement_timeout = '4s'"))
             r = await db.execute(text(sql))
             val = r.scalar()
             if val:
@@ -839,6 +840,7 @@ async def hail_leads_diag(
     # Cheap reltuples lookups — same pattern as /stats.
     mv_row_count = 0
     try:
+        await db.execute(text("SET LOCAL statement_timeout = '5s'"))
         row = await db.execute(text(
             "SELECT GREATEST(reltuples, 0)::bigint FROM pg_class "
             "WHERE relname = 'hail_leads'"
@@ -846,9 +848,14 @@ async def hail_leads_diag(
         mv_row_count = int(row.scalar() or 0)
     except Exception as exc:  # noqa: BLE001
         logger.warning("diag mv_row_count failed: %s", exc)
+        try:
+            await db.rollback()
+        except Exception:  # noqa: BLE001
+            pass
 
     storm_events_count = -1
     try:
+        await db.execute(text("SET LOCAL statement_timeout = '5s'"))
         row = await db.execute(text(
             "SELECT GREATEST(reltuples, 0)::bigint FROM pg_class "
             "WHERE relname = 'storm_events'"
@@ -857,9 +864,14 @@ async def hail_leads_diag(
         storm_events_count = int(v) if v is not None else -1
     except Exception as exc:  # noqa: BLE001
         logger.warning("diag storm_events_count failed: %s", exc)
+        try:
+            await db.rollback()
+        except Exception:  # noqa: BLE001
+            pass
 
     spc_storm_reports_count = -1
     try:
+        await db.execute(text("SET LOCAL statement_timeout = '5s'"))
         row = await db.execute(text(
             "SELECT GREATEST(reltuples, 0)::bigint FROM pg_class "
             "WHERE relname = 'spc_storm_reports'"
@@ -868,6 +880,10 @@ async def hail_leads_diag(
         spc_storm_reports_count = int(v) if v is not None else -1
     except Exception as exc:  # noqa: BLE001
         logger.warning("diag spc_storm_reports_count failed: %s", exc)
+        try:
+            await db.rollback()
+        except Exception:  # noqa: BLE001
+            pass
 
     return HailLeadsDiag(
         mv_definition=mv_definition,
