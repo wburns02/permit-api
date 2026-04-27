@@ -780,16 +780,17 @@ async def _diag_scalar(
     default: Any,
     timeout_sec: int = 5,
 ) -> Any:
-    """Single-scalar query against the PRIMARY with a short timeout.
+    """Single-scalar query against the REPLICA with a short timeout.
 
-    Bypasses the replica probe entirely so a slow replica or exhausted
-    replica pool can't hang the diag endpoint. Uses an asyncio.wait_for
-    wrapper so even a hung connection acquire is bounded.
+    Hits the replica directly (skipping the SELECT 1 probe) because the
+    primary is held by the boot-time MV refresh and we just need
+    pg_catalog reads. Wraps in asyncio.wait_for so even a hung connection
+    acquire is bounded.
     """
     import asyncio as _asyncio
     try:
         async def _run() -> Any:
-            async with primary_session_maker() as session:
+            async with replica_session_maker() as session:
                 try:
                     await session.execute(
                         text(f"SET LOCAL statement_timeout = '{int(timeout_sec)}s'")
@@ -822,13 +823,13 @@ async def hail_leads_diag() -> HailLeadsDiag:
     Read-only, demo-key gated. Will be removed once the question is answered.
 
     Notes on robustness:
-      - All queries hit the PRIMARY directly (skipping the replica probe)
-        because the replica may be slow or pool-exhausted.
+      - All queries hit the REPLICA directly (skipping the SELECT 1
+        probe) because the primary may be locked by an MV refresh.
       - Each query is bounded by both `statement_timeout` and an outer
         `asyncio.wait_for` so the endpoint can't hang even if a connection
         acquire blocks.
-      - Heavy aggregations on the 17M-row MV use TABLESAMPLE SYSTEM (1) and
-        scale by 100, so the endpoint returns within seconds.
+      - Endpoint reads only pg_catalog (pg_get_viewdef, pg_matviews,
+        pg_class.reltuples) — no scans of hail_leads itself.
     """
     import asyncio as _asyncio
 
@@ -836,7 +837,7 @@ async def hail_leads_diag() -> HailLeadsDiag:
     mv_definition: str | None = None
     try:
         async def _viewdef() -> str | None:
-            async with primary_session_maker() as session:
+            async with replica_session_maker() as session:
                 try:
                     await session.execute(text("SET LOCAL statement_timeout = '5s'"))
                     row = await session.execute(text(
@@ -854,7 +855,7 @@ async def hail_leads_diag() -> HailLeadsDiag:
     if not mv_definition:
         try:
             async def _matview() -> str | None:
-                async with primary_session_maker() as session:
+                async with replica_session_maker() as session:
                     try:
                         await session.execute(text("SET LOCAL statement_timeout = '5s'"))
                         row = await session.execute(text(
