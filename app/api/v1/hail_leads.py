@@ -52,6 +52,7 @@ from app.schemas.hail_leads import (
     HailLeadPermit,
     HailLeadPhone,
     HailLeadStorm,
+    HailLeadsDiag,
     HailLeadsEnrichRequest,
     HailLeadsEnrichResponse,
     HailLeadsHealth,
@@ -60,6 +61,7 @@ from app.schemas.hail_leads import (
     MaterializedViewFreshness,
     SortKey,
     StormSourceFreshness,
+    StormTypeCount,
 )
 
 logger = logging.getLogger(__name__)
@@ -764,6 +766,94 @@ async def hail_leads_refresh_mvs() -> dict[str, str]:
             "/v1/hail-leads/health in ~5-15 min for updated cron heartbeats."
         ),
     }
+
+
+# ---------------------------------------------------------------------------
+# Diagnostic endpoint (one-shot — confirms which storm-source feeds the MV)
+# Static route — placed BEFORE /{lead_id}. Will be removed in a follow-up.
+# ---------------------------------------------------------------------------
+
+@router.get(
+    "/_diag",
+    response_model=HailLeadsDiag,
+    dependencies=[Depends(require_demo_key)],
+)
+async def hail_leads_diag() -> HailLeadsDiag:
+    """One-shot diagnostic: returns the live hail_leads MV definition plus
+    row/source counts so we can confirm which upstream storm table actually
+    feeds the MV (storm_events vs spc_storm_reports vs both).
+
+    Read-only, demo-key gated. Will be removed once the question is answered.
+    """
+    # MV definition — wrap in its own session so a perms/name failure doesn't
+    # poison anything else; degrade to None on failure.
+    mv_definition: str | None = None
+    try:
+        async with _read_session() as session:
+            await session.execute(text("SET LOCAL statement_timeout = '10s'"))
+            row = await session.execute(text(
+                "SELECT pg_get_viewdef('hail_leads'::regclass, true)"
+            ))
+            mv_definition = row.scalar()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("hail-leads diag: pg_get_viewdef failed: %s", exc)
+        mv_definition = None
+
+    # Simple count scalars — _safe_scalar already isolates per-session and
+    # degrades to a default on failure (table missing, timeout, etc.).
+    mv_row_count_raw = await _safe_scalar(
+        "SELECT GREATEST(reltuples, 0)::bigint FROM pg_class "
+        "WHERE relname = 'hail_leads'",
+        label="diag.mv_row_count",
+        default=0,
+    )
+    mv_distinct_storm_event_ids_raw = await _safe_scalar(
+        "SELECT COUNT(DISTINCT storm_event_id) FROM hail_leads",
+        label="diag.mv_distinct_storm_event_ids",
+        default=0,
+    )
+    storm_events_count_raw = await _safe_scalar(
+        "SELECT COUNT(*) FROM storm_events",
+        label="diag.storm_events_count",
+        default=-1,
+    )
+    spc_storm_reports_count_raw = await _safe_scalar(
+        "SELECT COUNT(*) FROM spc_storm_reports",
+        label="diag.spc_storm_reports_count",
+        default=-1,
+    )
+
+    # storm_type histogram — top 10. Separate query, own session, 20s timeout.
+    storm_type_counts: list[StormTypeCount] = []
+    try:
+        async with _read_session() as session:
+            await session.execute(text("SET LOCAL statement_timeout = '20s'"))
+            rows = (await session.execute(text(
+                "SELECT storm_type, COUNT(*) AS n FROM hail_leads "
+                "GROUP BY storm_type ORDER BY n DESC LIMIT 10"
+            ))).mappings().all()
+            storm_type_counts = [
+                StormTypeCount(
+                    storm_type=(
+                        str(r["storm_type"])
+                        if r["storm_type"] is not None else None
+                    ),
+                    n=int(r["n"] or 0),
+                )
+                for r in rows
+            ]
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("hail-leads diag: storm_type histogram failed: %s", exc)
+        storm_type_counts = []
+
+    return HailLeadsDiag(
+        mv_definition=mv_definition,
+        mv_row_count=int(mv_row_count_raw or 0),
+        mv_distinct_storm_event_ids=int(mv_distinct_storm_event_ids_raw or 0),
+        mv_storm_type_counts=storm_type_counts,
+        storm_events_count=int(storm_events_count_raw if storm_events_count_raw is not None else -1),
+        spc_storm_reports_count=int(spc_storm_reports_count_raw if spc_storm_reports_count_raw is not None else -1),
+    )
 
 
 # ---------------------------------------------------------------------------
