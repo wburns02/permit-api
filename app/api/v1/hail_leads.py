@@ -791,23 +791,36 @@ async def hail_leads_diag(
     the injected session, and only reads pg_catalog tables (pg_get_viewdef,
     pg_matviews, pg_class.reltuples). No scans of hail_leads itself.
     """
-    # MV definition — read from pg_matviews (a system catalog view backed by
-    # pg_rewrite). We deliberately avoid pg_get_viewdef('hail_leads'::regclass)
-    # because it can block on the relation lock when a REFRESH MATERIALIZED
-    # VIEW (non-concurrent) is in progress.
+    # MV definition — defer to a fresh autocommit connection so we don't
+    # poison the main /stats-style transaction if pg_matviews/pg_get_viewdef
+    # blocks. We try pg_get_viewdef from pg_class.relname → oid lookup, then
+    # fall back to pg_matviews. Each in its own short-lived connection.
     mv_definition: str | None = None
+    import asyncio as _asyncio
+
+    async def _read_viewdef() -> str | None:
+        async with replica_session_maker() as s:
+            try:
+                await s.execute(text("SET LOCAL statement_timeout = '5s'"))
+                r = await s.execute(text(
+                    "SELECT definition FROM pg_matviews "
+                    "WHERE matviewname = 'hail_leads'"
+                ))
+                return r.scalar()
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("diag _read_viewdef inner: %s", exc)
+                try:
+                    await s.rollback()
+                except Exception:  # noqa: BLE001
+                    pass
+                return None
+
     try:
-        row = await db.execute(text(
-            "SELECT definition FROM pg_matviews "
-            "WHERE matviewname = 'hail_leads'"
-        ))
-        mv_definition = row.scalar()
+        mv_definition = await _asyncio.wait_for(_read_viewdef(), timeout=8)
+    except _asyncio.TimeoutError:
+        logger.warning("diag _read_viewdef wait_for timed out")
     except Exception as exc:  # noqa: BLE001
-        logger.warning("diag pg_matviews lookup failed: %s", exc)
-        try:
-            await db.rollback()
-        except Exception:  # noqa: BLE001
-            pass
+        logger.warning("diag _read_viewdef outer: %s", exc)
 
     # Cheap reltuples lookups — same pattern as /stats.
     mv_row_count = 0
