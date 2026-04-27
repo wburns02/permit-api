@@ -52,7 +52,6 @@ from app.schemas.hail_leads import (
     HailLeadPermit,
     HailLeadPhone,
     HailLeadStorm,
-    HailLeadsDiag,
     HailLeadsEnrichRequest,
     HailLeadsEnrichResponse,
     HailLeadsHealth,
@@ -61,7 +60,6 @@ from app.schemas.hail_leads import (
     MaterializedViewFreshness,
     SortKey,
     StormSourceFreshness,
-    StormTypeCount,
 )
 
 logger = logging.getLogger(__name__)
@@ -766,159 +764,6 @@ async def hail_leads_refresh_mvs() -> dict[str, str]:
             "/v1/hail-leads/health in ~5-15 min for updated cron heartbeats."
         ),
     }
-
-
-# ---------------------------------------------------------------------------
-# Diagnostic endpoint (one-shot — confirms which storm-source feeds the MV)
-# Static route — placed BEFORE /{lead_id}. Will be removed in a follow-up.
-# ---------------------------------------------------------------------------
-
-@router.get(
-    "/_diag",
-    response_model=HailLeadsDiag,
-    dependencies=[Depends(require_demo_key)],
-)
-async def hail_leads_diag(
-    db: AsyncSession = Depends(get_read_db),
-) -> HailLeadsDiag:
-    """One-shot diagnostic: returns the live hail_leads MV definition plus
-    row/source counts so we can confirm which upstream storm table actually
-    feeds the MV (storm_events vs spc_storm_reports vs both).
-
-    Read-only, demo-key gated. Will be removed once the question is answered.
-
-    Mirrors /stats — uses Depends(get_read_db), runs each query directly on
-    the injected session, and only reads pg_catalog tables (pg_get_viewdef,
-    pg_matviews, pg_class.reltuples). No scans of hail_leads itself.
-    """
-    # MV definition — try multiple paths on the SAME injected session
-    # (the same db that successfully runs reltuples lookups). Catch each
-    # exception to prevent transaction poisoning between attempts.
-    mv_definition: str | None = None
-    viewdef_attempts = (
-        (
-            "pg_depend_dependencies",
-            # If pg_get_viewdef and pg_matviews block on relation locks held
-            # by REFRESH, the next-best thing is to list which tables/views
-            # the matview depends on (via pg_depend). That answers our
-            # diagnostic question (storm_events vs spc_storm_reports)
-            # without needing the full SQL text.
-            "SELECT string_agg(DISTINCT dep_class.relname || ' (' || "
-            "    CASE dep_class.relkind WHEN 'r' THEN 'table' "
-            "                            WHEN 'v' THEN 'view' "
-            "                            WHEN 'm' THEN 'matview' "
-            "                            ELSE dep_class.relkind::text END "
-            "    || ')', ', ' ORDER BY dep_class.relname || ' (' || "
-            "    CASE dep_class.relkind WHEN 'r' THEN 'table' "
-            "                            WHEN 'v' THEN 'view' "
-            "                            WHEN 'm' THEN 'matview' "
-            "                            ELSE dep_class.relkind::text END || ')') "
-            "FROM pg_class mv "
-            "JOIN pg_rewrite r ON r.ev_class = mv.oid "
-            "JOIN pg_depend d ON d.objid = r.oid AND d.classid = 'pg_rewrite'::regclass "
-            "JOIN pg_class dep_class ON dep_class.oid = d.refobjid "
-            "WHERE mv.relname = 'hail_leads' AND mv.relkind = 'm' "
-            "AND dep_class.relname <> 'hail_leads' "
-            "AND dep_class.relkind IN ('r','v','m')",
-        ),
-        (
-            "pg_rewrite_direct",
-            "SELECT pg_get_ruledef(r.oid, true) "
-            "FROM pg_rewrite r "
-            "JOIN pg_class c ON c.oid = r.ev_class "
-            "WHERE c.relname = 'hail_leads' "
-            "AND c.relkind = 'm' "
-            "AND r.rulename = '_RETURN' "
-            "LIMIT 1",
-        ),
-        (
-            "pg_matviews",
-            "SELECT definition FROM pg_matviews "
-            "WHERE matviewname = 'hail_leads'",
-        ),
-        (
-            "pg_get_viewdef_oid",
-            "SELECT pg_get_viewdef(c.oid, true) "
-            "FROM pg_class c WHERE c.relname = 'hail_leads' "
-            "AND c.relkind = 'm' LIMIT 1",
-        ),
-    )
-    debug: dict[str, str] = {}
-    for label, sql in viewdef_attempts:
-        try:
-            await db.execute(text("SET LOCAL statement_timeout = '4s'"))
-            r = await db.execute(text(sql))
-            val = r.scalar()
-            debug[label] = f"ok scalar={'NULL' if val is None else f'len={len(str(val))}'}"
-            if val:
-                mv_definition = str(val)
-                if label != "pg_depend_dependencies":
-                    break
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("diag viewdef %s failed: %s", label, exc)
-            debug[label] = f"err {type(exc).__name__}: {str(exc)[:200]}"
-            try:
-                await db.rollback()
-            except Exception as exc2:  # noqa: BLE001
-                debug[label + ".rollback"] = f"err {type(exc2).__name__}: {str(exc2)[:200]}"
-
-    # Cheap reltuples lookups — same pattern as /stats.
-    mv_row_count = 0
-    try:
-        await db.execute(text("SET LOCAL statement_timeout = '5s'"))
-        row = await db.execute(text(
-            "SELECT GREATEST(reltuples, 0)::bigint FROM pg_class "
-            "WHERE relname = 'hail_leads'"
-        ))
-        mv_row_count = int(row.scalar() or 0)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("diag mv_row_count failed: %s", exc)
-        try:
-            await db.rollback()
-        except Exception:  # noqa: BLE001
-            pass
-
-    storm_events_count = -1
-    try:
-        await db.execute(text("SET LOCAL statement_timeout = '5s'"))
-        row = await db.execute(text(
-            "SELECT GREATEST(reltuples, 0)::bigint FROM pg_class "
-            "WHERE relname = 'storm_events'"
-        ))
-        v = row.scalar()
-        storm_events_count = int(v) if v is not None else -1
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("diag storm_events_count failed: %s", exc)
-        try:
-            await db.rollback()
-        except Exception:  # noqa: BLE001
-            pass
-
-    spc_storm_reports_count = -1
-    try:
-        await db.execute(text("SET LOCAL statement_timeout = '5s'"))
-        row = await db.execute(text(
-            "SELECT GREATEST(reltuples, 0)::bigint FROM pg_class "
-            "WHERE relname = 'spc_storm_reports'"
-        ))
-        v = row.scalar()
-        spc_storm_reports_count = int(v) if v is not None else -1
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("diag spc_storm_reports_count failed: %s", exc)
-        try:
-            await db.rollback()
-        except Exception:  # noqa: BLE001
-            pass
-
-    return HailLeadsDiag(
-        mv_definition=mv_definition,
-        mv_row_count=mv_row_count,
-        mv_distinct_storm_event_ids=0,
-        mv_storm_type_counts=[],
-        storm_events_count=storm_events_count,
-        spc_storm_reports_count=spc_storm_reports_count,
-        debug=debug or None,
-    )
 
 
 # ---------------------------------------------------------------------------

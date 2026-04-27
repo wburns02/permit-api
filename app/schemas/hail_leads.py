@@ -200,24 +200,4 @@ class HailLeadsHealth(BaseModel):
     fresh_leads: FreshLeadsCounts
     coverage: list[CoverageStat]
     crons: list[CronHeartbeat]
-
-
-# ---------------------------------------------------------------------------
-# Diag (one-shot — investigates which storm-source feeds the hail_leads MV)
-# ---------------------------------------------------------------------------
-
-class StormTypeCount(BaseModel):
-    """Single (storm_type, n) row for the MV storm_type histogram."""
-    storm_type: str | None
-    n: int
-
-
-class HailLeadsDiag(BaseModel):
-    """Diagnostic snapshot of the hail_leads MV and its upstream sources."""
-    mv_definition: str | None
-    mv_row_count: int
-    mv_distinct_storm_event_ids: int
-    mv_storm_type_counts: list[StormTypeCount]
-    storm_events_count: int
-    spc_storm_reports_count: int
     debug: dict[str, str] | None = None
