@@ -773,140 +773,91 @@ async def hail_leads_refresh_mvs() -> dict[str, str]:
 # Static route — placed BEFORE /{lead_id}. Will be removed in a follow-up.
 # ---------------------------------------------------------------------------
 
-async def _diag_scalar(
-    sql: str,
-    *,
-    label: str,
-    default: Any,
-    timeout_sec: int = 5,
-) -> Any:
-    """Single-scalar query against the REPLICA with a short timeout.
-
-    Hits the replica directly (skipping the SELECT 1 probe) because the
-    primary is held by the boot-time MV refresh and we just need
-    pg_catalog reads. Wraps in asyncio.wait_for so even a hung connection
-    acquire is bounded.
-    """
-    import asyncio as _asyncio
-    try:
-        async def _run() -> Any:
-            async with replica_session_maker() as session:
-                try:
-                    await session.execute(
-                        text(f"SET LOCAL statement_timeout = '{int(timeout_sec)}s'")
-                    )
-                    row = await session.execute(text(sql))
-                    return row.scalar()
-                except Exception as exc:  # noqa: BLE001
-                    logger.warning("diag query failed (%s): %s", label, exc)
-                    await session.rollback()
-                    return default
-        return await _asyncio.wait_for(_run(), timeout=timeout_sec + 5)
-    except _asyncio.TimeoutError:
-        logger.warning("diag query wait_for timed out (%s)", label)
-        return default
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("diag query session failed (%s): %s", label, exc)
-        return default
-
-
 @router.get(
     "/_diag",
     response_model=HailLeadsDiag,
     dependencies=[Depends(require_demo_key)],
 )
-async def hail_leads_diag() -> HailLeadsDiag:
+async def hail_leads_diag(
+    db: AsyncSession = Depends(get_read_db),
+) -> HailLeadsDiag:
     """One-shot diagnostic: returns the live hail_leads MV definition plus
     row/source counts so we can confirm which upstream storm table actually
     feeds the MV (storm_events vs spc_storm_reports vs both).
 
     Read-only, demo-key gated. Will be removed once the question is answered.
 
-    Notes on robustness:
-      - All queries hit the REPLICA directly (skipping the SELECT 1
-        probe) because the primary may be locked by an MV refresh.
-      - Each query is bounded by both `statement_timeout` and an outer
-        `asyncio.wait_for` so the endpoint can't hang even if a connection
-        acquire blocks.
-      - Endpoint reads only pg_catalog (pg_get_viewdef, pg_matviews,
-        pg_class.reltuples) — no scans of hail_leads itself.
+    Mirrors /stats — uses Depends(get_read_db), runs each query directly on
+    the injected session, and only reads pg_catalog tables (pg_get_viewdef,
+    pg_matviews, pg_class.reltuples). No scans of hail_leads itself.
     """
-    import asyncio as _asyncio
-
     # MV definition — try pg_get_viewdef first; fall back to pg_matviews.
     mv_definition: str | None = None
     try:
-        async def _viewdef() -> str | None:
-            async with replica_session_maker() as session:
-                try:
-                    await session.execute(text("SET LOCAL statement_timeout = '5s'"))
-                    row = await session.execute(text(
-                        "SELECT pg_get_viewdef('hail_leads'::regclass, true)"
-                    ))
-                    return row.scalar()
-                except Exception:  # noqa: BLE001
-                    await session.rollback()
-                    return None
-        mv_definition = await _asyncio.wait_for(_viewdef(), timeout=10)
+        row = await db.execute(text(
+            "SELECT pg_get_viewdef('hail_leads'::regclass, true)"
+        ))
+        mv_definition = row.scalar()
     except Exception as exc:  # noqa: BLE001
-        logger.warning("hail-leads diag: pg_get_viewdef failed: %s", exc)
-        mv_definition = None
-
+        logger.warning("diag pg_get_viewdef failed: %s", exc)
+        try:
+            await db.rollback()
+        except Exception:  # noqa: BLE001
+            pass
     if not mv_definition:
         try:
-            async def _matview() -> str | None:
-                async with replica_session_maker() as session:
-                    try:
-                        await session.execute(text("SET LOCAL statement_timeout = '5s'"))
-                        row = await session.execute(text(
-                            "SELECT definition FROM pg_matviews "
-                            "WHERE matviewname = 'hail_leads'"
-                        ))
-                        return row.scalar()
-                    except Exception:  # noqa: BLE001
-                        await session.rollback()
-                        return None
-            mv_definition = await _asyncio.wait_for(_matview(), timeout=10)
+            row = await db.execute(text(
+                "SELECT definition FROM pg_matviews "
+                "WHERE matviewname = 'hail_leads'"
+            ))
+            mv_definition = row.scalar()
         except Exception as exc:  # noqa: BLE001
-            logger.warning("hail-leads diag: pg_matviews lookup failed: %s", exc)
+            logger.warning("diag pg_matviews lookup failed: %s", exc)
+            try:
+                await db.rollback()
+            except Exception:  # noqa: BLE001
+                pass
 
-    mv_row_count_raw = await _diag_scalar(
-        "SELECT GREATEST(reltuples, 0)::bigint FROM pg_class "
-        "WHERE relname = 'hail_leads'",
-        label="diag.mv_row_count",
-        default=0,
-    )
-    # Skip the heavy distinct-count entirely — TABLESAMPLE on a freshly
-    # refreshed MV can still block on the AccessShare lock if a refresh
-    # transaction is winding down. The mv_definition is the actual
-    # diagnostic deliverable; this field is supporting evidence we can
-    # live without.
-    mv_distinct_storm_event_ids_raw = 0
-    storm_events_count_raw = await _diag_scalar(
-        "SELECT GREATEST(reltuples, 0)::bigint FROM pg_class "
-        "WHERE relname = 'storm_events'",
-        label="diag.storm_events_count",
-        default=-1,
-    )
-    spc_storm_reports_count_raw = await _diag_scalar(
-        "SELECT GREATEST(reltuples, 0)::bigint FROM pg_class "
-        "WHERE relname = 'spc_storm_reports'",
-        label="diag.spc_storm_reports_count",
-        default=-1,
-    )
+    # Cheap reltuples lookups — same pattern as /stats.
+    mv_row_count = 0
+    try:
+        row = await db.execute(text(
+            "SELECT GREATEST(reltuples, 0)::bigint FROM pg_class "
+            "WHERE relname = 'hail_leads'"
+        ))
+        mv_row_count = int(row.scalar() or 0)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("diag mv_row_count failed: %s", exc)
 
-    # storm_type histogram — skipped to keep the endpoint reliably under
-    # Railway's 5min HTTP timeout. The mv_definition is the deliverable;
-    # we can re-introduce a histogram once we've answered the diag question.
-    storm_type_counts: list[StormTypeCount] = []
+    storm_events_count = -1
+    try:
+        row = await db.execute(text(
+            "SELECT GREATEST(reltuples, 0)::bigint FROM pg_class "
+            "WHERE relname = 'storm_events'"
+        ))
+        v = row.scalar()
+        storm_events_count = int(v) if v is not None else -1
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("diag storm_events_count failed: %s", exc)
+
+    spc_storm_reports_count = -1
+    try:
+        row = await db.execute(text(
+            "SELECT GREATEST(reltuples, 0)::bigint FROM pg_class "
+            "WHERE relname = 'spc_storm_reports'"
+        ))
+        v = row.scalar()
+        spc_storm_reports_count = int(v) if v is not None else -1
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("diag spc_storm_reports_count failed: %s", exc)
 
     return HailLeadsDiag(
         mv_definition=mv_definition,
-        mv_row_count=int(mv_row_count_raw or 0),
-        mv_distinct_storm_event_ids=int(mv_distinct_storm_event_ids_raw or 0),
-        mv_storm_type_counts=storm_type_counts,
-        storm_events_count=int(storm_events_count_raw if storm_events_count_raw is not None else -1),
-        spc_storm_reports_count=int(spc_storm_reports_count_raw if spc_storm_reports_count_raw is not None else -1),
+        mv_row_count=mv_row_count,
+        mv_distinct_storm_event_ids=0,
+        mv_storm_type_counts=[],
+        storm_events_count=storm_events_count,
+        spc_storm_reports_count=spc_storm_reports_count,
     )
 
 
