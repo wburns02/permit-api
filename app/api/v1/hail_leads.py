@@ -797,20 +797,29 @@ async def hail_leads_diag(
     mv_definition: str | None = None
     viewdef_attempts = (
         (
+            "pg_rewrite_direct",
+            # Read the rule action text directly from pg_rewrite, joined to
+            # pg_class by oid. Avoids pg_matviews (which blocks on REFRESH)
+            # and pg_get_viewdef() (which takes a relation lock).
+            "SELECT pg_get_ruledef(r.oid, true) "
+            "FROM pg_rewrite r "
+            "JOIN pg_class c ON c.oid = r.ev_class "
+            "WHERE c.relname = 'hail_leads' "
+            "AND c.relkind = 'm' "
+            "AND r.rulename = '_RETURN' "
+            "LIMIT 1",
+        ),
+        (
             "pg_matviews",
             "SELECT definition FROM pg_matviews "
-            "WHERE matviewname = 'hail_leads'",
+            "WHERE matviewname = 'hail_leads' "
+            "AND schemaname = 'public'",
         ),
         (
             "pg_get_viewdef_oid",
             "SELECT pg_get_viewdef(c.oid, true) "
             "FROM pg_class c WHERE c.relname = 'hail_leads' "
             "AND c.relkind = 'm' LIMIT 1",
-        ),
-        (
-            "information_schema",
-            "SELECT view_definition FROM information_schema.views "
-            "WHERE table_name = 'hail_leads'",
         ),
     )
     for label, sql in viewdef_attempts:
