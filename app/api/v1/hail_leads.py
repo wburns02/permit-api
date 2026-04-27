@@ -875,13 +875,12 @@ async def hail_leads_diag() -> HailLeadsDiag:
         label="diag.mv_row_count",
         default=0,
     )
-    mv_distinct_storm_event_ids_raw = await _diag_scalar(
-        "SELECT COUNT(DISTINCT storm_event_id) * 100 "
-        "FROM hail_leads TABLESAMPLE SYSTEM (1)",
-        label="diag.mv_distinct_storm_event_ids_approx",
-        default=0,
-        timeout_sec=15,
-    )
+    # Skip the heavy distinct-count entirely — TABLESAMPLE on a freshly
+    # refreshed MV can still block on the AccessShare lock if a refresh
+    # transaction is winding down. The mv_definition is the actual
+    # diagnostic deliverable; this field is supporting evidence we can
+    # live without.
+    mv_distinct_storm_event_ids_raw = 0
     storm_events_count_raw = await _diag_scalar(
         "SELECT GREATEST(reltuples, 0)::bigint FROM pg_class "
         "WHERE relname = 'storm_events'",
@@ -895,37 +894,10 @@ async def hail_leads_diag() -> HailLeadsDiag:
         default=-1,
     )
 
-    # storm_type histogram — sample-based (1%) for sub-second returns.
+    # storm_type histogram — skipped to keep the endpoint reliably under
+    # Railway's 5min HTTP timeout. The mv_definition is the deliverable;
+    # we can re-introduce a histogram once we've answered the diag question.
     storm_type_counts: list[StormTypeCount] = []
-    try:
-        async def _hist() -> list[dict[str, Any]]:
-            async with primary_session_maker() as session:
-                try:
-                    await session.execute(text("SET LOCAL statement_timeout = '15s'"))
-                    rows = (await session.execute(text(
-                        "SELECT storm_type, (COUNT(*) * 100)::bigint AS n "
-                        "FROM hail_leads TABLESAMPLE SYSTEM (1) "
-                        "GROUP BY storm_type ORDER BY n DESC LIMIT 10"
-                    ))).mappings().all()
-                    return [dict(r) for r in rows]
-                except Exception as exc:  # noqa: BLE001
-                    logger.warning("hail-leads diag: histogram inner failed: %s", exc)
-                    await session.rollback()
-                    return []
-        rows = await _asyncio.wait_for(_hist(), timeout=20)
-        storm_type_counts = [
-            StormTypeCount(
-                storm_type=(
-                    str(r["storm_type"])
-                    if r["storm_type"] is not None else None
-                ),
-                n=int(r["n"] or 0),
-            )
-            for r in rows
-        ]
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("hail-leads diag: storm_type histogram failed: %s", exc)
-        storm_type_counts = []
 
     return HailLeadsDiag(
         mv_definition=mv_definition,
