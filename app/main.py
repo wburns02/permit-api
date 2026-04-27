@@ -138,15 +138,13 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("Failed to start alert scheduler: %s", e)
 
-    # Boot-time MV refresh — gated on cron_heartbeat staleness (>6h) so that
-    # restart loops never re-trigger a 17M-row REFRESH. Fires in the
-    # background so /health stays responsive during the rebuild.
-    try:
-        import asyncio as _asyncio
-        from app.services.mv_refresh import refresh_in_background
-        _asyncio.create_task(refresh_in_background())
-    except Exception as e:
-        logger.warning("Failed to schedule boot MV refresh: %s", e)
+    # Boot-time MV refresh DISABLED — even with a 6h staleness gate, the
+    # 17M-row REFRESH on a degraded primary races against the DB watchdog
+    # (~4.5 min to SIGTERM after 5 consecutive failed pings) and triggers a
+    # restart loop where every container boot kicks off another doomed
+    # REFRESH. The daily 04:25 UTC scheduled job and the manual
+    # /v1/hail-leads/refresh-mvs admin endpoint are sufficient for steady-
+    # state freshness without the boot-time risk.
 
     # Start DB health watchdog — kills process if DB unreachable 3x in a row
     # Railway auto-restarts crashed containers, which resets the Tailscale tunnel
