@@ -773,6 +773,42 @@ async def hail_leads_refresh_mvs() -> dict[str, str]:
 # Static route — placed BEFORE /{lead_id}. Will be removed in a follow-up.
 # ---------------------------------------------------------------------------
 
+async def _diag_scalar(
+    sql: str,
+    *,
+    label: str,
+    default: Any,
+    timeout_sec: int = 5,
+) -> Any:
+    """Single-scalar query against the PRIMARY with a short timeout.
+
+    Bypasses the replica probe entirely so a slow replica or exhausted
+    replica pool can't hang the diag endpoint. Uses an asyncio.wait_for
+    wrapper so even a hung connection acquire is bounded.
+    """
+    import asyncio as _asyncio
+    try:
+        async def _run() -> Any:
+            async with primary_session_maker() as session:
+                try:
+                    await session.execute(
+                        text(f"SET LOCAL statement_timeout = '{int(timeout_sec)}s'")
+                    )
+                    row = await session.execute(text(sql))
+                    return row.scalar()
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("diag query failed (%s): %s", label, exc)
+                    await session.rollback()
+                    return default
+        return await _asyncio.wait_for(_run(), timeout=timeout_sec + 5)
+    except _asyncio.TimeoutError:
+        logger.warning("diag query wait_for timed out (%s)", label)
+        return default
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("diag query session failed (%s): %s", label, exc)
+        return default
+
+
 @router.get(
     "/_diag",
     response_model=HailLeadsDiag,
@@ -784,87 +820,109 @@ async def hail_leads_diag() -> HailLeadsDiag:
     feeds the MV (storm_events vs spc_storm_reports vs both).
 
     Read-only, demo-key gated. Will be removed once the question is answered.
+
+    Notes on robustness:
+      - All queries hit the PRIMARY directly (skipping the replica probe)
+        because the replica may be slow or pool-exhausted.
+      - Each query is bounded by both `statement_timeout` and an outer
+        `asyncio.wait_for` so the endpoint can't hang even if a connection
+        acquire blocks.
+      - Heavy aggregations on the 17M-row MV use TABLESAMPLE SYSTEM (1) and
+        scale by 100, so the endpoint returns within seconds.
     """
-    # MV definition — try pg_get_viewdef first (works on regular views and
-    # most matviews), then fall back to pg_matviews.definition. Each in its
-    # own session with a short timeout so a failure can't poison the rest.
+    import asyncio as _asyncio
+
+    # MV definition — try pg_get_viewdef first; fall back to pg_matviews.
     mv_definition: str | None = None
     try:
-        async with _read_session() as session:
-            await session.execute(text("SET LOCAL statement_timeout = '5s'"))
-            row = await session.execute(text(
-                "SELECT pg_get_viewdef('hail_leads'::regclass, true)"
-            ))
-            mv_definition = row.scalar()
+        async def _viewdef() -> str | None:
+            async with primary_session_maker() as session:
+                try:
+                    await session.execute(text("SET LOCAL statement_timeout = '5s'"))
+                    row = await session.execute(text(
+                        "SELECT pg_get_viewdef('hail_leads'::regclass, true)"
+                    ))
+                    return row.scalar()
+                except Exception:  # noqa: BLE001
+                    await session.rollback()
+                    return None
+        mv_definition = await _asyncio.wait_for(_viewdef(), timeout=10)
     except Exception as exc:  # noqa: BLE001
         logger.warning("hail-leads diag: pg_get_viewdef failed: %s", exc)
         mv_definition = None
+
     if not mv_definition:
         try:
-            async with _read_session() as session:
-                await session.execute(text("SET LOCAL statement_timeout = '5s'"))
-                row = await session.execute(text(
-                    "SELECT definition FROM pg_matviews WHERE matviewname = 'hail_leads'"
-                ))
-                mv_definition = row.scalar()
+            async def _matview() -> str | None:
+                async with primary_session_maker() as session:
+                    try:
+                        await session.execute(text("SET LOCAL statement_timeout = '5s'"))
+                        row = await session.execute(text(
+                            "SELECT definition FROM pg_matviews "
+                            "WHERE matviewname = 'hail_leads'"
+                        ))
+                        return row.scalar()
+                    except Exception:  # noqa: BLE001
+                        await session.rollback()
+                        return None
+            mv_definition = await _asyncio.wait_for(_matview(), timeout=10)
         except Exception as exc:  # noqa: BLE001
             logger.warning("hail-leads diag: pg_matviews lookup failed: %s", exc)
 
-    # Cheap reltuples-based row count for the giant MV.
-    mv_row_count_raw = await _safe_scalar(
+    mv_row_count_raw = await _diag_scalar(
         "SELECT GREATEST(reltuples, 0)::bigint FROM pg_class "
         "WHERE relname = 'hail_leads'",
         label="diag.mv_row_count",
         default=0,
     )
-
-    # COUNT(DISTINCT storm_event_id) on a 17M-row MV is too heavy for an
-    # HTTP timeout. Use HyperLogLog approximation via a 1% TABLESAMPLE so the
-    # endpoint always returns within ~1s. The exact value isn't critical for
-    # the diagnostic question (we just need to know it's > 0 and roughly
-    # tracks the source-of-truth count).
-    mv_distinct_storm_event_ids_raw = await _safe_scalar(
+    mv_distinct_storm_event_ids_raw = await _diag_scalar(
         "SELECT COUNT(DISTINCT storm_event_id) * 100 "
         "FROM hail_leads TABLESAMPLE SYSTEM (1)",
         label="diag.mv_distinct_storm_event_ids_approx",
         default=0,
+        timeout_sec=15,
     )
-
-    # COUNT(*) on storm_events / spc_storm_reports — use reltuples (fast).
-    storm_events_count_raw = await _safe_scalar(
+    storm_events_count_raw = await _diag_scalar(
         "SELECT GREATEST(reltuples, 0)::bigint FROM pg_class "
         "WHERE relname = 'storm_events'",
         label="diag.storm_events_count",
         default=-1,
     )
-    spc_storm_reports_count_raw = await _safe_scalar(
+    spc_storm_reports_count_raw = await _diag_scalar(
         "SELECT GREATEST(reltuples, 0)::bigint FROM pg_class "
         "WHERE relname = 'spc_storm_reports'",
         label="diag.spc_storm_reports_count",
         default=-1,
     )
 
-    # storm_type histogram — sample-based (1%) so it returns quickly even on
-    # the 17M-row MV. Counts are scaled up by 100 to approximate full totals.
+    # storm_type histogram — sample-based (1%) for sub-second returns.
     storm_type_counts: list[StormTypeCount] = []
     try:
-        async with _read_session() as session:
-            await session.execute(text("SET LOCAL statement_timeout = '15s'"))
-            rows = (await session.execute(text(
-                "SELECT storm_type, (COUNT(*) * 100)::bigint AS n "
-                "FROM hail_leads TABLESAMPLE SYSTEM (1) "
-                "GROUP BY storm_type ORDER BY n DESC LIMIT 10"
-            ))).mappings().all()
-            storm_type_counts = [
-                StormTypeCount(
-                    storm_type=(
-                        str(r["storm_type"])
-                        if r["storm_type"] is not None else None
-                    ),
-                    n=int(r["n"] or 0),
-                )
-                for r in rows
-            ]
+        async def _hist() -> list[dict[str, Any]]:
+            async with primary_session_maker() as session:
+                try:
+                    await session.execute(text("SET LOCAL statement_timeout = '15s'"))
+                    rows = (await session.execute(text(
+                        "SELECT storm_type, (COUNT(*) * 100)::bigint AS n "
+                        "FROM hail_leads TABLESAMPLE SYSTEM (1) "
+                        "GROUP BY storm_type ORDER BY n DESC LIMIT 10"
+                    ))).mappings().all()
+                    return [dict(r) for r in rows]
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("hail-leads diag: histogram inner failed: %s", exc)
+                    await session.rollback()
+                    return []
+        rows = await _asyncio.wait_for(_hist(), timeout=20)
+        storm_type_counts = [
+            StormTypeCount(
+                storm_type=(
+                    str(r["storm_type"])
+                    if r["storm_type"] is not None else None
+                ),
+                n=int(r["n"] or 0),
+            )
+            for r in rows
+        ]
     except Exception as exc:  # noqa: BLE001
         logger.warning("hail-leads diag: storm_type histogram failed: %s", exc)
         storm_type_counts = []
