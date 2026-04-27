@@ -846,13 +846,19 @@ async def hail_leads_diag(
     debug: dict[str, str] = {}
     for label, sql in viewdef_attempts:
         try:
-            await db.execute(text("SET LOCAL statement_timeout = '4s'"))
+            # Give pg_get_viewdef / pg_matviews a generous timeout — they may
+            # need to wait briefly for catalog locks during MV refresh.
+            timeout = "30s" if label != "pg_depend_dependencies" else "5s"
+            await db.execute(text(f"SET LOCAL statement_timeout = '{timeout}'"))
             r = await db.execute(text(sql))
             val = r.scalar()
             debug[label] = f"ok scalar={'NULL' if val is None else f'len={len(str(val))}'}"
             if val:
                 mv_definition = str(val)
-                break
+                # Keep going if we only got the dependency list — try the
+                # other paths to see if we can get the full SQL too.
+                if label != "pg_depend_dependencies":
+                    break
         except Exception as exc:  # noqa: BLE001
             logger.warning("diag viewdef %s failed: %s", label, exc)
             debug[label] = f"err {type(exc).__name__}: {str(exc)[:200]}"
