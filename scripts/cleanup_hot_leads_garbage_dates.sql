@@ -88,3 +88,23 @@ SELECT COUNT(*) FROM hot_leads WHERE issue_date > CURRENT_DATE + INTERVAL '30 da
 
 \echo '--- trigger present (should be 1) ---'
 SELECT tgname FROM pg_trigger WHERE tgname = 'hot_leads_reject_bogus_issue_date';
+
+-- ---------------------------------------------------------------------------
+-- 5. CONCURRENTLY indexes on hail_leads MV — required to make list queries
+--    finish under Cloudflare's 100s gateway. Without these, MAX(storm_date)
+--    takes 109s and county-filtered list takes 55-83s on cold cache.
+--    CONCURRENTLY can't be inside a transaction, so reset autocommit first.
+-- ---------------------------------------------------------------------------
+\echo '--- building indexes on hail_leads (CONCURRENTLY, ~5-10 min each) ---'
+\set AUTOCOMMIT on
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_hail_leads_storm_date
+    ON hail_leads (storm_date);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_hail_leads_county_storm_date
+    ON hail_leads (county, storm_date);
+
+\echo '--- indexes present ---'
+SELECT indexname FROM pg_indexes
+ WHERE tablename = 'hail_leads'
+   AND indexname IN ('ix_hail_leads_storm_date', 'ix_hail_leads_county_storm_date');
