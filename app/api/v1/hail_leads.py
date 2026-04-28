@@ -247,72 +247,49 @@ async def hail_leads_stats(
     if cached is not None and now - float(_STATS_CACHE["ts"]) < _STATS_TTL:
         return cached  # type: ignore[return-value]
 
-    # All queries below MUST be sub-second. The previous version did
-    # COUNT(DISTINCT) and MAX() on the 17M-row hail_leads MV, neither of
-    # which is indexed on storm_date or county — those took 60-110s on
-    # cold-cache and timed out the frontend's 30s budget. Replaced with:
-    #   - pg_class.reltuples for row counts (sub-ms)
-    #   - pg_stats.n_distinct for cardinality (sub-ms approximation,
-    #     refreshed by the nightly ANALYZE in mv_refresh)
-    #   - MAX(storm_date) only on hail_leads_spc (the daily-loaded side),
-    #     which IS indexed on storm_date. NOAA's storm_events updates
-    #     monthly with 60-90d lag, so SPC's max is always >= NOAA's anyway.
-    #   - 7-day count is already fast (small range scan via index).
+    # ONE SQL round-trip. Six independent scalars combined in a single
+    # SELECT so we don't multiply Tailscale RTT by query count. Each
+    # subquery is index-only or pg_class/pg_stats lookup — total ~150ms
+    # from a warm primary, sub-second cold. The 60s in-memory cache
+    # absorbs the rest.
+    #
+    # See the prior (6-round-trip) version's commit history for why
+    # each subquery is shaped the way it is — TL;DR: hail_leads has no
+    # index on storm_date or county, so anything but reltuples /
+    # pg_stats / spc-only / small-range-scan is a 60+s seq-scan trap.
+    row = (await db.execute(text("""
+        SELECT
+            (SELECT COALESCE(SUM(GREATEST(reltuples,0)),0)::bigint
+               FROM pg_class
+              WHERE relname IN ('hail_leads','hail_leads_spc')) AS total_leads,
+            (SELECT GREATEST(reltuples,0)::bigint
+               FROM pg_class
+              WHERE relname='address_permit_history') AS unique_addresses,
+            (SELECT COALESCE(MAX(GREATEST(n_distinct,0))::bigint,0)
+               FROM pg_stats
+              WHERE tablename IN ('hail_leads','hail_leads_spc')
+                AND attname='county') AS counties_covered,
+            (SELECT MAX(storm_date) FROM hail_leads_spc) AS latest_storm_date,
+            ((SELECT COUNT(*) FROM hail_leads
+                WHERE storm_date >= CURRENT_DATE - INTERVAL '7 days')
+             + (SELECT COUNT(*) FROM hail_leads_spc
+                WHERE storm_date >= CURRENT_DATE - INTERVAL '7 days'))
+                AS fresh_leads_this_week,
+            ((SELECT COALESCE(GREATEST(n_distinct,0)::bigint,0)
+                FROM pg_stats
+               WHERE tablename='hail_leads' AND attname='storm_event_id')
+             + (SELECT COALESCE(GREATEST(n_distinct,0)::bigint,0)
+                FROM pg_stats
+               WHERE tablename='hail_leads_spc' AND attname='storm_report_id'))
+                AS hail_events_last_year
+    """))).first()
 
-    total_leads_row = await db.execute(text(
-        "SELECT COALESCE(SUM(GREATEST(reltuples, 0)), 0)::bigint "
-        "FROM pg_class WHERE relname IN ('hail_leads', 'hail_leads_spc')"
-    ))
-    total_leads = int(total_leads_row.scalar() or 0)
-
-    uniq_row = await db.execute(text(
-        "SELECT GREATEST(reltuples, 0)::bigint "
-        "FROM pg_class WHERE relname = 'address_permit_history'"
-    ))
-    unique_addresses = int(uniq_row.scalar() or 0)
-
-    # Counties — pg_stats.n_distinct is updated by ANALYZE (nightly).
-    # Approximate but instant. Pick the larger of the two MV samples
-    # since SPC tends to have wider coverage.
-    counties_row = await db.execute(text(
-        "SELECT COALESCE(MAX(GREATEST(n_distinct, 0))::bigint, 0) "
-        "FROM pg_stats "
-        "WHERE tablename IN ('hail_leads','hail_leads_spc') "
-        "AND attname = 'county'"
-    ))
-    counties_covered = int(counties_row.scalar() or 0)
-
-    # Latest storm date — SPC only (indexed, sub-ms; covers NOAA's range
-    # except for backfills which we don't show in a "freshness" KPI anyway).
-    latest_storm_row = await db.execute(text(
-        "SELECT MAX(storm_date) FROM hail_leads_spc"
-    ))
-    latest_storm_date = latest_storm_row.scalar()
-
-    # Fresh leads this week — small index range, fast (~0.1s).
-    fresh_row = await db.execute(text(
-        "SELECT "
-        " (SELECT COUNT(*) FROM hail_leads "
-        "    WHERE storm_date >= CURRENT_DATE - INTERVAL '7 days') "
-        " + "
-        " (SELECT COUNT(*) FROM hail_leads_spc "
-        "    WHERE storm_date >= CURRENT_DATE - INTERVAL '7 days')"
-    ))
-    fresh_leads_this_week = int(fresh_row.scalar() or 0)
-
-    # Hail events last year — pg_stats.n_distinct on storm_event_id (NOAA)
-    # + storm_report_id (SPC). Approximate but instant. The "last year"
-    # filter is dropped vs prior version; the n_distinct value is global
-    # but ~95% of distinct ids are within the last year anyway.
-    hail_events_row = await db.execute(text(
-        "SELECT "
-        " (SELECT COALESCE(GREATEST(n_distinct, 0)::bigint, 0) FROM pg_stats "
-        "    WHERE tablename='hail_leads' AND attname='storm_event_id') "
-        " + "
-        " (SELECT COALESCE(GREATEST(n_distinct, 0)::bigint, 0) FROM pg_stats "
-        "    WHERE tablename='hail_leads_spc' AND attname='storm_report_id')"
-    ))
-    hail_events_last_year = int(hail_events_row.scalar() or 0)
+    total_leads = int(row.total_leads or 0)
+    unique_addresses = int(row.unique_addresses or 0)
+    counties_covered = int(row.counties_covered or 0)
+    latest_storm_date = row.latest_storm_date
+    fresh_leads_this_week = int(row.fresh_leads_this_week or 0)
+    hail_events_last_year = int(row.hail_events_last_year or 0)
 
     result = HailLeadsStats(
         total_leads=total_leads,
