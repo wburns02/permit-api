@@ -41,8 +41,13 @@ def build_report():
     cur.execute("SELECT COUNT(*) FROM hot_leads")
     total_hot = cur.fetchone()[0]
 
+    # NOTE: filter MAX(issue_date) to <= CURRENT_DATE because some upstream
+    # scrapers (mgo_sebastian, round_rock_cityworks templates) emit far-future
+    # garbage dates that otherwise dominate the per-state max and produce
+    # nonsensical "-1102560d ago" rows in the coverage table.
     cur.execute("""
-        SELECT state, COUNT(*) as cnt, MAX(issue_date) as latest
+        SELECT state, COUNT(*) as cnt,
+               MAX(issue_date) FILTER (WHERE issue_date <= CURRENT_DATE) as latest
         FROM hot_leads
         GROUP BY state ORDER BY cnt DESC
     """)
@@ -50,7 +55,8 @@ def build_report():
 
     # 2. Fresh vs stale sources
     cur.execute("""
-        SELECT source, state, COUNT(*) as cnt, MAX(issue_date) as latest
+        SELECT source, state, COUNT(*) as cnt,
+               MAX(issue_date) FILTER (WHERE issue_date <= CURRENT_DATE) as latest
         FROM hot_leads
         GROUP BY source, state ORDER BY cnt DESC LIMIT 30
     """)
