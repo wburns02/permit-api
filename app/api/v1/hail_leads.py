@@ -28,6 +28,7 @@ from __future__ import annotations
 import csv
 import io
 import logging
+import time
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
@@ -37,6 +38,10 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
+
+# ---- in-memory cache for /stats (single-process, dies on restart, fine) ----
+_STATS_CACHE: dict[str, object] = {"value": None, "ts": 0.0}
+_STATS_TTL = 60.0  # seconds — recompute at most once per minute
 
 from app.config import settings
 from app.database import (
@@ -234,7 +239,17 @@ async def hail_leads_stats(
 
     `total_leads` is summed across both source MVs (hail_leads + hail_leads_spc)
     via reltuples — fast, approximate, sufficient for a dashboard header.
+
+    60s in-memory cache to avoid pool exhaustion under load.
     """
+    now = time.time()
+    cached = _STATS_CACHE.get("value")
+    if cached is not None and now - float(_STATS_CACHE["ts"]) < _STATS_TTL:
+        return cached  # type: ignore[return-value]
+
+    # Per-request hard cap — fail fast instead of hanging the pool.
+    await db.execute(text("SET LOCAL statement_timeout = '15s'"))
+
     # Use pg_class reltuples summed across both source MVs for fast
     # approximate count. reltuples is -1 after CREATE but refreshed by
     # ANALYZE/REFRESH (we ANALYZE both MVs in mv_refresh).
@@ -294,7 +309,7 @@ async def hail_leads_stats(
     ))
     hail_events_last_year = int(hail_events_row.scalar() or 0)
 
-    return HailLeadsStats(
+    result = HailLeadsStats(
         total_leads=total_leads,
         unique_addresses=unique_addresses,
         counties_covered=counties_covered,
@@ -302,6 +317,9 @@ async def hail_leads_stats(
         fresh_leads_this_week=fresh_leads_this_week,
         hail_events_last_year=hail_events_last_year,
     )
+    _STATS_CACHE["value"] = result
+    _STATS_CACHE["ts"] = now
+    return result
 
 
 # ---------------------------------------------------------------------------

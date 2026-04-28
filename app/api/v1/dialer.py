@@ -37,21 +37,11 @@ def _require_paid(user: ApiUser):
 # ---------------------------------------------------------------------------
 
 TRADE_FILTERS = {
-    "roofing": (
-        "(permit_type IN ('BP', 'RP', 'Building') AND (work_class ILIKE '%roof%' OR description ILIKE '%roof%'))"
-    ),
-    "hvac": (
-        "(permit_type IN ('MP', 'Mechanical') OR description ILIKE '%hvac%' OR description ILIKE '%air condition%')"
-    ),
-    "plumbing": (
-        "(permit_type IN ('PP', 'Plumbing') OR description ILIKE '%plumb%')"
-    ),
-    "electrical": (
-        "(permit_type IN ('EP', 'Electrical') OR description ILIKE '%electric%')"
-    ),
-    "solar": (
-        "(description ILIKE '%solar%' OR description ILIKE '%photovoltaic%')"
-    ),
+    "roofing": "permit_type IN ('BP', 'RP', 'Building', 'Roofing')",
+    "hvac": "permit_type IN ('MP', 'Mechanical', 'HVAC')",
+    "plumbing": "permit_type IN ('PP', 'Plumbing')",
+    "electrical": "permit_type IN ('EP', 'Electrical')",
+    "solar": "permit_type IN ('Solar')",
     "general": None,  # No filter — all permits
 }
 
@@ -112,6 +102,9 @@ async def get_call_queue(
     """
     _require_paid(user)
     await check_rate_limit(request, lookup_count=1)
+
+    # Belt-and-suspenders: never hang the connection pool on a slow query.
+    await db.execute(text("SET LOCAL statement_timeout = '20s'"))
 
     trade = trade.lower().strip()
     if trade not in VALID_TRADES:
