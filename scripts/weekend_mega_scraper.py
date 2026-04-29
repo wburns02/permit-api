@@ -62,14 +62,20 @@ def safe_float(v):
 def safe_date(v):
     if not v:
         return None
+    d = None
     try:
-        return datetime.fromisoformat(v.replace("T00:00:00.000", "").replace("Z", "")).date()
+        d = datetime.fromisoformat(v.replace("T00:00:00.000", "").replace("Z", "")).date()
     except Exception:
         pass
-    try:
-        return datetime.strptime(v[:10], "%Y-%m-%d").date()
-    except Exception:
+    if d is None:
+        try:
+            d = datetime.strptime(v[:10], "%Y-%m-%d").date()
+        except Exception:
+            return None
+    if not (1990 <= d.year <= date.today().year + 1):
+        log(f"  SKIP bogus date year={d.year} (raw: {v!r})")
         return None
+    return d
 
 
 def safe_datetime(v):

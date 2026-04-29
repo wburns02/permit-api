@@ -124,6 +124,9 @@ def scrape_citizenserve(installation_id: int, city_info: dict, days: int = 7) ->
                                 continue
                     except Exception:
                         pass
+                    if permit.get("issue_date") and not (1990 <= permit["issue_date"].year <= date.today().year + 1):
+                        log(f"  SKIP bogus issue_date {permit['issue_date']} (raw: {cell!r})")
+                        permit["issue_date"] = None
                 # Status
                 elif cell.lower() in ("issued", "approved", "active", "complete", "closed", "pending", "review"):
                     permit["status"] = cell
@@ -208,6 +211,9 @@ def parse_permit_detail(html: str, permit_number: str, city: str, state: str) ->
                     continue
         except Exception:
             pass
+        if permit.get("issue_date") and not (1990 <= permit["issue_date"].year <= date.today().year + 1):
+            log(f"  SKIP bogus issue_date {permit['issue_date']} (raw: {date_match.group(1)!r})")
+            permit["issue_date"] = None
 
     if permit.get("address"):
         return permit

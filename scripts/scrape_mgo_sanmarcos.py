@@ -247,6 +247,9 @@ def normalize_permit(item):
             permit["issue_date"] = datetime.fromisoformat(date_str.split("T")[0]).date()
         except (ValueError, AttributeError):
             pass
+    if permit.get("issue_date") and not (1990 <= permit["issue_date"].year <= date.today().year + 1):
+        log(f"  SKIP bogus issue_date {permit['issue_date']} for {pn!r} (raw: {date_str!r})")
+        permit["issue_date"] = None
 
     # Location data
     lat = item.get("projectLat")

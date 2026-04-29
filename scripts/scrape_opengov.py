@@ -779,6 +779,9 @@ def transform_record(raw, jurisdiction):
             issue_date = datetime.fromisoformat(created_at.replace("Z", "+00:00")).date()
         except Exception:
             pass
+    if issue_date and not (1990 <= issue_date.year <= date.today().year + 1):
+        print(f"  SKIP bogus issue_date {issue_date} (raw: {created_at!r})")
+        issue_date = None
 
     # Parse address
     address = (raw.get("fullAddress") or "").strip()

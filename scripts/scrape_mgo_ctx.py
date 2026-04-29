@@ -221,6 +221,9 @@ def normalize_permit(item, jurisdiction_name):
                 issue_date = datetime.strptime(str(date_str)[:10], "%Y-%m-%d").date()
         except Exception:
             pass
+    if issue_date and not (1990 <= issue_date.year <= date.today().year + 1):
+        log(f"  SKIP bogus issue_date {issue_date} for {permit_number!r} (raw: {date_str!r})")
+        issue_date = None
 
     # Extract city from address or use jurisdiction name
     city = item.get("city") or jurisdiction_name

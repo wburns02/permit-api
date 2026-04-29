@@ -239,6 +239,9 @@ def parse_permits_from_html(html, city_code, city_name, state):
             issue_date = datetime.strptime(issue_date_str, "%m/%d/%Y").date()
         except ValueError:
             pass
+        if issue_date and not (1990 <= issue_date.year <= date.today().year + 1):
+            log(f"  SKIP bogus issue_date {issue_date} for {permit_number!r} (raw: {issue_date_str!r})")
+            issue_date = None
 
         # Get detail URL for this record
         record_link = row.find("a", href=re.compile(r"Cap", re.IGNORECASE))

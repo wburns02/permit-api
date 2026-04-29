@@ -543,6 +543,9 @@ def parse_list_page(html: str, slug: str, portal_info: dict) -> list[dict]:
                 break
             except (ValueError, TypeError):
                 pass
+        if issue_date and not (1990 <= issue_date.year <= date.today().year + 1):
+            log(f"  SKIP bogus issue_date {issue_date} for {permit_num!r} (raw: {date_str!r})")
+            issue_date = None
 
         permit_type   = get_cell(idx_type)
         build_type    = get_cell(idx_build_type)
