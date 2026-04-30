@@ -24,6 +24,7 @@ logger = logging.getLogger(__name__)
 _PG_SERVER_SETTINGS = {
     "idle_in_transaction_session_timeout": "60000",  # 60s, in ms
     "lock_timeout": "30000",                         # 30s, in ms
+    "statement_timeout": "20000",                    # 20s, in ms
 }
 
 primary_engine = create_async_engine(

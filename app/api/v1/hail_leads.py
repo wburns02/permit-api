@@ -897,20 +897,18 @@ async def hail_leads_list(
     page_params = {**params, "_limit": page_size, "_offset": offset}
     rows_sql = base_select + " LIMIT :_limit OFFSET :_offset"
 
-    # Use Postgres-side statement_timeout instead of asyncio.wait_for —
-    # cancelling an in-flight asyncpg execute leaves the connection in a
-    # corrupted state that hangs the next request from the pool. Setting
-    # statement_timeout via SET LOCAL inside an explicit BEGIN bounds the
-    # query at the DB layer; on cancellation, asyncpg gets a clean error
-    # and rolls back cleanly.
-    async with db.begin():
-        await db.execute(text("SET LOCAL statement_timeout = '15s'"))
+    # Plain execute. Statement-timeout is set at the connection level via
+    # connect_args server_settings (statement_timeout=15s for read paths).
+    try:
+        result = await db.execute(text(rows_sql), page_params)
+        rows = result.mappings().all()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("hail-leads list main query failed: %s", exc)
         try:
-            result = await db.execute(text(rows_sql), page_params)
-            rows = result.mappings().all()
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("hail-leads list main query failed: %s", exc)
-            rows = []
+            await db.rollback()
+        except Exception:  # noqa: BLE001
+            pass
+        rows = []
 
     items = [
         HailLeadListItem(
