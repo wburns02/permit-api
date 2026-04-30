@@ -327,39 +327,15 @@ async def lifespan(app: FastAPI):
     # /v1/hail-leads/refresh-mvs admin endpoint are sufficient for steady-
     # state freshness without the boot-time risk.
 
-    # Start DB health watchdog — kills process if DB unreachable 3x in a row
-    # Railway auto-restarts crashed containers, which resets the Tailscale tunnel
-    import asyncio
-    import os
-    import signal
-
-    async def _db_watchdog():
-        from app.database import primary_session_maker
-        from sqlalchemy import text
-        consecutive_failures = 0
-        # Grace period: Tailscale needs time to establish routes on fresh deploy
-        await asyncio.sleep(120)
-        while True:
-            await asyncio.sleep(30)
-            try:
-                async with primary_session_maker() as db:
-                    await asyncio.wait_for(
-                        db.execute(text("SELECT 1")),
-                        timeout=10.0,
-                    )
-                consecutive_failures = 0
-            except Exception as e:
-                consecutive_failures += 1
-                logger.warning("DB watchdog: failure %d/%d — %s", consecutive_failures, 5, e)
-                if consecutive_failures >= 5:
-                    logger.error("DB watchdog: 5 consecutive failures, killing process for Railway restart")
-                    os.kill(os.getpid(), signal.SIGTERM)
-
-    watchdog_task = asyncio.create_task(_db_watchdog())
+    # DB health watchdog — DISABLED 2026-04-30. Was causing restart loops
+    # when Railway's Tailscale egress flakes briefly: pool exhausts → SELECT 1
+    # times out → 5 consecutive failures → SIGTERM → restart → repeat. The
+    # idle_in_transaction_session_timeout=60s server-side now handles the
+    # pool-leak failure mode that originally motivated the watchdog. Railway's
+    # own /health probe will still SIGTERM us if the app stops responding.
 
     yield
 
-    watchdog_task.cancel()
     try:
         stop_scheduler()
     except Exception:
