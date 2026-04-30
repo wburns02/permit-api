@@ -19,6 +19,33 @@ from app.models.team import TeamMember
 router = APIRouter(prefix="/dialer", tags=["Sales Dialer"])
 
 
+import time as _time
+
+# Per-query in-memory cache for /queue. Keyed by (user_id, trade, state, city,
+# zip, limit). 60s TTL — same pattern as hail_leads_stats. Single-process,
+# dies on restart, fine. Cuts the 21 parallel city calls from the H-Man Hot
+# Leads page from ~21*1.5s to ~1*1.5s + 20*5ms after first user.
+_QUEUE_CACHE: dict[tuple, tuple[float, dict]] = {}
+_QUEUE_CACHE_TTL = 60.0  # seconds
+
+def _queue_cache_get(key: tuple) -> dict | None:
+    entry = _QUEUE_CACHE.get(key)
+    if entry is None:
+        return None
+    ts, value = entry
+    if _time.time() - ts >= _QUEUE_CACHE_TTL:
+        _QUEUE_CACHE.pop(key, None)
+        return None
+    return value
+
+def _queue_cache_set(key: tuple, value: dict) -> None:
+    _QUEUE_CACHE[key] = (_time.time(), value)
+    # Bound memory: drop oldest when over 500 entries.
+    if len(_QUEUE_CACHE) > 500:
+        oldest = min(_QUEUE_CACHE, key=lambda k: _QUEUE_CACHE[k][0])
+        _QUEUE_CACHE.pop(oldest, None)
+
+
 # ---------------------------------------------------------------------------
 # Plan gating — any paid plan (Explorer+) can use the dialer
 # ---------------------------------------------------------------------------
@@ -102,6 +129,22 @@ async def get_call_queue(
     """
     _require_paid(user)
     await check_rate_limit(request, lookup_count=1)
+
+    cache_key = (
+        user.id,
+        trade.lower().strip(),
+        (state or "").upper(),
+        (city or "").lower(),
+        (zip or ""),
+        int(limit),
+    )
+    cached = _queue_cache_get(cache_key)
+    if cached is not None:
+        # Even cached responses log usage (it's still a billable lookup) but
+        # not the SQL.
+        db.add(_log_usage(user, request, "/v1/dialer/queue"))
+        await db.commit()
+        return cached
 
     # Belt-and-suspenders: never hang the connection pool on a slow query.
     await db.execute(text("SET LOCAL statement_timeout = '20s'"))
@@ -194,11 +237,13 @@ async def get_call_queue(
     db.add(_log_usage(user, request, "/v1/dialer/queue"))
     await db.commit()
 
-    return {
+    response = {
         "trade": trade,
         "count": len(leads),
         "leads": leads,
     }
+    _queue_cache_set(cache_key, response)
+    return response
 
 
 # ---------------------------------------------------------------------------
