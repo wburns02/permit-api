@@ -15,12 +15,25 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Primary engine (T430) — all writes go here
 # ---------------------------------------------------------------------------
+# Server-side PG settings applied at every connection startup.
+# `idle_in_transaction_session_timeout`: kills any session that holds a
+# transaction idle for >60s. Stops the runaway leak where a list-query
+# timeout leaves an asyncpg conn pinned in idle-in-transaction, eventually
+# exhausting the pool and triggering the watchdog SIGTERM cycle.
+# `lock_timeout`: bounds how long any DDL or write waits for a lock.
+_PG_SERVER_SETTINGS = {
+    "idle_in_transaction_session_timeout": "60000",  # 60s, in ms
+    "lock_timeout": "30000",                         # 30s, in ms
+}
+
 primary_engine = create_async_engine(
     settings.DATABASE_URL,
     pool_size=10,
     max_overflow=5,
     pool_recycle=3600,
     pool_pre_ping=True,
+    pool_timeout=10,   # fail fast instead of hanging 30s when pool exhausted
+    connect_args={"server_settings": _PG_SERVER_SETTINGS},
     echo=settings.DEBUG and not settings.is_production,
 )
 
@@ -41,6 +54,8 @@ if _replica_is_separate:
         max_overflow=10,
         pool_recycle=3600,
         pool_pre_ping=True,
+        pool_timeout=10,
+        connect_args={"server_settings": _PG_SERVER_SETTINGS},
         echo=settings.DEBUG and not settings.is_production,
     )
     logger.info("Read replica configured: reads will go to replica")
