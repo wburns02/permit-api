@@ -883,13 +883,13 @@ async def hail_leads_list(
     )
 
     # Count (over collapsed distinct set)
+    # COUNT only needs the unified MV — the WHERE clause references only
+    # columns on `hl`, never on aph/hle. Dropping those LEFT JOINs cuts out
+    # an 849K-row scan + a regex-on-every-row condition that was making the
+    # count timeout for any unfiltered query.
     count_sql = (
         f"SELECT COUNT(*) FROM (SELECT DISTINCT hl.lead_id "
         f"FROM hail_leads_unified hl "
-        f"LEFT JOIN address_permit_history aph "
-        f"  ON aph.address_norm = {_ADDRESS_NORM_SQL} AND aph.zip = hl.zip "
-        f"LEFT JOIN hail_leads_enriched hle "
-        f"  ON hle.address_norm = aph.address_norm AND hle.zip = aph.zip "
         f"WHERE {where_sql}) _q"
     )
 
