@@ -25,6 +25,7 @@ Data sources (all on primary Postgres at 100.122.216.15:5432/permits):
 
 from __future__ import annotations
 
+import asyncio
 import csv
 import io
 import logging
@@ -922,8 +923,23 @@ async def hail_leads_list(
     page_params = {**params, "_limit": page_size, "_offset": offset}
     rows_sql = base_select + " LIMIT :_limit OFFSET :_offset"
 
-    result = await db.execute(text(rows_sql), page_params)
-    rows = result.mappings().all()
+    # Hard cap the main list query so a slow scan can't tie up the connection
+    # past the frontend's 30s timeout (which would leak the conn into
+    # idle-in-transaction state). On timeout we fall through with rows=[]
+    # and let the user narrow filters; better than 502/CORS-confusion.
+    try:
+        result = await asyncio.wait_for(
+            db.execute(text(rows_sql), page_params),
+            timeout=15.0,
+        )
+        rows = result.mappings().all()
+    except asyncio.TimeoutError:
+        logger.warning("hail-leads list main query timed out at 15s; returning empty page")
+        try:
+            await db.rollback()
+        except Exception:  # noqa: BLE001
+            pass
+        rows = []
 
     items = [
         HailLeadListItem(
