@@ -883,41 +883,15 @@ async def hail_leads_list(
         "{where_sql}", where_sql
     )
 
-    # Count (over collapsed distinct set)
-    # COUNT only needs the unified MV — the WHERE clause references only
-    # columns on `hl`, never on aph/hle. Dropping those LEFT JOINs cuts out
-    # an 849K-row scan + a regex-on-every-row condition that was making the
-    # count timeout for any unfiltered query.
-    count_sql = (
-        f"SELECT COUNT(*) FROM (SELECT DISTINCT hl.lead_id "
-        f"FROM hail_leads_unified hl "
-        f"WHERE {where_sql}) _q"
-    )
-
-    # Run the count in a SEPARATE session so a statement_timeout abort here
-    # does not poison the main (list) transaction. In Postgres a
-    # QueryCanceledError taints the whole transaction, and subsequent queries
-    # fail with InFailedSQLTransactionError until ROLLBACK.
-    # If count fails/times out we return total=-1; existing frontend handles it.
+    # COUNT subquery is intentionally NOT run on the request path. Even
+    # though the query is sub-100ms in psql, opening a 2nd asyncpg session
+    # (in addition to the request's `db` session) was flaking through
+    # Railway's Tailscale tunnel and adding 30+ seconds per request. The
+    # frontend already handles total=-1 (shows "show more" pagination
+    # instead of a fixed page count), so the trade-off is: lose the exact
+    # row count, gain reliability. If we want totals back later, compute
+    # them in mv_refresh and read from a 1-row sidecar table.
     total = -1
-    try:
-        async with replica_session_maker() as count_session:
-            try:
-                await count_session.execute(
-                    text("SET LOCAL statement_timeout = '30s'")
-                )
-                total_row = await count_session.execute(text(count_sql), params)
-                total = int(total_row.scalar() or 0)
-            except Exception as exc:  # noqa: BLE001
-                logger.warning(
-                    "hail-leads count failed, returning -1: %s", exc
-                )
-                await count_session.rollback()
-                total = -1
-    except Exception as exc:  # noqa: BLE001
-        # Session-open failure — e.g., replica unreachable. Don't block list.
-        logger.warning("hail-leads count session open failed: %s", exc)
-        total = -1
 
     offset = (page - 1) * page_size
     page_params = {**params, "_limit": page_size, "_offset": offset}
