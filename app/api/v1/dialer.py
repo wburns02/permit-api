@@ -26,7 +26,7 @@ import time as _time
 # dies on restart, fine. Cuts the 21 parallel city calls from the H-Man Hot
 # Leads page from ~21*1.5s to ~1*1.5s + 20*5ms after first user.
 _QUEUE_CACHE: dict[tuple, tuple[float, dict]] = {}
-_QUEUE_CACHE_TTL = 60.0  # seconds
+_QUEUE_CACHE_TTL = 300.0  # 5 minutes — lead data is daily, not minute-resolution
 
 def _queue_cache_get(key: tuple) -> dict | None:
     entry = _QUEUE_CACHE.get(key)
@@ -118,8 +118,14 @@ async def get_call_queue(
     trade: str = Query("general", description="Trade filter: roofing, hvac, plumbing, electrical, solar, general"),
     state: str | None = Query(None, max_length=2),
     city: str | None = Query(None, max_length=100),
+    cities: str | None = Query(
+        None,
+        description="Comma-separated list of cities. When provided, overrides `city`. "
+                    "Use this to query multiple cities in one request (e.g. CTX metro). "
+                    "Max 30 cities.",
+    ),
     zip: str | None = Query(None, max_length=10),
-    limit: int = Query(25, ge=1, le=100),
+    limit: int = Query(25, ge=1, le=200),
     user: ApiUser = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -130,11 +136,30 @@ async def get_call_queue(
     _require_paid(user)
     await check_rate_limit(request, lookup_count=1)
 
+    # Parse multi-city input. `cities=` overrides `city=` when provided.
+    city_list: list[str] = []
+    if cities:
+        parts = [c.strip() for c in cities.split(",") if c.strip()]
+        if len(parts) > 30:
+            raise HTTPException(
+                status_code=400,
+                detail="Too many cities (max 30 per request)",
+            )
+        if any(len(p) > 100 for p in parts):
+            raise HTTPException(
+                status_code=400,
+                detail="City name too long (max 100 chars)",
+            )
+        city_list = parts
+    elif city:
+        city_list = [city]
+
     cache_key = (
         user.id,
         trade.lower().strip(),
         (state or "").upper(),
         (city or "").lower(),
+        tuple(c.lower() for c in city_list),  # NEW — explicit tuple of normalized cities
         (zip or ""),
         int(limit),
     )
@@ -169,9 +194,20 @@ async def get_call_queue(
     if state:
         where_clauses.append("h.state = :state")
         params["state"] = state.upper()
-    if city:
+    if len(city_list) == 1:
         where_clauses.append("h.city ILIKE :city")
-        params["city"] = f"%{city}%"
+        params["city"] = f"%{city_list[0]}%"
+    elif len(city_list) > 1:
+        # Build a parametrized list of city placeholders for IN-style match.
+        # We use ILIKE per city OR'd together so partial-match still works.
+        # hot_leads city values are inconsistently cased ("Austin" vs "AUSTIN")
+        # and sometimes contain trailing whitespace — ILIKE handles both.
+        or_parts = []
+        for i, c in enumerate(city_list):
+            key = f"city_{i}"
+            or_parts.append(f"h.city ILIKE :{key}")
+            params[key] = f"%{c}%"
+        where_clauses.append("(" + " OR ".join(or_parts) + ")")
     if zip:
         where_clauses.append("h.zip = :zip")
         params["zip"] = zip
