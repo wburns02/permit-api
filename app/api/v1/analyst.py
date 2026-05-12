@@ -4,6 +4,7 @@ The killer feature: ask questions in plain English, get SQL-powered answers
 from the largest property intelligence database in the industry.
 """
 
+import asyncio
 import json
 import logging
 import re
@@ -32,17 +33,17 @@ router = APIRouter(prefix="/analyst", tags=["AI Analyst"])
 ANTHROPIC_API_KEY = getattr(settings, "ANTHROPIC_API_KEY", None) or None
 
 try:
-    from anthropic import Anthropic
+    from anthropic import AsyncAnthropic
 except ImportError:
-    Anthropic = None
+    AsyncAnthropic = None
 
 
 def _get_client():
-    if not Anthropic:
+    if not AsyncAnthropic:
         return None
     if not ANTHROPIC_API_KEY:
         return None
-    return Anthropic(api_key=ANTHROPIC_API_KEY, timeout=15.0)
+    return AsyncAnthropic(api_key=ANTHROPIC_API_KEY, timeout=10.0)
 
 
 # ---------------------------------------------------------------------------
@@ -247,6 +248,26 @@ async def analyst_query(
     """
     _require_pro_leads(user)
 
+    try:
+        return await asyncio.wait_for(
+            _run_analyst_query(body, request, user, db),
+            timeout=45.0,
+        )
+    except asyncio.TimeoutError:
+        logger.error("[Analyst] handler exceeded 45s for question=%r", body.question)
+        raise HTTPException(
+            status_code=504,
+            detail="Query took longer than 45 seconds. Try a more specific question (e.g., add a city or state filter).",
+        )
+
+
+async def _run_analyst_query(
+    body: AnalystRequest,
+    request: Request,
+    user: ApiUser,
+    db: AsyncSession,
+) -> AnalystResponse:
+    """Core handler logic for /v1/analyst/query, wrapped in asyncio.wait_for by the route."""
     client = _get_client()
     if not client:
         raise HTTPException(
@@ -260,13 +281,13 @@ async def analyst_query(
 
     # ── Step 1: Generate SQL from natural language ─────────────────────
     # Use Haiku for SQL generation — fast (sub-second) and accurate for structured tasks
-    # Retry up to 2 times on 529 (overloaded)
+    # Fail fast on 529 (overloaded): one attempt + one retry, 1s sleep
     try:
         t_sql = time.time()
         raw_sql = None
-        for _attempt in range(3):
+        for _attempt in range(2):
             try:
-                sql_response = client.messages.create(
+                sql_response = await client.messages.create(
                     model="claude-haiku-4-5-20251001",
                     max_tokens=300,
                     messages=[{
@@ -283,13 +304,12 @@ async def analyst_query(
                 break
             except Exception as retry_err:
                 if "529" in str(retry_err) or "overloaded" in str(retry_err).lower():
-                    logger.warning("[Analyst:%s] Anthropic overloaded, retry %d/3", query_id, _attempt + 1)
-                    import asyncio
-                    await asyncio.sleep(2)
+                    logger.warning("[Analyst:%s] Anthropic overloaded, retry %d/2", query_id, _attempt + 1)
+                    await asyncio.sleep(1)
                     continue
                 raise
         if not raw_sql:
-            raise Exception("Anthropic API overloaded after 3 retries")
+            raise Exception("Anthropic API overloaded after 2 retries")
         logger.info("[Analyst:%s] SQL generated in %.1fs", query_id, time.time() - t_sql)
     except Exception as e:
         logger.error("SQL generation failed for query %s: %s", query_id, e)
@@ -304,9 +324,9 @@ async def analyst_query(
 
     logger.info("[Analyst:%s] user=%s question=%r sql=%s", query_id, user.id, body.question, safe_sql)
 
-    # ── Step 3: Execute the SQL (with 8s timeout to prevent slow queries hanging) ──
+    # ── Step 3: Execute the SQL (with 5s timeout to prevent slow queries hanging) ──
     try:
-        await db.execute(text("SET LOCAL statement_timeout = '8000'"))
+        await db.execute(text("SET LOCAL statement_timeout = '5000'"))
         result = await db.execute(text(safe_sql))
         columns = list(result.keys())
         rows = [dict(zip(columns, row)) for row in result.fetchall()]
@@ -314,7 +334,7 @@ async def analyst_query(
         logger.warning("SQL execution failed for query %s: %s", query_id, e)
         # Try to get Claude to fix the query
         try:
-            fix_response = client.messages.create(
+            fix_response = await client.messages.create(
                 model="claude-haiku-4-5-20251001",
                 max_tokens=300,
                 messages=[{
@@ -364,7 +384,7 @@ async def analyst_query(
     if not serialized_rows and (time.time() - t0) < 6.0:
         logger.info("[Analyst:%s] 0 results from Haiku — upgrading to Sonnet", query_id)
         try:
-            sonnet_response = client.messages.create(
+            sonnet_response = await client.messages.create(
                 model="claude-sonnet-4-6",
                 max_tokens=400,
                 messages=[{
@@ -382,7 +402,7 @@ async def analyst_query(
             )
             upgraded_sql = _validate_sql(sonnet_response.content[0].text.strip())
             logger.info("[Analyst:%s] Sonnet SQL: %s", query_id, upgraded_sql)
-            await db.execute(text("SET LOCAL statement_timeout = '8000'"))
+            await db.execute(text("SET LOCAL statement_timeout = '5000'"))
             result2 = await db.execute(text(upgraded_sql))
             columns2 = list(result2.keys())
             rows2 = [dict(zip(columns2, row)) for row in result2.fetchall()]
@@ -445,7 +465,7 @@ async def analyst_query(
             )
 
         try:
-            summary_response = client.messages.create(
+            summary_response = await client.messages.create(
                 model="claude-haiku-4-5-20251001",
                 max_tokens=250,
                 messages=[{"role": "user", "content": summary_prompt}],
@@ -621,7 +641,7 @@ async def property_report(
             "recent_sale": sales[0] if sales else None,
         }, default=str)
         try:
-            summary_resp = client.messages.create(
+            summary_resp = await client.messages.create(
                 model="claude-sonnet-4-6",
                 max_tokens=400,
                 messages=[{
