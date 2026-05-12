@@ -70,42 +70,17 @@ from app.api.v1.hail_leads import router as hail_leads_router
 logger = logging.getLogger(__name__)
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    """Startup and shutdown events."""
-    import sys
-    print(f"[lifespan] starting v{settings.VERSION}", flush=True, file=sys.stderr)
-    logger.info("Starting PermitLookup API v%s", settings.VERSION)
-    db_ready = False
-    try:
-        print("[lifespan] awaiting init_db with 10s timeout", flush=True, file=sys.stderr)
-        await asyncio.wait_for(init_db(), timeout=10)
-        print("[lifespan] init_db done", flush=True, file=sys.stderr)
-        logger.info("Database initialized")
-        db_ready = True
-    except asyncio.TimeoutError:
-        print("[lifespan] init_db TIMED OUT after 10s", flush=True, file=sys.stderr)
-        logger.warning("Database not available at startup (timeout)")
-    except Exception as e:
-        print(f"[lifespan] init_db ERRORED: {type(e).__name__}: {e}", flush=True, file=sys.stderr)
-        logger.warning("Database not available at startup: %s", e)
+async def _run_startup_migrations() -> None:
+    """Background-task wrapper for the auto-migration block.
 
-    if not db_ready:
-        print("[lifespan] skipping auto-migrations, will yield to uvicorn", flush=True, file=sys.stderr)
-        logger.warning("Skipping all auto-migrations because init_db did not complete.")
-        from app.services.scheduler import start_scheduler
-        try:
-            start_scheduler()
-        except Exception as e:
-            logger.warning("Failed to start alert scheduler: %s", e)
-        yield
-        from app.services.scheduler import stop_scheduler
-        try:
-            stop_scheduler()
-        except Exception:
-            pass
-        logger.info("Shutting down PermitLookup API")
-        return
+    Runs detached from lifespan so a single hung migration (e.g. the
+    `hail_leads_spc` MV build, which has a 30-minute statement_timeout
+    because it walks 17M rows on a cold DB) can't block uvicorn from
+    binding the port. Each migration is independent and has its own
+    try/except — failures are logged and skipped.
+    """
+    import sys
+    print("[migrations] starting background auto-migration run", flush=True, file=sys.stderr)
 
     # Auto-migrate: add webhook_url column if it doesn't exist
     try:
@@ -339,28 +314,42 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.warning("Could not create hail_leads_unified view: %s", e)
 
-    # Start alert scheduler (also schedules hail-leads MV refresh at 04:25 UTC)
+    print("[migrations] background auto-migration run complete", flush=True, file=sys.stderr)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Startup and shutdown events.
+
+    init_db is bounded with a 20s timeout so a flaky Tailscale-DB route
+    can't hang the container forever. Auto-migrations run as a detached
+    background task — any single hung migration (the hail_leads_spc MV
+    has a 30-minute statement_timeout because it walks 17M rows) leaves
+    the API serving traffic instead of bricking startup.
+    """
+    import sys
+    print(f"[lifespan] starting v{settings.VERSION}", flush=True, file=sys.stderr)
+    logger.info("Starting PermitLookup API v%s", settings.VERSION)
+
+    try:
+        await asyncio.wait_for(init_db(), timeout=20)
+        print("[lifespan] init_db done", flush=True, file=sys.stderr)
+        logger.info("Database initialized")
+    except (asyncio.TimeoutError, Exception) as e:
+        print(f"[lifespan] init_db skipped: {type(e).__name__}: {e}", flush=True, file=sys.stderr)
+        logger.warning("Database not available at startup: %s", e)
+
+    # Fire-and-forget background migrations. Keep a reference so the task
+    # isn't garbage-collected mid-run (asyncio quirk).
+    app.state.migrations_task = asyncio.create_task(_run_startup_migrations())
+
     from app.services.scheduler import start_scheduler, stop_scheduler
     try:
         start_scheduler()
     except Exception as e:
         logger.warning("Failed to start alert scheduler: %s", e)
 
-    # Boot-time MV refresh DISABLED — even with a 6h staleness gate, the
-    # 17M-row REFRESH on a degraded primary races against the DB watchdog
-    # (~4.5 min to SIGTERM after 5 consecutive failed pings) and triggers a
-    # restart loop where every container boot kicks off another doomed
-    # REFRESH. The daily 04:25 UTC scheduled job and the manual
-    # /v1/hail-leads/refresh-mvs admin endpoint are sufficient for steady-
-    # state freshness without the boot-time risk.
-
-    # DB health watchdog — DISABLED 2026-04-30. Was causing restart loops
-    # when Railway's Tailscale egress flakes briefly: pool exhausts → SELECT 1
-    # times out → 5 consecutive failures → SIGTERM → restart → repeat. The
-    # idle_in_transaction_session_timeout=60s server-side now handles the
-    # pool-leak failure mode that originally motivated the watchdog. Railway's
-    # own /health probe will still SIGTERM us if the app stops responding.
-
+    print("[lifespan] yielding to uvicorn", flush=True, file=sys.stderr)
     yield
 
     try:
