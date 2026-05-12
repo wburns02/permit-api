@@ -43,7 +43,7 @@ def _get_client():
         return None
     if not ANTHROPIC_API_KEY:
         return None
-    return AsyncAnthropic(api_key=ANTHROPIC_API_KEY, timeout=10.0)
+    return AsyncAnthropic(api_key=ANTHROPIC_API_KEY, timeout=8.0)
 
 
 # ---------------------------------------------------------------------------
@@ -251,13 +251,13 @@ async def analyst_query(
     try:
         return await asyncio.wait_for(
             _run_analyst_query(body, request, user, db),
-            timeout=45.0,
+            timeout=25.0,
         )
     except asyncio.TimeoutError:
-        logger.error("[Analyst] handler exceeded 45s for question=%r", body.question)
+        logger.error("[Analyst] handler exceeded 25s for question=%r", body.question)
         raise HTTPException(
             status_code=504,
-            detail="Query took longer than 45 seconds. Try a more specific question (e.g., add a city or state filter).",
+            detail="Query took longer than 25 seconds. Try a more specific question (add a city, state, or date filter).",
         )
 
 
@@ -381,6 +381,11 @@ async def _run_analyst_query(
 
     # ── Step 3b: Sonnet fallback — if Haiku returned 0, retry with smarter model ──
     upgraded = False
+    if not serialized_rows and time.time() - t0 > 18:
+        raise HTTPException(
+            status_code=504,
+            detail="Query took longer than 25 seconds. Try a more specific question.",
+        )
     if not serialized_rows and (time.time() - t0) < 6.0:
         logger.info("[Analyst:%s] 0 results from Haiku — upgrading to Sonnet", query_id)
         try:
