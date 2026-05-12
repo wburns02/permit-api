@@ -1,5 +1,6 @@
 """API key management and signup endpoints."""
 
+import asyncio
 import hashlib
 import logging
 from datetime import date, datetime, timedelta
@@ -17,13 +18,22 @@ logger = logging.getLogger(__name__)
 
 
 def _notify_will(subject: str, html_content: str):
-    """Send email notification to Will via SendGrid (fire-and-forget)."""
-    try:
-        from app.config import settings
-        if settings.SENDGRID_API_KEY:
+    """Send email notification to Will via SendGrid — truly fire-and-forget.
+
+    Schedules the blocking sendgrid.send() in a default threadpool so it cannot
+    stall the async request handler. Previously this ran in-line and would hang
+    the entire response (and a connection-pool slot) if SendGrid was slow.
+    """
+    from app.config import settings
+    if not settings.SENDGRID_API_KEY:
+        return
+
+    def _send():
+        try:
             from sendgrid import SendGridAPIClient
             from sendgrid.helpers.mail import Mail
             sg = SendGridAPIClient(settings.SENDGRID_API_KEY)
+            sg.client.timeout = 5
             msg = Mail(
                 from_email=settings.SENDGRID_FROM_EMAIL,
                 to_emails="willwalterburns@gmail.com",
@@ -31,8 +41,15 @@ def _notify_will(subject: str, html_content: str):
                 html_content=html_content,
             )
             sg.send(msg)
-    except Exception as e:
-        logger.warning("Notification email failed: %s", e)
+        except Exception as e:
+            logger.warning("Notification email failed: %s", e)
+
+    try:
+        loop = asyncio.get_running_loop()
+        loop.run_in_executor(None, _send)
+    except RuntimeError:
+        import threading
+        threading.Thread(target=_send, daemon=True).start()
 
 router = APIRouter(tags=["Auth"])
 
