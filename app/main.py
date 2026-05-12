@@ -1,5 +1,6 @@
 """PermitLookup API — Building permit data for contractors, investors, and insurers."""
 
+import asyncio
 import logging
 from pathlib import Path
 from contextlib import asynccontextmanager
@@ -73,12 +74,33 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
     logger.info("Starting PermitLookup API v%s", settings.VERSION)
+    db_ready = False
     try:
-        await init_db()
+        await asyncio.wait_for(init_db(), timeout=20)
         logger.info("Database initialized")
-    except Exception as e:
+        db_ready = True
+    except (asyncio.TimeoutError, Exception) as e:
         logger.warning("Database not available at startup: %s", e)
         logger.warning("API will start but database endpoints will fail until DB is connected")
+
+    if not db_ready:
+        logger.warning(
+            "Skipping all auto-migrations because init_db did not complete. "
+            "Container will start; migrations will retry on next deploy."
+        )
+        from app.services.scheduler import start_scheduler
+        try:
+            start_scheduler()
+        except Exception as e:
+            logger.warning("Failed to start alert scheduler: %s", e)
+        yield
+        from app.services.scheduler import stop_scheduler
+        try:
+            stop_scheduler()
+        except Exception:
+            pass
+        logger.info("Shutting down PermitLookup API")
+        return
 
     # Auto-migrate: add webhook_url column if it doesn't exist
     try:
