@@ -73,21 +73,26 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events."""
+    import sys
+    print(f"[lifespan] starting v{settings.VERSION}", flush=True, file=sys.stderr)
     logger.info("Starting PermitLookup API v%s", settings.VERSION)
     db_ready = False
     try:
-        await asyncio.wait_for(init_db(), timeout=20)
+        print("[lifespan] awaiting init_db with 10s timeout", flush=True, file=sys.stderr)
+        await asyncio.wait_for(init_db(), timeout=10)
+        print("[lifespan] init_db done", flush=True, file=sys.stderr)
         logger.info("Database initialized")
         db_ready = True
-    except (asyncio.TimeoutError, Exception) as e:
+    except asyncio.TimeoutError:
+        print("[lifespan] init_db TIMED OUT after 10s", flush=True, file=sys.stderr)
+        logger.warning("Database not available at startup (timeout)")
+    except Exception as e:
+        print(f"[lifespan] init_db ERRORED: {type(e).__name__}: {e}", flush=True, file=sys.stderr)
         logger.warning("Database not available at startup: %s", e)
-        logger.warning("API will start but database endpoints will fail until DB is connected")
 
     if not db_ready:
-        logger.warning(
-            "Skipping all auto-migrations because init_db did not complete. "
-            "Container will start; migrations will retry on next deploy."
-        )
+        print("[lifespan] skipping auto-migrations, will yield to uvicorn", flush=True, file=sys.stderr)
+        logger.warning("Skipping all auto-migrations because init_db did not complete.")
         from app.services.scheduler import start_scheduler
         try:
             start_scheduler()
