@@ -601,18 +601,27 @@ async def _cron_heartbeats() -> list[CronHeartbeat]:
         try:
             async with _read_session() as session:
                 await session.execute(text("SET LOCAL statement_timeout = '10s'"))
+                # Pull last_error too — a heartbeat with a recent beat_at
+                # but a non-null last_error means the job ran AND FAILED.
+                # Reporting status="ok" in that case is how the MV
+                # refresh failures (statement_timeout) hid for months.
                 rows = (await session.execute(text(
-                    "SELECT name, MAX(beat_at) AS last_seen "
-                    "FROM cron_heartbeat GROUP BY name"
+                    "SELECT name, MAX(beat_at) AS last_seen, "
+                    "       (SELECT last_error FROM cron_heartbeat ch2 "
+                    "         WHERE ch2.name = ch.name "
+                    "         ORDER BY beat_at DESC LIMIT 1) AS last_error "
+                    "FROM cron_heartbeat ch GROUP BY name"
                 ))).mappings().all()
                 for r in rows:
                     last_seen = _to_datetime(r["last_seen"])
                     hrs = _hours_between(now, last_seen)
+                    err = r.get("last_error")
+                    status = "failed" if err else _cron_status(hrs)
                     out.append(CronHeartbeat(
                         name=str(r["name"]),
                         last_seen_at=last_seen,
                         hours_since=hrs,
-                        status=_cron_status(hrs),
+                        status=status,
                     ))
                     seen_names.add(str(r["name"]))
         except Exception as exc:  # noqa: BLE001
@@ -644,7 +653,10 @@ async def _cron_heartbeats() -> list[CronHeartbeat]:
     if "storm_events_load" not in seen_names:
         se_col = await _detect_date_column(
             "storm_events",
-            ["begin_date_time", "begin_date", "event_date", "report_date", "date"],
+            # `begin_datetime` is the real column; the underscored variant
+            # is kept as a fallback in case a future load uses NCEI's
+            # named variant.
+            ["begin_datetime", "begin_date_time", "begin_date", "event_date", "report_date", "date"],
         ) if await _table_exists("storm_events") else None
         se_last = None
         if se_col:
@@ -739,7 +751,12 @@ async def hail_leads_health() -> HailLeadsHealth:
     storm_sources = [
         await _storm_source_freshness(
             source="storm_events",
+            # NB: the real column is `begin_datetime` (no underscore between
+            # date+time). Without this entry, /health returned
+            # latest_report_date=null and rows_last_*=0 even when the table
+            # had data — the column-name probe fell off the end.
             candidates=[
+                "begin_datetime",
                 "begin_date_time",
                 "begin_date",
                 "event_date",

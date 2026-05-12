@@ -148,7 +148,7 @@ class HailLeadsEnrichResponse(BaseModel):
 # Health (system observability)
 # ---------------------------------------------------------------------------
 
-CronStatus = Literal["ok", "stale", "missing"]
+CronStatus = Literal["ok", "stale", "missing", "failed"]
 
 
 class MaterializedViewFreshness(BaseModel):

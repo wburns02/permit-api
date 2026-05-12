@@ -196,6 +196,16 @@ async def _upsert_records(records: list[dict[str, Any]]) -> tuple[int, int]:
     chunk_size = 500
 
     async with primary_session_maker() as db:
+        # Disable the 20s connection-level statement_timeout for this
+        # session — 500-row INSERT...ON CONFLICT chunks against an asyncpg
+        # pool under load can blow past 20s, killing the whole load.
+        try:
+            await db.execute(text("SET statement_timeout = 0"))
+            await db.commit()
+        except Exception as exc:  # noqa: BLE001
+            await db.rollback()
+            logger.warning("noaa upsert: failed to disable timeout (%s)", exc)
+
         for i in range(0, len(records), chunk_size):
             chunk = records[i:i + chunk_size]
             try:

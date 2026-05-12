@@ -58,22 +58,25 @@ def start_scheduler():
         replace_existing=True,
     )
 
-    # NOAA storm_events weekly load: Monday 05:00 UTC. Pulls the
+    # NOAA storm_events daily load: 05:00 UTC every day. Pulls the
     # current calendar year's CSV from NCEI, filters to TEXAS, and
-    # upserts. Replaces the deprecated T430 cron that ran the
-    # backfill_noaa_storm_events.py CLI script.
+    # upserts. Idempotent (ON CONFLICT (event_id) DO UPDATE).
+    #
+    # Bumped from Mon-only to daily 2026-05-12 so a single missed run
+    # doesn't cost a full week of storm coverage in the hail_leads MV.
+    # The full TX year is ~5K rows, the upsert is cheap.
     scheduler.add_job(
         load_noaa_storm_events,
-        trigger=CronTrigger(day_of_week="mon", hour=5, minute=0),
+        trigger=CronTrigger(hour=5, minute=0),
         id="noaa_storm_events_load",
-        name="NOAA Storm Events weekly load",
+        name="NOAA Storm Events daily load",
         replace_existing=True,
     )
 
     scheduler.start()
     logger.info(
         "Scheduler started (alerts: instant=5min, daily=6am UTC, weekly=Mon 6am UTC; "
-        "hail-leads MV refresh=4:25am UTC; NOAA storm_events load=Mon 5:00am UTC)"
+        "hail-leads MV refresh=4:25am UTC; NOAA storm_events load=daily 5:00am UTC)"
     )
 
 

@@ -35,12 +35,35 @@ async def _refresh_one(cron_name: str, relname: str) -> None:
     Tries CONCURRENTLY first (zero downtime, requires a UNIQUE index on the
     MV); falls back to a plain REFRESH on failure. Both paths record the
     result in cron_heartbeat — including failures, with last_error set.
+
+    The connection-level statement_timeout (20s default from
+    `_PG_SERVER_SETTINGS`) is explicitly cleared here: full MV REFRESH on
+    `hail_leads` takes 40+ min, REFRESH CONCURRENTLY can take hours.
+    Without this override the refresh dies at 20s and the MV silently
+    rots. Same for `lock_timeout` — CONCURRENTLY needs to acquire SHARE
+    UPDATE EXCLUSIVE which can wait behind other writers.
     """
     started = time.monotonic()
     last_error: str | None = None
     used_concurrent = True
 
     async with primary_session_maker() as db:
+        # Disable the connection's short statement_timeout / lock_timeout
+        # for this session so the long REFRESH and its ANALYZE survive.
+        # SET LOCAL persists only for the current transaction, so we use
+        # plain SET to cover the multi-statement work below.
+        try:
+            await db.execute(text("SET statement_timeout = 0"))
+            await db.execute(text("SET lock_timeout = 0"))
+            await db.commit()
+        except Exception as exc:  # noqa: BLE001
+            await db.rollback()
+            logger.warning(
+                "MV %s: failed to disable timeouts (%s) — REFRESH may abort",
+                relname,
+                exc,
+            )
+
         try:
             await db.execute(
                 text(f"REFRESH MATERIALIZED VIEW CONCURRENTLY {relname}")
