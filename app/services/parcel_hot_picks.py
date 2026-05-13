@@ -401,11 +401,12 @@ async def refresh_city(db: AsyncSession, jurisdiction: ParcelJurisdiction) -> di
             continue
 
         if not facts.get("zone_code"):
-            # Skip parcels with no zone — they're un-scoreable from base data
-            # alone. Phase 2 will spatial-join the zoning layer.
+            # Parcel has no zone on the layer — happens for shared county
+            # parcel layers (SB County / Riverside CREST) until we wire a
+            # per-city zoning spatial join. Still record the row so the
+            # parcel is discoverable in Hot Picks; max_units falls back to
+            # 1 (by-right floor) via score_parcel below.
             skipped_no_zone += 1
-            seen_apns.add(apn)
-            continue
 
         scoring = score_parcel(facts, density_table)
         max_units = scoring["max_units"]
@@ -455,19 +456,41 @@ async def refresh_city(db: AsyncSession, jurisdiction: ParcelJurisdiction) -> di
         await db.execute(stmt)
 
     # 4. Delete stale rows — any APN not seen this run.
-    # asyncpg caps query arguments at 32767, so a literal NOT IN (...) breaks
-    # the moment we cross that many parcels (SB County cities easily do).
-    # `apn != ALL(:array_param)` passes the whole list as a single varchar[]
-    # parameter and dodges the limit entirely.
+    # Strategy: write the seen set into a session-scoped temp table in chunks
+    # (each INSERT carries at most 5K varchar params, well under asyncpg's
+    # 32767 cap and the asyncpg/Postgres wire-protocol message limits), then
+    # DELETE WHERE apn NOT IN (SELECT FROM temp_table).
     if seen_apns:
         from sqlalchemy import text as _sql_text
+        # ON COMMIT DROP drops the temp table when the outer transaction
+        # commits later in this function, so back-to-back refreshes don't
+        # collide.
+        await db.execute(_sql_text(
+            "CREATE TEMP TABLE IF NOT EXISTS _hot_picks_seen "
+            "(apn varchar(40) PRIMARY KEY) ON COMMIT DROP"
+        ))
+        await db.execute(_sql_text("TRUNCATE _hot_picks_seen"))
+        seen_list = list(seen_apns)
+        INSERT_BATCH = 5000
+        for i in range(0, len(seen_list), INSERT_BATCH):
+            chunk = seen_list[i:i + INSERT_BATCH]
+            # `unnest(:apns)` makes the single array parameter expand into
+            # rows without burning per-value placeholder slots.
+            await db.execute(
+                _sql_text(
+                    "INSERT INTO _hot_picks_seen(apn) "
+                    "SELECT DISTINCT unnest(CAST(:apns AS varchar[])) "
+                    "ON CONFLICT DO NOTHING"
+                ),
+                {"apns": chunk},
+            )
         await db.execute(
             _sql_text(
                 "DELETE FROM parcel_hot_picks "
                 "WHERE state = :s AND city_slug = :c "
-                "AND apn != ALL(CAST(:apns AS varchar[]))"
+                "AND apn NOT IN (SELECT apn FROM _hot_picks_seen)"
             ),
-            {"s": state, "c": city_slug, "apns": list(seen_apns)},
+            {"s": state, "c": city_slug},
         )
 
     await db.commit()
