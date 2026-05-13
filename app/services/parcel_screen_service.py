@@ -239,13 +239,21 @@ def _evaluate_eligibility(law: ParcelStateLaw, facts: dict) -> dict:
       {
         "auto_checks": [{id, label, status: "pass"|"fail"|"unknown", reason}],
         "verify_items": [{id, label}],
-        "auto_eligible": bool,  # True only if ALL gis checks pass
+        "auto_eligible": bool,  # True only if ALL gis checks pass AND there's at least one fact-backed pass
         "verify_pending": int,  # count of [VERIFY] items
       }
+
+    Eligibility logic:
+    - 'fail' on any auto-check → not auto-eligible (the law definitely doesn't apply)
+    - 'unknown' is recorded as a verify item but doesn't fail by itself
+    - Auto-eligible requires (no fails) AND (at least one actual 'pass' from a fact-backed
+      check, not just 'auto_pass' items) so a law with NO meaningful auto-checks doesn't
+      light up green by default.
     """
     auto = []
     verify = []
-    auto_eligible = True
+    has_fail = False
+    has_fact_pass = False
 
     checklist = law.eligibility_checklist or []
     for item in checklist:
@@ -257,10 +265,15 @@ def _evaluate_eligibility(law: ParcelStateLaw, facts: dict) -> dict:
         status, reason = _run_auto_check(law.law_id, item, facts)
         auto.append({"id": item["id"], "label": item["label"], "status": status, "reason": reason})
         if status == "fail":
-            auto_eligible = False
+            has_fail = True
+        elif status == "pass" and not item.get("auto_pass"):
+            has_fact_pass = True
         elif status == "unknown":
-            # Unknown doesn't block but flags for user confirmation
             verify.append({"id": item["id"], "label": item["label"]})
+
+    # Special case: by-right's only check is auto_pass — let it remain eligible
+    is_by_right_style = len([i for i in checklist if i.get("category") == "gis"]) == 1 and any(i.get("auto_pass") for i in checklist)
+    auto_eligible = (not has_fail) and (has_fact_pass or is_by_right_style)
 
     return {
         "auto_checks": auto,
@@ -288,7 +301,17 @@ def _run_auto_check(law_id: str, item: dict, facts: dict) -> tuple[str, str | No
     if item_id == "zone_mf":
         return ("pass" if _check_zone_mf(zone) else "fail", f"zone={zone}")
     if item_id == "zone_residential":
-        return ("pass" if _check_zone_any_residential(zone) else "fail", f"zone={zone}")
+        # Prefer the density-table explicit flag when we have it (handles cases
+        # like Rialto A-1 where the zone permits SF dwellings even though the
+        # code letter doesn't match the SFR/MF prefix patterns).
+        flag = facts.get("zone_is_residential_flag")
+        if flag is True:
+            return "pass", f"zone={zone} is residential per density table"
+        if _check_zone_any_residential(zone):
+            return "pass", f"zone={zone}"
+        if flag is False:
+            return "fail", f"zone={zone} flagged non-residential in density table"
+        return "fail", f"zone={zone}"
     if item_id == "zone_commercial":
         return ("pass" if _check_zone_commercial(zone) else "fail", f"zone={zone}")
     if item_id == "size_le_5ac":
@@ -521,6 +544,14 @@ async def run_parcel_screen(
             )
         )
         zone_density = result.scalar_one_or_none()
+
+    # Promote density-table hints into facts so the eligibility engine can
+    # use them (e.g., Rialto A-1 is is_residential=true even though its zone
+    # code doesn't match the SFR/MF pattern matchers).
+    if zone_density:
+        facts["zone_is_residential_flag"] = (zone_density.is_residential == "Y")
+        facts["zone_du_per_ac"] = float(zone_density.du_per_ac) if zone_density.du_per_ac else None
+        facts["zone_min_lot_sqft"] = zone_density.min_lot_sqft
 
     # 4. Test each state law
     result = await db.execute(
