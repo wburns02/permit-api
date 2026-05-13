@@ -109,12 +109,26 @@ async def fetch_all_parcels_paginated(
                 geom = feat.get("geometry") or {}
                 lat = None
                 lng = None
+                geometry_wgs84 = None
                 rings = geom.get("rings") or []
                 if rings and rings[0]:
                     outer = rings[0]
                     lng = sum(p[0] for p in outer) / len(outer)
                     lat = sum(p[1] for p in outer) / len(outer)
-                out_rows.append({"attrs": attrs, "lat": lat, "lng": lng})
+                    # Persist the polygon as GeoJSON so /map can serve it
+                    # directly. Outer ring must be non-empty; Esri returns
+                    # rings already in WGS84 lng/lat because we requested
+                    # outSR=4326 above.
+                    geometry_wgs84 = {
+                        "type": "Polygon",
+                        "coordinates": rings,
+                    }
+                out_rows.append({
+                    "attrs": attrs,
+                    "lat": lat,
+                    "lng": lng,
+                    "geometry_wgs84": geometry_wgs84,
+                })
 
             pages += 1
             offset += len(features)
@@ -362,6 +376,7 @@ async def refresh_city(db: AsyncSession, jurisdiction: ParcelJurisdiction) -> di
             "impr_value": facts.get("impr_value"),
             "lat": p.get("lat"),
             "lng": p.get("lng"),
+            "geometry_wgs84": p.get("geometry_wgs84"),
             "max_units": max_units,
             "best_path": scoring["best_path"][:80],
             "eligible_paths": scoring["eligible_paths"],
@@ -381,8 +396,8 @@ async def refresh_city(db: AsyncSession, jurisdiction: ParcelJurisdiction) -> di
             c: stmt.excluded[c]
             for c in (
                 "address", "owner_name", "acres", "zone_code", "gp_code",
-                "fire_zone", "impr_value", "lat", "lng", "max_units",
-                "best_path", "eligible_paths", "score", "refreshed_at",
+                "fire_zone", "impr_value", "lat", "lng", "geometry_wgs84",
+                "max_units", "best_path", "eligible_paths", "score", "refreshed_at",
             )
         }
         stmt = stmt.on_conflict_do_update(

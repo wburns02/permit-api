@@ -152,6 +152,7 @@ class ParcelHotPick(Base):
     impr_value = Column(Numeric(14, 2))
     lat = Column(Numeric(11, 7))
     lng = Column(Numeric(11, 7))
+    geometry_wgs84 = Column(JSONB)   # GeoJSON Polygon: {"type":"Polygon","coordinates":[[[lng,lat],...]]}
     max_units = Column(Integer, nullable=False, default=0)
     best_path = Column(String(80))          # e.g. "sb684+ab130" or "state-adu"
     eligible_paths = Column(JSONB, default=list)  # ["by-right","state-adu","ab130", ...]

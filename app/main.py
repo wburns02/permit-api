@@ -126,6 +126,16 @@ async def _run_startup_migrations() -> None:
     except Exception as e:
         logger.warning("Could not apply softphone migration: %s", e)
 
+    # Auto-migrate: add geometry_wgs84 column to parcel_hot_picks
+    # (Ladder 3 map view needs the polygon, not just the centroid).
+    try:
+        async with primary_engine.begin() as conn:
+            await conn.execute(_text(
+                "ALTER TABLE parcel_hot_picks ADD COLUMN IF NOT EXISTS geometry_wgs84 JSONB"
+            ))
+    except Exception as e:
+        logger.warning("Could not apply parcel_hot_picks.geometry_wgs84 migration: %s", e)
+
     # Auto-migrate: cron_heartbeat table for the hail-leads observability page.
     try:
         async with primary_engine.begin() as conn:
