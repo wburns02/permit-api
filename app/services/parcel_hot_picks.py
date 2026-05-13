@@ -167,22 +167,50 @@ def _normalize_attrs(attrs: dict) -> dict:
         acres = None
 
     # Coalesce on None, not on falsy — impr_value == 0 is meaningful (vacancy signal for SB-1123).
+    # SB County → `ImprovementValue` (improvementvalue); Riverside CREST →
+    # `STRUCTURES` (structures). Both may arrive as strings; coerce below.
     impr_raw = norm.get("impr_value")
     if impr_raw is None:
         impr_raw = norm.get("imprvalue")
     if impr_raw is None:
         impr_raw = norm.get("improvement_value")
+    if impr_raw is None:
+        impr_raw = norm.get("improvementvalue")
+    if impr_raw is None:
+        impr_raw = norm.get("structures")
     try:
-        impr_value = float(impr_raw) if impr_raw is not None else None
+        impr_value = (
+            float(str(impr_raw).replace(",", "").strip())
+            if impr_raw is not None and str(impr_raw).strip() != ""
+            else None
+        )
     except (TypeError, ValueError):
         impr_value = None
 
+    # SB County puts the *city name* in `Zoning` (e.g. "CITY OF FONTANA").
+    # Reject those placeholders here — for Hot Picks we just lose the by-right
+    # path on those parcels (zone_code = None → falls through eligibility),
+    # which is the right behavior until we wire per-city zoning spatial joins.
+    zoning_raw = norm.get("zone_code") or norm.get("zone") or norm.get("zonecode") or norm.get("zoning")
+    if isinstance(zoning_raw, str) and zoning_raw.upper().startswith("CITY OF"):
+        zoning_raw = None
+
     return {
-        "apn": norm.get("apn") or norm.get("parcelno") or norm.get("parcel_no"),
-        "address": norm.get("address") or norm.get("site_address") or norm.get("situs"),
+        "apn": (
+            norm.get("apn")
+            or norm.get("parcelno")
+            or norm.get("parcel_no")
+            or norm.get("parcelnumber")  # SB County
+        ),
+        "address": (
+            norm.get("address")
+            or norm.get("site_address")
+            or norm.get("situs")
+            or norm.get("situs_street")  # Riverside CREST
+        ),
         "owner_name": norm.get("owner_name") or norm.get("owner") or norm.get("ownername"),
         "acres": acres,
-        "zone_code": norm.get("zone_code") or norm.get("zone") or norm.get("zonecode"),
+        "zone_code": zoning_raw,
         "gp_code": norm.get("gp_code") or norm.get("genplan") or norm.get("gp_general"),
         "fire_zone": norm.get("fire_zonre") or norm.get("fire_zone") or norm.get("fhsz"),
         "impr_value": impr_value,

@@ -72,6 +72,97 @@ JURISDICTIONS = [
         "notes": "Parcels from OC County (ocgis.com), thin. Zoning/GP/specific plan on city's gis.santa-ana.org. NAD83 CA State Plane Zone VI — units FEET, no Mercator correction.",
         "last_verified": date(2026, 5, 11),
     },
+    # -----------------------------------------------------------------------
+    # Inland Empire — San Bernardino County cities
+    # -----------------------------------------------------------------------
+    # All four SB-County-incorporated cities share one parent parcel layer
+    # (Parcels_for_San_Bernardino_County). It carries ParcelNumber, Acreage,
+    # OwnerName, LandValue, ImprovementValue, Jurisdiction. The city-level
+    # `Zoning` field is just the city name (e.g. "CITY OF FONTANA"), so we
+    # spatially join against the statewide CA zoning South FeatureServer
+    # for the real zone code/description.
+    #
+    # Note on field-name normalization: pull_parcel_facts lowercases attribute
+    # keys. SB County uses `Acreage` (→ `acreage`) and `ImprovementValue`
+    # (→ `improvementvalue`). The existing facts dict already falls back to
+    # `acreage` for the acres key but did NOT have an `improvementvalue`
+    # alias for impr_value. The fallback chain has been extended in
+    # parcel_screen_service.pull_parcel_facts (see commit history).
+    {
+        "state": "CA",
+        "city_slug": "san-bernardino",
+        "display_name": "San Bernardino, CA",
+        "gis_viewer_url": "https://experience.arcgis.com/experience/0c36a9ecaea24882b225053f7c491da2/",
+        "parcels_url": "https://services.arcgis.com/aA3snZwJfFkVyDuP/arcgis/rest/services/Parcels_for_San_Bernardino_County/FeatureServer/0",
+        "zoning_url": "https://services8.arcgis.com/Xr1lDrwMv89PhjD9/arcgis/rest/services/California_Statewide_Zoning_South/FeatureServer/0",
+        "general_plan_url": None,
+        "apn_field": "ParcelNumber",
+        "address_field": None,
+        "spatial_reference_wkid": 102100,
+        "notes": "Parcels from SB County (hosted on services.arcgis.com/aA3snZwJfFkVyDuP). Zoning fallback = CA Statewide Zoning South (services8.arcgis.com/Xr1lDrwMv89PhjD9). Specific city zoning/GP layer not yet wired (city of SB hosts gisweb.sbcity.org/arcgis/rest/services/Zoning/Zoning_2023 — would need authenticated session). By-right yield will use statewide-zoning code via the existing density table for matching prefixes.",
+        "last_verified": date(2026, 5, 13),
+    },
+    {
+        "state": "CA",
+        "city_slug": "fontana",
+        "display_name": "Fontana, CA",
+        "gis_viewer_url": "https://data.fontanaca.gov/",
+        "parcels_url": "https://services.arcgis.com/aA3snZwJfFkVyDuP/arcgis/rest/services/Parcels_for_San_Bernardino_County/FeatureServer/0",
+        "zoning_url": "https://services8.arcgis.com/Xr1lDrwMv89PhjD9/arcgis/rest/services/California_Statewide_Zoning_South/FeatureServer/0",
+        "general_plan_url": None,
+        "apn_field": "ParcelNumber",
+        "address_field": None,
+        "spatial_reference_wkid": 102100,
+        "notes": "Parcels from SB County. Zoning fallback = CA Statewide Zoning South filtered to Jurisdiction='Fontana'. City of Fontana's own GIS hub (data.fontanaca.gov) was not crawled for a dedicated zoning REST endpoint.",
+        "last_verified": date(2026, 5, 13),
+    },
+    {
+        "state": "CA",
+        "city_slug": "colton",
+        "display_name": "Colton, CA",
+        "gis_viewer_url": "https://www.coltonca.gov/92/City-Maps",
+        "parcels_url": "https://services.arcgis.com/aA3snZwJfFkVyDuP/arcgis/rest/services/Parcels_for_San_Bernardino_County/FeatureServer/0",
+        "zoning_url": "https://services8.arcgis.com/Xr1lDrwMv89PhjD9/arcgis/rest/services/California_Statewide_Zoning_South/FeatureServer/0",
+        "general_plan_url": None,
+        "apn_field": "ParcelNumber",
+        "address_field": None,
+        "spatial_reference_wkid": 102100,
+        "notes": "Parcels from SB County. Zoning fallback = CA Statewide Zoning South (Jurisdiction='Colton'). City of Colton publishes zoning only as PDF — no dedicated REST endpoint discovered.",
+        "last_verified": date(2026, 5, 13),
+    },
+    {
+        "state": "CA",
+        "city_slug": "ontario",
+        "display_name": "Ontario, CA",
+        "gis_viewer_url": "https://www.ontarioca.gov/government/community-development/planning/zoning-map",
+        "parcels_url": "https://services.arcgis.com/aA3snZwJfFkVyDuP/arcgis/rest/services/Parcels_for_San_Bernardino_County/FeatureServer/0",
+        "zoning_url": "https://services8.arcgis.com/Xr1lDrwMv89PhjD9/arcgis/rest/services/California_Statewide_Zoning_South/FeatureServer/0",
+        "general_plan_url": None,
+        "apn_field": "ParcelNumber",
+        "address_field": None,
+        "spatial_reference_wkid": 102100,
+        "notes": "Parcels from SB County. Zoning fallback = CA Statewide Zoning South (Jurisdiction='Ontario'). The Ontario Plan/Policy Plan PDFs are the authoritative source for city zoning; dedicated REST endpoint not discovered.",
+        "last_verified": date(2026, 5, 13),
+    },
+    # -----------------------------------------------------------------------
+    # Inland Empire — Riverside County
+    # -----------------------------------------------------------------------
+    {
+        "state": "CA",
+        "city_slug": "riverside",
+        "display_name": "Riverside, CA",
+        "gis_viewer_url": "https://mapriverside.riversideca.gov/",
+        # Riverside County PARCELS_CREST (layer 50 of Assessor MapServer):
+        # carries APN, ACREAGE, CLASS_CODE, LAND, STRUCTURES, CITY, SITUS_STREET.
+        "parcels_url": "https://gis.countyofriverside.us/arcgis_mapping/rest/services/OpenData/Assessor/MapServer/50",
+        "zoning_url": "https://services8.arcgis.com/Xr1lDrwMv89PhjD9/arcgis/rest/services/California_Statewide_Zoning_South/FeatureServer/0",
+        "general_plan_url": None,
+        "apn_field": "APN",
+        "address_field": "SITUS_STREET",
+        "spatial_reference_wkid": 2230,
+        "notes": "Parcels from Riverside County PARCELS_CREST (gis.countyofriverside.us). Zoning fallback = CA Statewide Zoning South (Jurisdiction='Riverside'). City of Riverside operates its own GIS viewer but no public REST zoning layer discovered. APN/ACREAGE/STRUCTURES on parcel layer maps cleanly to facts.",
+        "last_verified": date(2026, 5, 13),
+    },
 ]
 
 

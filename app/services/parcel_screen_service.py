@@ -28,6 +28,7 @@ from app.models.parcel_screen import (
     ParcelStateLaw,
     ParcelZoneDensity,
 )
+from app.services.parcel_overlays import query_all_overlays
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +146,24 @@ async def pull_parcel_facts(
         or (norm.get("shape__area") / 43560 if norm.get("shape__area") else None)
     )
 
+    # `parcel_acres` is the raw acreage if we found one above; fall back to
+    # the SB-County `Acreage` field and the Riverside `ACREAGE` field (both
+    # land in `norm["acreage"]` after lowercasing).
+    if parcel_acres is None:
+        parcel_acres = norm.get("acreage")
+
+    # Some jurisdictions (SB County, Riverside County) store the
+    # improvement value as a string ("12345.00") rather than a number — coerce.
+    def _to_float(v):
+        if v is None:
+            return None
+        if isinstance(v, (int, float)):
+            return float(v)
+        try:
+            return float(str(v).replace(",", "").strip())
+        except (ValueError, TypeError):
+            return None
+
     facts = {
         "raw_attributes": attrs,
         "geometry": geom,
@@ -152,22 +171,61 @@ async def pull_parcel_facts(
         "lat": centroid_lat,
         "lng": centroid_lng,
         "spatial_reference": sr,
-        "apn": norm.get(apn_field.lower()) or norm.get("apn") or norm.get("parcelno") or apn,
+        "apn": (
+            norm.get(apn_field.lower())
+            or norm.get("apn")
+            or norm.get("parcelno")
+            or norm.get("parcelnumber")  # SB County
+            or apn
+        ),
         "owner_name": norm.get("owner_name") or norm.get("owner") or norm.get("ownername"),
-        "owner_addr": norm.get("owner_addr") or norm.get("owner_address") or norm.get("mailing_address"),
-        "address": norm.get("site_address") or norm.get("address") or norm.get("situs"),
-        "acres": float(parcel_acres) if parcel_acres else None,
-        "zone_code": norm.get("zone_code") or norm.get("zone") or norm.get("zonecode"),
-        "zone_desc": norm.get("zone_desc") or norm.get("zonedesc") or norm.get("zoning"),
+        "owner_addr": (
+            norm.get("owner_addr")
+            or norm.get("owner_address")
+            or norm.get("mailing_address")
+            or norm.get("mail_street")  # Riverside CREST
+        ),
+        "address": (
+            norm.get("site_address")
+            or norm.get("address")
+            or norm.get("situs")
+            or norm.get("situs_street")  # Riverside CREST
+        ),
+        "acres": _to_float(parcel_acres),
+        # SB County's parcels layer stores the *city name* in the `Zoning`
+        # field (e.g. "CITY OF FONTANA"), which isn't a real zone code. The
+        # statewide-zoning spatial join below will fill in the real value.
+        # Reject obvious placeholders here so the join actually fires.
+        "zone_code": (
+            norm.get("zone_code")
+            or norm.get("zone")
+            or norm.get("zonecode")
+            or (None if (norm.get("zoning") or "").upper().startswith("CITY OF") else norm.get("zoning"))
+        ),
+        "zone_desc": (
+            norm.get("zone_desc")
+            or norm.get("zonedesc")
+            or (None if (norm.get("zoning") or "").upper().startswith("CITY OF") else norm.get("zoning"))
+        ),
         "gp_code": norm.get("gp_code") or norm.get("genplan") or norm.get("gp_general"),
         "gp_desc": norm.get("gp_desc") or norm.get("gpdesc") or norm.get("gp_generaldesc"),
         "sp_code": norm.get("sp_code") or norm.get("specific_plan"),
         "sp_desc": norm.get("sp_desc") or norm.get("specific_plan_desc"),
         "fire_zone": norm.get("fire_zonre") or norm.get("fire_zone") or norm.get("fhsz"),
         "year_built": norm.get("year_built") or norm.get("yearbuilt"),
-        "land_value": norm.get("land_value") or norm.get("landvalue"),
-        "impr_value": norm.get("impr_value") or norm.get("imprvalue") or norm.get("improvement_value"),
-        "tax_status": norm.get("tax_status"),
+        "land_value": _to_float(
+            norm.get("land_value") or norm.get("landvalue") or norm.get("land")
+        ),
+        # SB County uses "ImprovementValue" (→ improvementvalue); Riverside CREST
+        # uses "STRUCTURES" (→ structures); Rialto carries an "impr_value" alias.
+        "impr_value": _to_float(
+            norm.get("impr_value")
+            or norm.get("imprvalue")
+            or norm.get("improvement_value")
+            or norm.get("improvementvalue")
+            or norm.get("structures")
+        ),
+        "tax_status": norm.get("tax_status") or norm.get("taxstatus"),
     }
 
     # If parcel layer is thin (e.g., Santa Ana via OC), the zone/GP fields will be None.
@@ -177,8 +235,19 @@ async def pull_parcel_facts(
             zoning_attrs = await _spatial_join_first(jurisdiction.zoning_url, geom, sr)
             if zoning_attrs:
                 zn = {k.lower(): v for k, v in zoning_attrs.items()}
-                facts["zone_code"] = zn.get("zoneclass") or zn.get("zone_code") or zn.get("zone")
-                facts["zone_desc"] = zn.get("zonedesc") or zn.get("zone_desc")
+                # Includes the CA Statewide Zoning South layer fields (`code`,
+                # `description`, `jurisdiction`) used by our IE cities.
+                facts["zone_code"] = (
+                    zn.get("zoneclass")
+                    or zn.get("zone_code")
+                    or zn.get("zone")
+                    or zn.get("code")
+                )
+                facts["zone_desc"] = (
+                    zn.get("zonedesc")
+                    or zn.get("zone_desc")
+                    or zn.get("description")
+                )
         except Exception as e:
             logger.warning(f"zoning spatial join failed: {e}")
 
@@ -402,18 +471,70 @@ def _run_auto_check(law_id: str, item: dict, facts: dict) -> tuple[str, str | No
             return "pass", f"zone={zone} can host residential (including via AB-2011 / SB-6 stack)"
         return "unknown", f"zone={zone} — verify residential eligibility"
 
-    # Generic exclusion checks (fire, flood, farmland, fault, historic) — defer to Phase 2 overlays.
-    # For now, fire_zone is the only one we sometimes have inline on the parcel attribute.
+    # ------------------------------------------------------------------
+    # Statewide overlay-backed exclusion checks (fire / fault / farmland /
+    # historic / flood). Overlays come from app/services/parcel_overlays.py
+    # and are run BEFORE the eligibility engine in run_parcel_screen.
+    # ------------------------------------------------------------------
+    overlays = facts.get("overlays") or {}
+
     if item_id == "not_fhsz":
+        fhsz = overlays.get("fhsz") or {}
+        in_zone = fhsz.get("in_zone")
+        if in_zone is True:
+            return "fail", f"FHSZ class={fhsz.get('class')}"
+        if in_zone is False:
+            return "pass", "Not in CalFire FHSZ (SRA + LRA checked)"
+        # Fall back to the parcel-level fire_zone attribute (Rialto carries
+        # this inline) when the statewide overlay didn't answer.
         fz = facts.get("fire_zone")
-        if fz is None:
-            return "unknown", "fire hazard overlay not loaded"
-        # Rialto's encoding: blank/null = not in zone, "Moderate"/"High"/"Very High" = in zone
-        fz_lower = str(fz).lower().strip()
-        if fz_lower in ("", "none", "lra", "low", "0"):
-            return "pass", f"fire zone={fz}"
-        return "fail", f"fire zone={fz}"
-    if item_id in ("not_flood", "not_farmland", "not_fault", "not_hazwaste", "not_historic", "not_coastal", "urbanized", "perimeter_urban_75pct"):
+        if fz is not None:
+            fz_lower = str(fz).lower().strip()
+            if fz_lower in ("", "none", "lra", "low", "0"):
+                return "pass", f"fire zone={fz} (parcel attr)"
+            return "fail", f"fire zone={fz} (parcel attr)"
+        return "unknown", f"FHSZ overlay error: {fhsz.get('error') or 'no result'}"
+
+    if item_id == "not_fault":
+        ap = overlays.get("alquist_priolo") or {}
+        in_zone = ap.get("in_zone")
+        if in_zone is True:
+            return "fail", f"Alquist-Priolo zone: {ap.get('quad') or 'CA fault zone'}"
+        if in_zone is False:
+            return "pass", "Not in Alquist-Priolo fault zone"
+        return "unknown", f"Alquist-Priolo overlay error: {ap.get('error') or 'no result'}"
+
+    if item_id == "not_farmland":
+        fm = overlays.get("fmmp") or {}
+        in_zone = fm.get("in_zone")
+        if in_zone is True:
+            return "fail", f"FMMP class={fm.get('class')}"
+        if in_zone is False:
+            ptype = fm.get("polygon_ty")
+            return "pass", f"Not Prime/Statewide/Unique farmland (polygon_ty={ptype})"
+        return "unknown", f"FMMP overlay error: {fm.get('error') or 'no result'}"
+
+    if item_id == "not_historic":
+        hist = overlays.get("historic") or {}
+        in_district = hist.get("in_district")
+        if in_district is True:
+            return "fail", f"NRHP listing: {hist.get('name') or 'historic district'}"
+        if in_district is False:
+            return "pass", "Not in National Register polygon (local districts not covered)"
+        return "unknown", f"Historic overlay error: {hist.get('error') or 'no result'}"
+
+    if item_id == "not_flood":
+        fl = overlays.get("flood") or {}
+        in_sfha = fl.get("in_sfha")
+        if in_sfha is True:
+            return "fail", f"FEMA SFHA zone={fl.get('zone')}"
+        if in_sfha is False:
+            zone = fl.get("zone")
+            return "pass", f"Not in FEMA SFHA (zone={zone or 'unmapped'})"
+        return "unknown", f"Flood overlay error: {fl.get('error') or 'no result'}"
+
+    # Other deferred checks we haven't built overlays for yet
+    if item_id in ("not_hazwaste", "not_coastal", "urbanized", "perimeter_urban_75pct", "not_conservation"):
         return "unknown", "statewide overlay not loaded (deferred to Phase 2)"
 
     return "unknown", "no auto-check implemented"
@@ -563,6 +684,21 @@ async def run_parcel_screen(
     if facts.get("error"):
         return {"status": "parcel_not_found", "jurisdiction": city_slug, "details": facts}
 
+    # 2b. Fire statewide CA exclusion overlays in parallel against the parcel
+    # centroid. Each overlay times out at 4s and individual failures don't
+    # poison the batch — failed overlays come back with `error` + `in_zone=None`
+    # and the eligibility engine flags those items "unknown" (verify).
+    lat = facts.get("lat")
+    lng = facts.get("lng")
+    if lat is not None and lng is not None:
+        try:
+            facts["overlays"] = await query_all_overlays(lat, lng)
+        except Exception as e:
+            logger.warning(f"overlay batch failed: {e}")
+            facts["overlays"] = {"error": str(e)}
+    else:
+        facts["overlays"] = None
+
     # 3. Look up zone density (may be None → flagged in yield calc)
     zone_density = None
     if facts.get("zone_code"):
@@ -659,6 +795,10 @@ async def run_parcel_screen(
             "lng": facts.get("lng"),
             "geometry_wgs84": facts.get("geometry_wgs84"),
             "raw_attributes": facts.get("raw_attributes"),
+            # Statewide CA exclusion overlays (CalFire FHSZ, Alquist-Priolo,
+            # FMMP, NRHP, FEMA SFHA). One dict per overlay id; failed
+            # overlays carry `error` + `in_zone=None`.
+            "overlays": facts.get("overlays"),
         },
         "zoning_gp_mismatch": mismatch,
         "zone_density_loaded": zone_density is not None,
@@ -666,10 +806,10 @@ async def run_parcel_screen(
         "permit_history": permit_history,
         "permit_history_count": len(permit_history),
         "phase2_deferred": [
-            "Statewide CA exclusion overlays (CalFire FHSZ, Alquist-Priolo, FMMP, OHP)",
             "SB-684 qualifying-infill perimeter test (spatial 75% urban-use)",
             "Mercator dimension correction for irregular parcels",
             "Auto-discovery of GIS endpoints for new cities (Chrome MCP server-side)",
+            "Bake overlays into Hot Picks refresh (currently on-screen only — 120K+ extra Esri calls per city per refresh)",
         ],
     }
 
