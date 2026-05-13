@@ -72,6 +72,7 @@ from app.models.parcel_screen import (  # noqa: F401 — registers tables for Ba
     ParcelStateLaw,
     ParcelZoneDensity,
     ParcelScreen,
+    ParcelHotPick,
 )
 
 logger = logging.getLogger(__name__)

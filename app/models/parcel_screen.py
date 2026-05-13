@@ -127,3 +127,37 @@ class ParcelScreen(Base):
         Index("ix_parcel_screens_user_created", "user_id", "created_at"),
         Index("ix_parcel_screens_apn", "apn"),
     )
+
+
+class ParcelHotPick(Base):
+    """Ladder 1 Hot Picks leaderboard — bulk-scored candidate parcels.
+
+    Pre-computed max-possible CA state-law unit yield for every parcel in a
+    registered city. Sorted by score (= max_units, tie-break acres). Refreshed
+    periodically via scripts/refresh_hot_picks.py and POST /parcel-screen/hot-picks/refresh.
+
+    Origin: Phase-2 productization of Rob's parcel-screen — `.claude/skills/parcel-screen/`.
+    """
+    __tablename__ = "parcel_hot_picks"
+
+    state = Column(String(2), primary_key=True)
+    city_slug = Column(String(80), primary_key=True)
+    apn = Column(String(80), primary_key=True)
+    address = Column(String(500))
+    owner_name = Column(String(255))
+    acres = Column(Numeric(10, 4))
+    zone_code = Column(String(40))
+    gp_code = Column(String(40))
+    fire_zone = Column(String(40))
+    impr_value = Column(Numeric(14, 2))
+    lat = Column(Numeric(11, 7))
+    lng = Column(Numeric(11, 7))
+    max_units = Column(Integer, nullable=False, default=0)
+    best_path = Column(String(80))          # e.g. "sb684+ab130" or "state-adu"
+    eligible_paths = Column(JSONB, default=list)  # ["by-right","state-adu","ab130", ...]
+    score = Column(Numeric(10, 4), nullable=False, default=0)  # max_units × small bonuses
+    refreshed_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+
+    __table_args__ = (
+        Index("ix_parcel_hot_picks_city_score", "state", "city_slug", "score"),
+    )

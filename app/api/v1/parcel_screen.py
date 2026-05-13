@@ -7,22 +7,25 @@ Origin: Rob's `.claude/skills/parcel-screen/` Claude Code skill, productized
 into parcels.ecbtx.com.
 """
 
+import asyncio
 import logging
 import os
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_db
+from app.database import async_session_maker, get_db
 from app.middleware.api_key_auth import get_current_user
 from app.models.api_key import ApiUser
 from app.models.parcel_screen import (
+    ParcelHotPick,
     ParcelJurisdiction,
     ParcelScreen,
     ParcelStateLaw,
 )
+from app.services.parcel_hot_picks import refresh_city
 from app.services.parcel_screen_service import run_parcel_screen
 
 logger = logging.getLogger(__name__)
@@ -222,6 +225,196 @@ async def list_my_screens(
             for s in rows
         ],
         "total": len(rows),
+    }
+
+
+# ---------------------------------------------------------------------------
+# Hot Picks (Ladder 1) — bulk-scored leaderboard
+# ---------------------------------------------------------------------------
+class HotPicksRefreshRequest(BaseModel):
+    state: str = Field("CA", min_length=2, max_length=2)
+    city_slug: str = Field(..., min_length=1, max_length=80)
+
+
+@router.get("/hot-picks")
+async def list_hot_picks(
+    state: str = Query("CA", min_length=2, max_length=2),
+    city: str = Query(..., min_length=1, max_length=80),
+    path: str | None = Query(None, description="Filter by best_path (substring match)"),
+    min_yield: int = Query(0, ge=0),
+    limit: int = Query(50, ge=1, le=200),
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Top-N candidate parcels for a city, ranked by score (= max_units desc).
+
+    Returns the pre-computed Ladder 1 leaderboard. Refresh via
+    `scripts/refresh_hot_picks.py` (preferred) or `POST /hot-picks/refresh`.
+    """
+    _require_allowlist(user)
+
+    stmt = (
+        select(ParcelHotPick)
+        .where(
+            ParcelHotPick.state == state.upper(),
+            ParcelHotPick.city_slug == city.lower(),
+            ParcelHotPick.max_units >= min_yield,
+        )
+        .order_by(ParcelHotPick.score.desc(), ParcelHotPick.acres.desc().nullslast())
+        .limit(limit)
+    )
+    if path:
+        stmt = stmt.where(ParcelHotPick.best_path.ilike(f"%{path}%"))
+
+    result = await db.execute(stmt)
+    rows = result.scalars().all()
+    return {
+        "state": state.upper(),
+        "city_slug": city.lower(),
+        "total": len(rows),
+        "picks": [
+            {
+                "apn": r.apn,
+                "address": r.address,
+                "owner_name": r.owner_name,
+                "acres": float(r.acres) if r.acres is not None else None,
+                "zone_code": r.zone_code,
+                "gp_code": r.gp_code,
+                "fire_zone": r.fire_zone,
+                "impr_value": float(r.impr_value) if r.impr_value is not None else None,
+                "lat": float(r.lat) if r.lat is not None else None,
+                "lng": float(r.lng) if r.lng is not None else None,
+                "max_units": r.max_units,
+                "best_path": r.best_path,
+                "eligible_paths": r.eligible_paths or [],
+                "score": float(r.score) if r.score is not None else 0.0,
+                "refreshed_at": r.refreshed_at.isoformat() if r.refreshed_at else None,
+            }
+            for r in rows
+        ],
+    }
+
+
+@router.get("/hot-picks/stats")
+async def hot_picks_stats(
+    state: str = Query("CA", min_length=2, max_length=2),
+    city: str = Query(..., min_length=1, max_length=80),
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Counts by yield tier + last refresh timestamp for a city."""
+    _require_allowlist(user)
+
+    s = state.upper()
+    c = city.lower()
+
+    total_q = await db.execute(
+        select(func.count())
+        .select_from(ParcelHotPick)
+        .where(ParcelHotPick.state == s, ParcelHotPick.city_slug == c)
+    )
+    total = total_q.scalar_one()
+
+    # Yield tiers — buckets we care about for the leaderboard UI
+    tier_q = await db.execute(
+        select(
+            func.count().filter(ParcelHotPick.max_units >= 10).label("ge_10"),
+            func.count().filter(ParcelHotPick.max_units >= 5).label("ge_5"),
+            func.count().filter(ParcelHotPick.max_units >= 4).label("ge_4"),
+            func.count().filter(ParcelHotPick.max_units >= 3).label("ge_3"),
+            func.count().filter(ParcelHotPick.max_units >= 2).label("ge_2"),
+        ).where(ParcelHotPick.state == s, ParcelHotPick.city_slug == c)
+    )
+    tier_row = tier_q.one()
+
+    last_q = await db.execute(
+        select(func.max(ParcelHotPick.refreshed_at))
+        .where(ParcelHotPick.state == s, ParcelHotPick.city_slug == c)
+    )
+    last_refresh = last_q.scalar_one()
+
+    top_path_q = await db.execute(
+        select(ParcelHotPick.best_path, func.count().label("n"))
+        .where(ParcelHotPick.state == s, ParcelHotPick.city_slug == c)
+        .group_by(ParcelHotPick.best_path)
+        .order_by(func.count().desc())
+        .limit(10)
+    )
+    by_path = [{"best_path": row[0], "count": row[1]} for row in top_path_q.all()]
+
+    return {
+        "state": s,
+        "city_slug": c,
+        "total": total,
+        "tiers": {
+            "ge_10": tier_row.ge_10,
+            "ge_5": tier_row.ge_5,
+            "ge_4": tier_row.ge_4,
+            "ge_3": tier_row.ge_3,
+            "ge_2": tier_row.ge_2,
+        },
+        "by_path": by_path,
+        "last_refreshed_at": last_refresh.isoformat() if last_refresh else None,
+    }
+
+
+@router.post("/hot-picks/refresh")
+async def refresh_hot_picks(
+    body: HotPicksRefreshRequest,
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Kick off a refresh for one city. Returns immediately; runs in background.
+
+    The CLI (`scripts/refresh_hot_picks.py`) is the preferred path for full
+    refreshes — this endpoint is a convenience for ad-hoc admin use that
+    avoids hitting Railway's edge timeout on long pulls.
+    """
+    _require_allowlist(user)
+
+    state = body.state.upper()
+    city_slug = body.city_slug.lower()
+
+    # Resolve jurisdiction up front so we can fail fast with a 404.
+    result = await db.execute(
+        select(ParcelJurisdiction).where(
+            ParcelJurisdiction.state == state,
+            ParcelJurisdiction.city_slug == city_slug,
+        )
+    )
+    jurisdiction = result.scalar_one_or_none()
+    if not jurisdiction:
+        raise HTTPException(status_code=404, detail=f"jurisdiction not registered: {state}/{city_slug}")
+
+    # The injected db session is tied to this request's lifecycle and will be
+    # closed when this handler returns — so spawn the background task with a
+    # fresh session. We also need to re-fetch the jurisdiction in that session
+    # since SQLAlchemy 2.0 objects are bound to their original session.
+    async def _bg(state_: str, city_slug_: str) -> None:
+        try:
+            async with async_session_maker() as bg_db:
+                bg_result = await bg_db.execute(
+                    select(ParcelJurisdiction).where(
+                        ParcelJurisdiction.state == state_,
+                        ParcelJurisdiction.city_slug == city_slug_,
+                    )
+                )
+                bg_juris = bg_result.scalar_one_or_none()
+                if not bg_juris:
+                    logger.error(f"refresh_city: jurisdiction vanished mid-task: {state_}/{city_slug_}")
+                    return
+                stats = await refresh_city(bg_db, bg_juris)
+                logger.info(f"refresh_city {state_}/{city_slug_} done: {stats}")
+        except Exception:
+            logger.exception(f"refresh_city {state_}/{city_slug_} failed")
+
+    asyncio.create_task(_bg(state, city_slug))
+
+    return {
+        "status": "started",
+        "state": state,
+        "city_slug": city_slug,
+        "note": "Running asynchronously; poll /hot-picks/stats for progress.",
     }
 
 
