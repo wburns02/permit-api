@@ -54,6 +54,25 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Esri pagination
 # ---------------------------------------------------------------------------
+def _parcels_where_for(jurisdiction: ParcelJurisdiction) -> str:
+    """Pick the right WHERE clause for the city's parcel layer.
+
+    The SB-County and Riverside-County parcel layers are shared across every
+    city in the county. Pulling 870K rows per refresh is unnecessary and trips
+    the 32K-parameter NOT-IN limit downstream. When we detect a known shared
+    layer, scope the fetch by the city's display name.
+    """
+    parcels_url = (jurisdiction.parcels_url or "").lower()
+    display = (jurisdiction.display_name or "").split(",")[0].strip()
+    if "parcels_for_san_bernardino_county" in parcels_url:
+        # SB County uses `Jurisdiction = 'City of Fontana'` etc.
+        return f"Jurisdiction = 'City of {display}'"
+    if "countyofriverside.us" in parcels_url:
+        # Riverside CREST uses the bare uppercase city name in `CITY`.
+        return f"CITY = '{display.upper()}'"
+    return "1=1"
+
+
 async def fetch_all_parcels_paginated(
     jurisdiction: ParcelJurisdiction,
     max_rows: int = 50000,
@@ -80,10 +99,11 @@ async def fetch_all_parcels_paginated(
     offset = 0
     pages = 0
 
+    where_clause = _parcels_where_for(jurisdiction)
     async with httpx.AsyncClient(timeout=timeout_s) as client:
         while len(out_rows) < max_rows:
             params = {
-                "where": "1=1",
+                "where": where_clause,
                 "outFields": "*",
                 "returnGeometry": "true",
                 "outSR": "4326",
@@ -434,14 +454,20 @@ async def refresh_city(db: AsyncSession, jurisdiction: ParcelJurisdiction) -> di
         )
         await db.execute(stmt)
 
-    # 4. Delete stale rows — any APN not seen this run
+    # 4. Delete stale rows — any APN not seen this run.
+    # asyncpg caps query arguments at 32767, so a literal NOT IN (...) breaks
+    # the moment we cross that many parcels (SB County cities easily do).
+    # `apn != ALL(:array_param)` passes the whole list as a single varchar[]
+    # parameter and dodges the limit entirely.
     if seen_apns:
+        from sqlalchemy import text as _sql_text
         await db.execute(
-            delete(ParcelHotPick).where(
-                ParcelHotPick.state == state,
-                ParcelHotPick.city_slug == city_slug,
-                ParcelHotPick.apn.notin_(list(seen_apns)),
-            )
+            _sql_text(
+                "DELETE FROM parcel_hot_picks "
+                "WHERE state = :s AND city_slug = :c "
+                "AND apn != ALL(CAST(:apns AS varchar[]))"
+            ),
+            {"s": state, "c": city_slug, "apns": list(seen_apns)},
         )
 
     await db.commit()
