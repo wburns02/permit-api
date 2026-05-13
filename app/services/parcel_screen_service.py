@@ -196,6 +196,7 @@ async def _spatial_join_first(layer_url: str, parcel_geom: dict, parcel_sr: dict
 # Eligibility engine
 # ---------------------------------------------------------------------------
 def _check_zone_residential(zone_code: str | None) -> bool:
+    """SFR zones only."""
     if not zone_code:
         return False
     z = zone_code.upper().strip()
@@ -204,11 +205,31 @@ def _check_zone_residential(zone_code: str | None) -> bool:
 
 
 def _check_zone_mf(zone_code: str | None) -> bool:
+    """Multi-family zones."""
     if not zone_code:
         return False
     z = zone_code.upper().strip()
-    mf_patterns = ("R-2", "R2", "R-3", "R3", "R-4", "R4", "MF", "RM", "MU")
+    mf_patterns = ("R-2", "R2", "R-3", "R3", "R-4", "R4", "MF", "RM", "RH", "MU")
     return any(z.startswith(p) for p in mf_patterns)
+
+
+def _check_zone_any_residential(zone_code: str | None) -> bool:
+    """Any residential — SFR or MF — for State ADU eligibility."""
+    return _check_zone_residential(zone_code) or _check_zone_mf(zone_code)
+
+
+def _check_zone_commercial(zone_code: str | None) -> bool:
+    """Commercial / office / retail / parking — for AB-2011 / SB-6 eligibility.
+
+    Conservative: only matches obvious commercial prefixes. Mixed-use that's
+    primarily residential won't match (correct — AB-2011 wants non-residential
+    by-right zones).
+    """
+    if not zone_code:
+        return False
+    z = zone_code.upper().strip()
+    commercial_patterns = ("C-1", "C1", "C-2", "C2", "C-3", "C3", "C-G", "CG", "CC", "CR", "CO", "CN", "O-", "OFC", "OP", "P-", "PKG")
+    return any(z.startswith(p) for p in commercial_patterns) or z in ("C", "P", "O")
 
 
 def _evaluate_eligibility(law: ParcelStateLaw, facts: dict) -> dict:
@@ -258,30 +279,75 @@ def _run_auto_check(law_id: str, item: dict, facts: dict) -> tuple[str, str | No
         return "pass", "Always applies"
 
     zone = facts.get("zone_code")
+    acres = facts.get("acres")
+    impr_value = facts.get("impr_value")
 
-    # SB-9 auto-checks
-    if law_id == "sb9":
-        if item_id == "zone_r1":
-            return ("pass" if _check_zone_residential(zone) else "fail", f"zone={zone}")
-        if item_id == "min_lot_post_split":
-            acres = facts.get("acres")
-            if not acres:
-                return "unknown", "lot size not on GIS"
-            sqft = acres * 43560
-            return ("pass" if sqft >= 2400 else "fail", f"{sqft:.0f} sqft (need ≥2400 for 2 lots × 1200 sqft each)")
+    # Universal items shared across multiple laws ----------------------------
+    if item_id == "zone_r1" or item_id == "zone_sfr":
+        return ("pass" if _check_zone_residential(zone) else "fail", f"zone={zone}")
+    if item_id == "zone_mf":
+        return ("pass" if _check_zone_mf(zone) else "fail", f"zone={zone}")
+    if item_id == "zone_residential":
+        return ("pass" if _check_zone_any_residential(zone) else "fail", f"zone={zone}")
+    if item_id == "zone_commercial":
+        return ("pass" if _check_zone_commercial(zone) else "fail", f"zone={zone}")
+    if item_id == "size_le_5ac":
+        if acres is None:
+            return "unknown", "lot size not on GIS"
+        return ("pass" if acres <= 5.0 else "fail", f"{acres:.2f} acres")
+    if item_id == "sufficient_lot_area":
+        if acres is None:
+            return "unknown", "lot size not on GIS"
+        # 10 lots × 600 sqft min + ~25 % for streets/setbacks + room for remainder ≈ 0.2 ac minimum
+        return ("pass" if acres >= 0.2 else "fail", f"{acres:.2f} acres (need ≥0.2 ac for 10 lots + remainder)")
 
-    # SB-684 auto-checks
-    if law_id == "sb684":
-        if item_id == "zone_mf_or_infill":
-            if _check_zone_mf(zone):
-                return "pass", f"zone={zone} is MF"
-            # Not MF — could still qualify as urban infill, but that needs perimeter test (Phase 2)
-            return "unknown", f"zone={zone} not MF; eligibility hinges on qualifying-infill perimeter test (TODO Phase 2)"
-        if item_id == "size_le_5ac":
-            acres = facts.get("acres")
-            if acres is None:
-                return "unknown", "lot size not on GIS"
-            return ("pass" if acres <= 5.0 else "fail", f"{acres:.2f} acres")
+    # SB-9 specific ---------------------------------------------------------
+    if law_id == "sb9" and item_id == "min_lot_post_split":
+        if not acres:
+            return "unknown", "lot size not on GIS"
+        sqft = acres * 43560
+        return ("pass" if sqft >= 2400 else "fail", f"{sqft:.0f} sqft (need ≥2400 for 2 lots × 1200 sqft each)")
+
+    # SB-684 specific -------------------------------------------------------
+    if law_id == "sb684" and item_id == "zone_mf_or_infill":
+        if _check_zone_mf(zone):
+            return "pass", f"zone={zone} is MF"
+        return "unknown", f"zone={zone} not MF; eligibility hinges on qualifying-infill perimeter test (TODO Phase 2)"
+
+    # SB-1123 specific ------------------------------------------------------
+    if law_id == "sb1123" and item_id == "vacancy_indicator":
+        if impr_value is None:
+            return "unknown", "improvement value not on GIS"
+        # $0 improvement is the suggestive vacancy signal
+        return ("pass" if (impr_value or 0) == 0 else "fail", f"impr_value=${impr_value:,.0f}")
+
+    # SB-1211 specific ------------------------------------------------------
+    if law_id == "sb1211" and item_id == "existing_residential":
+        if impr_value is None:
+            return "unknown", "improvement value not on GIS"
+        return ("pass" if (impr_value or 0) > 0 else "fail", f"impr_value=${impr_value:,.0f}")
+
+    # State ADU specific ----------------------------------------------------
+    if law_id == "state-adu" and item_id == "primary_dwelling":
+        if impr_value is None:
+            return "unknown", "improvement value not on GIS — verify existing primary"
+        return ("pass" if (impr_value or 0) > 0 else "unknown", f"impr_value=${impr_value:,.0f}")
+
+    # AB-130 specific -------------------------------------------------------
+    if law_id == "ab130":
+        if item_id == "qualifies_sb684_or_sb1123":
+            # Couldn't check parent-statute eligibility from here cleanly; flag
+            return "unknown", "Cross-references SB-684/SB-1123 eligibility — see those rows"
+        if item_id == "existing_improvement":
+            if impr_value is None:
+                return "unknown", "improvement value not on GIS"
+            return ("pass" if (impr_value or 0) > 0 else "fail", f"impr_value=${impr_value:,.0f}")
+
+    # Density Bonus -- general residential project --------------------------
+    if law_id == "density-bonus" and item_id == "any_residential_project":
+        if _check_zone_any_residential(zone) or _check_zone_commercial(zone):
+            return "pass", f"zone={zone} can host residential (including via AB-2011 / SB-6 stack)"
+        return "unknown", f"zone={zone} — verify residential eligibility"
 
     # Generic exclusion checks (fire, flood, farmland, fault, historic) — defer to Phase 2 overlays.
     # For now, fire_zone is the only one we sometimes have inline on the parcel attribute.
