@@ -342,56 +342,74 @@ async def fetch_permit_history(
     state: str,
     limit: int = 25,
 ) -> list[dict]:
-    """Pull past permits for this parcel from our existing permits table."""
-    if not apn and not address:
+    """Pull past permits for this parcel from our existing permits table.
+
+    Uses APN-only matching (fast — there's an index). Address ILIKE was tried
+    initially but it scans the full 776M-row permits table and hits the 20s
+    statement_timeout. Rob's parcel APNs typically appear as the permit_number
+    on issued permits anyway.
+
+    On failure (timeout, lock, anything), we roll back the savepoint and return
+    an empty list — the caller still gets a usable parcel screen.
+    """
+    if not apn:
         return []
 
-    conditions = []
-    params: dict[str, Any] = {"state": state, "limit": limit}
+    apn_clean = "".join(c for c in apn if c.isalnum())
+    apn_variants = list({apn, apn_clean})
 
-    if apn:
-        # APN may be stored in various fields — try common variants
-        conditions.append("(permit_number = :apn OR description ILIKE :apn_like)")
-        params["apn"] = apn
-        params["apn_like"] = f"%{apn}%"
-
-    if address:
-        # Match on the address column with a loose pattern
-        parts = address.strip().split(None, 1)
-        if len(parts) >= 1:
-            params["addr_like"] = f"%{parts[0]}%{parts[1].split(',')[0].strip() if len(parts) == 2 else ''}%"
-            conditions.append("address ILIKE :addr_like")
-
-    where = " OR ".join(conditions)
-    sql = f"""
+    sql = """
+        SET LOCAL statement_timeout = '6s';
         SELECT permit_number, address, city, state_code, project_type, work_type,
                status, description, date_created, owner_name, applicant_name
         FROM permits
-        WHERE state_code = :state AND ({where})
+        WHERE state_code = :state
+          AND (permit_number = ANY(:apn_variants) OR description ILIKE :apn_like)
         ORDER BY date_created DESC NULLS LAST
         LIMIT :limit
     """
+    params = {
+        "state": state,
+        "apn_variants": apn_variants,
+        "apn_like": f"%{apn_clean}%",
+        "limit": limit,
+    }
 
+    # Wrap in a savepoint so a timeout doesn't poison the outer transaction.
     try:
-        result = await db.execute(text(sql), params)
-        rows = []
-        for row in result.mappings():
-            rows.append({
-                "permit_number": row.get("permit_number"),
-                "address": row.get("address"),
-                "city": row.get("city"),
-                "state": row.get("state_code"),
-                "project_type": row.get("project_type"),
-                "work_type": row.get("work_type"),
-                "status": row.get("status"),
-                "description": row.get("description"),
-                "date": row.get("date_created").isoformat() if row.get("date_created") else None,
-                "owner_name": row.get("owner_name"),
-                "applicant_name": row.get("applicant_name"),
-            })
-        return rows
+        async with db.begin_nested():
+            # Apply statement_timeout BEFORE the SELECT, in the same transaction.
+            await db.execute(text("SET LOCAL statement_timeout = '6s'"))
+            result = await db.execute(
+                text("""
+                    SELECT permit_number, address, city, state_code, project_type, work_type,
+                           status, description, date_created, owner_name, applicant_name
+                    FROM permits
+                    WHERE state_code = :state
+                      AND (permit_number = ANY(:apn_variants) OR description ILIKE :apn_like)
+                    ORDER BY date_created DESC NULLS LAST
+                    LIMIT :limit
+                """),
+                params,
+            )
+            rows = []
+            for row in result.mappings():
+                rows.append({
+                    "permit_number": row.get("permit_number"),
+                    "address": row.get("address"),
+                    "city": row.get("city"),
+                    "state": row.get("state_code"),
+                    "project_type": row.get("project_type"),
+                    "work_type": row.get("work_type"),
+                    "status": row.get("status"),
+                    "description": row.get("description"),
+                    "date": row.get("date_created").isoformat() if row.get("date_created") else None,
+                    "owner_name": row.get("owner_name"),
+                    "applicant_name": row.get("applicant_name"),
+                })
+            return rows
     except Exception as e:
-        logger.warning(f"permit history query failed: {e}")
+        logger.warning(f"permit history query failed (savepoint rolled back): {e}")
         return []
 
 
