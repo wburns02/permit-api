@@ -41,15 +41,23 @@ async def _query_feature_layer(
     out_fields: str = "*",
     return_geometry: bool = True,
     geometry: dict | None = None,
+    out_sr: int | None = None,
     timeout: float = 8.0,
 ) -> dict:
-    """Run an Esri FeatureServer/MapServer query and return parsed JSON."""
+    """Run an Esri FeatureServer/MapServer query and return parsed JSON.
+
+    `out_sr` requests the geometry in a specific spatial reference (e.g. 4326
+    for WGS84 lat/lng). When set, the Esri server reprojects the geometry
+    server-side — no client-side projection math needed.
+    """
     params = {
         "where": where,
         "outFields": out_fields,
         "returnGeometry": "true" if return_geometry else "false",
         "f": "json",
     }
+    if out_sr is not None:
+        params["outSR"] = str(out_sr)
     if geometry:
         params["geometry"] = geometry["geom"]
         params["geometryType"] = geometry.get("type", "esriGeometryEnvelope")
@@ -97,7 +105,10 @@ async def pull_parcel_facts(
     else:
         raise ValueError("must provide address or apn")
 
-    resp = await _query_feature_layer(parcels_url, where=where)
+    # Ask the Esri server to reproject geometry to WGS84 lat/lng so the
+    # frontend can render the polygon on a standard slippy-tile map without
+    # client-side projection math.
+    resp = await _query_feature_layer(parcels_url, where=where, out_sr=4326)
     features = resp.get("features", [])
     if not features:
         return {"error": "parcel not found", "where": where}
@@ -106,6 +117,22 @@ async def pull_parcel_facts(
     attrs = feat.get("attributes", {})
     geom = feat.get("geometry")
     sr = resp.get("spatialReference", {})
+
+    # Build WGS84 outputs the frontend uses to render the parcel on a map.
+    geometry_wgs84 = None
+    centroid_lat = None
+    centroid_lng = None
+    if geom and geom.get("rings"):
+        # Esri Polygon "rings" are [[ [lon,lat], [lon,lat], ... ], ...]
+        # in 4326 since we passed outSR=4326. Same shape as GeoJSON
+        # Polygon coordinates — frontend can pass straight to maplibre.
+        geometry_wgs84 = {"type": "Polygon", "coordinates": geom["rings"]}
+        # Centroid: simple ring-average of the outer ring. Good enough for
+        # map.flyTo / fitBounds anchoring.
+        outer = geom["rings"][0] if geom["rings"] else []
+        if outer:
+            centroid_lng = sum(p[0] for p in outer) / len(outer)
+            centroid_lat = sum(p[1] for p in outer) / len(outer)
 
     # Normalize attribute keys to a stable lower-case shape
     norm = {k.lower(): v for k, v in attrs.items()}
@@ -121,6 +148,9 @@ async def pull_parcel_facts(
     facts = {
         "raw_attributes": attrs,
         "geometry": geom,
+        "geometry_wgs84": geometry_wgs84,
+        "lat": centroid_lat,
+        "lng": centroid_lng,
         "spatial_reference": sr,
         "apn": norm.get(apn_field.lower()) or norm.get("apn") or norm.get("parcelno") or apn,
         "owner_name": norm.get("owner_name") or norm.get("owner") or norm.get("ownername"),
@@ -624,6 +654,10 @@ async def run_parcel_screen(
             "sp_code": facts.get("sp_code"),
             "sp_desc": facts.get("sp_desc"),
             "fire_zone": facts.get("fire_zone"),
+            # WGS84 lat/lng centroid + polygon for frontend map rendering.
+            "lat": facts.get("lat"),
+            "lng": facts.get("lng"),
+            "geometry_wgs84": facts.get("geometry_wgs84"),
             "raw_attributes": facts.get("raw_attributes"),
         },
         "zoning_gp_mismatch": mismatch,
