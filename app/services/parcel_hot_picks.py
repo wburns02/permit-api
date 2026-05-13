@@ -436,8 +436,12 @@ async def refresh_city(db: AsyncSession, jurisdiction: ParcelJurisdiction) -> di
 
     scored = len(scored_rows)
 
-    # 3. Bulk upsert in batches of 500
-    BATCH = 500
+    # 3. Bulk upsert. 500 rows × 18 cols × variable-size JSONB geometry can
+    # blow asyncpg's wire-protocol message size when parcels carry rich
+    # polygons (Fontana especially — observed ConnectionDoesNotExistError
+    # mid-batch). 100 keeps each prepared statement well under the limit
+    # while still amortizing round-trip cost.
+    BATCH = 100
     for i in range(0, len(scored_rows), BATCH):
         batch = scored_rows[i:i + BATCH]
         stmt = pg_insert(ParcelHotPick).values(batch)
