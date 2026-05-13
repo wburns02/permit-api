@@ -66,6 +66,13 @@ from app.api.v1.freshness import router as freshness_router
 from app.api.v1.hman_auth import router as hman_auth_router
 from app.api.v1.pricing import router as pricing_router
 from app.api.v1.hail_leads import router as hail_leads_router
+from app.api.v1.parcel_screen import router as parcel_screen_router
+from app.models.parcel_screen import (  # noqa: F401 — registers tables for Base.metadata.create_all
+    ParcelJurisdiction,
+    ParcelStateLaw,
+    ParcelZoneDensity,
+    ParcelScreen,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -417,6 +424,7 @@ app.include_router(freshness_router, prefix="/v1")
 app.include_router(hman_auth_router, prefix="/v1")
 app.include_router(pricing_router, prefix="/v1")
 app.include_router(hail_leads_router, prefix="/v1")
+app.include_router(parcel_screen_router, prefix="/v1")
 
 
 @app.get("/health")
