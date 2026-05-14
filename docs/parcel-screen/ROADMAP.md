@@ -42,7 +42,7 @@ The next wave. Each of these closes a real gap in the current workflow. None are
 
 - **CSV and PDF export.** Any screen result, any Hot Picks filtered list, any Hunt result set: one-click export. CSV for spreadsheet jockeys, PDF for sending to GCs and lenders. `Effort:` 1 day. `Status:` Queued.
 
-- **Owner enrichment (phone plus email).** Skip-trace integration (BatchData or equivalent) to attach owner contact info to each parcel. Closes the screen-to-call gap so the tool feeds the dialer directly. `Effort:` 1-2 days (API integration plus rate management). `Status:` Queued.
+- **Owner enrichment (phone plus email).** BatchData skip-trace integration attaches owner contact info (up to 5 phones with confidence + DNC flags, emails, mailing address, age) to each parcel. 90-day cache in `parcel_owner_enrichment` keyed on (state, city_slug, apn) so re-screens are free. Daily soft cap (50/user/day default) via `PARCEL_ENRICH_DAILY_CAP`. Mailing-address-different-from-site badge surfaces absentee-owner signal. Closes the screen-to-call gap. `Effort:` shipped in one day. `Status:` Shipped (2026-05-13).
 
 - **SB-684 qualifying-infill 75% perimeter spatial test.** Right now SB-684 flags as "verify" for non-MF zones because the 75%-developed-perimeter test is not automated. Add the spatial query against neighboring parcels and infill candidates flip to auto-eligible. `Effort:` 3-4 hours. `Status:` Queued.
 
