@@ -947,3 +947,87 @@ async def parcel_map(
         "state": s,
         "city_slug": c,
     }
+
+
+# ---------------------------------------------------------------------------
+# Owner Enrichment — BatchData skip-trace
+# ---------------------------------------------------------------------------
+class EnrichOwnerRequest(BaseModel):
+    state: str = Field(..., min_length=2, max_length=2)
+    city_slug: str = Field(..., min_length=1, max_length=80)
+    apn: str = Field(..., min_length=1, max_length=80)
+    force_refresh: bool = False
+
+
+@router.post("/enrich-owner")
+async def enrich_owner_endpoint(
+    body: EnrichOwnerRequest,
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Fetch owner contact info (phones, emails, mailing addr) for a parcel.
+
+    Cached 90 days per (state, city_slug, apn). Cache hits cost $0 and don't
+    count against the daily cap. Force-refresh requeries BatchData and bumps
+    fetched_at.
+    """
+    _require_allowlist(user)
+
+    from app.services.parcel_owner_enrichment import (
+        enrich_owner, get_daily_count, DEFAULT_DAILY_CAP,
+    )
+
+    daily_cap = int(os.environ.get("PARCEL_ENRICH_DAILY_CAP", str(DEFAULT_DAILY_CAP)))
+    count = await get_daily_count(db, user.id)
+    # Cache hits don't count against the cap — only fresh lookups do. We can't
+    # know in advance whether a request will cache-hit, so trust the service:
+    # if cache hit, fetched_at isn't updated, so count won't bump.
+
+    try:
+        result = await asyncio.wait_for(
+            enrich_owner(
+                db=db,
+                user_id=user.id,
+                state=body.state.upper(),
+                city_slug=body.city_slug.lower(),
+                apn=body.apn,
+                force_refresh=body.force_refresh,
+            ),
+            timeout=33.0,  # Railway edge bails at 35s — leave 2s for serialization
+        )
+        result["daily_count_after"] = count + (0 if result["is_cached"] else 1)
+        result["daily_cap"] = daily_cap
+        return result
+    except asyncio.TimeoutError:
+        raise HTTPException(
+            status_code=504,
+            detail="Owner enrichment timed out. Try again — BatchData may be slow.",
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except Exception as e:
+        logger.exception("enrich-owner failed")
+        raise HTTPException(status_code=502, detail=f"Enrichment failed: {e}")
+
+
+@router.get("/enrich-owner/usage")
+async def enrich_owner_usage(
+    user: ApiUser = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Today's enrichment count + cap for the current user."""
+    _require_allowlist(user)
+    from app.services.parcel_owner_enrichment import (
+        get_daily_count, DEFAULT_DAILY_CAP, COST_CENTS_PER_LOOKUP,
+    )
+    daily_cap = int(os.environ.get("PARCEL_ENRICH_DAILY_CAP", str(DEFAULT_DAILY_CAP)))
+    count = await get_daily_count(db, user.id)
+    return {
+        "user_id": str(user.id),
+        "daily_count": count,
+        "daily_cap": daily_cap,
+        "remaining": max(0, daily_cap - count),
+        "cost_per_lookup_cents": COST_CENTS_PER_LOOKUP,
+    }

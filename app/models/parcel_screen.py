@@ -11,7 +11,7 @@ import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import (
-    Column, String, Integer, Numeric, Date, DateTime, Text, ForeignKey, Index,
+    Boolean, Column, String, Integer, Numeric, Date, DateTime, Text, ForeignKey, Index,
 )
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 
@@ -161,4 +161,38 @@ class ParcelHotPick(Base):
 
     __table_args__ = (
         Index("ix_parcel_hot_picks_city_score", "state", "city_slug", "score"),
+    )
+
+
+class ParcelOwnerEnrichment(Base):
+    """Cached BatchData skip-trace results per parcel.
+
+    Key: (state, city_slug, apn). One row per parcel — re-enriching overwrites
+    the row (we never want stale phone numbers — BatchData refreshes its data
+    monthly so a 90-day TTL is the right cache window).
+    """
+    __tablename__ = "parcel_owner_enrichment"
+
+    state         = Column(String(2),   primary_key=True)
+    city_slug     = Column(String(80),  primary_key=True)
+    apn           = Column(String(80),  primary_key=True)
+    owner_name    = Column(String(200))           # what we sent (parcel.owner_name)
+    property_addr = Column(JSONB)                 # the {street, city, state, zip} we asked about
+    persons       = Column(JSONB, nullable=False, default=list)
+    # persons schema (subset, from BatchData):
+    #   [{
+    #     "name": {"first","last","full"},
+    #     "phones": [{"number","type","score","dnc"}],
+    #     "emails": ["a@b.com", ...],
+    #     "mailing_address": {"street","city","state","zip"},
+    #     "demographics": {"age","deceased"}
+    #   }, ...]
+    raw_response  = Column(JSONB)                 # full BatchData response for debugging
+    hit           = Column(Boolean, default=False)  # did BatchData return any persons
+    cost_cents    = Column(Integer, default=25)   # accounting rough estimate
+    fetched_at    = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
+    fetched_by_user_id = Column(UUID(as_uuid=True), ForeignKey("api_users.id"), nullable=True)
+
+    __table_args__ = (
+        Index("ix_parcel_owner_enrich_user_fetched", "fetched_by_user_id", "fetched_at"),
     )
