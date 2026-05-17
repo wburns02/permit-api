@@ -138,16 +138,21 @@ async def lookup_broadband(
     city: str | None,
     state: str,
     zip_code: str | None,
+    geo: dict | None = None,
 ) -> BroadbandLookupResponse:
     """Single-address broadband lookup. Returns every ISP serving the address.
 
     Uses block_geoid when available, else falls back to county_geoid in the
     resolved tract. Empty providers list if nothing resolves.
+
+    `geo` is an optional pre-resolved geo dict (saves a round-trip when called
+    from the septic-score on-the-fly compute).
     """
     state_up = (state or "").upper()
-    geo = await resolve_address_to_geo(
-        db, address=address, city=city, state=state_up, zip_code=zip_code,
-    )
+    if geo is None:
+        geo = await resolve_address_to_geo(
+            db, address=address, city=city, state=state_up, zip_code=zip_code,
+        )
 
     providers: list[BroadbandProvider] = []
     block_geoid: str | None = None
@@ -174,10 +179,20 @@ async def lookup_broadband(
 
     bdc_table = f"fcc_bdc_locations_{state_up.lower()}"
 
-    # If we have a tract_geoid, try to find rows in that tract first.
+    # If we have a tract_geoid, find every block in that tract via a range scan.
     # FCC BDC block_geoid is a 15-char census block id; the first 11 chars are tract.
+    # A range scan (>= tract || '0000', < tract || '9999'+1) uses the btree index
+    # cleanly — substring() does NOT, and would force a full partition scan
+    # (30M+ rows = timeout).
+    rows = []
     if geo.get("tract_geoid"):
+        tract = geo["tract_geoid"]
+        # 15-char block_geoid = 11-char tract + 4-char block. Range: tract||'0000' .. tract||'9999'+1
+        lo = f"{tract}0000"
+        hi = f"{tract}9999" + "\x00"  # one above the max
         try:
+            # Belt-and-braces timeout (DB also has a global 20s cap).
+            await db.execute(text("SET LOCAL statement_timeout = '10s'"))
             sql = f"""
                 SELECT
                     p.provider_id,
@@ -188,30 +203,29 @@ async def lookup_broadband(
                     MAX(bdc.max_advertised_upload_speed)   AS max_ul,
                     bool_or(bdc.low_latency)               AS low_latency,
                     string_agg(DISTINCT bdc.business_residential_code, '/') AS br,
-                    bdc.block_geoid
+                    MIN(bdc.block_geoid)                   AS sample_block
                 FROM {bdc_table} bdc
                 JOIN fcc_bdc_providers p USING (provider_id)
-                WHERE substring(bdc.block_geoid, 1, 11) = :tract
-                GROUP BY p.provider_id, p.brand_name, p.holding_company_name,
-                         bdc.technology, bdc.block_geoid
+                WHERE bdc.block_geoid >= :lo AND bdc.block_geoid < :hi
+                GROUP BY p.provider_id, p.brand_name, p.holding_company_name, bdc.technology
                 ORDER BY max_dl DESC NULLS LAST
                 LIMIT 200
             """
             rows = (await db.execute(
-                text(sql), {"tract": geo["tract_geoid"]}
+                text(sql), {"lo": lo, "hi": hi}
             )).all()
         except Exception as e:
             logger.warning("BDC lookup (%s) by tract failed: %s", bdc_table, e)
             rows = []
-    else:
-        rows = []
 
     # De-duplicate to one row per (provider_id, technology), keeping the best speed.
+    # (Already de-duped server-side, but keep this as a safety net.)
     best: dict[tuple[int, int], dict] = {}
     for r in rows:
         provider_id = r[0]
         tech_code = r[3]
-        block_geoid = block_geoid or r[8]
+        if not block_geoid and len(r) > 8 and r[8]:
+            block_geoid = r[8]
         key = (provider_id, tech_code)
         candidate = {
             "provider_id": provider_id,
@@ -404,9 +418,10 @@ async def lookup_septic_score(
         except Exception as e:
             logger.debug("zcta lookup failed: %s", e)
 
-    # Pull broadband signal via the broadband resolver (reuses geo).
+    # Pull broadband signal via the broadband resolver (reuses geo to avoid
+    # a second property_sales/tract lookup).
     bb = await lookup_broadband(
-        db, address=address, city=city, state=state_up, zip_code=zip_code,
+        db, address=address, city=city, state=state_up, zip_code=zip_code, geo=geo,
     )
 
     components = SepticScoreComponents(
