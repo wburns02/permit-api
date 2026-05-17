@@ -198,8 +198,6 @@ async def lookup_broadband(
         lo = f"{tract}0000"
         hi = f"{next_tract}0000"
         try:
-            # Belt-and-braces timeout (DB also has a global 20s cap).
-            await db.execute(text("SET LOCAL statement_timeout = '10s'"))
             sql = f"""
                 SELECT
                     p.provider_id,
