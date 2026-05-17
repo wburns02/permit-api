@@ -14,7 +14,7 @@ import logging
 from fastapi import APIRouter, Depends, Query, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_read_db
+from app.database import get_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser
@@ -48,7 +48,7 @@ async def broadband_lookup(
     state: str = Query(..., min_length=2, max_length=2, description="2-letter state code"),
     zip: str | None = Query(None, max_length=10, alias="zip"),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_read_db),
+    db: AsyncSession = Depends(get_db),  # v2 tables (rural_septic_score_v2, fcc_bdc_*) live on primary, not replica
 ):
     """Look up every ISP serving an address (tech + speeds).
 
@@ -88,7 +88,7 @@ async def septic_score_lookup(
     state: str = Query("TX", min_length=2, max_length=2, description="State (TX only for now)"),
     zip: str | None = Query(None, max_length=10, alias="zip"),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_read_db),
+    db: AsyncSession = Depends(get_db),  # v2 tables (rural_septic_score_v2, fcc_bdc_*) live on primary, not replica
 ):
     """Return v2 rural_septic_score for an address (currently TX only).
 
@@ -133,7 +133,7 @@ async def rural_leads_by_county(
     min_score: int = Query(70, ge=0, le=100),
     limit: int = Query(100, ge=1, le=1000),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_read_db),
+    db: AsyncSession = Depends(get_db),  # v2 tables (rural_septic_score_v2, fcc_bdc_*) live on primary, not replica
 ):
     """Ranked rural-septic leads by county (TX-only for now).
 
