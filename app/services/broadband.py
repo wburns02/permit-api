@@ -187,9 +187,16 @@ async def lookup_broadband(
     rows = []
     if geo.get("tract_geoid"):
         tract = geo["tract_geoid"]
-        # 15-char block_geoid = 11-char tract + 4-char block. Range: tract||'0000' .. tract||'9999'+1
+        # 15-char block_geoid = 11-char tract + 4-char block.
+        # Range = [tract||'0000', next_tract||'0000') where next_tract is the
+        # 11-char tract+1 as a zero-padded string. Avoids embedded null bytes
+        # (asyncpg silently drops a trailing \x00 in some PG text comparisons).
+        try:
+            next_tract = str(int(tract) + 1).zfill(len(tract))
+        except ValueError:
+            next_tract = tract  # malformed tract — skip
         lo = f"{tract}0000"
-        hi = f"{tract}9999" + "\x00"  # one above the max
+        hi = f"{next_tract}0000"
         try:
             # Belt-and-braces timeout (DB also has a global 20s cap).
             await db.execute(text("SET LOCAL statement_timeout = '10s'"))
