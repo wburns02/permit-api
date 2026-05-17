@@ -65,15 +65,26 @@ async def resolve_address_to_geo(
         "match_method": "none",
     }
 
-    # 1. property_sales fuzzy match
-    if address:
+    # 1. property_sales norm_addr match (uses indexed ix_property_sales_norm_addr).
+    # We only attempt this when we have a zip — the fuzzy address-only path
+    # would force a full TX scan (3M+ rows) and exceed the global 20s timeout.
+    if address and zip_code:
         try:
-            params = {"addr": f"%{address[:80]}%", "state": state_up}
+            # The norm_addr column is shaped like "<address> <city> <state> <zip>".
+            # An anchored ILIKE that starts with the user's address gives us
+            # an index range scan on (norm_addr, state).
+            addr_clean = address.strip().upper()
+            params = {
+                "prefix": f"{addr_clean}%",
+                "state": state_up,
+                "zip": zip_code[:5],
+            }
             sql = """
                 SELECT lat, lng
                 FROM property_sales
-                WHERE state = :state
-                  AND address ILIKE :addr
+                WHERE norm_addr LIKE :prefix
+                  AND state = :state
+                  AND zip = :zip
                   AND lat IS NOT NULL AND lng IS NOT NULL
                 LIMIT 1
             """
@@ -84,6 +95,10 @@ async def resolve_address_to_geo(
                 result["match_method"] = "property_sales"
         except Exception as e:
             logger.debug("property_sales lookup failed: %s", e)
+            try:
+                await db.rollback()
+            except Exception:
+                pass
 
     # 2. ZCTA centroid fallback (TX-only table for now)
     if result["lat"] is None and zip_code and state_up == "TX":
@@ -103,6 +118,10 @@ async def resolve_address_to_geo(
                 result["match_method"] = "zcta_centroid"
         except Exception as e:
             logger.debug("zcta lookup failed: %s", e)
+            try:
+                await db.rollback()
+            except Exception:
+                pass
 
     # 3. Resolve tract_geoid from lat/lon (nearest centroid, bounded)
     if result["lat"] is not None and result["lon"] is not None:
@@ -123,6 +142,10 @@ async def resolve_address_to_geo(
                 result["tract_geoid"] = row[0]
         except Exception as e:
             logger.debug("tract lookup failed: %s", e)
+            try:
+                await db.rollback()
+            except Exception:
+                pass
 
     return result
 
@@ -222,6 +245,10 @@ async def lookup_broadband(
         except Exception as e:
             logger.warning("BDC lookup (%s) by tract failed: %s", bdc_table, e)
             rows = []
+            try:
+                await db.rollback()
+            except Exception:
+                pass
 
     # De-duplicate to one row per (provider_id, technology), keeping the best speed.
     # (Already de-duped server-side, but keep this as a safety net.)
@@ -386,6 +413,10 @@ async def lookup_septic_score(
                 )
         except Exception as e:
             logger.warning("rural_septic_score_v2 lookup failed: %s", e)
+            try:
+                await db.rollback()
+            except Exception:
+                pass
 
     # ---- 2. Compute on the fly ----
     geo = await resolve_address_to_geo(
@@ -403,6 +434,10 @@ async def lookup_septic_score(
                 in_urban = bool(row[0])
         except Exception as e:
             logger.debug("is_in_urban_area failed: %s", e)
+            try:
+                await db.rollback()
+            except Exception:
+                pass
 
     pop_density: float | None = None
     median_income: float | None = None
@@ -422,6 +457,10 @@ async def lookup_septic_score(
                 median_income = float(row[1]) if row[1] is not None else None
         except Exception as e:
             logger.debug("zcta lookup failed: %s", e)
+            try:
+                await db.rollback()
+            except Exception:
+                pass
 
     # Pull broadband signal via the broadband resolver (reuses geo to avoid
     # a second property_sales/tract lookup).
@@ -513,6 +552,10 @@ async def list_rural_leads_by_county(
         )).all()
     except Exception as e:
         logger.warning("rural_septic_score_v2 county query failed: %s", e)
+        try:
+            await db.rollback()
+        except Exception:
+            pass
         return []
 
     leads: list[RuralLead] = []
