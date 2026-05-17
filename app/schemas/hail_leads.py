@@ -6,6 +6,10 @@ from datetime import date, datetime
 from typing import Literal
 from pydantic import BaseModel, Field
 
+# Imported lazily by callers — circular-import safe because BroadbandEnrichmentSummary
+# lives in a leaf schemas module that depends on nothing here.
+from app.schemas.enrichment import BroadbandEnrichmentSummary
+
 
 # ---------------------------------------------------------------------------
 # Stats
@@ -49,6 +53,10 @@ class HailLeadListItem(BaseModel):
     prior_roof_permits: int | None
     last_roof_permit_date: date | None
     owner_enriched: bool
+    # Optional broadband enrichment (Deliverable C — only set when
+    # ?include_broadband=true is passed). Default null keeps the existing
+    # response shape unchanged for callers that don't opt in.
+    broadband: BroadbandEnrichmentSummary | None = None
 
 
 class HailLeadListResponse(BaseModel):

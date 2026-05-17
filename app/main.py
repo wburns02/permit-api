@@ -70,6 +70,7 @@ from app.api.v1.parcel_screen import router as parcel_screen_router
 from app.api.v1.broadband import router as broadband_router
 from app.api.v1.internal_rural_v5 import router as internal_rural_v5_router
 from app.api.v1.roofer_leads import router as roofer_leads_router
+from app.api.v1.enrichment import router as enrichment_router
 from app.models.parcel_screen import (  # noqa: F401 — registers tables for Base.metadata.create_all
     ParcelJurisdiction,
     ParcelStateLaw,
@@ -443,6 +444,7 @@ app.include_router(parcel_screen_router, prefix="/v1")
 app.include_router(broadband_router, prefix="/v1")
 app.include_router(internal_rural_v5_router, prefix="/v1")
 app.include_router(roofer_leads_router, prefix="/v1")
+app.include_router(enrichment_router, prefix="/v1")
 
 
 @app.get("/health")

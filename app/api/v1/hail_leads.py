@@ -880,6 +880,13 @@ async def hail_leads_list(
     min_hail_inches: float | None = Query(None, ge=0.0, le=10.0),
     min_days_after: int | None = Query(None, ge=0, le=365),
     max_days_after: int | None = Query(None, ge=0, le=365),
+    include_broadband: bool = Query(
+        False,
+        description=(
+            "If true, attach a compact `broadband` summary to each lead. "
+            "Adds ~50ms per lead — keep page_size modest when using."
+        ),
+    ),
     page: int = Query(1, ge=1, le=10000),
     page_size: int = Query(50, ge=1, le=500),
     sort: SortKey = Query("score_desc"),
@@ -950,6 +957,28 @@ async def hail_leads_list(
         )
         for r in rows
     ]
+
+    # Optional broadband enrichment (Deliverable C — opt-in).
+    if include_broadband and items:
+        try:
+            from app.services.enrichment import summarize_broadband_for_address
+
+            for it in items:
+                if not it.address:
+                    continue
+                # Hail leads MV doesn't carry state separately — derive from
+                # county-vs-zip context; default to TX (where 99% of hail leads
+                # live). Adjust if multi-state hail loaders go live.
+                summary = await summarize_broadband_for_address(
+                    db,
+                    address=it.address,
+                    city=it.city,
+                    state="TX",
+                    zip_code=it.zip,
+                )
+                it.broadband = summary
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("hail-leads include_broadband enrichment failed: %s", exc)
 
     total_pages = (
         (max(total, 0) + page_size - 1) // page_size if total >= 0 else -1
