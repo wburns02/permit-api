@@ -10,7 +10,7 @@ sleep 5
 
 # SOCKS5 TCP proxy: forwards local ports through Tailscale to PostgreSQL servers
 # Port 5432 → T430 (100.122.216.15:5432) — primary, handles writes
-# Port 5433 → R730-2 (100.87.214.106:5432) — replica, handles reads
+# Port 5433 → R730-2 (100.125.210.69:5432) — replica, handles reads
 python3 -c "
 import socket, threading, struct, sys
 
@@ -78,11 +78,11 @@ t_primary = threading.Thread(target=start_proxy, args=(5432, '100.122.216.15', 5
 t_primary.start()
 
 # Replica (R730-2) — reads
-t_replica = threading.Thread(target=start_proxy, args=(5433, '100.87.214.106', 5432, 'R730-2-replica'), daemon=True)
+t_replica = threading.Thread(target=start_proxy, args=(5433, '100.125.210.69', 5432, 'R730-2-replica'), daemon=True)
 t_replica.start()
 
 # Anthropic proxy (R730-2) — AI API calls
-t_anthropic = threading.Thread(target=start_proxy, args=(9877, '100.87.214.106', 9877, 'R730-2-anthropic-proxy'), daemon=True)
+t_anthropic = threading.Thread(target=start_proxy, args=(9877, '100.125.210.69', 9877, 'R730-2-anthropic-proxy'), daemon=True)
 t_anthropic.start()
 
 # Keep main thread alive
