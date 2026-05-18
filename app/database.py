@@ -29,8 +29,8 @@ _PG_SERVER_SETTINGS = {
 
 primary_engine = create_async_engine(
     settings.DATABASE_URL,
-    pool_size=10,
-    max_overflow=5,
+    pool_size=30,
+    max_overflow=20,
     pool_recycle=3600,
     pool_pre_ping=True,
     pool_timeout=10,   # fail fast instead of hanging 30s when pool exhausted
@@ -51,8 +51,8 @@ _replica_is_separate = _replica_url != settings.DATABASE_URL
 if _replica_is_separate:
     replica_engine = create_async_engine(
         _replica_url,
-        pool_size=15,       # reads are heavier, give more connections
-        max_overflow=10,
+        pool_size=30,       # reads are heavier, give more connections
+        max_overflow=20,
         pool_recycle=3600,
         pool_pre_ping=True,
         pool_timeout=10,

@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import os
 from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -369,10 +370,15 @@ async def lifespan(app: FastAPI):
     app.state.migrations_task = asyncio.create_task(_run_startup_migrations())
 
     from app.services.scheduler import start_scheduler, stop_scheduler
-    try:
-        start_scheduler()
-    except Exception as e:
-        logger.warning("Failed to start alert scheduler: %s", e)
+    SCHEDULER_ENABLED = os.environ.get("SCHEDULER_ENABLED", "true").lower() == "true"
+    if SCHEDULER_ENABLED:
+        try:
+            start_scheduler()
+            logger.info("Scheduler started")
+        except Exception as e:
+            logger.warning("Failed to start alert scheduler: %s", e)
+    else:
+        logger.warning("SCHEDULER_ENABLED=false — scheduler skipped (alert batches will not run)")
 
     print("[lifespan] yielding to uvicorn", flush=True, file=sys.stderr)
     yield
