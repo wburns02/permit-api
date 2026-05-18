@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 # exhausting the pool and triggering the watchdog SIGTERM cycle.
 # `lock_timeout`: bounds how long any DDL or write waits for a lock.
 _PG_SERVER_SETTINGS = {
-    "idle_in_transaction_session_timeout": "60000",  # 60s, in ms
+    "idle_in_transaction_session_timeout": "3000",   # 3s, in ms
     "lock_timeout": "30000",                         # 30s, in ms
     "statement_timeout": "20000",                    # 20s, in ms
 }
@@ -99,6 +99,13 @@ async def get_read_db():
                 try:
                     yield session
                 finally:
+                    # Explicit rollback clears any auto-begin SELECT transaction before
+                    # close, preventing 'idle in transaction' leaks when the close-time
+                    # rollback packet is dropped by the Tailscale SOCKS5 proxy.
+                    try:
+                        await session.rollback()
+                    except Exception:
+                        pass
                     await session.close()
                 return
         except Exception as e:
@@ -109,6 +116,13 @@ async def get_read_db():
         try:
             yield session
         finally:
+            # Explicit rollback clears any auto-begin SELECT transaction before
+            # close, preventing 'idle in transaction' leaks when the close-time
+            # rollback packet is dropped by the Tailscale SOCKS5 proxy.
+            try:
+                await session.rollback()
+            except Exception:
+                pass
             await session.close()
 
 
