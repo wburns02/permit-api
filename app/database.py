@@ -102,11 +102,17 @@ async def get_read_db():
                     # Explicit rollback clears any auto-begin SELECT transaction before
                     # close, preventing 'idle in transaction' leaks when the close-time
                     # rollback packet is dropped by the Tailscale SOCKS5 proxy.
+                    # Wrapped in wait_for(2s) — if rollback hangs (Tailscale flake),
+                    # abandon it; PG idle_in_transaction_session_timeout=3000ms self-heals.
+                    import asyncio
                     try:
-                        await session.rollback()
+                        await asyncio.wait_for(session.rollback(), timeout=2.0)
                     except Exception:
                         pass
-                    await session.close()
+                    try:
+                        await asyncio.wait_for(session.close(), timeout=2.0)
+                    except Exception:
+                        pass
                 return
         except Exception as e:
             logger.warning("Replica unreachable, falling back to primary: %s", e)
@@ -119,11 +125,17 @@ async def get_read_db():
             # Explicit rollback clears any auto-begin SELECT transaction before
             # close, preventing 'idle in transaction' leaks when the close-time
             # rollback packet is dropped by the Tailscale SOCKS5 proxy.
+            # Wrapped in wait_for(2s) — if rollback hangs (Tailscale flake),
+            # abandon it; PG idle_in_transaction_session_timeout=3000ms self-heals.
+            import asyncio
             try:
-                await session.rollback()
+                await asyncio.wait_for(session.rollback(), timeout=2.0)
             except Exception:
                 pass
-            await session.close()
+            try:
+                await asyncio.wait_for(session.close(), timeout=2.0)
+            except Exception:
+                pass
 
 
 async def init_db():
