@@ -1,5 +1,6 @@
 """Alert execution engine — matches alerts against new permits and delivers notifications."""
 
+import asyncio
 import logging
 from datetime import datetime, timezone
 from sqlalchemy import select, and_
@@ -129,24 +130,46 @@ async def execute_alert(alert: PermitAlert, db: AsyncSession) -> int:
 async def run_frequency_batch(frequency: AlertFrequency):
     """Run all active alerts of a given frequency."""
     logger.info("Starting %s alert batch", frequency.value)
+
+    # 1. Fetch alert IDs in one short-lived session.
     async with async_session_maker() as db:
         result = await db.execute(
-            select(PermitAlert).where(
+            select(PermitAlert.id).where(
                 PermitAlert.is_active.is_(True),
                 PermitAlert.frequency == frequency,
-                PermitAlert.consecutive_failures < 10,  # Skip repeatedly failing alerts
+                PermitAlert.consecutive_failures < 10,
             )
         )
-        alerts = result.scalars().all()
-        logger.info("Found %d active %s alerts", len(alerts), frequency.value)
+        alert_ids = [row[0] for row in result.all()]
 
-        for alert in alerts:
-            try:
-                await execute_alert(alert, db)
-            except Exception as e:
-                logger.error("Alert %s failed: %s", alert.id, e)
-                alert.consecutive_failures = (alert.consecutive_failures or 0) + 1
-                alert.last_error = str(e)
-                await db.commit()
+    logger.info("Found %d active %s alerts", len(alert_ids), frequency.value)
+
+    # 2. Process each alert in its own session with a 30s wall-clock cap.
+    for alert_id in alert_ids:
+        try:
+            async with async_session_maker() as db:
+                alert = await db.get(PermitAlert, alert_id)
+                if alert is None:
+                    continue
+                try:
+                    await asyncio.wait_for(execute_alert(alert, db), timeout=30.0)
+                except asyncio.TimeoutError:
+                    await db.rollback()
+                    logger.error("Alert %s timed out after 30s", alert_id)
+                    alert = await db.get(PermitAlert, alert_id)  # re-fetch after rollback
+                    if alert:
+                        alert.consecutive_failures = (alert.consecutive_failures or 0) + 1
+                        alert.last_error = "execute_alert timed out (30s)"
+                        await db.commit()
+                except Exception as e:
+                    await db.rollback()
+                    logger.error("Alert %s failed: %s", alert_id, e)
+                    alert = await db.get(PermitAlert, alert_id)
+                    if alert:
+                        alert.consecutive_failures = (alert.consecutive_failures or 0) + 1
+                        alert.last_error = str(e)
+                        await db.commit()
+        except Exception as e:
+            logger.error("Failed to open session for alert %s: %s", alert_id, e)
 
     logger.info("Completed %s alert batch", frequency.value)
