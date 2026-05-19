@@ -19,7 +19,7 @@ router = APIRouter(prefix="/data-freshness", tags=["DataFreshness"])
 
 
 class DataSourceFreshness(BaseModel):
-    """Freshness state for a single data source."""
+    """Freshness state for a single data source. (Kept for OpenAPI / external docs.)"""
 
     source: str
     last_refresh_at: datetime | None = None
@@ -36,7 +36,7 @@ class DataSourceFreshness(BaseModel):
 
 
 class DataFreshnessResponse(BaseModel):
-    """Top-level wrapper — list + summary."""
+    """Top-level wrapper — list + summary. (Kept for OpenAPI / external docs.)"""
 
     generated_at: datetime
     source_count: int
@@ -46,9 +46,14 @@ class DataFreshnessResponse(BaseModel):
     sources: list[DataSourceFreshness]
 
 
-@router.get("", response_model=DataFreshnessResponse)
-@router.get("/", response_model=DataFreshnessResponse)
-async def data_freshness(db: AsyncSession = Depends(get_read_db)) -> DataFreshnessResponse:
+# NOTE: response_model intentionally OMITTED — FastAPI's response_model encode
+# path was hanging at the ASGI response layer in production (Railway/uvicorn)
+# despite the underlying query returning in ~70ms. Returning a plain dict
+# sidesteps the jsonable_encoder + Pydantic validation roundtrip and ships
+# bytes directly. See commit message for the full diagnostic story.
+@router.get("")
+@router.get("/")
+async def data_freshness(db: AsyncSession = Depends(get_read_db)) -> dict:
     """Return per-source freshness status from data_refresh_log.
 
     Each source's latest refreshed_at row wins. Derived fields:
@@ -78,7 +83,7 @@ async def data_freshness(db: AsyncSession = Depends(get_read_db)) -> DataFreshne
     ).fetchall()
 
     now = datetime.now(timezone.utc)
-    sources: list[DataSourceFreshness] = []
+    sources: list[dict] = []
     fresh = 0
     stale = 0
     failed = 0
@@ -126,27 +131,27 @@ async def data_freshness(db: AsyncSession = Depends(get_read_db)) -> DataFreshne
             fresh += 1
 
         sources.append(
-            DataSourceFreshness(
-                source=src,
-                last_refresh_at=refreshed_at,
-                status=derived_status,
-                row_count_last=rows_total,
-                rows_added_last=rows_added,
-                hours_since_refresh=hours_since,
-                expected_refresh_hours=expected_hours,
-                is_stale=is_stale,
-                notes=notes,
-                error_text=error_text,
-            )
+            {
+                "source": src,
+                "last_refresh_at": refreshed_at.isoformat() if refreshed_at else None,
+                "status": derived_status,
+                "row_count_last": rows_total,
+                "rows_added_last": rows_added,
+                "hours_since_refresh": hours_since,
+                "expected_refresh_hours": expected_hours,
+                "is_stale": is_stale,
+                "notes": notes,
+                "error_text": error_text,
+            }
         )
 
-    sources.sort(key=lambda s: s.source)
+    sources.sort(key=lambda s: s["source"])
 
-    return DataFreshnessResponse(
-        generated_at=now,
-        source_count=len(sources),
-        fresh_count=fresh,
-        stale_count=stale,
-        failure_count=failed,
-        sources=sources,
-    )
+    return {
+        "generated_at": now.isoformat(),
+        "source_count": len(sources),
+        "fresh_count": fresh,
+        "stale_count": stale,
+        "failure_count": failed,
+        "sources": sources,
+    }
