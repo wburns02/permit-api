@@ -89,53 +89,13 @@ async def get_db():
 
 
 async def get_read_db():
-    """Read-only session — tries replica first, falls back to primary if unreachable."""
-    if _replica_is_separate:
-        try:
-            async with replica_session_maker() as session:
-                # Quick connectivity test
-                from sqlalchemy import text
-                await session.execute(text("SELECT 1"))
-                try:
-                    yield session
-                finally:
-                    # Explicit rollback clears any auto-begin SELECT transaction before
-                    # close, preventing 'idle in transaction' leaks when the close-time
-                    # rollback packet is dropped by the Tailscale SOCKS5 proxy.
-                    # Wrapped in wait_for(2s) — if rollback hangs (Tailscale flake),
-                    # abandon it; PG idle_in_transaction_session_timeout=3000ms self-heals.
-                    import asyncio
-                    try:
-                        await asyncio.wait_for(session.rollback(), timeout=2.0)
-                    except Exception:
-                        pass
-                    try:
-                        await asyncio.wait_for(session.close(), timeout=2.0)
-                    except Exception:
-                        pass
-                return
-        except Exception as e:
-            logger.warning("Replica unreachable, falling back to primary: %s", e)
+    """Read-only session — uses primary unless REPLICA_DATABASE_URL is set.
 
-    # Fallback to primary
+    Simplified: async with handles cleanup. Previous explicit rollback+close
+    wrapped in wait_for was deadlocking DB-heavy read endpoints.
+    """
     async with primary_session_maker() as session:
-        try:
-            yield session
-        finally:
-            # Explicit rollback clears any auto-begin SELECT transaction before
-            # close, preventing 'idle in transaction' leaks when the close-time
-            # rollback packet is dropped by the Tailscale SOCKS5 proxy.
-            # Wrapped in wait_for(2s) — if rollback hangs (Tailscale flake),
-            # abandon it; PG idle_in_transaction_session_timeout=3000ms self-heals.
-            import asyncio
-            try:
-                await asyncio.wait_for(session.rollback(), timeout=2.0)
-            except Exception:
-                pass
-            try:
-                await asyncio.wait_for(session.close(), timeout=2.0)
-            except Exception:
-                pass
+        yield session
 
 
 async def init_db():
