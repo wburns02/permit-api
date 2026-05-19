@@ -4,9 +4,24 @@ set -e
 echo "Starting Tailscale..."
 tailscaled --tun=userspace-networking --socks5-server=localhost:1055 --outbound-http-proxy-listen=localhost:1056 &
 sleep 3
-tailscale up --authkey="${TAILSCALE_AUTHKEY}" --hostname=permit-api-railway
-echo "Tailscale connected, waiting for routes..."
-sleep 5
+# Reset Tailscale state so we always rejoin as the SAME node identity instead
+# of spawning a new permit-api-railway-N zombie on every container restart.
+tailscale up --reset --authkey="${TAILSCALE_AUTHKEY}" --hostname=permit-api-railway
+echo "Tailscale connected, validating route to T430..."
+
+# Block on confirming we can actually reach T430 (100.122.216.15) before launching
+# uvicorn. Without this we accept HTTP requests before the SOCKS5 proxy can dial PG,
+# which manifests as /v1/data-freshness returning 000/500 for the first ~30s.
+for i in $(seq 1 30); do
+  if tailscale ping --until-direct=false --c=1 100.122.216.15 > /dev/null 2>&1; then
+    echo "Tailscale route to T430 confirmed after ${i}s"
+    break
+  fi
+  if [ "$i" -eq 30 ]; then
+    echo "WARN: Tailscale route to T430 not confirmed after 30s; continuing anyway"
+  fi
+  sleep 1
+done
 
 # SOCKS5 TCP proxy: forwards local ports through Tailscale to PostgreSQL servers
 # Port 5432 → T430 (100.122.216.15:5432) — primary, handles writes
