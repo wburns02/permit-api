@@ -1,5 +1,11 @@
 # PermitLookup API
 
+> **WIP feature branch from Burns L4 work** — see
+> /home/will/docs/superpowers/specs/2026-05-21-burns-industries-layer-4-design.md
+> Branch: `feature/burns-l4-emitter`. Default OFF. Gated by
+> `BURNS_L4_EMIT_ENABLED=true` + `HATCHET_CLIENT_HOST_PORT` +
+> `HATCHET_CLIENT_TOKEN` + `BURNS_EVENTS_DSN`. Will flips it when T430 is up.
+
 ## Overview
 Building permit + property intelligence API serving 1B+ records from 180+ jurisdictions across 50+ states.
 6 data layers: permits, contractor licenses, EPA environmental risk, FEMA flood zones, septic systems, census demographics, and property valuations.

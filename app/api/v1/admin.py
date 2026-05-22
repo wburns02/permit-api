@@ -821,3 +821,46 @@ async def abuse_alerts(request: Request, user: ApiUser = Depends(require_admin))
     from app.services.abuse_detector import get_recent_alerts
     alerts = await get_recent_alerts()
     return {"alerts": alerts, "total": len(alerts)}
+
+
+@router.post("/burns-l4-emit-test")
+async def burns_l4_emit_test(
+    request: Request,
+    user: ApiUser = Depends(require_admin),
+):
+    """Emit a synthetic ``permitlookup.permit.detected`` event.
+
+    Admin-only smoke test for the Burns Layer 4 event spine. Returns the
+    EmitResult fields so the operator can confirm Hatchet picked it up.
+
+    Behavior:
+      - Flag off / env missing  →  emitted=False, reason=...
+      - Flag on + env present   →  emitted=True with hatchet_event_id
+
+    See /home/will/docs/superpowers/specs/2026-05-21-burns-industries-layer-4-design.md
+    """
+    from app.burns_events import is_enabled
+    from app.burns_events.permits import emit_permit_detected
+
+    synthetic_permit_id = f"permit:burns-l4-test-{uuid.uuid4().hex[:8]}"
+    result = emit_permit_detected(
+        permit_id=synthetic_permit_id,
+        address="999 Synthetic Way",
+        trade="septic",
+        county="Travis",
+        state="TX",
+        owner_name_raw="SYNTHETIC TEST OWNER",
+        permit_number="BURNS-L4-TEST",
+        permit_date="2026-05-22",
+        property_apn=None,
+        property_id=None,
+        person_id=None,
+    )
+    return {
+        "burns_l4_enabled": is_enabled(),
+        "emitted": result.emitted,
+        "event_id": result.event_id,
+        "hatchet_event_id": result.hatchet_event_id,
+        "reason": result.reason,
+        "envelope": result.envelope,
+    }
