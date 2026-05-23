@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://burns.local/schemas/permitlookup.permit.detected/v1.json",
+  "title": "permitlookup.permit.detected v1",
+  "description": "Emitted by permit-api enrichment-worker when a permit row has completed normalization and is ready for downstream identity resolution.",
+  "type": "object",
+  "required": [
+    "specversion",
+    "id",
+    "source",
+    "type",
+    "time",
+    "subject",
+    "datacontenttype",
+    "data",
+    "links"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "specversion": { "const": "1.0" },
+    "id": { "type": "string", "minLength": 1 },
+    "source": { "type": "string", "minLength": 1 },
+    "type": { "const": "permitlookup.permit.detected" },
+    "time": { "type": "string", "format": "date-time" },
+    "subject": { "type": "string", "minLength": 1 },
+    "datacontenttype": { "const": "application/json" },
+    "data": {
+      "type": "object",
+      "required": [
+        "permit_id",
+        "address",
+        "trade",
+        "county",
+        "state",
+        "owner_name_raw"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "permit_id": { "type": "string", "minLength": 1 },
+        "address": { "type": "string", "minLength": 1 },
+        "trade": {
+          "type": "string",
+          "enum": ["septic", "electrical", "plumbing", "roofing", "hvac", "other"]
+        },
+        "county": { "type": "string", "minLength": 1 },
+        "state": { "type": "string", "minLength": 2, "default": "TX" },
+        "owner_name_raw": { "type": "string", "minLength": 1 },
+        "permit_number": { "type": "string" },
+        "permit_date": { "type": "string", "format": "date" },
+        "property_apn": { "type": "string" }
+      }
+    },
+    "links": {
+      "type": "object",
+      "required": ["property_id", "permit_id", "person_id"],
+      "additionalProperties": false,
+      "properties": {
+        "property_id": {
+          "type": ["string", "null"],
+          "pattern": "^parcel:.+"
+        },
+        "permit_id": {
+          "type": "string",
+          "pattern": "^permit:.+"
+        },
+        "person_id": {
+          "type": ["string", "null"],
+          "pattern": "^person:.+"
+        }
+      }
+    }
+  }
+}
