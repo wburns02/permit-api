@@ -455,10 +455,11 @@ JURISDICTIONS = [
     # NOTE: The 4 entries below have non-OpenGov-format slugs (underscores)
     # and were probed 2026-05-26 — all four return "Database does not exist".
     # Kept for tracking but the script will log GraphQL errors for them.
-    {"id": "rogers_ar", "name": "Rogers", "state": "AR"},
-    {"id": "lakecounty_fl", "name": "Lake County", "state": "FL"},
-    {"id": "columbia_tn", "name": "Columbia", "state": "TN"},
-    {"id": "multijurisdiction_us", "name": "Multi-jurisdiction", "state": "US"},
+    # DISABLED 2026-05-26: catalog-add slug returns "Database does not exist" via GraphQL.
+    # {"id": "rogers_ar", "name": "Rogers", "state": "AR"},
+    # {"id": "lakecounty_fl", "name": "Lake County", "state": "FL"},
+    # {"id": "columbia_tn", "name": "Columbia", "state": "TN"},
+    # {"id": "multijurisdiction_us", "name": "Multi-jurisdiction", "state": "US"},
 ]
 
 # ── Auth ─────────────────────────────────────────────────────────────────────
