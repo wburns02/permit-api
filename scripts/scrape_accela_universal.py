@@ -125,6 +125,43 @@ ACCELA_CITIES = {
     "ANCHORAGE":    ("Anchorage", "AK"),
 }
 
+# ── Catalog-discovered additions (data-catalog 2026-05-26) ─────────────────
+# Source: /home/will/burns-layer-4/data-catalog/scripts/permitlookup-integration
+ACCELA_CITIES.update({
+    "BIRMINGHAM": ("Birmingham", "AL"),
+    "MONTCOOH": ("Montgomery", "AL"),
+    "PIMA": ("Pima County / Tucson", "AZ"),
+    "COSPRINGS": ("Colorado Springs", "CO"),
+    "BOCC": ("Volusia County", "FL"),
+    "BRADENTON": ("Bradenton", "FL"),
+    "FTL": ("Fort Lauderdale", "FL"),
+    "HOLLYWOOD": ("Hollywood", "FL"),
+    "OSCEOLA": ("Osceola County", "FL"),
+    "PASCO": ("Pasco County", "FL"),
+    "PLANTATION": ("Plantation", "FL"),
+    "ALBANY": ("Albany", "GA"),
+    "ATLANTA_GA": ("Atlanta", "GA"),
+    "BOISE": ("Boise", "ID"),
+    "MERIDIAN": ("Meridian", "ID"),
+    "SOUTHBENDIN": ("South Bend", "IN"),
+    "LEXKY": ("Lexington-Fayette", "KY"),
+    "FREDERICK": ("Frederick", "MD"),
+    "MIMM": ("Michigan State", "MI"),
+    "ROCHESTER": ("Rochester", "MN"),
+    "COHP": ("High Point", "NC"),
+    "WINSALEM": ("Winston-Salem", "NC"),
+    "COC": ("Columbus", "OH"),
+    "DAYTON": ("Dayton", "OH"),
+    "LANCASTER": ("Lancaster", "PA"),
+    "LJCMG": ("Nashville-Davidson County", "TN"),
+    "SHELBYCO": ("Germantown / Shelby County", "TN"),
+    "BROWNSVILLE": ("Brownsville", "TX"),
+    "SLCREF": ("Salt Lake City", "UT"),
+    "ARLINGTONCO": ("Arlington County", "VA"),
+    "CHESAPEAKE": ("Chesapeake", "VA"),
+    "CVB": ("Virginia Beach", "VA"),
+})
+
 # ── Per-city search overrides ──────────────────────────────────────────────
 # Some Accela portals do NOT index a global "permit" keyword search.
 # For those, hit Cap/CapHome.aspx?module=<MODULE> with an ASP.NET WebForms

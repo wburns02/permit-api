@@ -347,6 +347,15 @@ IWORQ_PORTALS = {
         "has_default_list": False,
         "notes": "AR city, rural White County septic territory — CAPTCHA required",
     },
+
+    # ── Catalog-discovered additions (data-catalog 2026-05-26) ─────────────
+    "cumberlandcountytn": {
+        "city": "Cumberland County",
+        "state": "TN",
+        "county": "Cumberland County",
+        "url_style": "subdomain",
+        "has_default_list": True,
+    },
 }
 
 # ── Candidate slugs for --discover mode ──────────────────────────────────────
