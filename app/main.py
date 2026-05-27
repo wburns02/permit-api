@@ -414,6 +414,59 @@ app.add_middleware(
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
+
+# ---------------------------------------------------------------------------
+# Transient-DB-disconnect retry middleware
+# ---------------------------------------------------------------------------
+# Railway's egress NAT rebinds its UDP port after an outage, which flaps the
+# Tailscale *direct* WireGuard path and drops in-flight PG connections
+# (asyncpg ConnectionDoesNotExistError, usually wrapped by SQLAlchemy). Only
+# idempotent GETs are retried — never POST/PATCH/PUT/DELETE, to avoid double
+# writes and double activity-tracking.
+import asyncpg  # noqa: E402
+import sqlalchemy.exc  # noqa: E402
+
+_TRANSIENT_EXC = (
+    sqlalchemy.exc.DBAPIError,
+    sqlalchemy.exc.OperationalError,
+    sqlalchemy.exc.InterfaceError,
+    asyncpg.exceptions.ConnectionDoesNotExistError,
+    asyncpg.exceptions.InterfaceError,
+    asyncpg.exceptions.CannotConnectNowError,
+    ConnectionResetError,
+    OSError,
+    asyncio.TimeoutError,
+)
+
+
+def _is_transient_disconnect(exc: BaseException) -> bool:
+    """True if exc — or any link in its __cause__/__context__ chain — is a
+    transient DB disconnect we can safely retry."""
+    seen = set()
+    cur = exc
+    while cur is not None and id(cur) not in seen:
+        seen.add(id(cur))
+        if isinstance(cur, _TRANSIENT_EXC):
+            return True
+        cur = cur.__cause__ or cur.__context__
+    return False
+
+
+@app.middleware("http")
+async def db_retry_middleware(request, call_next):
+    if request.method != "GET":
+        return await call_next(request)
+
+    attempts = 4
+    for attempt in range(1, attempts + 1):
+        try:
+            return await call_next(request)
+        except BaseException as exc:
+            if attempt >= attempts or not _is_transient_disconnect(exc):
+                raise
+            await asyncio.sleep(0.3 * attempt)
+
+
 # Mount v1 routers
 app.include_router(permits_router, prefix="/v1")
 app.include_router(auth_router, prefix="/v1")
@@ -494,6 +547,7 @@ async def health():
             "replica": "connected" if replica_ok else "down (using primary fallback)",
             "version": settings.VERSION,
             "environment": settings.ENVIRONMENT,
+            "build": "db-retry-v1",
         },
     )
 

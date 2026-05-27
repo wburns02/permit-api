@@ -7,6 +7,8 @@ sleep 3
 # Reset Tailscale state so we always rejoin as the SAME node identity instead
 # of spawning a new permit-api-railway-N zombie on every container restart.
 tailscale up --reset --authkey="${TAILSCALE_AUTHKEY}" --hostname=permit-api-railway
+# Prefer the stable Ashburn (iad) DERP relay (TCP/443) over the flapping direct UDP path
+tailscale debug force-prefer-derp 27 2>/dev/null || true
 echo "Tailscale connected, validating route to T430..."
 
 # Block on confirming we can actually reach T430 (100.122.216.15) before launching

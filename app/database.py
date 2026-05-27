@@ -25,16 +25,32 @@ _PG_SERVER_SETTINGS = {
     "idle_in_transaction_session_timeout": "3000",   # 3s, in ms
     "lock_timeout": "30000",                         # 30s, in ms
     "statement_timeout": "20000",                    # 20s, in ms
+    # TCP keepalives: detect a dropped Tailscale tunnel fast instead of
+    # waiting for the OS default (~2h). Critical because Railway's egress NAT
+    # rebinds the UDP port post-outage and silently drops the WireGuard path.
+    "tcp_keepalives_idle": "15",
+    "tcp_keepalives_interval": "5",
+    "tcp_keepalives_count": "3",
+}
+
+# asyncpg connect kwargs: short connect/command timeouts so a dead tunnel
+# fails fast instead of hanging the request. SQLAlchemy passes connect_args
+# straight to asyncpg.connect, which accepts `timeout`/`command_timeout` as
+# top-level kwargs and `server_settings` as a dict.
+_CONNECT_ARGS = {
+    "timeout": 5,
+    "command_timeout": 10,
+    "server_settings": _PG_SERVER_SETTINGS,
 }
 
 primary_engine = create_async_engine(
     settings.DATABASE_URL,
     pool_size=30,
     max_overflow=20,
-    pool_recycle=3600,
+    pool_recycle=300,   # short-lived conns: don't span many NAT rebinds
     pool_pre_ping=True,
     pool_timeout=10,   # fail fast instead of hanging 30s when pool exhausted
-    connect_args={"server_settings": _PG_SERVER_SETTINGS},
+    connect_args=_CONNECT_ARGS,
     echo=settings.DEBUG and not settings.is_production,
 )
 
@@ -53,10 +69,10 @@ if _replica_is_separate:
         _replica_url,
         pool_size=30,       # reads are heavier, give more connections
         max_overflow=20,
-        pool_recycle=3600,
+        pool_recycle=300,   # short-lived conns: don't span many NAT rebinds
         pool_pre_ping=True,
         pool_timeout=10,
-        connect_args={"server_settings": _PG_SERVER_SETTINGS},
+        connect_args=_CONNECT_ARGS,
         echo=settings.DEBUG and not settings.is_production,
     )
     logger.info("Read replica configured: reads will go to replica")
