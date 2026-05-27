@@ -47,8 +47,8 @@ DB_PORT = "5432"
 DB_NAME = "permits"
 DB_USER = "will"
 
-MGO_EMAIL = "willwalterburns@gmail.com"
-MGO_PASSWORD = "#Espn202512"
+MGO_EMAIL = os.environ["MGO_EMAIL"]
+MGO_PASSWORD = os.environ["MGO_PASSWORD"]
 API_BASE = "https://api.mgoconnect.org"
 LEGACY_API = "https://www.mygovernmentonline.org/api"
 SEARCH_ENDPOINT = f"{API_BASE}/api/v3/cp/project/search-projects"
