@@ -2,7 +2,7 @@ FROM python:3.12.10-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
+RUN apt-get -o Acquire::Retries=6 update && apt-get -o Acquire::Retries=6 install -y --fix-missing \
     gcc \
     libpq-dev \
     curl \
