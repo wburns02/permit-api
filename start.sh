@@ -90,8 +90,10 @@ def start_proxy(local_port, target_host, target_port, label):
         client, addr = server.accept()
         threading.Thread(target=handler, args=(client,), daemon=True).start()
 
-# Primary (T430) — writes
-t_primary = threading.Thread(target=start_proxy, args=(5432, '100.122.216.15', 5432, 'T430-primary'), daemon=True)
+# Primary (T430) — writes. Kept on 5442 as a Tailscale FALLBACK only.
+# The live DB path is now the Cloudflare tunnel bound to 127.0.0.1:5432 (see below),
+# because Railway's egress NAT destabilises the Tailscale direct path post-outage.
+t_primary = threading.Thread(target=start_proxy, args=(5442, '100.122.216.15', 5432, 'T430-primary-fallback'), daemon=True)
 t_primary.start()
 
 # Replica (R730-2) — reads
@@ -106,6 +108,20 @@ t_anthropic.start()
 t_primary.join()
 " &
 sleep 2
+
+# Live DB transport: Cloudflare tunnel client (outbound TCP/443, NAT-immune).
+# Binds 127.0.0.1:5432 -> pg.ecbtx.com -> cloudflared on T430 -> Postgres.
+# Auth is the permit_api scram password in DATABASE_URL (pg.ecbtx.com has no public
+# port; reachable only via the cloudflared access protocol + DB password).
+echo "Starting Cloudflare tunnel client for Postgres (pg.ecbtx.com -> 127.0.0.1:5432)..."
+cloudflared access tcp --hostname pg.ecbtx.com --url 127.0.0.1:5432 > /tmp/cf-pg.log 2>&1 &
+for i in $(seq 1 30); do
+  if (exec 3<>/dev/tcp/127.0.0.1/5432) 2>/dev/null; then
+    echo "Cloudflare PG listener ready after ${i}s"; break
+  fi
+  [ "$i" -eq 30 ] && echo "WARN: Cloudflare PG listener not ready after 30s; continuing anyway"
+  sleep 1
+done
 
 echo "Starting PermitLookup API..."
 exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080} --timeout-keep-alive 30

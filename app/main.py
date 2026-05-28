@@ -547,7 +547,7 @@ async def health():
             "replica": "connected" if replica_ok else "down (using primary fallback)",
             "version": settings.VERSION,
             "environment": settings.ENVIRONMENT,
-            "build": "db-retry-v1",
+            "build": "cf-tunnel-v1",
         },
     )
 
