@@ -18,16 +18,12 @@ import json
 import os
 import re
 import sys
-import time
 import uuid
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
 import psycopg2
 from psycopg2.extras import execute_values
-import sys as _sys, os as _os  # added 2026-06-02 cron-storm fix
-_sys.path.insert(0, _os.path.dirname(_os.path.abspath(__file__)))
-from _db import connect_with_retry  # added 2026-06-02 cron-storm fix
 
 # ── Config ────────────────────────────────────────────────────────────────
 DATA_DIR = Path("/home/will/crown_scrapers/data")
@@ -37,24 +33,6 @@ DB_NAME = "permits"
 DB_USER = "will"
 BATCH_SIZE = 1000
 MAX_DAYS_OLD = 90  # Only load records with issue_date within 90 days
-
-# ───── R730 Canary 2026-06-02 ─────
-# Dual-write mirror to R730-2 for benchmarking. T430 remains primary.
-# DSN comes from R730_PERMITS_DSN env var (trust-auth via Tailscale subnet, no pw).
-# Failures on R730 are caught + logged; they NEVER fail the T430 write.
-R730_DSN = os.environ.get(
-    "R730_PERMITS_DSN",
-    "postgresql://will@100.125.210.69:5432/permits",
-)
-# Module-level counters/timers populated by _insert_batch()
-CANARY_STATS = {
-    "rows_t430": 0,
-    "rows_r730_attempted": 0,
-    "rows_r730_ok": 0,
-    "t430_total_ms": 0.0,
-    "r730_total_ms": 0.0,
-    "r730_errors": [],
-}
 
 # ── File filtering ────────────────────────────────────────────────────────
 INCLUDE_PATTERNS = re.compile(
@@ -134,7 +112,7 @@ def log(msg):
 
 
 def get_conn():
-    return connect_with_retry(host=DB_HOST, port=DB_PORT, dbname=DB_NAME, user=DB_USER)
+    return psycopg2.connect(host=DB_HOST, port=DB_PORT, dbname=DB_NAME, user=DB_USER)
 
 
 def parse_date(val):
@@ -317,9 +295,9 @@ def load_file(filepath: Path, conn, dry_run=False) -> dict:
 
 
 def _insert_batch(conn, batch):
-    """Bulk upsert a batch into hot_leads, mirrored to R730 hot_leads_recent."""
-    sql_template = """
-        INSERT INTO {table} (
+    """Bulk upsert a batch into hot_leads."""
+    sql = """
+        INSERT INTO hot_leads (
             id, permit_number, permit_type, work_class, description,
             address, city, state, zip, valuation, sqft, issue_date,
             contractor_company, contractor_name, contractor_phone,
@@ -328,56 +306,23 @@ def _insert_batch(conn, batch):
         ON CONFLICT (permit_number, address, state)
         WHERE permit_number IS NOT NULL AND address IS NOT NULL
         DO UPDATE SET
-            issue_date = COALESCE(EXCLUDED.issue_date, {table}.issue_date),
-            valuation = COALESCE(EXCLUDED.valuation, {table}.valuation),
-            contractor_name = COALESCE(EXCLUDED.contractor_name, {table}.contractor_name),
-            contractor_phone = COALESCE(EXCLUDED.contractor_phone, {table}.contractor_phone),
-            contractor_company = COALESCE(EXCLUDED.contractor_company, {table}.contractor_company),
-            description = COALESCE(EXCLUDED.description, {table}.description),
+            issue_date = COALESCE(EXCLUDED.issue_date, hot_leads.issue_date),
+            valuation = COALESCE(EXCLUDED.valuation, hot_leads.valuation),
+            contractor_name = COALESCE(EXCLUDED.contractor_name, hot_leads.contractor_name),
+            contractor_phone = COALESCE(EXCLUDED.contractor_phone, hot_leads.contractor_phone),
+            contractor_company = COALESCE(EXCLUDED.contractor_company, hot_leads.contractor_company),
+            description = COALESCE(EXCLUDED.description, hot_leads.description),
             source = EXCLUDED.source
     """
-    t430_ok = False
     cur = conn.cursor()
     try:
-        t0 = time.monotonic()
-        execute_values(cur, sql_template.format(table="hot_leads"), batch, page_size=BATCH_SIZE)
+        execute_values(cur, sql, batch, page_size=BATCH_SIZE)
         conn.commit()
-        CANARY_STATS["t430_total_ms"] += (time.monotonic() - t0) * 1000.0
-        CANARY_STATS["rows_t430"] += len(batch)
-        t430_ok = True
     except Exception as e:
         conn.rollback()
         log(f"  Batch insert error: {e}")
     finally:
         cur.close()
-
-    # ───── R730 Canary mirror write ─────
-    # Mirror the same rows to R730 hot_leads_recent in a SEPARATE transaction
-    # on a SEPARATE connection. Failures are logged but NEVER propagate
-    # (T430 is source of truth).
-    if not t430_ok:
-        return
-    t0 = time.monotonic()
-    try:
-        sql_r730 = sql_template.format(table="hot_leads_recent")
-        r730_conn = connect_with_retry(dsn=R730_DSN, connect_timeout=10)
-        try:
-            r_cur = r730_conn.cursor()
-            try:
-                execute_values(r_cur, sql_r730, batch, page_size=BATCH_SIZE)
-                r730_conn.commit()
-                CANARY_STATS["rows_r730_attempted"] += len(batch)
-                CANARY_STATS["rows_r730_ok"] += len(batch)
-            finally:
-                r_cur.close()
-        finally:
-            r730_conn.close()
-        CANARY_STATS["r730_total_ms"] += (time.monotonic() - t0) * 1000.0
-    except Exception as e:
-        CANARY_STATS["rows_r730_attempted"] += len(batch)
-        CANARY_STATS["r730_errors"].append(str(e)[:200])
-        CANARY_STATS["r730_total_ms"] += (time.monotonic() - t0) * 1000.0
-        log(f"  [R730 CANARY] mirror write failed (T430 unaffected): {e}")
 
 
 def ensure_dedup_index(conn):
@@ -539,22 +484,6 @@ def main():
 
     conn.close()
     log("Done.")
-
-    # ───── R730 Canary one-line summary (stderr for easy grep) ─────
-    cs = CANARY_STATS
-    if cs["rows_r730_attempted"] > 0:
-        r730_rate = 100.0 * cs["rows_r730_ok"] / cs["rows_r730_attempted"]
-    else:
-        r730_rate = 0.0
-    canary_line = (
-        f"CANARY: rows={cs['rows_t430']} "
-        f"t430_total_ms={cs['t430_total_ms']:.0f} "
-        f"r730_total_ms={cs['r730_total_ms']:.0f} "
-        f"r730_success_rate={r730_rate:.1f}% "
-        f"r730_ok={cs['rows_r730_ok']}/{cs['rows_r730_attempted']} "
-        f"r730_errors={len(cs['r730_errors'])}"
-    )
-    print(canary_line, file=sys.stderr, flush=True)
 
 
 if __name__ == "__main__":
