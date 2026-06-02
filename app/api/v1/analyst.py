@@ -138,6 +138,64 @@ QUERY RULES:
 """
 
 # ---------------------------------------------------------------------------
+# Date-filter stripper for no-results fallback
+# ---------------------------------------------------------------------------
+# Matches WHERE-clause predicates that filter on a date/timestamp column,
+# whether they reference CURRENT_DATE, INTERVAL math, or literal dates.
+# Used when the LLM-generated SQL returned 0 rows — we strip the date
+# filter, re-run, and tell the user how stale the freshest record is.
+_DATE_COLS = (
+    "issue_date", "date_created", "sale_date", "violation_date",
+    "filing_date", "install_date", "expiration_date", "begin_date",
+    "period_end", "formation_date", "scored_at", "last_updated",
+    "scraped_at", "last_inspection",
+)
+_DATE_PREDICATE_RE = re.compile(
+    (
+        r"(?:AND\s+|OR\s+)?"                                        # leading conjunction (optional)
+        r"\(?\s*"                                                    # optional opening paren
+        r"(?:[a-zA-Z_][a-zA-Z0-9_]*\.)?"                             # optional table alias
+        r"(?:" + "|".join(_DATE_COLS) + r")\b"
+        r"\s*(?:>=|<=|>|<|=|BETWEEN|IS\s+NOT\s+NULL|IS\s+NULL)"
+        r"[^)]*?"                                                    # match up to a closing paren / next clause
+        r"(?:CURRENT_DATE|INTERVAL\s+'[^']+'|'\d{4}-\d{2}-\d{2}'|\d+)"
+        r"(?:\s*(?:\+|-|AND)\s*(?:INTERVAL\s+'[^']+'|CURRENT_DATE|'\d{4}-\d{2}-\d{2}'|\d+))*"
+        r"\s*\)?"                                                    # optional closing paren
+    ),
+    re.IGNORECASE,
+)
+
+
+def _strip_date_filters(sql: str) -> str:
+    """Remove date predicates from a SELECT's WHERE clause so we can find
+    the freshest matching record regardless of date. Best-effort regex —
+    leaves all non-date filters (city, state, ILIKE, etc.) intact.
+    Returns the cleaned SQL, or the original if nothing matched.
+    """
+    cleaned = _DATE_PREDICATE_RE.sub(" ", sql)
+    # Tidy up dangling AND/OR/WHERE artefacts
+    cleaned = re.sub(r"\bWHERE\s+(AND|OR)\s+", "WHERE ", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\bAND\s+AND\b", "AND", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\bOR\s+OR\b", "OR", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\bWHERE\s+(ORDER|GROUP|LIMIT|HAVING)\b",
+                     r"\1", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\bAND\s+(ORDER|GROUP|LIMIT|HAVING)\b",
+                     r"\1", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    # If nothing meaningful changed, return original
+    return cleaned if cleaned != sql.strip() else sql
+
+
+def _detect_date_column(sql: str) -> str | None:
+    """Return the first known date column referenced in the SQL, or None."""
+    low = sql.lower()
+    for col in _DATE_COLS:
+        if col in low:
+            return col
+    return None
+
+
+# ---------------------------------------------------------------------------
 # SQL safety
 # ---------------------------------------------------------------------------
 _FORBIDDEN_PATTERNS = re.compile(
@@ -190,6 +248,7 @@ class AnalystResponse(BaseModel):
     row_count: int
     execution_time_ms: int
     query_id: str
+    fallback: dict | None = None  # populated when we recovered from a 0-result query
 
 
 class ReportResponse(BaseModel):
@@ -434,6 +493,111 @@ async def _run_analyst_query(
 
     exec_ms = int((time.time() - t0) * 1000)
 
+    # ── Step 3c: Graceful no-results fallback ─────────────────────────
+    # If we still have 0 rows after Haiku + Sonnet, strip the date
+    # filters from the SQL and re-run. This lets us either:
+    #   (a) show "most recent matching records regardless of date" when
+    #       the geography/type has stale data, or
+    #   (b) tell the user honestly that the freshest record is N days old.
+    fallback_info: dict | None = None
+    if not serialized_rows and safe_sql:
+        try:
+            stripped_sql = _strip_date_filters(safe_sql)
+            if stripped_sql and stripped_sql != safe_sql.strip():
+                date_col = _detect_date_column(safe_sql)
+                # Ensure ORDER BY <date_col> DESC so we get the freshest first
+                probe_sql = stripped_sql
+                if date_col and "order by" not in probe_sql.lower():
+                    # Insert ORDER BY before LIMIT
+                    probe_sql = re.sub(
+                        r"\s+LIMIT\s+\d+\s*$",
+                        f" ORDER BY {date_col} DESC NULLS LAST LIMIT 10",
+                        probe_sql,
+                        flags=re.IGNORECASE,
+                    )
+                elif "limit" not in probe_sql.lower():
+                    probe_sql += " LIMIT 10"
+
+                logger.info("[Analyst:%s] No-results fallback — stripped date filter, probing: %s",
+                            query_id, probe_sql)
+                await db.execute(text("SET LOCAL statement_timeout = '5000'"))
+                probe_result = await db.execute(text(probe_sql))
+                probe_cols = list(probe_result.keys())
+                probe_rows = [dict(zip(probe_cols, row)) for row in probe_result.fetchall()]
+
+                if probe_rows:
+                    # Serialize
+                    serialized_probe = []
+                    latest_date = None
+                    for row in probe_rows:
+                        clean = {}
+                        for k, v in row.items():
+                            if isinstance(v, datetime):
+                                clean[k] = v.isoformat()
+                                if date_col and k == date_col and (latest_date is None or v > latest_date):
+                                    latest_date = v
+                            elif isinstance(v, uuid.UUID):
+                                clean[k] = str(v)
+                            elif hasattr(v, "isoformat"):
+                                clean[k] = v.isoformat()
+                                if date_col and k == date_col:
+                                    # Date-like (date, not datetime)
+                                    try:
+                                        as_dt = datetime.combine(v, datetime.min.time(), tzinfo=timezone.utc) if not isinstance(v, datetime) else v
+                                        if latest_date is None or as_dt > latest_date:
+                                            latest_date = as_dt
+                                    except Exception:
+                                        pass
+                            else:
+                                clean[k] = v
+                        serialized_probe.append(clean)
+
+                    serialized_rows = serialized_probe
+                    safe_sql = probe_sql
+
+                    # Build fallback message
+                    if latest_date:
+                        anchor = latest_date if latest_date.tzinfo else latest_date.replace(tzinfo=timezone.utc)
+                        age_days = (datetime.now(timezone.utc) - anchor).days
+                        latest_str = anchor.date().isoformat()
+                        if age_days > 30:
+                            reason = "data_stale"
+                            msg = (
+                                f"No results in your time window. The most recent matching record is from "
+                                f"{latest_str} ({age_days} days ago) — data may be stale for this geography "
+                                f"or permit type. Showing the {len(serialized_rows)} most recent records "
+                                f"regardless of date."
+                            )
+                        else:
+                            reason = "no_results_in_window"
+                            msg = (
+                                f"No results in your requested window. Broadened the search and found "
+                                f"{len(serialized_rows)} recent records (latest: {latest_str}, "
+                                f"{age_days} days ago)."
+                            )
+                    else:
+                        reason = "no_results_in_window"
+                        latest_str = None
+                        age_days = None
+                        msg = (
+                            f"No results in your requested window. Broadened the search and found "
+                            f"{len(serialized_rows)} matching records."
+                        )
+
+                    fallback_info = {
+                        "applied": True,
+                        "reason": reason,
+                        "latest_record_date": latest_str,
+                        "latest_record_age_days": age_days,
+                        "user_message": msg,
+                    }
+                    logger.info("[Analyst:%s] Fallback succeeded — %d rows, latest=%s, age=%s",
+                                query_id, len(serialized_rows), latest_str, age_days)
+        except Exception as e:
+            logger.warning("[Analyst:%s] No-results fallback probe failed: %s", query_id, e)
+
+    exec_ms = int((time.time() - t0) * 1000)
+
     # ── Step 4: Summarize results with Claude ─────────────────────────
     # Skip summary if we've already used >8s (prevents timeout on summary call)
     elapsed = time.time() - t0
@@ -486,6 +650,11 @@ async def _run_analyst_query(
     if upgraded and serialized_rows:
         summary = "\u2728 Upgraded AI found results. " + summary
 
+    # If we recovered via the no-results fallback, prepend the user message
+    # so the chat bubble explains what happened before any LLM summary.
+    if fallback_info:
+        summary = fallback_info["user_message"] + ("\n\n" + summary if summary else "")
+
     return AnalystResponse(
         question=body.question,
         sql=safe_sql,
@@ -494,6 +663,7 @@ async def _run_analyst_query(
         row_count=len(serialized_rows),
         execution_time_ms=exec_ms,
         query_id=query_id,
+        fallback=fallback_info,
     )
 
 

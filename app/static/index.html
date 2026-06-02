@@ -14992,9 +14992,28 @@ async function analystSubmit() {
         tableHtml += '<div style="font-size:11px;color:var(--text3);text-align:center;padding:8px">Showing 25 of ' + data.row_count + ' results</div>';
       }
     }
+    // Build fallback banner if the API broadened the search to find results
+    const fb = data.fallback;
+    let fallbackBanner = '';
+    if (fb && fb.applied) {
+      const stale = fb.reason === 'data_stale';
+      const bg = stale ? 'rgba(245,158,11,.08)' : 'rgba(99,102,241,.08)';
+      const border = stale ? 'rgba(245,158,11,.35)' : 'rgba(99,102,241,.35)';
+      const accent = stale ? '#f59e0b' : '#818cf8';
+      const icon = stale ? '⚠' : 'ℹ';
+      fallbackBanner = '<div style="margin-bottom:12px;padding:10px 14px;background:' + bg + ';border:1px solid ' + border + ';border-radius:8px;font-size:13px;line-height:1.5;color:' + accent + '"><strong>' + icon + ' ' + (stale ? 'Stale data' : 'Broadened search') + '</strong><div style="color:var(--text);margin-top:4px">' + escapeHtml(fb.user_message || '') + '</div></div>';
+    }
+
     responseBubble.innerHTML = `<div style="max-width:100%;width:100%;padding:20px;background:var(--surface);border:1px solid var(--border);border-radius:16px 16px 16px 4px">
+      ${fallbackBanner}
       <div style="font-size:14px;line-height:1.6;color:var(--text);margin-bottom:8px">${(function(){
-        const parts = data.summary.split(/>>/).map(s => s.trim()).filter(Boolean);
+        // If the fallback banner is shown, the user_message is already there.
+        // Strip it from the summary to avoid duplication.
+        let summaryText = data.summary || '';
+        if (fb && fb.applied && fb.user_message && summaryText.startsWith(fb.user_message)) {
+          summaryText = summaryText.slice(fb.user_message.length).replace(/^\s*\n+/, '');
+        }
+        const parts = summaryText.split(/>>/).map(s => s.trim()).filter(Boolean);
         const clean = parts[0] || '';
         const suggestions = parts.slice(1).filter(s => s.length > 10);
         let h = escapeHtml(clean);
