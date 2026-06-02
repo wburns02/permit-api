@@ -501,100 +501,105 @@ async def _run_analyst_query(
     #   (b) tell the user honestly that the freshest record is N days old.
     fallback_info: dict | None = None
     if not serialized_rows and safe_sql:
-        try:
-            stripped_sql = _strip_date_filters(safe_sql)
-            if stripped_sql and stripped_sql != safe_sql.strip():
-                date_col = _detect_date_column(safe_sql)
-                # Ensure ORDER BY <date_col> DESC so we get the freshest first
-                probe_sql = stripped_sql
-                if date_col and "order by" not in probe_sql.lower():
-                    # Insert ORDER BY before LIMIT
-                    probe_sql = re.sub(
-                        r"\s+LIMIT\s+\d+\s*$",
-                        f" ORDER BY {date_col} DESC NULLS LAST LIMIT 10",
-                        probe_sql,
-                        flags=re.IGNORECASE,
-                    )
-                elif "limit" not in probe_sql.lower():
-                    probe_sql += " LIMIT 10"
+        # The current `db` session may be in a poisoned state from the
+        # previous failed/timeout SQL — open a fresh session for the probe.
+        from app.database import replica_session_maker
 
-                logger.info("[Analyst:%s] No-results fallback — stripped date filter, probing: %s",
-                            query_id, probe_sql)
-                await db.execute(text("SET LOCAL statement_timeout = '5000'"))
-                probe_result = await db.execute(text(probe_sql))
-                probe_cols = list(probe_result.keys())
-                probe_rows = [dict(zip(probe_cols, row)) for row in probe_result.fetchall()]
+        stripped_sql = _strip_date_filters(safe_sql)
+        if stripped_sql and stripped_sql != safe_sql.strip():
+            date_col = _detect_date_column(safe_sql)
+            # Ensure ORDER BY <date_col> DESC so we get the freshest first
+            probe_sql = stripped_sql
+            if date_col and "order by" not in probe_sql.lower():
+                probe_sql = re.sub(
+                    r"\s+LIMIT\s+\d+\s*$",
+                    f" ORDER BY {date_col} DESC NULLS LAST LIMIT 10",
+                    probe_sql,
+                    flags=re.IGNORECASE,
+                )
+            elif "limit" not in probe_sql.lower():
+                probe_sql += " LIMIT 10"
 
-                if probe_rows:
-                    # Serialize
-                    serialized_probe = []
-                    latest_date = None
-                    for row in probe_rows:
-                        clean = {}
-                        for k, v in row.items():
-                            if isinstance(v, datetime):
-                                clean[k] = v.isoformat()
-                                if date_col and k == date_col and (latest_date is None or v > latest_date):
-                                    latest_date = v
-                            elif isinstance(v, uuid.UUID):
-                                clean[k] = str(v)
-                            elif hasattr(v, "isoformat"):
-                                clean[k] = v.isoformat()
-                                if date_col and k == date_col:
-                                    # Date-like (date, not datetime)
-                                    try:
-                                        as_dt = datetime.combine(v, datetime.min.time(), tzinfo=timezone.utc) if not isinstance(v, datetime) else v
-                                        if latest_date is None or as_dt > latest_date:
-                                            latest_date = as_dt
-                                    except Exception:
-                                        pass
-                            else:
-                                clean[k] = v
-                        serialized_probe.append(clean)
+            logger.info("[Analyst:%s] No-results fallback — stripped date filter, probing: %s",
+                        query_id, probe_sql)
+            try:
+                async with replica_session_maker() as probe_db:
+                    await probe_db.execute(text("SET LOCAL statement_timeout = '5000'"))
+                    probe_result = await probe_db.execute(text(probe_sql))
+                    probe_cols = list(probe_result.keys())
+                    probe_rows = [dict(zip(probe_cols, row)) for row in probe_result.fetchall()]
+            except Exception as e:
+                logger.warning("[Analyst:%s] No-results fallback probe failed: %s", query_id, e)
+                probe_rows = []
 
-                    serialized_rows = serialized_probe
-                    safe_sql = probe_sql
-
-                    # Build fallback message
-                    if latest_date:
-                        anchor = latest_date if latest_date.tzinfo else latest_date.replace(tzinfo=timezone.utc)
-                        age_days = (datetime.now(timezone.utc) - anchor).days
-                        latest_str = anchor.date().isoformat()
-                        if age_days > 30:
-                            reason = "data_stale"
-                            msg = (
-                                f"No results in your time window. The most recent matching record is from "
-                                f"{latest_str} ({age_days} days ago) — data may be stale for this geography "
-                                f"or permit type. Showing the {len(serialized_rows)} most recent records "
-                                f"regardless of date."
-                            )
+            if probe_rows:
+                # Serialize
+                serialized_probe = []
+                latest_date = None
+                for row in probe_rows:
+                    clean = {}
+                    for k, v in row.items():
+                        if isinstance(v, datetime):
+                            clean[k] = v.isoformat()
+                            if date_col and k == date_col and (latest_date is None or v > latest_date):
+                                latest_date = v
+                        elif isinstance(v, uuid.UUID):
+                            clean[k] = str(v)
+                        elif hasattr(v, "isoformat"):
+                            clean[k] = v.isoformat()
+                            if date_col and k == date_col:
+                                # Date-like (date, not datetime)
+                                try:
+                                    as_dt = datetime.combine(v, datetime.min.time(), tzinfo=timezone.utc) if not isinstance(v, datetime) else v
+                                    if latest_date is None or as_dt > latest_date:
+                                        latest_date = as_dt
+                                except Exception:
+                                    pass
                         else:
-                            reason = "no_results_in_window"
-                            msg = (
-                                f"No results in your requested window. Broadened the search and found "
-                                f"{len(serialized_rows)} recent records (latest: {latest_str}, "
-                                f"{age_days} days ago)."
-                            )
+                            clean[k] = v
+                    serialized_probe.append(clean)
+
+                serialized_rows = serialized_probe
+                safe_sql = probe_sql
+
+                # Build fallback message
+                if latest_date:
+                    anchor = latest_date if latest_date.tzinfo else latest_date.replace(tzinfo=timezone.utc)
+                    age_days = (datetime.now(timezone.utc) - anchor).days
+                    latest_str = anchor.date().isoformat()
+                    if age_days > 30:
+                        reason = "data_stale"
+                        msg = (
+                            f"No results in your time window. The most recent matching record is from "
+                            f"{latest_str} ({age_days} days ago) — data may be stale for this geography "
+                            f"or permit type. Showing the {len(serialized_rows)} most recent records "
+                            f"regardless of date."
+                        )
                     else:
                         reason = "no_results_in_window"
-                        latest_str = None
-                        age_days = None
                         msg = (
                             f"No results in your requested window. Broadened the search and found "
-                            f"{len(serialized_rows)} matching records."
+                            f"{len(serialized_rows)} recent records (latest: {latest_str}, "
+                            f"{age_days} days ago)."
                         )
+                else:
+                    reason = "no_results_in_window"
+                    latest_str = None
+                    age_days = None
+                    msg = (
+                        f"No results in your requested window. Broadened the search and found "
+                        f"{len(serialized_rows)} matching records."
+                    )
 
-                    fallback_info = {
-                        "applied": True,
-                        "reason": reason,
-                        "latest_record_date": latest_str,
-                        "latest_record_age_days": age_days,
-                        "user_message": msg,
-                    }
-                    logger.info("[Analyst:%s] Fallback succeeded — %d rows, latest=%s, age=%s",
-                                query_id, len(serialized_rows), latest_str, age_days)
-        except Exception as e:
-            logger.warning("[Analyst:%s] No-results fallback probe failed: %s", query_id, e)
+                fallback_info = {
+                    "applied": True,
+                    "reason": reason,
+                    "latest_record_date": latest_str,
+                    "latest_record_age_days": age_days,
+                    "user_message": msg,
+                }
+                logger.info("[Analyst:%s] Fallback succeeded — %d rows, latest=%s, age=%s",
+                            query_id, len(serialized_rows), latest_str, age_days)
 
     exec_ms = int((time.time() - t0) * 1000)
 
