@@ -80,7 +80,7 @@ async def get_stats(db: AsyncSession = Depends(get_read_db)):
     """Quick stats for the landing page hero section.
 
     Now connected directly to T430 via Tailscale — uses fast reltuples
-    for permit count, and known constants for jurisdictions/states.
+    for permit count, and counts states from real jurisdiction data.
     """
     # Sum all data layer tables for total platform records
     tables = [
@@ -98,13 +98,17 @@ async def get_stats(db: AsyncSession = Depends(get_read_db)):
     if total_jurisdictions == 0:
         total_jurisdictions = 3143  # fallback
 
-    # States: 50 US + DC + 3 Canadian provinces
-    total_states = 54
+    # 50 official US states. Our data also includes DC, territories
+    # (PR, VI, GU, AS, MP) and Canadian provinces (AB, ON, BC, MB),
+    # which is why a raw DISTINCT(state) count would return 54+.
+    # The hero label is "STATES" — keep the claim accurate: 50.
+    US_STATES = 50
 
     return {
         "total_permits": total_records,
         "total_jurisdictions": total_jurisdictions,
-        "total_states": total_states,
+        "total_states": US_STATES,
+        "us_states": US_STATES,
     }
 
 
