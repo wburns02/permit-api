@@ -126,9 +126,10 @@ QUERY RULES:
   * "historical", "all time", "2024", "2023", specific non-TX states → USE permits TABLE. MUST include narrow WHERE + LIMIT.
   * IMPORTANT: The word "permits" in a user's question does NOT mean use the permits table. "Show me roofing permits in Austin" → use hot_leads. The permits table (760M rows) has an 8-second timeout and will fail for most queries.
 - When user says "this month" use CURRENT_DATE - interval '30 days'
-- When user says "this week" use CURRENT_DATE - interval '7 days'
+- When user says "this week" use CURRENT_DATE - interval '14 days' (NOT 7 — many jurisdictions publish on a weekly batch, so 7 days is often empty even when data is fresh; 14 days reliably catches "this week's permits")
 - When user says "this year" use date_trunc('year', CURRENT_DATE)
 - State names should be converted to 2-letter codes (Texas->TX, California->CA, etc.)
+- CRITICAL: City values in hot_leads are stored inconsistently — Austin may be "AUSTIN", "Austin", or "Austin, TX". ALWAYS use `city ILIKE '%austin%'` (NOT `city = 'Austin'`). Same for any city filter.
 - Always include useful columns in SELECT (address, city, state, etc.)
 - For aggregations, use meaningful aliases
 - Never use SELECT * — always specify columns
