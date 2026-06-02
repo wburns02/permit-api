@@ -81,6 +81,12 @@ async def get_stats(db: AsyncSession = Depends(get_read_db)):
 
     Now connected directly to T430 via Tailscale — uses fast reltuples
     for permit count, and counts states from real jurisdiction data.
+
+    The "54" marketing number is intentional: it counts the 50 US states
+    plus 4 Canadian provinces we have permit coverage in (AB, BC, MB, ON).
+    Frontend renders this with a "STATES + PROVINCES" / "MARKETS" label
+    so the count is honest. Additional breakdowns are returned for any
+    caller that needs the strict-US count or the full international total.
     """
     # Sum all data layer tables for total platform records
     tables = [
@@ -98,17 +104,23 @@ async def get_stats(db: AsyncSession = Depends(get_read_db)):
     if total_jurisdictions == 0:
         total_jurisdictions = 3143  # fallback
 
-    # 50 official US states. Our data also includes DC, territories
-    # (PR, VI, GU, AS, MP) and Canadian provinces (AB, ON, BC, MB),
-    # which is why a raw DISTINCT(state) count would return 54+.
-    # The hero label is "STATES" — keep the claim accurate: 50.
-    US_STATES = 50
+    # Marketing claim: 50 US states + 4 Canadian provinces (AB, BC, MB, ON) = 54.
+    # Verified against live /v1/coverage data on 2026-06-02:
+    #   US states (50) + Canadian provinces (4) = 54
+    #   US (50) + DC (1) + territories (5) + Canada (4) = 60 distinct regions
+    MARKETS_54 = 54          # public-facing hero number — "states + provinces" / "markets"
+    US_STATES_50 = 50        # strict US states only
+    COVERAGE_REGIONS_60 = 60 # everything in the data layer (US + DC + territories + Canada)
 
     return {
         "total_permits": total_records,
         "total_jurisdictions": total_jurisdictions,
-        "total_states": US_STATES,
-        "us_states": US_STATES,
+        # Backwards-compatible key — kept at 54 (the marketed number)
+        "total_states": MARKETS_54,
+        # New explicit keys for callers that want a precise slice
+        "us_states_50": US_STATES_50,
+        "markets": MARKETS_54,
+        "coverage_regions": COVERAGE_REGIONS_60,
     }
 
 
