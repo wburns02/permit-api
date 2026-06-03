@@ -125,11 +125,35 @@ QUERY RULES:
   * "top contractors", "rankings", "license", "Florida", "California", "FL", "CA" → USE contractor_licenses TABLE. 503K rows, fast. Status column is often NULL — do NOT filter on status. Do NOT join to other tables.
   * "historical", "all time", "2024", "2023", specific non-TX states → USE permits TABLE. MUST include narrow WHERE + LIMIT.
   * IMPORTANT: The word "permits" in a user's question does NOT mean use the permits table. "Show me roofing permits in Austin" → use hot_leads. The permits table (760M rows) has an 8-second timeout and will fail for most queries.
-- When user says "this month" use CURRENT_DATE - interval '30 days'
-- When user says "this week" use CURRENT_DATE - interval '14 days' (NOT 7 — many jurisdictions publish on a weekly batch, so 7 days is often empty even when data is fresh; 14 days reliably catches "this week's permits")
-- When user says "this year" use date_trunc('year', CURRENT_DATE)
+- RELATIVE DATE SEMANTICS (use date_trunc — produces tighter, index-friendly windows):
+  * "this month" -> `issue_date >= date_trunc('month', CURRENT_DATE)`
+  * "this week" -> `issue_date >= date_trunc('week', CURRENT_DATE)`
+  * "this year" -> `issue_date >= date_trunc('year', CURRENT_DATE)`
+  * "last month" -> `issue_date >= date_trunc('month', CURRENT_DATE - interval '1 month') AND issue_date < date_trunc('month', CURRENT_DATE)`
+  * "last week" -> `issue_date >= date_trunc('week', CURRENT_DATE - interval '1 week') AND issue_date < date_trunc('week', CURRENT_DATE)`
+  * "last year" -> `issue_date >= date_trunc('year', CURRENT_DATE - interval '1 year') AND issue_date < date_trunc('year', CURRENT_DATE)`
+  * "recent" / "new" / "latest" (no explicit window) -> `issue_date >= CURRENT_DATE - interval '14 days'`
+  * "last N days" -> `issue_date >= CURRENT_DATE - interval 'N days'`
 - State names should be converted to 2-letter codes (Texas->TX, California->CA, etc.)
 - CRITICAL: City values in hot_leads are stored inconsistently — Austin may be "AUSTIN", "Austin", or "Austin, TX". ALWAYS use `city ILIKE '%austin%'` (NOT `city = 'Austin'`). Same for any city filter.
+- CRITICAL: When a city is mentioned AND its state is known, ALSO add a `state = 'XX'` predicate. The state column is a cheap btree filter and slices the candidate set ~30x before the trigram pass on city/description. NEVER emit a city-only predicate when the state is inferable. City -> state mapping:
+  * TX: Austin, Houston, Dallas, San Antonio, Fort Worth, El Paso, Arlington, Waco, Plano, Corpus Christi, Lubbock, Garland, Irving, Frisco, Mckinney, Round Rock, Pearland, Sugar Land, Grand Prairie, Brownsville, Killeen, Pasadena, Mesquite, Carrollton, Midland, Denton, Abilene, Beaumont, Odessa, Tyler, Laredo
+  * FL: Miami, Jacksonville, Tampa, Orlando, St Petersburg, Hialeah, Tallahassee, Fort Lauderdale, Cape Coral, Pembroke Pines, Hollywood, Gainesville, Coral Springs, Clearwater, Miramar, Palm Bay, West Palm Beach, Lakeland
+  * CA: Los Angeles, San Diego, San Jose, San Francisco, Fresno, Sacramento, Long Beach, Oakland, Bakersfield, Anaheim, Santa Ana, Riverside, Stockton, Irvine, Fremont, San Bernardino, Modesto, Oxnard, Fontana, Glendale
+  * AZ: Phoenix, Tucson, Mesa, Chandler, Scottsdale, Glendale, Gilbert, Tempe, Peoria, Surprise
+  * NY: New York, Buffalo, Rochester, Yonkers, Syracuse, Albany
+  * IL: Chicago, Aurora, Naperville, Joliet, Rockford, Springfield
+  * NC: Charlotte, Raleigh, Greensboro, Durham, Winston-Salem, Fayetteville, Cary
+  * GA: Atlanta, Augusta, Columbus, Savannah, Athens, Sandy Springs
+  * WA: Seattle, Spokane, Tacoma, Vancouver, Bellevue, Kent
+  * CO: Denver, Colorado Springs, Aurora, Fort Collins, Lakewood, Thornton
+  * MA: Boston, Worcester, Springfield, Cambridge, Lowell
+  * TN: Nashville, Memphis, Knoxville, Chattanooga, Clarksville
+  * NV: Las Vegas, Henderson, Reno, North Las Vegas
+  * OR: Portland, Eugene, Salem, Gresham, Hillsboro
+  * OH: Columbus, Cleveland, Cincinnati, Toledo, Akron, Dayton
+  * MI: Detroit, Grand Rapids, Warren, Sterling Heights, Ann Arbor
+  * Example: "Roofing permits in Austin this month" -> `WHERE state = 'TX' AND city ILIKE '%austin%' AND ...`
 - Always include useful columns in SELECT (address, city, state, etc.)
 - For aggregations, use meaningful aliases
 - Never use SELECT * — always specify columns
@@ -354,13 +378,22 @@ async def analyst_query(
     """
     _require_pro_leads(user)
 
+    # Shared state so the outer 40s timeout catch can log the generated SQL +
+    # query_id even though they're set deep inside _run_analyst_query.
+    debug_state: dict = {"query_id": None, "sql": None}
+
     try:
         return await asyncio.wait_for(
-            _run_analyst_query(body, request, user, db),
+            _run_analyst_query(body, request, user, db, debug_state=debug_state),
             timeout=40.0,
         )
     except asyncio.TimeoutError:
-        logger.error("[Analyst] handler exceeded 40s for question=%r", body.question)
+        logger.error(
+            "[Analyst] handler exceeded 40s reason=timeout question=%r query_id=%s sql=%s",
+            body.question,
+            debug_state.get("query_id"),
+            debug_state.get("sql"),
+        )
         raise HTTPException(
             status_code=504,
             detail="Query took longer than 40 seconds. Try a more specific question (add a city, state, or date filter).",
@@ -372,8 +405,16 @@ async def _run_analyst_query(
     request: Request,
     user: ApiUser,
     db: AsyncSession,
+    debug_state: dict | None = None,
 ) -> AnalystResponse:
-    """Core handler logic for /v1/analyst/query, wrapped in asyncio.wait_for by the route."""
+    """Core handler logic for /v1/analyst/query, wrapped in asyncio.wait_for by the route.
+
+    `debug_state` is a shared dict the outer 40s wrapper uses to log the generated
+    SQL and query_id when it fires. We mutate it as soon as those values are
+    available so the timeout catch isn't logging None.
+    """
+    if debug_state is None:
+        debug_state = {}
     client = _get_client()
     if not client:
         raise HTTPException(
@@ -382,6 +423,7 @@ async def _run_analyst_query(
         )
 
     query_id = str(uuid.uuid4())[:12]
+    debug_state["query_id"] = query_id
     t0 = time.time()
     logger.info("[Analyst:%s] START question=%r", query_id, body.question)
 
@@ -428,6 +470,7 @@ async def _run_analyst_query(
         logger.warning("Unsafe SQL rejected for query %s: %s — SQL: %s", query_id, e, raw_sql)
         raise HTTPException(status_code=422, detail=f"Generated query was rejected for safety: {e}")
 
+    debug_state["sql"] = safe_sql
     logger.info("[Analyst:%s] user=%s question=%r sql=%s", query_id, user.id, body.question, safe_sql)
 
     # ── Step 3: Execute the SQL (30s budget — see _analyst_fetch docstring) ──
@@ -457,6 +500,7 @@ async def _run_analyst_query(
             columns, raw_rows = await _analyst_fetch(db, fixed_sql)
             rows = [dict(zip(columns, row)) for row in raw_rows]
             safe_sql = fixed_sql
+            debug_state["sql"] = safe_sql
         except Exception as e2:
             logger.error("SQL retry also failed for query %s: %s", query_id, e2)
             raise HTTPException(
