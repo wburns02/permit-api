@@ -105,12 +105,16 @@ async def get_db():
 
 
 async def get_read_db():
-    """Read-only session — uses primary unless REPLICA_DATABASE_URL is set.
+    """Read-only session — uses replica when REPLICA_DATABASE_URL is set.
 
     Simplified: async with handles cleanup. Previous explicit rollback+close
     wrapped in wait_for was deadlocking DB-heavy read endpoints.
+
+    Note: replica_session_maker aliases primary_session_maker when
+    REPLICA_DATABASE_URL is unset, so this is idempotent until the env
+    var lands.
     """
-    async with primary_session_maker() as session:
+    async with replica_session_maker() as session:
         yield session
 
 
