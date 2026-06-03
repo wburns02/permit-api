@@ -267,6 +267,52 @@ class ReportResponse(BaseModel):
 
 
 # ---------------------------------------------------------------------------
+# Analyst-specific SQL execution
+# ---------------------------------------------------------------------------
+# The engine-wide asyncpg `command_timeout=10` (set in app/database.py) is
+# correct for most read endpoints — long queries elsewhere are bugs. But
+# analyst LLM-generated SQL legitimately spans wider scans and needs more
+# headroom. We do NOT raise the engine-wide value; instead we override both
+# layers here, per-query:
+#
+#   1. Postgres `statement_timeout` via `SET LOCAL` (server-side budget).
+#      Requires an open transaction so the LOCAL scope is meaningful.
+#   2. asyncpg per-execute `timeout=...` kwarg (client-side budget).
+#      Without this, asyncpg's 10s client-side timer fires first and the
+#      SET LOCAL is useless. We reach the raw asyncpg connection through
+#      SQLAlchemy's `get_raw_connection().driver_connection`.
+#
+# Touching the engine config or any other endpoint is intentionally out of
+# scope — those should keep failing fast at 10s.
+ANALYST_SQL_TIMEOUT_S = 30.0
+
+
+async def _analyst_fetch(db: AsyncSession, sql: str, timeout_s: float = ANALYST_SQL_TIMEOUT_S) -> tuple[list[str], list[tuple]]:
+    """Execute analyst SQL with a per-query timeout that survives both layers.
+
+    Opens an explicit transaction so SET LOCAL statement_timeout sticks, then
+    uses the raw asyncpg connection's fetch(..., timeout=...) so the asyncpg
+    client-side timer matches the Postgres-side budget.
+
+    Returns (columns, rows-as-tuples). Caller serializes.
+    """
+    ms = int(timeout_s * 1000)
+    async with db.begin():
+        sa_conn = await db.connection()
+        raw = await sa_conn.get_raw_connection()
+        asyncpg_conn = raw.driver_connection  # asyncpg.Connection
+        # Server-side budget. `SET LOCAL` is scoped to the current tx.
+        await asyncpg_conn.execute(f"SET LOCAL statement_timeout = '{ms}ms'", timeout=5.0)
+        # Client-side budget. Overrides the engine-wide command_timeout=10.
+        records = await asyncpg_conn.fetch(sql, timeout=timeout_s)
+    if not records:
+        return [], []
+    columns = list(records[0].keys())
+    rows = [tuple(r.values()) for r in records]
+    return columns, rows
+
+
+# ---------------------------------------------------------------------------
 # Endpoints
 # ---------------------------------------------------------------------------
 
@@ -311,13 +357,13 @@ async def analyst_query(
     try:
         return await asyncio.wait_for(
             _run_analyst_query(body, request, user, db),
-            timeout=25.0,
+            timeout=40.0,
         )
     except asyncio.TimeoutError:
-        logger.error("[Analyst] handler exceeded 25s for question=%r", body.question)
+        logger.error("[Analyst] handler exceeded 40s for question=%r", body.question)
         raise HTTPException(
             status_code=504,
-            detail="Query took longer than 25 seconds. Try a more specific question (add a city, state, or date filter).",
+            detail="Query took longer than 40 seconds. Try a more specific question (add a city, state, or date filter).",
         )
 
 
@@ -384,12 +430,10 @@ async def _run_analyst_query(
 
     logger.info("[Analyst:%s] user=%s question=%r sql=%s", query_id, user.id, body.question, safe_sql)
 
-    # ── Step 3: Execute the SQL (with 5s timeout to prevent slow queries hanging) ──
+    # ── Step 3: Execute the SQL (30s budget — see _analyst_fetch docstring) ──
     try:
-        await db.execute(text("SET LOCAL statement_timeout = '5000'"))
-        result = await db.execute(text(safe_sql))
-        columns = list(result.keys())
-        rows = [dict(zip(columns, row)) for row in result.fetchall()]
+        columns, raw_rows = await _analyst_fetch(db, safe_sql)
+        rows = [dict(zip(columns, row)) for row in raw_rows]
     except Exception as e:
         logger.warning("SQL execution failed for query %s: %s", query_id, e)
         # Try to get Claude to fix the query
@@ -410,9 +454,8 @@ async def _run_analyst_query(
             )
             fixed_sql = _validate_sql(fix_response.content[0].text.strip())
             logger.info("[Analyst:%s] Retrying with fixed SQL: %s", query_id, fixed_sql)
-            result = await db.execute(text(fixed_sql))
-            columns = list(result.keys())
-            rows = [dict(zip(columns, row)) for row in result.fetchall()]
+            columns, raw_rows = await _analyst_fetch(db, fixed_sql)
+            rows = [dict(zip(columns, row)) for row in raw_rows]
             safe_sql = fixed_sql
         except Exception as e2:
             logger.error("SQL retry also failed for query %s: %s", query_id, e2)
@@ -441,10 +484,10 @@ async def _run_analyst_query(
 
     # ── Step 3b: Sonnet fallback — if Haiku returned 0, retry with smarter model ──
     upgraded = False
-    if not serialized_rows and time.time() - t0 > 18:
+    if not serialized_rows and time.time() - t0 > 32:
         raise HTTPException(
             status_code=504,
-            detail="Query took longer than 25 seconds. Try a more specific question.",
+            detail="Query took longer than 40 seconds. Try a more specific question.",
         )
     if not serialized_rows and (time.time() - t0) < 6.0:
         logger.info("[Analyst:%s] 0 results from Haiku — upgrading to Sonnet", query_id)
@@ -467,10 +510,8 @@ async def _run_analyst_query(
             )
             upgraded_sql = _validate_sql(sonnet_response.content[0].text.strip())
             logger.info("[Analyst:%s] Sonnet SQL: %s", query_id, upgraded_sql)
-            await db.execute(text("SET LOCAL statement_timeout = '5000'"))
-            result2 = await db.execute(text(upgraded_sql))
-            columns2 = list(result2.keys())
-            rows2 = [dict(zip(columns2, row)) for row in result2.fetchall()]
+            columns2, raw_rows2 = await _analyst_fetch(db, upgraded_sql)
+            rows2 = [dict(zip(columns2, row)) for row in raw_rows2]
             if rows2:
                 serialized_rows = []
                 for row in rows2:
@@ -524,10 +565,8 @@ async def _run_analyst_query(
                         query_id, probe_sql)
             try:
                 async with replica_session_maker() as probe_db:
-                    await probe_db.execute(text("SET LOCAL statement_timeout = '5000'"))
-                    probe_result = await probe_db.execute(text(probe_sql))
-                    probe_cols = list(probe_result.keys())
-                    probe_rows = [dict(zip(probe_cols, row)) for row in probe_result.fetchall()]
+                    probe_cols, probe_raw = await _analyst_fetch(probe_db, probe_sql)
+                    probe_rows = [dict(zip(probe_cols, row)) for row in probe_raw]
             except Exception as e:
                 logger.warning("[Analyst:%s] No-results fallback probe failed: %s", query_id, e)
                 probe_rows = []
