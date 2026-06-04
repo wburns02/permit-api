@@ -74,6 +74,7 @@ SCHEMA_CONTEXT = """You are an expert PostgreSQL analyst. You have access to a p
 permits (760M rows): id, permit_number, address, city, state_code (2-letter), zip_code,
     county, lat, lng, project_type, work_type, trade, status, description,
     date_created (timestamp), owner_name, applicant_name, source
+    - CRITICAL: project_type is a free-form municipal classification CODE column (values like "RRPL", "CALT", "A2", "02 - Automobile") — it is NOT a normalized English category label. DO NOT filter by ILIKE on words like 'residential', 'commercial', 'new construction', 'remodel' against project_type — that will return zero rows for most cities. For category-style filters use description, work_type, or trade columns instead. For project_type, only use it for equality match against known codes.
 
 hot_leads (daily fresh): id, permit_number, permit_type, work_class, description,
     address, city, state, zip, sqft, issue_date (date),
@@ -555,7 +556,13 @@ async def _run_analyst_query(
                         f"A previous attempt to answer this question returned 0 results. "
                         f"The failed SQL was: {safe_sql}\n\n"
                         f"Generate a BETTER PostgreSQL query that will actually return results. "
-                        f"Try a different table or relax the filters. "
+                        f"Try a different table or relax the filters.\n\n"
+                        f"RELAXATION PRIORITY ORDER (apply in this order, stopping as soon as you have any results):\n"
+                        f"1. Widen the date window (e.g. \"last 30 days\" -> \"last 90 days\" -> \"last 180 days\" -> \"this year\")\n"
+                        f"2. Drop the dollar/valuation threshold\n"
+                        f"3. Loosen industry keyword (use broader synonyms or partial matches)\n"
+                        f"4. ONLY AS A LAST RESORT drop the city filter — and when you do, state in the SQL comment \"RELAXED: city filter dropped\"\n\n"
+                        f"NEVER drop the city filter while keeping a tight keyword filter. NEVER drop both the city and the keyword filter in the same retry.\n\n"
                         f"Return ONLY the raw SQL — no explanation.\n\n"
                         f"Question: {body.question}"
                     ),
