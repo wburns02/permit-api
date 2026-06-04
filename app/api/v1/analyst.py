@@ -229,13 +229,36 @@ def _detect_date_column(sql: str) -> str | None:
 # ---------------------------------------------------------------------------
 _FORBIDDEN_PATTERNS = re.compile(
     r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE|EXECUTE|COPY|"
+    r"MERGE|CALL|VACUUM|REINDEX|LOCK|"
     r"pg_read_file|pg_write_file|lo_import|lo_export)\b",
     re.IGNORECASE,
 )
 
+# Strip single-quoted string literals (including '' escapes), $$-quoted strings,
+# -- line comments, and /* */ block comments. Tokens like ALTER/DROP/UPDATE that
+# only appear inside literals or comments must not trip the forbidden check.
+_SQL_LITERAL_OR_COMMENT = re.compile(
+    r"'(?:''|[^'])*'"            # 'single quoted', supports '' escape
+    r"|\$\$.*?\$\$"              # $$dollar quoted$$
+    r"|--[^\n]*"                 # -- line comment
+    r"|/\*.*?\*/",               # /* block comment */
+    re.DOTALL,
+)
+
+
+def _strip_sql_literals_and_comments(sql: str) -> str:
+    """Replace string literals and comments with spaces so keyword checks see only code."""
+    return _SQL_LITERAL_OR_COMMENT.sub(" ", sql)
+
 
 def _validate_sql(sql: str) -> str:
-    """Validate that generated SQL is a safe SELECT query. Returns cleaned SQL."""
+    """Validate that generated SQL is a safe SELECT query. Returns cleaned SQL.
+
+    The forbidden-keyword check is token-aware: string literals (e.g.
+    ``ILIKE '%alteration%'``) and comments are stripped before scanning so they
+    can't trip the safety check. Only real SQL keywords (DDL/DML) are rejected.
+    Also enforces that the statement begins with SELECT or WITH ... SELECT (CTE).
+    """
     sql = sql.strip().rstrip(";")
 
     # Strip markdown code fences if Claude wrapped it
@@ -244,10 +267,19 @@ def _validate_sql(sql: str) -> str:
         lines = [l for l in lines if not l.strip().startswith("```")]
         sql = "\n".join(lines).strip()
 
-    if _FORBIDDEN_PATTERNS.search(sql):
+    # Scan for forbidden keywords against a copy with string literals & comments removed
+    scrubbed = _strip_sql_literals_and_comments(sql)
+
+    if _FORBIDDEN_PATTERNS.search(scrubbed):
         raise ValueError("Query contains forbidden operations. Only SELECT queries are allowed.")
 
-    if not sql.upper().lstrip().startswith("SELECT"):
+    # Reject multi-statement payloads (anything after a `;` in the scrubbed code).
+    # Trailing whitespace/comments-only after `;` is fine — those were already scrubbed.
+    if ";" in scrubbed.strip().rstrip(";"):
+        raise ValueError("Multiple statements are not allowed. Only a single SELECT is permitted.")
+
+    head = scrubbed.lstrip().upper()
+    if not (head.startswith("SELECT") or head.startswith("WITH")):
         raise ValueError("Only SELECT queries are allowed.")
 
     # Enforce LIMIT
