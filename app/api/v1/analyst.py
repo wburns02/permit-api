@@ -76,9 +76,13 @@ permits (760M rows): id, permit_number, address, city, state_code (2-letter), zi
     date_created (timestamp), owner_name, applicant_name, source
 
 hot_leads (daily fresh): id, permit_number, permit_type, work_class, description,
-    address, city, state, zip, valuation (numeric), sqft, issue_date (date),
+    address, city, state, zip, sqft, issue_date (date),
     contractor_company, contractor_name, contractor_phone,
     applicant_name, applicant_phone, jurisdiction, source
+    - valuation (double precision): permit job value in dollars. Has a btree index — use
+      `valuation > X` directly for "over $X" / "above $X" / "more than $X" filters.
+      Do NOT cast or wrap with COALESCE; it's already numeric. NULL means unknown value,
+      so `valuation > X` will exclude unknowns (which is what users want).
 
 business_entities (13M): id, entity_name, entity_type, state (2-letter), filing_number, status,
     formation_date (date), registered_agent_name, principal_address, source
@@ -273,6 +277,11 @@ class AnalystResponse(BaseModel):
     execution_time_ms: int
     query_id: str
     fallback: dict | None = None  # populated when we recovered from a 0-result query
+    # When the original LLM-generated SQL returned 0 rows and a relaxed/upgraded
+    # query produced the rows actually returned. UI should warn the user that
+    # their filter did not match — these are closest related results, not matches.
+    filter_relaxed: bool = False
+    original_filter_matched: int | None = None
 
 
 class ReportResponse(BaseModel):
@@ -735,6 +744,13 @@ async def _run_analyst_query(
     else:
         summary = "No results found. Try broadening your search or rephrasing the question."
 
+    # Honest fallback signaling: rows came from either the Sonnet retry or the
+    # date-strip probe \u2014 in both cases the user's original SQL returned 0 rows
+    # and the rows we're about to return are "closest related," not matches.
+    # Set filter_relaxed so the client UI can warn, and prepend a blunt notice
+    # to the summary so even clients that ignore the flag see what happened.
+    used_fallback = bool(serialized_rows) and (upgraded or fallback_info is not None)
+
     if upgraded and serialized_rows:
         summary = "\u2728 Upgraded AI found results. " + summary
 
@@ -742,6 +758,12 @@ async def _run_analyst_query(
     # so the chat bubble explains what happened before any LLM summary.
     if fallback_info:
         summary = fallback_info["user_message"] + ("\n\n" + summary if summary else "")
+
+    if used_fallback:
+        summary = (
+            "NO RESULTS MATCHED YOUR ORIGINAL FILTER. Showing closest related results:\n\n"
+            + (summary or "")
+        )
 
     return AnalystResponse(
         question=body.question,
@@ -752,6 +774,8 @@ async def _run_analyst_query(
         execution_time_ms=exec_ms,
         query_id=query_id,
         fallback=fallback_info,
+        filter_relaxed=used_fallback,
+        original_filter_matched=0 if used_fallback else None,
     )
 
 
