@@ -1,0 +1,2768 @@
+[
+  {
+    "slug": "sewardak",
+    "name": "Seward AK",
+    "state": "AK",
+    "categories": 3
+  },
+  {
+    "slug": "orangebeachal",
+    "name": "Orange Beach",
+    "state": "AL",
+    "categories": 3
+  },
+  {
+    "slug": "vestaviahillsal",
+    "name": "Vestavia Hills",
+    "state": "AL",
+    "categories": 12
+  },
+  {
+    "slug": "phoenixaz",
+    "name": "Phoenix",
+    "state": "AZ",
+    "categories": 2
+  },
+  {
+    "slug": "yumaaz",
+    "name": "Yuma",
+    "state": "AZ",
+    "categories": 1
+  },
+  {
+    "slug": "americancanyonca",
+    "name": "American Canyon",
+    "state": "CA",
+    "categories": 5
+  },
+  {
+    "slug": "arcataca",
+    "name": "Arcata",
+    "state": "CA",
+    "categories": 9
+  },
+  {
+    "slug": "beniciaca",
+    "name": "Benicia",
+    "state": "CA",
+    "categories": 6
+  },
+  {
+    "slug": "buenaparkca",
+    "name": "Buena Park",
+    "state": "CA",
+    "categories": 3
+  },
+  {
+    "slug": "calimesaca",
+    "name": "Calimesa",
+    "state": "CA",
+    "categories": 8
+  },
+  {
+    "slug": "camarilloca",
+    "name": "Camarillo CA",
+    "state": "CA",
+    "categories": 6
+  },
+  {
+    "slug": "cityoflapalmaca",
+    "name": "City of La Palma",
+    "state": "CA",
+    "categories": 7
+  },
+  {
+    "slug": "cityofsanrafaelca",
+    "name": "City of San Rafael",
+    "state": "CA",
+    "categories": 7
+  },
+  {
+    "slug": "clearlakeca",
+    "name": "Clear Lake",
+    "state": "CA",
+    "categories": 8
+  },
+  {
+    "slug": "colusacountyca",
+    "name": "Colusa County",
+    "state": "CA",
+    "categories": 6
+  },
+  {
+    "slug": "elsegundoca",
+    "name": "El Segundo",
+    "state": "CA",
+    "categories": 7
+  },
+  {
+    "slug": "eurekaca",
+    "name": "Eureka CA",
+    "state": "CA",
+    "categories": 6
+  },
+  {
+    "slug": "fortunaca",
+    "name": "Fortuna",
+    "state": "CA",
+    "categories": 6
+  },
+  {
+    "slug": "fresnoca",
+    "name": "Fresno",
+    "state": "CA",
+    "categories": 2
+  },
+  {
+    "slug": "industryca",
+    "name": "Industry",
+    "state": "CA",
+    "categories": 2
+  },
+  {
+    "slug": "inglewoodca",
+    "name": "Inglewood",
+    "state": "CA",
+    "categories": 2
+  },
+  {
+    "slug": "countyofinyoca",
+    "name": "Inyo County",
+    "state": "CA",
+    "categories": 3
+  },
+  {
+    "slug": "countyoflakeca",
+    "name": "Lake County",
+    "state": "CA",
+    "categories": 5
+  },
+  {
+    "slug": "lakeportca",
+    "name": "Lakeport",
+    "state": "CA",
+    "categories": 5
+  },
+  {
+    "slug": "losangelesca",
+    "name": "Los Angeles",
+    "state": "CA",
+    "categories": 3
+  },
+  {
+    "slug": "millvalleyca",
+    "name": "Mill Valley",
+    "state": "CA",
+    "categories": 2
+  },
+  {
+    "slug": "montebelloca",
+    "name": "Montebello",
+    "state": "CA",
+    "categories": 2
+  },
+  {
+    "slug": "oaklandca",
+    "name": "Oakland",
+    "state": "CA",
+    "categories": 1
+  },
+  {
+    "slug": "orangecountyca",
+    "name": "Orange County",
+    "state": "CA",
+    "categories": 1
+  },
+  {
+    "slug": "pomonaca",
+    "name": "Pomona",
+    "state": "CA",
+    "categories": 3
+  },
+  {
+    "slug": "sanfranciscoca",
+    "name": "San Francisco",
+    "state": "CA",
+    "categories": 3
+  },
+  {
+    "slug": "santabarbaraca",
+    "name": "Santa Barbara",
+    "state": "CA",
+    "categories": 1
+  },
+  {
+    "slug": "santacruzcountyca",
+    "name": "Santa Cruz County",
+    "state": "CA",
+    "categories": 2
+  },
+  {
+    "slug": "scottsvalleyca",
+    "name": "Scotts Valley",
+    "state": "CA",
+    "categories": 2
+  },
+  {
+    "slug": "sonomaca",
+    "name": "Sonoma CA",
+    "state": "CA",
+    "categories": 6
+  },
+  {
+    "slug": "sonomacountyca",
+    "name": "Sonoma County",
+    "state": "CA",
+    "categories": 2
+  },
+  {
+    "slug": "tehamacountyca",
+    "name": "Tehama County",
+    "state": "CA",
+    "categories": 2
+  },
+  {
+    "slug": "tuolumnecountyca",
+    "name": "Tuolumne County",
+    "state": "CA",
+    "categories": 6
+  },
+  {
+    "slug": "westernriversidecogca",
+    "name": "Western Riverside COG",
+    "state": "CA",
+    "categories": 2
+  },
+  {
+    "slug": "bouldercountyco",
+    "name": "Boulder County",
+    "state": "CO",
+    "categories": 1
+  },
+  {
+    "slug": "breckenridgeco",
+    "name": "Breckenridge CO",
+    "state": "CO",
+    "categories": 6
+  },
+  {
+    "slug": "brightonco",
+    "name": "Brighton CO",
+    "state": "CO",
+    "categories": 10
+  },
+  {
+    "slug": "durangoco",
+    "name": "Durango CO",
+    "state": "CO",
+    "categories": 7
+  },
+  {
+    "slug": "englewoodco",
+    "name": "Englewood",
+    "state": "CO",
+    "categories": 1
+  },
+  {
+    "slug": "lovelandco",
+    "name": "Loveland",
+    "state": "CO",
+    "categories": 19
+  },
+  {
+    "slug": "puebloco",
+    "name": "Pueblo",
+    "state": "CO",
+    "categories": 19
+  },
+  {
+    "slug": "pueblocountyco",
+    "name": "Pueblo County",
+    "state": "CO",
+    "categories": 6
+  },
+  {
+    "slug": "silverthorneco",
+    "name": "Silverthorne CO",
+    "state": "CO",
+    "categories": 3
+  },
+  {
+    "slug": "steamboatspringsco",
+    "name": "Steamboatsprings CO",
+    "state": "CO",
+    "categories": 1
+  },
+  {
+    "slug": "vailco",
+    "name": "Vail CO",
+    "state": "CO",
+    "categories": 10
+  },
+  {
+    "slug": "wheatridgeco",
+    "name": "Wheat Ridge",
+    "state": "CO",
+    "categories": 9
+  },
+  {
+    "slug": "avonct",
+    "name": "Avon CT",
+    "state": "CT",
+    "categories": 4
+  },
+  {
+    "slug": "bloomfieldct",
+    "name": "Bloomfield CT",
+    "state": "CT",
+    "categories": 4
+  },
+  {
+    "slug": "boltonct",
+    "name": "Bolton CT",
+    "state": "CT",
+    "categories": 5
+  },
+  {
+    "slug": "branfordct",
+    "name": "Branford CT",
+    "state": "CT",
+    "categories": 4
+  },
+  {
+    "slug": "bristolct",
+    "name": "Bristol CT",
+    "state": "CT",
+    "categories": 1
+  },
+  {
+    "slug": "brookfieldct",
+    "name": "Brookfield CT",
+    "state": "CT",
+    "categories": 2
+  },
+  {
+    "slug": "cheshirect",
+    "name": "Cheshire CT",
+    "state": "CT",
+    "categories": 1
+  },
+  {
+    "slug": "clintonct",
+    "name": "Clinton CT",
+    "state": "CT",
+    "categories": 4
+  },
+  {
+    "slug": "coventryct",
+    "name": "Coventry CT",
+    "state": "CT",
+    "categories": 3
+  },
+  {
+    "slug": "cromwellct",
+    "name": "Cromwell CT",
+    "state": "CT",
+    "categories": 12
+  },
+  {
+    "slug": "danburyct",
+    "name": "Danbury CT",
+    "state": "CT",
+    "categories": 6
+  },
+  {
+    "slug": "darienct",
+    "name": "Darien CT",
+    "state": "CT",
+    "categories": 5
+  },
+  {
+    "slug": "easthartfordct",
+    "name": "Easthartford CT",
+    "state": "CT",
+    "categories": 6
+  },
+  {
+    "slug": "enfieldct",
+    "name": "Enfield",
+    "state": "CT",
+    "categories": 3
+  },
+  {
+    "slug": "farmingtonct",
+    "name": "Farmington CT",
+    "state": "CT",
+    "categories": 4
+  },
+  {
+    "slug": "glastonburyct",
+    "name": "Glastonbury CT",
+    "state": "CT",
+    "categories": 5
+  },
+  {
+    "slug": "griswoldct",
+    "name": "Griswold CT",
+    "state": "CT",
+    "categories": 2
+  },
+  {
+    "slug": "hamdenct",
+    "name": "Hamden CT",
+    "state": "CT",
+    "categories": 7
+  },
+  {
+    "slug": "hebronct",
+    "name": "Hebron CT",
+    "state": "CT",
+    "categories": 2
+  },
+  {
+    "slug": "kentct",
+    "name": "Kent CT",
+    "state": "CT",
+    "categories": 2
+  },
+  {
+    "slug": "killingworthct",
+    "name": "Killingworth CT",
+    "state": "CT",
+    "categories": 1
+  },
+  {
+    "slug": "lebanonct",
+    "name": "Lebanon CT",
+    "state": "CT",
+    "categories": 1
+  },
+  {
+    "slug": "madisonct",
+    "name": "Madison CT",
+    "state": "CT",
+    "categories": 5
+  },
+  {
+    "slug": "meridenct",
+    "name": "Meriden",
+    "state": "CT",
+    "categories": 12
+  },
+  {
+    "slug": "milfordct",
+    "name": "Milford",
+    "state": "CT",
+    "categories": 14
+  },
+  {
+    "slug": "monroect",
+    "name": "Monroe",
+    "state": "CT",
+    "categories": 5
+  },
+  {
+    "slug": "naugatuckct",
+    "name": "Naugatuck",
+    "state": "CT",
+    "categories": 4
+  },
+  {
+    "slug": "newbritainct",
+    "name": "New Britain",
+    "state": "CT",
+    "categories": 5
+  },
+  {
+    "slug": "newcanaanct",
+    "name": "Newcanaan CT",
+    "state": "CT",
+    "categories": 5
+  },
+  {
+    "slug": "newfairfieldct",
+    "name": "Newfairfield CT",
+    "state": "CT",
+    "categories": 5
+  },
+  {
+    "slug": "newingtonct",
+    "name": "Newington CT",
+    "state": "CT",
+    "categories": 3
+  },
+  {
+    "slug": "newlondonct",
+    "name": "Newlondon CT",
+    "state": "CT",
+    "categories": 2
+  },
+  {
+    "slug": "newmilfordct",
+    "name": "Newmilford CT",
+    "state": "CT",
+    "categories": 6
+  },
+  {
+    "slug": "northcanaanct",
+    "name": "Northcanaan CT",
+    "state": "CT",
+    "categories": 2
+  },
+  {
+    "slug": "norwichct",
+    "name": "Norwich CT",
+    "state": "CT",
+    "categories": 7
+  },
+  {
+    "slug": "oldlymect",
+    "name": "Oldlyme CT",
+    "state": "CT",
+    "categories": 2
+  },
+  {
+    "slug": "orangect",
+    "name": "Orange",
+    "state": "CT",
+    "categories": 6
+  },
+  {
+    "slug": "oxfordct",
+    "name": "Oxford CT",
+    "state": "CT",
+    "categories": 1
+  },
+  {
+    "slug": "plainvillect",
+    "name": "Plainville",
+    "state": "CT",
+    "categories": 3
+  },
+  {
+    "slug": "reddingct",
+    "name": "Redding CT",
+    "state": "CT",
+    "categories": 1
+  },
+  {
+    "slug": "ridgefieldct",
+    "name": "Ridgefield CT",
+    "state": "CT",
+    "categories": 6
+  },
+  {
+    "slug": "rockyhillct",
+    "name": "Rockyhill CT",
+    "state": "CT",
+    "categories": 2
+  },
+  {
+    "slug": "salisburyct",
+    "name": "Salisbury CT",
+    "state": "CT",
+    "categories": 3
+  },
+  {
+    "slug": "seymourct",
+    "name": "Seymour CT",
+    "state": "CT",
+    "categories": 3
+  },
+  {
+    "slug": "sheltonct",
+    "name": "Shelton",
+    "state": "CT",
+    "categories": 6
+  },
+  {
+    "slug": "southwindsorct",
+    "name": "South Windsor",
+    "state": "CT",
+    "categories": 12
+  },
+  {
+    "slug": "stamfordct",
+    "name": "Stamford CT",
+    "state": "CT",
+    "categories": 7
+  },
+  {
+    "slug": "stoningtonct",
+    "name": "Stonington CT",
+    "state": "CT",
+    "categories": 3
+  },
+  {
+    "slug": "stratfordct",
+    "name": "Stratford",
+    "state": "CT",
+    "categories": 7
+  },
+  {
+    "slug": "suffieldct",
+    "name": "Suffield",
+    "state": "CT",
+    "categories": 1
+  },
+  {
+    "slug": "torringtonct",
+    "name": "Torrington CT",
+    "state": "CT",
+    "categories": 5
+  },
+  {
+    "slug": "trumbullct",
+    "name": "Trumbull",
+    "state": "CT",
+    "categories": 1
+  },
+  {
+    "slug": "vernonct",
+    "name": "Vernon",
+    "state": "CT",
+    "categories": 6
+  },
+  {
+    "slug": "voluntownct",
+    "name": "Voluntown CT",
+    "state": "CT",
+    "categories": 6
+  },
+  {
+    "slug": "wethersfieldct",
+    "name": "Wethersfield",
+    "state": "CT",
+    "categories": 3
+  },
+  {
+    "slug": "willingtonct",
+    "name": "Willington CT",
+    "state": "CT",
+    "categories": 7
+  },
+  {
+    "slug": "wiltonct",
+    "name": "Wilton CT",
+    "state": "CT",
+    "categories": 6
+  },
+  {
+    "slug": "winchesterct",
+    "name": "Winchester CT",
+    "state": "CT",
+    "categories": 4
+  },
+  {
+    "slug": "windsorct",
+    "name": "Windsor",
+    "state": "CT",
+    "categories": 1
+  },
+  {
+    "slug": "woodbridgect",
+    "name": "Woodbridge CT",
+    "state": "CT",
+    "categories": 1
+  },
+  {
+    "slug": "woodburyct",
+    "name": "Woodbury CT",
+    "state": "CT",
+    "categories": 3
+  },
+  {
+    "slug": "apopkafl",
+    "name": "Apopka FL",
+    "state": "FL",
+    "categories": 6
+  },
+  {
+    "slug": "cocoabeachfl",
+    "name": "Cocoa Beach",
+    "state": "FL",
+    "categories": 4
+  },
+  {
+    "slug": "fortmyersfl",
+    "name": "Fort Myers",
+    "state": "FL",
+    "categories": 3
+  },
+  {
+    "slug": "lauderdalelakesfl",
+    "name": "Lauderdale Lakes",
+    "state": "FL",
+    "categories": 6
+  },
+  {
+    "slug": "marathonfl",
+    "name": "Marathon",
+    "state": "FL",
+    "categories": 4
+  },
+  {
+    "slug": "margatefl",
+    "name": "Margate FL",
+    "state": "FL",
+    "categories": 2
+  },
+  {
+    "slug": "sebastianfl",
+    "name": "Sebastian FL",
+    "state": "FL",
+    "categories": 1
+  },
+  {
+    "slug": "stpetersburgfl",
+    "name": "St. Petersburg",
+    "state": "FL",
+    "categories": 3
+  },
+  {
+    "slug": "stcloudfl",
+    "name": "Stcloud FL",
+    "state": "FL",
+    "categories": 1
+  },
+  {
+    "slug": "stuartfl",
+    "name": "Stuart",
+    "state": "FL",
+    "categories": 13
+  },
+  {
+    "slug": "tampafl",
+    "name": "Tampa",
+    "state": "FL",
+    "categories": 0
+  },
+  {
+    "slug": "atlantaga",
+    "name": "Atlanta",
+    "state": "GA",
+    "categories": 0
+  },
+  {
+    "slug": "austellga",
+    "name": "Austell",
+    "state": "GA",
+    "categories": 9
+  },
+  {
+    "slug": "cartersvillega",
+    "name": "Cartersville",
+    "state": "GA",
+    "categories": 4
+  },
+  {
+    "slug": "chambleega",
+    "name": "Chamblee",
+    "state": "GA",
+    "categories": 1
+  },
+  {
+    "slug": "dekalbcountyga",
+    "name": "DeKalb County",
+    "state": "GA",
+    "categories": 3
+  },
+  {
+    "slug": "glynncountyga",
+    "name": "Glynn County",
+    "state": "GA",
+    "categories": 14
+  },
+  {
+    "slug": "griffinga",
+    "name": "Griffin",
+    "state": "GA",
+    "categories": 6
+  },
+  {
+    "slug": "roswellga",
+    "name": "Roswell",
+    "state": "GA",
+    "categories": 2
+  },
+  {
+    "slug": "sandyspringsga",
+    "name": "Sandy Springs",
+    "state": "GA",
+    "categories": 10
+  },
+  {
+    "slug": "smyrnaga",
+    "name": "Smyrna",
+    "state": "GA",
+    "categories": 6
+  },
+  {
+    "slug": "polkcountyia",
+    "name": "Polk County",
+    "state": "IA",
+    "categories": 11
+  },
+  {
+    "slug": "waterlooia",
+    "name": "Waterloo",
+    "state": "IA",
+    "categories": 3
+  },
+  {
+    "slug": "waukeeia",
+    "name": "Waukee IA",
+    "state": "IA",
+    "categories": 10
+  },
+  {
+    "slug": "blainecountyid",
+    "name": "Blaine County",
+    "state": "ID",
+    "categories": 2
+  },
+  {
+    "slug": "postfallsid",
+    "name": "Postfalls ID",
+    "state": "ID",
+    "categories": 6
+  },
+  {
+    "slug": "stateofidaho",
+    "name": "State of Idaho",
+    "state": "ID",
+    "categories": 5
+  },
+  {
+    "slug": "bolingbrookil",
+    "name": "Bolingbrook IL",
+    "state": "IL",
+    "categories": 11
+  },
+  {
+    "slug": "champaignil",
+    "name": "Champaign IL",
+    "state": "IL",
+    "categories": 10
+  },
+  {
+    "slug": "decaturil",
+    "name": "Decatur IL",
+    "state": "IL",
+    "categories": 7
+  },
+  {
+    "slug": "deerfieldil",
+    "name": "Deerfield IL",
+    "state": "IL",
+    "categories": 7
+  },
+  {
+    "slug": "dupageil",
+    "name": "DuPage",
+    "state": "IL",
+    "categories": 4
+  },
+  {
+    "slug": "harveyil",
+    "name": "Harvey IL",
+    "state": "IL",
+    "categories": 8
+  },
+  {
+    "slug": "lansingil",
+    "name": "Lansing IL",
+    "state": "IL",
+    "categories": 6
+  },
+  {
+    "slug": "lemontil",
+    "name": "Lemont IL",
+    "state": "IL",
+    "categories": 4
+  },
+  {
+    "slug": "mundeleinil",
+    "name": "Mundelein IL",
+    "state": "IL",
+    "categories": 0
+  },
+  {
+    "slug": "plainfieldil",
+    "name": "Plainfield IL",
+    "state": "IL",
+    "categories": 3
+  },
+  {
+    "slug": "schaumburgil",
+    "name": "Schaumburg IL",
+    "state": "IL",
+    "categories": 6
+  },
+  {
+    "slug": "urbanail",
+    "name": "Urbana IL",
+    "state": "IL",
+    "categories": 3
+  },
+  {
+    "slug": "waukeganil",
+    "name": "Waukegan",
+    "state": "IL",
+    "categories": 2
+  },
+  {
+    "slug": "brownsburgin",
+    "name": "Brownsburg IN",
+    "state": "IN",
+    "categories": 7
+  },
+  {
+    "slug": "columbusin",
+    "name": "Columbus",
+    "state": "IN",
+    "categories": 3
+  },
+  {
+    "slug": "fishersin",
+    "name": "Fishers IN",
+    "state": "IN",
+    "categories": 12
+  },
+  {
+    "slug": "franklinin",
+    "name": "Franklin IN",
+    "state": "IN",
+    "categories": 7
+  },
+  {
+    "slug": "garyin",
+    "name": "Gary IN",
+    "state": "IN",
+    "categories": 9
+  },
+  {
+    "slug": "hobartin",
+    "name": "Hobart IN",
+    "state": "IN",
+    "categories": 5
+  },
+  {
+    "slug": "indianapolisin",
+    "name": "Indianapolis",
+    "state": "IN",
+    "categories": 7
+  },
+  {
+    "slug": "laportein",
+    "name": "Laporte IN",
+    "state": "IN",
+    "categories": 14
+  },
+  {
+    "slug": "monroecountyin",
+    "name": "Monroe County",
+    "state": "IN",
+    "categories": 9
+  },
+  {
+    "slug": "southbendin",
+    "name": "South Bend",
+    "state": "IN",
+    "categories": 1
+  },
+  {
+    "slug": "goddardks",
+    "name": "Goddard KS",
+    "state": "KS",
+    "categories": 3
+  },
+  {
+    "slug": "lawrenceks",
+    "name": "Lawrence",
+    "state": "KS",
+    "categories": 1
+  },
+  {
+    "slug": "springhillks",
+    "name": "Spring Hill",
+    "state": "KS",
+    "categories": 5
+  },
+  {
+    "slug": "bereaky",
+    "name": "Berea",
+    "state": "KY",
+    "categories": 7
+  },
+  {
+    "slug": "frankfortky",
+    "name": "Frankfort",
+    "state": "KY",
+    "categories": 2
+  },
+  {
+    "slug": "abingtonma",
+    "name": "Abington MA",
+    "state": "MA",
+    "categories": 1
+  },
+  {
+    "slug": "actonma",
+    "name": "Acton",
+    "state": "MA",
+    "categories": 9
+  },
+  {
+    "slug": "agawamma",
+    "name": "Agawam MA",
+    "state": "MA",
+    "categories": 3
+  },
+  {
+    "slug": "amesburyma",
+    "name": "Amesbury MA",
+    "state": "MA",
+    "categories": 6
+  },
+  {
+    "slug": "amherstma",
+    "name": "Amherst MA",
+    "state": "MA",
+    "categories": 13
+  },
+  {
+    "slug": "andoverma",
+    "name": "Andover",
+    "state": "MA",
+    "categories": 7
+  },
+  {
+    "slug": "arlingtonma",
+    "name": "Arlington MA",
+    "state": "MA",
+    "categories": 4
+  },
+  {
+    "slug": "ashlandma",
+    "name": "Ashland MA",
+    "state": "MA",
+    "categories": 4
+  },
+  {
+    "slug": "auburnma",
+    "name": "Auburn MA",
+    "state": "MA",
+    "categories": 2
+  },
+  {
+    "slug": "barnstablema",
+    "name": "Barnstable",
+    "state": "MA",
+    "categories": 15
+  },
+  {
+    "slug": "belmontma",
+    "name": "Belmont",
+    "state": "MA",
+    "categories": 1
+  },
+  {
+    "slug": "berlinma",
+    "name": "Berlin MA",
+    "state": "MA",
+    "categories": 2
+  },
+  {
+    "slug": "beverlyma",
+    "name": "Beverly MA",
+    "state": "MA",
+    "categories": 7
+  },
+  {
+    "slug": "blackstonema",
+    "name": "Blackstone MA",
+    "state": "MA",
+    "categories": 7
+  },
+  {
+    "slug": "boltonma",
+    "name": "Bolton MA",
+    "state": "MA",
+    "categories": 3
+  },
+  {
+    "slug": "bournema",
+    "name": "Bourne MA",
+    "state": "MA",
+    "categories": 10
+  },
+  {
+    "slug": "boxfordma",
+    "name": "Boxford MA",
+    "state": "MA",
+    "categories": 1
+  },
+  {
+    "slug": "brewsterma",
+    "name": "Brewster MA",
+    "state": "MA",
+    "categories": 3
+  },
+  {
+    "slug": "brooklinema",
+    "name": "Brookline MA",
+    "state": "MA",
+    "categories": 1
+  },
+  {
+    "slug": "burlingtonma",
+    "name": "Burlington",
+    "state": "MA",
+    "categories": 8
+  },
+  {
+    "slug": "cambridgema",
+    "name": "Cambridge MA",
+    "state": "MA",
+    "categories": 15
+  },
+  {
+    "slug": "cantonma",
+    "name": "Canton MA",
+    "state": "MA",
+    "categories": 4
+  },
+  {
+    "slug": "capecodcommission",
+    "name": "Cape Cod Commission",
+    "state": "MA",
+    "categories": 2
+  },
+  {
+    "slug": "chathamma",
+    "name": "Chatham MA",
+    "state": "MA",
+    "categories": 4
+  },
+  {
+    "slug": "chelseama",
+    "name": "Chelsea MA",
+    "state": "MA",
+    "categories": 1
+  },
+  {
+    "slug": "chilmarkma",
+    "name": "Chilmark MA",
+    "state": "MA",
+    "categories": 3
+  },
+  {
+    "slug": "clintonma",
+    "name": "Clinton MA",
+    "state": "MA",
+    "categories": 2
+  },
+  {
+    "slug": "danversma",
+    "name": "Danvers MA",
+    "state": "MA",
+    "categories": 10
+  },
+  {
+    "slug": "dartmouthma",
+    "name": "Dartmouth",
+    "state": "MA",
+    "categories": 13
+  },
+  {
+    "slug": "dedhamma",
+    "name": "Dedham MA",
+    "state": "MA",
+    "categories": 5
+  },
+  {
+    "slug": "dennisma",
+    "name": "Dennis MA",
+    "state": "MA",
+    "categories": 10
+  },
+  {
+    "slug": "douglasma",
+    "name": "Douglas MA",
+    "state": "MA",
+    "categories": 3
+  },
+  {
+    "slug": "doverma",
+    "name": "Dover MA",
+    "state": "MA",
+    "categories": 6
+  },
+  {
+    "slug": "dracutma",
+    "name": "Dracut MA",
+    "state": "MA",
+    "categories": 5
+  },
+  {
+    "slug": "dudleyma",
+    "name": "Dudley MA",
+    "state": "MA",
+    "categories": 12
+  },
+  {
+    "slug": "duxburyma",
+    "name": "Duxbury",
+    "state": "MA",
+    "categories": 4
+  },
+  {
+    "slug": "easthamma",
+    "name": "Eastham MA",
+    "state": "MA",
+    "categories": 3
+  },
+  {
+    "slug": "edgartownma",
+    "name": "Edgartown MA",
+    "state": "MA",
+    "categories": 8
+  },
+  {
+    "slug": "everettma",
+    "name": "Everett MA",
+    "state": "MA",
+    "categories": 9
+  },
+  {
+    "slug": "fallriverma",
+    "name": "Fallriver MA",
+    "state": "MA",
+    "categories": 4
+  },
+  {
+    "slug": "fitchburgma",
+    "name": "Fitchburg",
+    "state": "MA",
+    "categories": 8
+  },
+  {
+    "slug": "framinghamma",
+    "name": "Framingham MA",
+    "state": "MA",
+    "categories": 9
+  },
+  {
+    "slug": "franklinma",
+    "name": "Franklin MA",
+    "state": "MA",
+    "categories": 12
+  },
+  {
+    "slug": "gardnerma",
+    "name": "Gardner MA",
+    "state": "MA",
+    "categories": 7
+  },
+  {
+    "slug": "gloucesterma",
+    "name": "Gloucester",
+    "state": "MA",
+    "categories": 8
+  },
+  {
+    "slug": "graftonma",
+    "name": "Grafton MA",
+    "state": "MA",
+    "categories": 7
+  },
+  {
+    "slug": "greenfieldma",
+    "name": "Greenfield MA",
+    "state": "MA",
+    "categories": 6
+  },
+  {
+    "slug": "grotonma",
+    "name": "Groton MA",
+    "state": "MA",
+    "categories": 2
+  },
+  {
+    "slug": "halifaxma",
+    "name": "Halifax MA",
+    "state": "MA",
+    "categories": 5
+  },
+  {
+    "slug": "hanoverma",
+    "name": "Hanover MA",
+    "state": "MA",
+    "categories": 6
+  },
+  {
+    "slug": "harvardma",
+    "name": "Harvard MA",
+    "state": "MA",
+    "categories": 2
+  },
+  {
+    "slug": "harwichma",
+    "name": "Harwich MA",
+    "state": "MA",
+    "categories": 6
+  },
+  {
+    "slug": "haverhillma",
+    "name": "Haverhill",
+    "state": "MA",
+    "categories": 19
+  },
+  {
+    "slug": "hopkintonma",
+    "name": "Hopkinton",
+    "state": "MA",
+    "categories": 4
+  },
+  {
+    "slug": "hudsonma",
+    "name": "Hudson MA",
+    "state": "MA",
+    "categories": 12
+  },
+  {
+    "slug": "hullma",
+    "name": "Hull MA",
+    "state": "MA",
+    "categories": 5
+  },
+  {
+    "slug": "kingstonma",
+    "name": "Kingston MA",
+    "state": "MA",
+    "categories": 1
+  },
+  {
+    "slug": "lakevillema",
+    "name": "Lakeville MA",
+    "state": "MA",
+    "categories": 4
+  },
+  {
+    "slug": "lexingtonma",
+    "name": "Lexington MA",
+    "state": "MA",
+    "categories": 15
+  },
+  {
+    "slug": "littletonma",
+    "name": "Littleton MA",
+    "state": "MA",
+    "categories": 6
+  },
+  {
+    "slug": "lunenburgma",
+    "name": "Lunenburg MA",
+    "state": "MA",
+    "categories": 9
+  },
+  {
+    "slug": "manchesterma",
+    "name": "Manchester MA",
+    "state": "MA",
+    "categories": 5
+  },
+  {
+    "slug": "marbleheadma",
+    "name": "Marblehead",
+    "state": "MA",
+    "categories": 3
+  },
+  {
+    "slug": "marlboroughma",
+    "name": "Marlborough",
+    "state": "MA",
+    "categories": 10
+  },
+  {
+    "slug": "marshfieldma",
+    "name": "Marshfield MA",
+    "state": "MA",
+    "categories": 2
+  },
+  {
+    "slug": "medfieldma",
+    "name": "Medfield MA",
+    "state": "MA",
+    "categories": 4
+  },
+  {
+    "slug": "mendonma",
+    "name": "Mendon MA",
+    "state": "MA",
+    "categories": 3
+  },
+  {
+    "slug": "methuenma",
+    "name": "Methuen MA",
+    "state": "MA",
+    "categories": 9
+  },
+  {
+    "slug": "millburyma",
+    "name": "Millbury",
+    "state": "MA",
+    "categories": 1
+  },
+  {
+    "slug": "monsonma",
+    "name": "Monson MA",
+    "state": "MA",
+    "categories": 2
+  },
+  {
+    "slug": "natickma",
+    "name": "Natick MA",
+    "state": "MA",
+    "categories": 13
+  },
+  {
+    "slug": "needhamma",
+    "name": "Needham MA",
+    "state": "MA",
+    "categories": 7
+  },
+  {
+    "slug": "newbedfordma",
+    "name": "Newbedford MA",
+    "state": "MA",
+    "categories": 9
+  },
+  {
+    "slug": "newburyportma",
+    "name": "Newburyport MA",
+    "state": "MA",
+    "categories": 19
+  },
+  {
+    "slug": "newtonma",
+    "name": "Newton MA",
+    "state": "MA",
+    "categories": 17
+  },
+  {
+    "slug": "northamptonma",
+    "name": "Northampton MA",
+    "state": "MA",
+    "categories": 3
+  },
+  {
+    "slug": "northandoverma",
+    "name": "Northandover MA",
+    "state": "MA",
+    "categories": 7
+  },
+  {
+    "slug": "northattleboroughma",
+    "name": "Northattleborough MA",
+    "state": "MA",
+    "categories": 13
+  },
+  {
+    "slug": "northboroughma",
+    "name": "Northborough MA",
+    "state": "MA",
+    "categories": 5
+  },
+  {
+    "slug": "nortonma",
+    "name": "Norton MA",
+    "state": "MA",
+    "categories": 9
+  },
+  {
+    "slug": "oakbluffsma",
+    "name": "Oakbluffs MA",
+    "state": "MA",
+    "categories": 3
+  },
+  {
+    "slug": "orleansma",
+    "name": "Orleans MA",
+    "state": "MA",
+    "categories": 7
+  },
+  {
+    "slug": "oxfordma",
+    "name": "Oxford MA",
+    "state": "MA",
+    "categories": 3
+  },
+  {
+    "slug": "paxtonma",
+    "name": "Paxton MA",
+    "state": "MA",
+    "categories": 4
+  },
+  {
+    "slug": "peabodyma",
+    "name": "Peabody MA",
+    "state": "MA",
+    "categories": 3
+  },
+  {
+    "slug": "pepperellma",
+    "name": "Pepperell MA",
+    "state": "MA",
+    "categories": 9
+  },
+  {
+    "slug": "pittsfieldma",
+    "name": "Pittsfield",
+    "state": "MA",
+    "categories": 7
+  },
+  {
+    "slug": "plainvillema",
+    "name": "Plainville MA",
+    "state": "MA",
+    "categories": 3
+  },
+  {
+    "slug": "plymouthma",
+    "name": "Plymouth",
+    "state": "MA",
+    "categories": 6
+  },
+  {
+    "slug": "provincetownma",
+    "name": "Provincetown MA",
+    "state": "MA",
+    "categories": 26
+  },
+  {
+    "slug": "quincyma",
+    "name": "Quincy",
+    "state": "MA",
+    "categories": 4
+  },
+  {
+    "slug": "raynhamma",
+    "name": "Raynham MA",
+    "state": "MA",
+    "categories": 3
+  },
+  {
+    "slug": "readingma",
+    "name": "Reading",
+    "state": "MA",
+    "categories": 11
+  },
+  {
+    "slug": "rochesterma",
+    "name": "Rochester MA",
+    "state": "MA",
+    "categories": 4
+  },
+  {
+    "slug": "rutlandma",
+    "name": "Rutland MA",
+    "state": "MA",
+    "categories": 6
+  },
+  {
+    "slug": "salemma",
+    "name": "Salem MA",
+    "state": "MA",
+    "categories": 12
+  },
+  {
+    "slug": "sharonma",
+    "name": "Sharon",
+    "state": "MA",
+    "categories": 5
+  },
+  {
+    "slug": "shrewsburyma",
+    "name": "Shrewsbury MA",
+    "state": "MA",
+    "categories": 20
+  },
+  {
+    "slug": "somervillema",
+    "name": "Somerville",
+    "state": "MA",
+    "categories": 0
+  },
+  {
+    "slug": "southboroughma",
+    "name": "Southborough MA",
+    "state": "MA",
+    "categories": 7
+  },
+  {
+    "slug": "southhadleyma",
+    "name": "Southhadley MA",
+    "state": "MA",
+    "categories": 13
+  },
+  {
+    "slug": "springfieldma",
+    "name": "Springfield MA",
+    "state": "MA",
+    "categories": 4
+  },
+  {
+    "slug": "stonehamma",
+    "name": "Stoneham MA",
+    "state": "MA",
+    "categories": 1
+  },
+  {
+    "slug": "sudburyma",
+    "name": "Sudbury",
+    "state": "MA",
+    "categories": 4
+  },
+  {
+    "slug": "suttonma",
+    "name": "Sutton MA",
+    "state": "MA",
+    "categories": 1
+  },
+  {
+    "slug": "swampscottma",
+    "name": "Swampscott",
+    "state": "MA",
+    "categories": 8
+  },
+  {
+    "slug": "tewksburyma",
+    "name": "Tewksbury MA",
+    "state": "MA",
+    "categories": 7
+  },
+  {
+    "slug": "tisburyma",
+    "name": "Tisbury MA",
+    "state": "MA",
+    "categories": 9
+  },
+  {
+    "slug": "truroma",
+    "name": "Truro MA",
+    "state": "MA",
+    "categories": 3
+  },
+  {
+    "slug": "tyngsboroughma",
+    "name": "Tyngsborough MA",
+    "state": "MA",
+    "categories": 11
+  },
+  {
+    "slug": "wakefieldma",
+    "name": "Wakefield MA",
+    "state": "MA",
+    "categories": 3
+  },
+  {
+    "slug": "walpolema",
+    "name": "Walpole",
+    "state": "MA",
+    "categories": 11
+  },
+  {
+    "slug": "warema",
+    "name": "Ware MA",
+    "state": "MA",
+    "categories": 2
+  },
+  {
+    "slug": "warehamma",
+    "name": "Wareham MA",
+    "state": "MA",
+    "categories": 10
+  },
+  {
+    "slug": "watertownma",
+    "name": "Watertown MA",
+    "state": "MA",
+    "categories": 13
+  },
+  {
+    "slug": "waylandma",
+    "name": "Wayland MA",
+    "state": "MA",
+    "categories": 3
+  },
+  {
+    "slug": "websterma",
+    "name": "Webster MA",
+    "state": "MA",
+    "categories": 3
+  },
+  {
+    "slug": "wellesleyma",
+    "name": "Wellesley",
+    "state": "MA",
+    "categories": 8
+  },
+  {
+    "slug": "wellfleetma",
+    "name": "Wellfleet MA",
+    "state": "MA",
+    "categories": 8
+  },
+  {
+    "slug": "westfieldma",
+    "name": "Westfield",
+    "state": "MA",
+    "categories": 6
+  },
+  {
+    "slug": "westspringfieldma",
+    "name": "Westspringfield MA",
+    "state": "MA",
+    "categories": 14
+  },
+  {
+    "slug": "westwoodma",
+    "name": "Westwood MA",
+    "state": "MA",
+    "categories": 10
+  },
+  {
+    "slug": "williamstownma",
+    "name": "Williamstown MA",
+    "state": "MA",
+    "categories": 10
+  },
+  {
+    "slug": "winthropma",
+    "name": "Winthrop MA",
+    "state": "MA",
+    "categories": 3
+  },
+  {
+    "slug": "worcesterma",
+    "name": "Worcester MA",
+    "state": "MA",
+    "categories": 12
+  },
+  {
+    "slug": "wrenthamma",
+    "name": "Wrentham",
+    "state": "MA",
+    "categories": 8
+  },
+  {
+    "slug": "yarmouthma",
+    "name": "Yarmouth",
+    "state": "MA",
+    "categories": 4
+  },
+  {
+    "slug": "baltimoremddhcd",
+    "name": "Baltimore DHCD",
+    "state": "MD",
+    "categories": 3
+  },
+  {
+    "slug": "cecilcountymd",
+    "name": "Cecil County",
+    "state": "MD",
+    "categories": 6
+  },
+  {
+    "slug": "countyofdorchestermd",
+    "name": "Dorchester County",
+    "state": "MD",
+    "categories": 6
+  },
+  {
+    "slug": "frederickmd",
+    "name": "Frederick MD",
+    "state": "MD",
+    "categories": 9
+  },
+  {
+    "slug": "salisburymd",
+    "name": "Salisbury",
+    "state": "MD",
+    "categories": 6
+  },
+  {
+    "slug": "kitteryme",
+    "name": "Kittery ME",
+    "state": "ME",
+    "categories": 3
+  },
+  {
+    "slug": "yorkme",
+    "name": "York ME",
+    "state": "ME",
+    "categories": 3
+  },
+  {
+    "slug": "detroitmi",
+    "name": "Detroit",
+    "state": "MI",
+    "categories": 1
+  },
+  {
+    "slug": "anokacountymn",
+    "name": "Anoka County",
+    "state": "MN",
+    "categories": 2
+  },
+  {
+    "slug": "burnsvillemn",
+    "name": "Burnsville MN",
+    "state": "MN",
+    "categories": 10
+  },
+  {
+    "slug": "medinamn",
+    "name": "Medina",
+    "state": "MN",
+    "categories": 2
+  },
+  {
+    "slug": "northstpaulmn",
+    "name": "North St. Paul",
+    "state": "MN",
+    "categories": 17
+  },
+  {
+    "slug": "oakdalemn",
+    "name": "Oakdale",
+    "state": "MN",
+    "categories": 8
+  },
+  {
+    "slug": "owatonnamn",
+    "name": "Owatonna MN",
+    "state": "MN",
+    "categories": 5
+  },
+  {
+    "slug": "vadnaisheightsmn",
+    "name": "Vadnaisheights MN",
+    "state": "MN",
+    "categories": 6
+  },
+  {
+    "slug": "winonacountymn",
+    "name": "Winona County",
+    "state": "MN",
+    "categories": 7
+  },
+  {
+    "slug": "kansascitymo",
+    "name": "Kansas City",
+    "state": "MO",
+    "categories": 3
+  },
+  {
+    "slug": "jacksonms",
+    "name": "Jackson",
+    "state": "MS",
+    "categories": 19
+  },
+  {
+    "slug": "starkvillems",
+    "name": "Starkville",
+    "state": "MS",
+    "categories": 6
+  },
+  {
+    "slug": "tupeloms",
+    "name": "Tupelo",
+    "state": "MS",
+    "categories": 4
+  },
+  {
+    "slug": "bozemanmt",
+    "name": "Bozeman",
+    "state": "MT",
+    "categories": 2
+  },
+  {
+    "slug": "chapelhillnc",
+    "name": "Chapelhill NC",
+    "state": "NC",
+    "categories": 4
+  },
+  {
+    "slug": "chathamcountync",
+    "name": "Chatham County",
+    "state": "NC",
+    "categories": 7
+  },
+  {
+    "slug": "davidsoncountync",
+    "name": "Davidson County",
+    "state": "NC",
+    "categories": 3
+  },
+  {
+    "slug": "elizabethcitync",
+    "name": "Elizabethcity NC",
+    "state": "NC",
+    "categories": 8
+  },
+  {
+    "slug": "kernersvillenc",
+    "name": "Kernersville NC",
+    "state": "NC",
+    "categories": 4
+  },
+  {
+    "slug": "kingsmountainnc",
+    "name": "Kings Mountain",
+    "state": "NC",
+    "categories": 3
+  },
+  {
+    "slug": "lenoirnc",
+    "name": "Lenoir NC",
+    "state": "NC",
+    "categories": 3
+  },
+  {
+    "slug": "marionnc",
+    "name": "Marion NC",
+    "state": "NC",
+    "categories": 7
+  },
+  {
+    "slug": "countyofnashnc",
+    "name": "Nash County",
+    "state": "NC",
+    "categories": 3
+  },
+  {
+    "slug": "southportnc",
+    "name": "Southport NC",
+    "state": "NC",
+    "categories": 4
+  },
+  {
+    "slug": "warrencountync",
+    "name": "Warren County",
+    "state": "NC",
+    "categories": 3
+  },
+  {
+    "slug": "countyofwilsonnc",
+    "name": "Wilson County",
+    "state": "NC",
+    "categories": 2
+  },
+  {
+    "slug": "claremontnh",
+    "name": "Claremont NH",
+    "state": "NH",
+    "categories": 7
+  },
+  {
+    "slug": "keenenh",
+    "name": "Keene",
+    "state": "NH",
+    "categories": 5
+  },
+  {
+    "slug": "londonderrynh",
+    "name": "Londonderry NH",
+    "state": "NH",
+    "categories": 10
+  },
+  {
+    "slug": "merrimacknh",
+    "name": "Merrimack NH",
+    "state": "NH",
+    "categories": 7
+  },
+  {
+    "slug": "portsmouthnh",
+    "name": "Portsmouth",
+    "state": "NH",
+    "categories": 13
+  },
+  {
+    "slug": "rochesternh",
+    "name": "Rochester NH",
+    "state": "NH",
+    "categories": 5
+  },
+  {
+    "slug": "salemnh",
+    "name": "Salem",
+    "state": "NH",
+    "categories": 5
+  },
+  {
+    "slug": "parsippanynj",
+    "name": "Parsippany",
+    "state": "NJ",
+    "categories": 8
+  },
+  {
+    "slug": "princetonnj",
+    "name": "Princeton",
+    "state": "NJ",
+    "categories": 17
+  },
+  {
+    "slug": "santafenm",
+    "name": "Santa Fe",
+    "state": "NM",
+    "categories": 6
+  },
+  {
+    "slug": "nyecountynv",
+    "name": "Nye County",
+    "state": "NV",
+    "categories": 6
+  },
+  {
+    "slug": "cortlandtny",
+    "name": "Cortland",
+    "state": "NY",
+    "categories": 7
+  },
+  {
+    "slug": "freeportny",
+    "name": "Freeport",
+    "state": "NY",
+    "categories": 2
+  },
+  {
+    "slug": "hempsteadny",
+    "name": "Hempstead",
+    "state": "NY",
+    "categories": 14
+  },
+  {
+    "slug": "ithacacityny",
+    "name": "Ithaca City",
+    "state": "NY",
+    "categories": 7
+  },
+  {
+    "slug": "mountpleasantny",
+    "name": "Mount Pleasant",
+    "state": "NY",
+    "categories": 5
+  },
+  {
+    "slug": "mountvernonny",
+    "name": "Mount Vernon",
+    "state": "NY",
+    "categories": 16
+  },
+  {
+    "slug": "countyofonondagany",
+    "name": "Onondaga County",
+    "state": "NY",
+    "categories": 5
+  },
+  {
+    "slug": "rochesterny",
+    "name": "Rochester",
+    "state": "NY",
+    "categories": 1
+  },
+  {
+    "slug": "salinany",
+    "name": "Salina",
+    "state": "NY",
+    "categories": 4
+  },
+  {
+    "slug": "townofhuntingtonny",
+    "name": "Town of Huntington",
+    "state": "NY",
+    "categories": 11
+  },
+  {
+    "slug": "valleystreamny",
+    "name": "Valley Stream",
+    "state": "NY",
+    "categories": 3
+  },
+  {
+    "slug": "auroraoh",
+    "name": "Aurora OH",
+    "state": "OH",
+    "categories": 4
+  },
+  {
+    "slug": "bexleyoh",
+    "name": "Bexley OH",
+    "state": "OH",
+    "categories": 5
+  },
+  {
+    "slug": "chardonoh",
+    "name": "Chardon OH",
+    "state": "OH",
+    "categories": 5
+  },
+  {
+    "slug": "fairfieldoh",
+    "name": "Fairfield OH",
+    "state": "OH",
+    "categories": 4
+  },
+  {
+    "slug": "gahannaoh",
+    "name": "Gahanna OH",
+    "state": "OH",
+    "categories": 12
+  },
+  {
+    "slug": "grandviewheightsoh",
+    "name": "Grandviewheights OH",
+    "state": "OH",
+    "categories": 5
+  },
+  {
+    "slug": "hilliardoh",
+    "name": "Hilliard OH",
+    "state": "OH",
+    "categories": 6
+  },
+  {
+    "slug": "hudsonoh",
+    "name": "Hudson OH",
+    "state": "OH",
+    "categories": 9
+  },
+  {
+    "slug": "lebanonoh",
+    "name": "Lebanon OH",
+    "state": "OH",
+    "categories": 2
+  },
+  {
+    "slug": "lickingcountyoh",
+    "name": "Licking County",
+    "state": "OH",
+    "categories": 1
+  },
+  {
+    "slug": "masonoh",
+    "name": "Mason",
+    "state": "OH",
+    "categories": 15
+  },
+  {
+    "slug": "mentoroh",
+    "name": "Mentor",
+    "state": "OH",
+    "categories": 11
+  },
+  {
+    "slug": "northcantonoh",
+    "name": "Northcanton OH",
+    "state": "OH",
+    "categories": 5
+  },
+  {
+    "slug": "nortonoh",
+    "name": "Norton OH",
+    "state": "OH",
+    "categories": 4
+  },
+  {
+    "slug": "oberlinoh",
+    "name": "Oberlin OH",
+    "state": "OH",
+    "categories": 3
+  },
+  {
+    "slug": "plaincityoh",
+    "name": "Plaincity OH",
+    "state": "OH",
+    "categories": 6
+  },
+  {
+    "slug": "portagecountyoh",
+    "name": "Portage County",
+    "state": "OH",
+    "categories": 1
+  },
+  {
+    "slug": "powelloh",
+    "name": "Powell OH",
+    "state": "OH",
+    "categories": 3
+  },
+  {
+    "slug": "stowoh",
+    "name": "Stow",
+    "state": "OH",
+    "categories": 8
+  },
+  {
+    "slug": "tallmadgeoh",
+    "name": "Tallmadge OH",
+    "state": "OH",
+    "categories": 7
+  },
+  {
+    "slug": "unioncountyoh",
+    "name": "Union County",
+    "state": "OH",
+    "categories": 2
+  },
+  {
+    "slug": "upperarlingtonoh",
+    "name": "Upperarlington OH",
+    "state": "OH",
+    "categories": 8
+  },
+  {
+    "slug": "woosteroh",
+    "name": "Wooster OH",
+    "state": "OH",
+    "categories": 14
+  },
+  {
+    "slug": "beavertonor",
+    "name": "Beaverton",
+    "state": "OR",
+    "categories": 8
+  },
+  {
+    "slug": "abingtonpa",
+    "name": "Abington PA",
+    "state": "PA",
+    "categories": 7
+  },
+  {
+    "slug": "altoonapa",
+    "name": "Altoona",
+    "state": "PA",
+    "categories": 6
+  },
+  {
+    "slug": "cranberrytownshippa",
+    "name": "Cranberry Township",
+    "state": "PA",
+    "categories": 6
+  },
+  {
+    "slug": "eastonpa",
+    "name": "Easton PA",
+    "state": "PA",
+    "categories": 11
+  },
+  {
+    "slug": "townshiplowermakefieldpa",
+    "name": "Lower Makefield Township",
+    "state": "PA",
+    "categories": 9
+  },
+  {
+    "slug": "philadelphiapa",
+    "name": "Philadelphia",
+    "state": "PA",
+    "categories": 1
+  },
+  {
+    "slug": "scrantonpa",
+    "name": "Scranton PA",
+    "state": "PA",
+    "categories": 10
+  },
+  {
+    "slug": "springfielddelco",
+    "name": "Springfield DelCo",
+    "state": "PA",
+    "categories": 6
+  },
+  {
+    "slug": "upperdublinpa",
+    "name": "Upper Dublin Township",
+    "state": "PA",
+    "categories": 7
+  },
+  {
+    "slug": "yorkpa",
+    "name": "York PA",
+    "state": "PA",
+    "categories": 7
+  },
+  {
+    "slug": "barringtonri",
+    "name": "Barrington",
+    "state": "RI",
+    "categories": 3
+  },
+  {
+    "slug": "bristolri",
+    "name": "Bristol RI",
+    "state": "RI",
+    "categories": 6
+  },
+  {
+    "slug": "burrillvilleri",
+    "name": "Burrillville RI",
+    "state": "RI",
+    "categories": 6
+  },
+  {
+    "slug": "centralfallsri",
+    "name": "Central Falls",
+    "state": "RI",
+    "categories": 7
+  },
+  {
+    "slug": "coventryri",
+    "name": "Coventry RI",
+    "state": "RI",
+    "categories": 5
+  },
+  {
+    "slug": "cranstonri",
+    "name": "Cranston RI",
+    "state": "RI",
+    "categories": 6
+  },
+  {
+    "slug": "cumberlandri",
+    "name": "Cumberland RI",
+    "state": "RI",
+    "categories": 6
+  },
+  {
+    "slug": "eastgreenwichri",
+    "name": "Eastgreenwich RI",
+    "state": "RI",
+    "categories": 5
+  },
+  {
+    "slug": "eastprovidenceri",
+    "name": "Eastprovidence RI",
+    "state": "RI",
+    "categories": 5
+  },
+  {
+    "slug": "exeterri",
+    "name": "Exeter RI",
+    "state": "RI",
+    "categories": 3
+  },
+  {
+    "slug": "fosterri",
+    "name": "Foster",
+    "state": "RI",
+    "categories": 3
+  },
+  {
+    "slug": "glocesterri",
+    "name": "Glocester RI",
+    "state": "RI",
+    "categories": 3
+  },
+  {
+    "slug": "hopkintonri",
+    "name": "Hopkinton RI",
+    "state": "RI",
+    "categories": 5
+  },
+  {
+    "slug": "jamestownri",
+    "name": "Jamestown RI",
+    "state": "RI",
+    "categories": 5
+  },
+  {
+    "slug": "johnstonri",
+    "name": "Johnston RI",
+    "state": "RI",
+    "categories": 6
+  },
+  {
+    "slug": "lincolnri",
+    "name": "Lincoln",
+    "state": "RI",
+    "categories": 8
+  },
+  {
+    "slug": "littlecomptonri",
+    "name": "Littlecompton RI",
+    "state": "RI",
+    "categories": 3
+  },
+  {
+    "slug": "middletownri",
+    "name": "Middletown RI",
+    "state": "RI",
+    "categories": 9
+  },
+  {
+    "slug": "narragansettri",
+    "name": "Narragansett RI",
+    "state": "RI",
+    "categories": 7
+  },
+  {
+    "slug": "newportri",
+    "name": "Newport RI",
+    "state": "RI",
+    "categories": 4
+  },
+  {
+    "slug": "newshorehamri",
+    "name": "Newshoreham RI",
+    "state": "RI",
+    "categories": 3
+  },
+  {
+    "slug": "northsmithfieldri",
+    "name": "North Smithfield",
+    "state": "RI",
+    "categories": 5
+  },
+  {
+    "slug": "northkingstownri",
+    "name": "Northkingstown RI",
+    "state": "RI",
+    "categories": 4
+  },
+  {
+    "slug": "northprovidenceri",
+    "name": "Northprovidence RI",
+    "state": "RI",
+    "categories": 4
+  },
+  {
+    "slug": "pawtucketri",
+    "name": "Pawtucket",
+    "state": "RI",
+    "categories": 7
+  },
+  {
+    "slug": "portsmouthri",
+    "name": "Portsmouth",
+    "state": "RI",
+    "categories": 7
+  },
+  {
+    "slug": "providenceri",
+    "name": "Providence RI",
+    "state": "RI",
+    "categories": 15
+  },
+  {
+    "slug": "richmondri",
+    "name": "Richmond RI",
+    "state": "RI",
+    "categories": 4
+  },
+  {
+    "slug": "scituateri",
+    "name": "Scituate RI",
+    "state": "RI",
+    "categories": 3
+  },
+  {
+    "slug": "smithfieldri",
+    "name": "Smithfield RI",
+    "state": "RI",
+    "categories": 9
+  },
+  {
+    "slug": "southkingstownri",
+    "name": "Southkingstown RI",
+    "state": "RI",
+    "categories": 8
+  },
+  {
+    "slug": "tivertonri",
+    "name": "Tiverton",
+    "state": "RI",
+    "categories": 6
+  },
+  {
+    "slug": "warrenri",
+    "name": "Warren",
+    "state": "RI",
+    "categories": 3
+  },
+  {
+    "slug": "warwickri",
+    "name": "Warwick",
+    "state": "RI",
+    "categories": 6
+  },
+  {
+    "slug": "westgreenwichri",
+    "name": "West Greenwich",
+    "state": "RI",
+    "categories": 2
+  },
+  {
+    "slug": "westerlyri",
+    "name": "Westerly RI",
+    "state": "RI",
+    "categories": 6
+  },
+  {
+    "slug": "westwarwickri",
+    "name": "Westwarwick RI",
+    "state": "RI",
+    "categories": 6
+  },
+  {
+    "slug": "woonsocketri",
+    "name": "Woonsocket",
+    "state": "RI",
+    "categories": 6
+  },
+  {
+    "slug": "countyofandersonsc",
+    "name": "Anderson County",
+    "state": "SC",
+    "categories": 7
+  },
+  {
+    "slug": "andersonsc",
+    "name": "Anderson SC",
+    "state": "SC",
+    "categories": 5
+  },
+  {
+    "slug": "caycesc",
+    "name": "Cayce SC",
+    "state": "SC",
+    "categories": 8
+  },
+  {
+    "slug": "goosecreeksc",
+    "name": "Goose Creek",
+    "state": "SC",
+    "categories": 7
+  },
+  {
+    "slug": "northmyrtlebeachsc",
+    "name": "North Myrtle Beach",
+    "state": "SC",
+    "categories": 4
+  },
+  {
+    "slug": "watertownsd",
+    "name": "Watertown SD",
+    "state": "SD",
+    "categories": 4
+  },
+  {
+    "slug": "chattanoogatn",
+    "name": "Chattanooga TN",
+    "state": "TN",
+    "categories": 9
+  },
+  {
+    "slug": "dyersburgtn",
+    "name": "Dyersburg TN",
+    "state": "TN",
+    "categories": 8
+  },
+  {
+    "slug": "hamiltontn",
+    "name": "Hamilton TN",
+    "state": "TN",
+    "categories": 10
+  },
+  {
+    "slug": "jacksontn",
+    "name": "Jackson",
+    "state": "TN",
+    "categories": 3
+  },
+  {
+    "slug": "metronashvilletn",
+    "name": "Metro Nashville",
+    "state": "TN",
+    "categories": 10
+  },
+  {
+    "slug": "aransaspasstx",
+    "name": "Aransaspass TX",
+    "state": "TX",
+    "categories": 5
+  },
+  {
+    "slug": "austintx",
+    "name": "Austin",
+    "state": "TX",
+    "categories": 3
+  },
+  {
+    "slug": "bedfordtx",
+    "name": "Bedford TX",
+    "state": "TX",
+    "categories": 8
+  },
+  {
+    "slug": "countyofbexartx",
+    "name": "Bexar County",
+    "state": "TX",
+    "categories": 5
+  },
+  {
+    "slug": "conroetx",
+    "name": "Conroe",
+    "state": "TX",
+    "categories": 3
+  },
+  {
+    "slug": "corpuschristitx",
+    "name": "Corpus Christi",
+    "state": "TX",
+    "categories": 1
+  },
+  {
+    "slug": "ennistx",
+    "name": "Ennis TX",
+    "state": "TX",
+    "categories": 6
+  },
+  {
+    "slug": "galvestoncountytx",
+    "name": "Galveston County",
+    "state": "TX",
+    "categories": 1
+  },
+  {
+    "slug": "grapevinetx",
+    "name": "Grapevine",
+    "state": "TX",
+    "categories": 2
+  },
+  {
+    "slug": "harriscountytx",
+    "name": "Harris County",
+    "state": "TX",
+    "categories": 2
+  },
+  {
+    "slug": "seagovilletx",
+    "name": "Seagoville TX",
+    "state": "TX",
+    "categories": 1
+  },
+  {
+    "slug": "blacksburgva",
+    "name": "Blacksburg VA",
+    "state": "VA",
+    "categories": 5
+  },
+  {
+    "slug": "danvilleva",
+    "name": "Danville VA",
+    "state": "VA",
+    "categories": 1
+  },
+  {
+    "slug": "townofwarrenton",
+    "name": "Town of Warrenton",
+    "state": "VA",
+    "categories": 2
+  },
+  {
+    "slug": "winchesterva",
+    "name": "Winchester VA",
+    "state": "VA",
+    "categories": 6
+  },
+  {
+    "slug": "burlingtonvt",
+    "name": "Burlington",
+    "state": "VT",
+    "categories": 20
+  },
+  {
+    "slug": "townofbrattleborovt",
+    "name": "Town of Brattleboro",
+    "state": "VT",
+    "categories": 5
+  },
+  {
+    "slug": "maplevalleywa",
+    "name": "Maple Valley",
+    "state": "WA",
+    "categories": 6
+  },
+  {
+    "slug": "pascowa",
+    "name": "Pasco",
+    "state": "WA",
+    "categories": 6
+  },
+  {
+    "slug": "puyallupwa",
+    "name": "Puyallup",
+    "state": "WA",
+    "categories": 9
+  },
+  {
+    "slug": "spokanecountywa",
+    "name": "Spokane County",
+    "state": "WA",
+    "categories": 5
+  },
+  {
+    "slug": "oconomowocwi",
+    "name": "Oconomowoc WI",
+    "state": "WI",
+    "categories": 5
+  },
+  {
+    "slug": "oshkoshwi",
+    "name": "Oshkosh",
+    "state": "WI",
+    "categories": 6
+  },
+  {
+    "slug": "countyofsaukwi",
+    "name": "Sauk County",
+    "state": "WI",
+    "categories": 5
+  },
+  {
+    "slug": "sunprairiewi",
+    "name": "Sunprairie WI",
+    "state": "WI",
+    "categories": 10
+  },
+  {
+    "slug": "westalliswi",
+    "name": "West Allis",
+    "state": "WI",
+    "categories": 9
+  },
+  {
+    "slug": "morgantownwv",
+    "name": "Morgantown",
+    "state": "WV",
+    "categories": 1
+  },
+  {
+    "slug": "cheyennewy",
+    "name": "Cheyenne WY",
+    "state": "WY",
+    "categories": 9
+  },
+  {
+    "slug": "natronacountywy",
+    "name": "Natrona County",
+    "state": "WY",
+    "categories": 3
+  }
+]
