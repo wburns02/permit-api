@@ -74,3 +74,20 @@ rule-resolved items are the discriminative slice.
 >= 90% overall accuracy AND no category with >= 20 eval examples below 80%.
 Iterate on the PROMPT only (bump `PROMPT_VERSION` in
 `scripts/permit_classifier_lib.py`), never on the eval data.
+
+## Final shipped configuration (2026-06-10)
+
+- **Model: qwen3.5:35b** (deviation from the 122b spec, justified by data):
+  on identical prompt_v2, 35b scored 91.41% vs 122b 90.18%; 35b fits fully
+  in the two 3090s (~80 permits/min solo) vs 122b 47% CPU-offloaded
+  (~4-6 permits/min). 122b was never better on this task and is ~20x slower.
+- **prompt_v4 + deterministic rules layer** (`pre_classify` in
+  `scripts/permit_classifier_lib.py`): trade/flatwork/sign/demolition/
+  irrigation/solar/fireline/cutover permits short-circuit to a rule category
+  with confidence 1.0 and version prefix `rules_v1+`; everything else goes to
+  the LLM.
+- Gate history: v1 122b 93.87% PASS (but trade categories 82-84%);
+  v2 122b 90.18% FAIL (sign 25%, demolition 5%); v2 35b 91.41% FAIL (same);
+  v3 35b 90.59% FAIL (plumbing 75%, electrical 71%);
+  **v4+rules 35b 95.91% PASS** (no category with >=20 examples below 80%;
+  trade categories 92-93%, sign 100%, demolition 95%).

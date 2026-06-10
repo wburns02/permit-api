@@ -21,7 +21,8 @@ import httpx
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE.parent.parent / "scripts"))
 from permit_classifier_lib import (  # noqa: E402
-    PROMPT_VERSION, build_system_prompt, classify_batch, classifier_version, load_taxonomy,
+    PROMPT_VERSION, _RULES_PREFIX, build_system_prompt, classify_batch,
+    classifier_version, load_taxonomy, pre_classify,
 )
 
 EVAL = HERE / "eval_set_v1.jsonl"
@@ -37,12 +38,35 @@ def main() -> None:
     rows = [json.loads(l) for l in open(EVAL)]
     if args.limit:
         rows = rows[: args.limit]
-    preds_path = HERE / f"preds_{PROMPT_VERSION}.jsonl"
+    import os
+    _model_tag = os.environ.get("OLLAMA_MODEL", "qwen3.5:122b").replace(":", "-")
+    # Hybrid eval uses a separate cache so rules + LLM predictions don't mix
+    # with pure-LLM predictions from previous runs.
+    preds_path = HERE / f"preds_{_model_tag}_{PROMPT_VERSION}_hybrid.jsonl"
     preds: dict[str, dict] = {}
     if preds_path.exists():
         preds = {json.loads(l)["id"]: json.loads(l) for l in open(preds_path)}
-    todo = [r for r in rows if r["id"] not in preds]
-    print(f"eval set {len(rows)}, cached {len(rows)-len(todo)}, to run {len(todo)} [{PROMPT_VERSION}]")
+
+    # Apply pre_classify to all rows; those that get a result skip the LLM.
+    rules_results: dict[str, dict] = {}
+    for r in rows:
+        if r["id"] not in preds:
+            cat = pre_classify(r)
+            if cat is not None:
+                rules_results[r["id"]] = {
+                    "id": r["id"],
+                    "category": cat,
+                    "confidence": 1.0,
+                    "summary": "",
+                    "classifier_version": _RULES_PREFIX + classifier_version(),
+                }
+
+    todo = [r for r in rows if r["id"] not in preds and r["id"] not in rules_results]
+    n_rules = len(rules_results)
+    print(
+        f"eval set {len(rows)}, cached {len(rows) - len(todo) - n_rules}, "
+        f"rules_handled {n_rules}, llm_todo {len(todo)} [{PROMPT_VERSION}]"
+    )
 
     tax = load_taxonomy()
     # Category gate only: skip summaries for ~3x throughput. Matches how the
@@ -50,6 +74,12 @@ def main() -> None:
     sp = build_system_prompt(tax, include_summary=False)
     t0 = time.time()
     with httpx.Client() as client, open(preds_path, "a") as f:
+        # Flush rules-layer predictions to cache first
+        for rec in rules_results.values():
+            preds[rec["id"]] = rec
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+        f.flush()
+
         for i in range(0, len(todo), BATCH):
             chunk = todo[i : i + BATCH]
             try:
@@ -102,10 +132,14 @@ def main() -> None:
         lines.append(f"| {cat} | {len(oks)} | {acc:.1%}{flag} |")
     gate_pass = overall >= 0.90 and not gate_cat_fail
 
+    n_rules_total = sum(
+        1 for r in rows if preds.get(r["id"], {}).get("classifier_version", "").startswith(_RULES_PREFIX)
+    )
     md = [
-        f"# Permit Classifier Eval — {classifier_version(tax)}",
+        f"# Permit Classifier Eval — {_RULES_PREFIX}{classifier_version(tax)}",
         f"\nRun: {datetime.now(timezone.utc).isoformat()}  ",
         f"Eval set: {EVAL.name} ({n_tot} scored of {len(rows)})  ",
+        f"Rules layer handled: {n_rules_total}/{n_tot} ({n_rules_total/n_tot:.1%})  ",
         f"\n## Overall: {overall:.2%} ({n_ok}/{n_tot}) — gate {'PASS' if gate_pass else 'FAIL'}",
         f"\nGate: >=90% overall AND no category with >=20 examples below 80%."
         f" Failing categories: {gate_cat_fail or 'none'}",

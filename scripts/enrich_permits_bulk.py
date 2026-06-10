@@ -34,7 +34,8 @@ from psycopg.rows import dict_row
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from permit_classifier_lib import (  # noqa: E402
-    build_system_prompt, classify_batch, classifier_version, load_taxonomy,
+    _RULES_PREFIX, build_system_prompt, classify_batch, classifier_version,
+    load_taxonomy, pre_classify,
 )
 
 DSN = os.environ.get("ENRICH_DB_DSN", "host=100.122.216.15 port=5432 dbname=permits user=will")
@@ -73,6 +74,27 @@ ORDER BY p.permit_id DESC
 LIMIT %(lim)s
 """
 
+def _retry_singly(batch, sp, tax, client, stats) -> dict:
+    """Per-row fallback after a batch-level model failure. Connection errors
+    back off and retry the same row (never skip rows on outages); content
+    errors are logged and the row is skipped (counted as failed upstream)."""
+    results: dict[str, dict] = {}
+    for r in batch:
+        while True:
+            try:
+                single, st = classify_batch([r], system_prompt=sp, tax=tax, client=client)
+                results.update(single)
+                stats["output_tokens"] = stats.get("output_tokens", 0) + st.get("output_tokens", 0)
+                break
+            except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout) as e:
+                log.warning("Ollama unreachable in single retry (%s); backing off 60s", e)
+                time.sleep(60)
+            except Exception as e:  # noqa: BLE001
+                log.error("permit %s failed permanently: %s", r["id"], e)
+                break
+    return results
+
+
 UPSERT = """
 INSERT INTO canonical.permit_enrichment
   (permit_id, source_id, source_record_id, category, category_confidence,
@@ -97,6 +119,16 @@ def main() -> None:
     # short explicit transactions per batch.
     conn = psycopg.connect(DSN, row_factory=dict_row, autocommit=True)
     conn.execute("SET statement_timeout = '600s'")
+
+    # GATE GUARD: production enrichment only runs classifier versions that
+    # passed the eval gate (canonical.classifier_gate, written by a passing
+    # eval run). Prevents un-gated prompt/model changes from writing rows.
+    for v in (cv, f"rules_v1+{cv}"):
+        if not conn.execute(
+            "SELECT 1 FROM canonical.classifier_gate WHERE version=%s", (v,)
+        ).fetchone():
+            log.error("classifier version %r has NOT passed the eval gate; refusing to run", v)
+            sys.exit(2)
 
     # --- resume or init progress row
     prog = conn.execute(
@@ -167,24 +199,58 @@ def main() -> None:
             existing = {(r["source_id"], r["source_record_id"]) for r in res}
 
         for i in range(0, len(chunk), LLM_BATCH):
-            batch = [r for r in chunk[i : i + LLM_BATCH]
-                     if (r["source_id"], r["source_record_id"]) not in existing]
             full_batch = chunk[i : i + LLM_BATCH]
+            batch = [r for r in full_batch
+                     if (r["source_id"], r["source_record_id"]) not in existing]
+
+            # Pre-classify deterministic rules before calling LLM.
+            rules_hits: dict[str, dict] = {}
+            llm_batch = []
+            for r in batch:
+                cat = pre_classify(r)
+                if cat is not None:
+                    desc_snippet = (r.get("description_raw") or "")[:80]
+                    ptype = r.get("permit_type") or ""
+                    summary = f"{ptype}: {desc_snippet}" if desc_snippet else ptype
+                    rules_hits[str(r["id"])] = {
+                        "category": cat,
+                        "confidence": 1.0,
+                        "summary": summary[:600],
+                        "classifier_version": _RULES_PREFIX + cv,
+                    }
+                else:
+                    llm_batch.append(r)
+
             results: dict[str, dict] = {}
             stats: dict = {}
-            if batch:
-                try:
-                    results, stats = classify_batch(batch, system_prompt=sp, tax=tax, client=client)
-                except Exception as e:  # noqa: BLE001
-                    log.warning("batch failed (%s); retrying singly", e)
-                    for r in batch:
-                        try:
-                            single, st = classify_batch([r], system_prompt=sp, tax=tax, client=client)
-                            results.update(single)
-                            stats["output_tokens"] = stats.get("output_tokens", 0) + st.get("output_tokens", 0)
-                        except Exception as e2:  # noqa: BLE001
-                            log.error("permit %s failed permanently: %s", r["id"], e2)
-                            rows_failed += 1
+            if llm_batch:
+                # Connection-level failures mean Ollama is down/restarting:
+                # back off WITHOUT advancing the cursor, forever. A 31K-row
+                # cursor skip happened on 2026-06-10 when Ollama briefly
+                # served the wrong model store; never burn rows on outages.
+                while True:
+                    try:
+                        results, stats = classify_batch(llm_batch, system_prompt=sp, tax=tax, client=client)
+                        break
+                    except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout) as e:
+                        log.warning("Ollama unreachable (%s); backing off 60s, cursor held", e)
+                        time.sleep(60)
+                    except httpx.HTTPStatusError as e:
+                        if e.response.status_code == 404:
+                            log.warning("model missing (404: %s); backing off 120s, cursor held",
+                                        e.response.text[:120])
+                            time.sleep(120)
+                            continue
+                        log.warning("batch failed (%s); retrying singly", e)
+                        results = _retry_singly(llm_batch, sp, tax, client, stats)
+                        break
+                    except Exception as e:  # noqa: BLE001
+                        log.warning("batch failed (%s); retrying singly", e)
+                        results = _retry_singly(llm_batch, sp, tax, client, stats)
+                        break
+            # Merge rules + LLM results
+            for rid, res in rules_hits.items():
+                results[rid] = res
             # checkpoint: cursor = last row of this LLM batch (ordered DESC)
             last = full_batch[-1]
             if null_phase:
@@ -195,9 +261,10 @@ def main() -> None:
                 for r in batch:
                     res = results.get(str(r["id"]))
                     if res:
+                        row_cv = res.get("classifier_version", cv)
                         conn.execute(UPSERT, (
                             r["id"], r["source_id"], r["source_record_id"],
-                            res["category"], res["confidence"], res["summary"], cv,
+                            res["category"], res["confidence"], res["summary"], row_cv,
                         ))
                         rows_done += 1
                         session_done += 1

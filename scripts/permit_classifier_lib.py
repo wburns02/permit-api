@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -27,7 +28,7 @@ TAXONOMY_PATH = Path(
     os.environ.get("PERMIT_TAXONOMY_PATH", _HERE.parent / "config" / "permit_taxonomy_v1.json")
 )
 
-PROMPT_VERSION = "prompt_v2"
+PROMPT_VERSION = "prompt_v4"
 
 
 def load_taxonomy() -> dict:
@@ -42,7 +43,238 @@ def category_keys(tax: dict | None = None) -> list[str]:
 
 def classifier_version(tax: dict | None = None) -> str:
     tax = tax or load_taxonomy()
-    return f"qwen3.5-122b/{tax['version']}/{PROMPT_VERSION}"
+    return f"{OLLAMA_MODEL.replace(':', '-')}/{tax['version']}/{PROMPT_VERSION}"
+
+
+# Hybrid classifier version prefix prepended when the rules layer fires.
+_RULES_PREFIX = "rules_v1+"
+
+
+# ---------------------------------------------------------------------------
+# Pre-classification rules layer (deterministic, runs before LLM)
+# ---------------------------------------------------------------------------
+
+# Compiled patterns - case-insensitive throughout.
+
+_RE_TRADE_TYPE = re.compile(
+    r"^(electrical|plumbing|mechanical)",
+    re.IGNORECASE,
+)
+
+_RE_FLATWORK_TYPE = re.compile(
+    r"^(driveway|sidewalk|paving)",
+    re.IGNORECASE,
+)
+
+# Sign keywords in subtype or description.
+_RE_SIGN_SUBTYPE = re.compile(
+    r"\b(billboard|projecting|reader\s*board|pole\s*sign|building\s*sign|berm\s*sign)\b",
+    re.IGNORECASE,
+)
+_RE_SIGN_DESC = re.compile(
+    r"\b(billboard|reader\s*board|pole\s*sign|building\s*sign|berm\s*sign|wall\s*sign|"
+    r"awning\s*sign|roof\s*sign|projecting\s*sign|freestanding\s*sign)\b"
+    r"|\b(sign)\s+for\b"
+    r"|\b(install|erect|replace|reface)\b.{0,40}\bsign\b",
+    re.IGNORECASE,
+)
+
+# Demolition subtype in permit_type (after the slash).
+_RE_DEMO_SUBTYPE = re.compile(
+    r"\b(demo(?:lition|lish)?|interior\s+demo)\b",
+    re.IGNORECASE,
+)
+
+# Description patterns that indicate structure demolition.
+_RE_DEMO_DESC_POSITIVE = re.compile(
+    r"\b(demolish|demolition)\b.{0,80}"
+    r"\b(residence|res\b|garage|building|bldg|commercial|carport|cottage|structure|"
+    r"existing\s+res|min\s*sta|min\s*stand|motel|room\s+of|one\s+story|comm\s+bldg|"
+    r"detach\w*\s+garage|exist\w*\s+building|exist\w*\s+residential|"
+    r"rear\s+residence|sfr|house|office)\b",
+    re.IGNORECASE,
+)
+
+# Descriptions whose demo subtype should stay in trade (not structure demolition).
+# "Interior Demo Non-Structural" subtype with a remodel/construction description:
+# the permit is trade work on a remodel project, not structure removal.
+# NOTE: "Demolition Of Interior Partitions" is labeled demolition, so we do NOT
+# exclude that from demolition classification.
+_RE_DEMO_REMODEL_DESC = re.compile(
+    r"\b(remodel|renovation|finish.out|tenant|new\s+construction|addition|repair|"
+    r"relocat|classroom|portable)\b",
+    re.IGNORECASE,
+)
+
+# Flatwork-type permits: description is solely about structure demolition.
+# Very conservative: description must start with "Demo[lish]" and name a structure,
+# and must NOT contain mixed-project words (addition, replace, sidewalk, driveway, etc.)
+_RE_FLATWORK_DEMO_START = re.compile(
+    r"^\s*demo(?:lish)?\b.{0,60}"
+    r"\b(residence|res\b|garage|building|bldg|detach\w*\s+garage)\b",
+    re.IGNORECASE,
+)
+_RE_FLATWORK_DEMO_MIXED = re.compile(
+    r"\b(addn|addition|replace|construct|new\s+gar|sidewalk|driveway|approach|install)\b",
+    re.IGNORECASE,
+)
+
+# Irrigation keywords.
+_RE_IRRIGATION = re.compile(
+    r"\b(irrigation|lawn\s+sprinkler|sprinkler\s+system)\b",
+    re.IGNORECASE,
+)
+_RE_FIRELINE = re.compile(r"\bfireline\b", re.IGNORECASE)
+_RE_CUTOVER = re.compile(r"\b(cut\s*over|tank\s*abandon\w*)\b", re.IGNORECASE)
+_RE_SOLAR = re.compile(
+    r"\b(solar|photovoltaic|pv\s+system|pv\s+array)\b",
+    re.IGNORECASE,
+)
+
+
+def pre_classify(row: dict) -> str | None:
+    """Deterministic rules layer. Returns a taxonomy category key or None.
+
+    None means "defer to LLM". All rules are conservative: when there is any
+    ambiguity the function returns None rather than risk a wrong override.
+
+    Rules and the eval-evidence class each encodes:
+
+    R2  FLATWORK: permit_type starts with Driveway/Sidewalk/Paving =>
+        "driveway_flatwork" UNLESS description is structure-demolition-only =>
+        "demolition"
+        (eval evidence: demolition/driveway_flatwork confusions v2 - Driveway/Sidewalks/Demo
+        rows "Demo Existing Garage Only", "Demolish Residence & Detached Garage")
+
+    R1  TRADE: permit_type starts with Electrical/Plumbing/Mechanical =>
+        exceptions checked first, then trade category:
+
+        R1a  SIGN: subtype contains billboard/projecting/reader-board/berm-sign or
+             description matches sign erection pattern => "sign"
+             (eval evidence: sign/electrical confusions v2 - all "Electrical Permit /
+             Billboard|Projecting|Change Out" rows with sign descriptions)
+
+        R1d  FIRELINE: subtype or description contains "Fireline" => "fire_systems"
+
+        R1e  CUTOVER: subtype contains "Cut Over" or "Tank Abandonment" => "septic_ossf"
+
+        R1f  SOLAR: description contains solar/photovoltaic keywords => "solar"
+             (eval evidence: solar/electrical confusion v2 - "Install new elec solar system")
+
+        R1c  IRRIGATION: description contains irrigation/lawn sprinkler => "irrigation"
+             (eval evidence: irrigation/plumbing confusions v2 - "Install Irrigation System Only",
+             "Irrigation System Residential")
+
+        R1b  DEMO: subtype contains Demolition/Demo AND description matches
+             structure demolition pattern AND NOT interior-partitions-only =>
+             "demolition"
+             Exception-to-exception: "Demolition Of Interior Partitions" stays
+             in trade category.
+             (eval evidence: demolition/* confusions v2 - 18 rows classified as
+             plumbing/mechanical/electrical instead of demolition)
+
+        R1g  EMPTY DESC: description is empty => trade category
+             (eval evidence: electrical/plumbing/mechanical v3 confusions -
+             "[Electrical / Standalone]", "[Plumbing / Standalone]" etc. with empty
+             description misclassified as other_unknown)
+
+        R1h  SHORT DESC (<= 80 chars): trade category
+             (eval evidence: v3 confusions - "[Electrical Permit / Remodel] Remodel",
+             "[Mechanical Permit / Addition] One Story Addition To Extend Living Room")
+    """
+    ptype = (row.get("permit_type") or "").strip()
+    desc = (row.get("description_raw") or "").strip()
+
+    # Extract subtype (part after first '/')
+    slash = ptype.find("/")
+    subtype = ptype[slash + 1:].strip() if slash != -1 else ""
+
+    # -----------------------------------------------------------------------
+    # R2: Flatwork
+    # -----------------------------------------------------------------------
+    if _RE_FLATWORK_TYPE.match(ptype):
+        # Only promote to demolition if the description starts with "Demo[lish]",
+        # names a structure (garage/residence/building), and has no mixed-project
+        # keywords (addition, replace, sidewalk, etc.)
+        if (desc
+                and _RE_FLATWORK_DEMO_START.match(desc)
+                and not _RE_FLATWORK_DEMO_MIXED.search(desc)):
+            return "demolition"
+        return "driveway_flatwork"
+
+    # -----------------------------------------------------------------------
+    # R1: Trade-type permit
+    # -----------------------------------------------------------------------
+    if not _RE_TRADE_TYPE.match(ptype):
+        return None  # not a trade or flatwork permit
+
+    ptype_lower = ptype.lower()
+    if ptype_lower.startswith("electrical"):
+        trade_cat = "electrical"
+    elif ptype_lower.startswith("plumbing"):
+        trade_cat = "plumbing"
+    else:
+        trade_cat = "mechanical_hvac"
+
+    # R1a: Sign exception
+    if _RE_SIGN_SUBTYPE.search(subtype) or _RE_SIGN_DESC.search(desc):
+        return "sign"
+
+    # R1d: Fireline exception
+    if _RE_FIRELINE.search(subtype) or _RE_FIRELINE.search(desc):
+        return "fire_systems"
+
+    # R1e: Cut Over / Tank Abandonment
+    if _RE_CUTOVER.search(subtype):
+        return "septic_ossf"
+
+    # R1f: Solar exception
+    if _RE_SOLAR.search(desc):
+        return "solar"
+
+    # R1c: Irrigation exception - also check full permit_type (not just subtype)
+    # e.g. "Plumbing Irrigation Permit / Existing" has "Irrigation" in the type prefix
+    if _RE_IRRIGATION.search(ptype) or _RE_IRRIGATION.search(desc):
+        return "irrigation"
+
+    # R1b: Demo subtype + structure demolition description
+    # Exception: "Interior Demo Non-Structural" subtype with a remodel/construction
+    # description means the permit is trade work on a remodel, not structure removal.
+    if _RE_DEMO_SUBTYPE.search(subtype):
+        if not desc:
+            return None  # empty description with Demo subtype: defer to LLM
+        if _RE_DEMO_REMODEL_DESC.search(desc):
+            return trade_cat  # trade work on a remodel/TI project
+        if _RE_DEMO_DESC_POSITIVE.search(desc):
+            return "demolition"
+        return None  # demo subtype but unclear description: defer
+
+    # R1g: Empty description => trade category
+    if not desc:
+        return trade_cat
+
+    # R1h: Short description (<= 80 chars) => trade category.
+    # Guard: if description names a DIFFERENT trade explicitly, defer to LLM
+    # (e.g. "[Plumbing Permit / Remodel] Mechanical Changeout" is labeled mechanical_hvac,
+    # not plumbing; "[Electrical Permit / Remodel] Replace & Relocate Cooling Tower" is
+    # labeled electrical despite mechanical language).
+    if len(desc) <= 80:
+        if trade_cat == "plumbing" and re.search(
+            r"\b(mechanical|hvac|a/c|ac unit|cooling|heating|furnace|changeout)\b",
+            desc, re.IGNORECASE
+        ):
+            return None  # let LLM handle cross-trade descriptions
+        if trade_cat == "mechanical_hvac" and re.search(
+            r"\b(plumbing|backflow|sewer|gas line|service panel|electrical panel|panel upgrade)\b",
+            desc, re.IGNORECASE
+        ):
+            return None
+        if trade_cat == "electrical" and re.search(r"\b(plumbing|mechanical|hvac)\b", desc, re.IGNORECASE):
+            return None
+        return trade_cat
+
+    # Longer descriptions: defer to LLM
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -51,14 +283,21 @@ def classifier_version(tax: dict | None = None) -> str:
 _NO_SUMMARY_HEADER = "You classify building permits from Texas jurisdictions into exactly one category from a closed set.\n"
 
 _DECISION_RULES = """DECISION RULES (apply in order):
-1. HARD RULE — trade permits: if permit_type begins with "Electrical", "Plumbing", or "Mechanical", the category is that trade (electrical / plumbing / mechanical_hvac) NO MATTER WHAT the description says. Descriptions routinely restate the PARENT PROJECT (new house, living-room addition, tenant finish-out, remodel, demolition, mobile home move) — that never changes the trade category. Subtype words in the permit_type itself (New / Remodel / Repair / Change Out / Addition / Upgrade / Umbrella / Standalone / Shell / Loop / Demolition / Interior Demo Non-Structural) also stay in the trade category. The ONLY exceptions are when the permit_type itself names a more specific scope: Irrigation or Lawn Sprinkler -> irrigation; Fireline -> fire_systems; Cut Over/Tank Abandonment -> septic_ossf; Solar or Photovoltaic -> solar (Backflow stays plumbing).
-2. HARD RULE — flatwork: if permit_type begins with "Driveway", "Sidewalk", or "Paving", the category is driveway_flatwork regardless of the description (same own-scope principle as rule 1).
-3. Specific beats general for BUILDING permits only: if permit_type is a generic building/residential/commercial permit and the description clearly shows solar, pool/spa, septic, roofing, foundation repair, irrigation/sprinkler, fence, sign, demolition, or driveway/sidewalk work, use that specific category. Example: "Re-Roof Permit" -> roofing; "Building Permit / Repair" + "REROOF" description -> roofing.
+1. Trade permits — ask "what is this permit's OWN work?": if permit_type begins with "Electrical", "Plumbing", or "Mechanical", the category is that trade (electrical / plumbing / mechanical_hvac) whenever the description names a PARENT PROJECT the trade work serves: a new house, an addition, a remodel, a tenant finish-out, a relocation, a mobile home move or connection, a company or building name. Subtype words (New / Remodel / Repair / Change Out / Addition / Upgrade / Addition and Remodel / Umbrella / Standalone / Shell / Loop / Building / Work Authorization / Interior Demo Non-Structural) keep the trade category. Backflow stays plumbing. A trade permit with an EMPTY or uninformative description is STILL the trade category (e.g. "Plumbing / Standalone" with no description -> plumbing; rule 6 never applies when the permit_type names a trade).
+   EXCEPTIONS — when the permit_type OR the description shows the permit's own work is itself a specific scope, use the specific category:
+   - sign or billboard work (incl. "Electrical Sign" permit types, "Billboard" subtypes, descriptions erecting wall/pole/freestanding/reader-board signs) -> sign
+   - installing a solar / photovoltaic system -> solar
+   - installing an irrigation / lawn sprinkler system -> irrigation
+   - Fireline -> fire_systems
+   - Cut Over/Tank Abandonment or septic work -> septic_ossf
+   - the description is ONLY demolishing a structure (e.g. "Demolish Garage", "Demolition Residence") -> demolition. But a Demolition or Interior-Demo SUBTYPE whose description names a remodel/finish-out/new-construction project stays in the trade.
+2. Flatwork: if permit_type begins with "Driveway", "Sidewalk", or "Paving", the category is driveway_flatwork even when the description names a parent project. Exception: a description that is only demolition of a structure -> demolition.
+3. Specific beats general for BUILDING permits: if permit_type is a generic building/residential/commercial permit and the description clearly shows solar, pool/spa, septic, roofing, foundation repair, irrigation/sprinkler, fence, sign, demolition, or driveway/sidewalk work, use that specific category. Example: "Re-Roof Permit" -> roofing; "Building Permit / Repair" + "REROOF" description -> roofing.
 4. residential vs commercial vs multifamily: single-family/duplex/townhome -> residential_*; apartment/condo buildings (3+ units) new construction -> multifamily_new; multifamily remodels -> residential_remodel; offices, retail, restaurants, warehouses, industrial, institutional -> commercial_*.
-5. "Addition and Remodel" building permits -> residential_addition (or commercial_remodel_ti if commercial).
-6. Generic department-only permit_type ("Building Inspections and Permits", "Historical", "Engineering", "Police Department"): classify from the description. If the description is empty or uninformative, use other_unknown. Do not guess.
-7. Standalone Building/Demolition permits for removing a structure (or interior demo) -> demolition. This does NOT apply to trade permits with a Demolition subtype (rule 1 wins).
-8. Detached garages, sheds, carports, barns, decks, gazebos on BUILDING permits -> accessory_structure. Attached additions to the dwelling -> residential_addition.
+5. "Addition and Remodel" BUILDING permits -> residential_addition (or commercial_remodel_ti if commercial). On trade permits, Addition and Remodel is just a subtype (rule 1).
+6. Generic department-only permit_type ("Building Inspections and Permits", "Historical", "Engineering", "Police Department"): classify from the description. If the description is empty or uninformative, use other_unknown. Do not guess. Certificate of Occupancy (CO) permits -> admin_licensing.
+7. Demolishing a structure -> demolition, INCLUDING demolition of garages, carports, porches and other accessory structures (demolition beats accessory_structure).
+8. Building NEW detached garages, sheds, carports, barns, decks, gazebos -> accessory_structure. Attached additions to the dwelling -> residential_addition.
 9. Street/road/bridge construction and maintenance, seal coat, overlay -> grading_sitework. Work in public right-of-way, utility locates, franchise utility, barricades, water/sewer service connections by a utility -> row_utility.
 10. Building-permit sewer cut-over with septic tank abandonment -> septic_ossf. City sewer connection without septic involvement -> plumbing."""
 
@@ -108,6 +347,18 @@ Result: {{"id": "ex7", "category": "plumbing", "confidence": 0.95}}
 
 Input permit: {{"id": "ex8", "permit_type": "Driveway / Sidewalks / Modification", "description": "Remodel For Admin & Professional Offices", "declared_value": null}}
 Result: {{"id": "ex8", "category": "driveway_flatwork", "confidence": 0.95}}
+
+Input permit: {{"id": "ex9", "permit_type": "Plumbing Permit / Demolition", "description": "Demolish Existing Residence", "declared_value": null}}
+Result: {{"id": "ex9", "category": "demolition", "confidence": 0.96}}
+
+Input permit: {{"id": "ex10", "permit_type": "Electrical Permit / Billboard", "description": "Pole Sign For Ace Hardware", "declared_value": null}}
+Result: {{"id": "ex10", "category": "sign", "confidence": 0.97}}
+
+Input permit: {{"id": "ex11", "permit_type": "Plumbing / Standalone", "description": "", "declared_value": null}}
+Result: {{"id": "ex11", "category": "plumbing", "confidence": 0.95}}
+
+Input permit: {{"id": "ex12", "permit_type": "Plumbing Permit / Addition and Remodel", "description": "remodel garage to convert into an office and add a 2nd story to create a bedroom & a bath", "declared_value": null}}
+Result: {{"id": "ex12", "category": "plumbing", "confidence": 0.95}}
 """
     return f"""You classify building permits from Texas jurisdictions into exactly one category from a closed set, and write a short factual summary.
 
@@ -152,6 +403,18 @@ Result: {{"id": "ex7", "category": "plumbing", "confidence": 0.95, "summary": "P
 
 Input permit: {{"id": "ex8", "permit_type": "Driveway / Sidewalks / Modification", "description": "Remodel For Admin & Professional Offices", "declared_value": null}}
 Result: {{"id": "ex8", "category": "driveway_flatwork", "confidence": 0.95, "summary": "Driveway and sidewalk modification under an office remodel project."}}
+
+Input permit: {{"id": "ex9", "permit_type": "Plumbing Permit / Demolition", "description": "Demolish Existing Residence", "declared_value": null}}
+Result: {{"id": "ex9", "category": "demolition", "confidence": 0.96, "summary": "Plumbing disconnect permit for demolition of an existing residence."}}
+
+Input permit: {{"id": "ex10", "permit_type": "Electrical Permit / Billboard", "description": "Pole Sign For Ace Hardware", "declared_value": null}}
+Result: {{"id": "ex10", "category": "sign", "confidence": 0.97, "summary": "Electrical permit for a pole sign installation for Ace Hardware."}}
+
+Input permit: {{"id": "ex11", "permit_type": "Plumbing / Standalone", "description": "", "declared_value": null}}
+Result: {{"id": "ex11", "category": "plumbing", "confidence": 0.95, "summary": "Standalone plumbing permit with no description provided."}}
+
+Input permit: {{"id": "ex12", "permit_type": "Plumbing Permit / Addition and Remodel", "description": "remodel garage to convert into an office and add a 2nd story to create a bedroom & a bath", "declared_value": null}}
+Result: {{"id": "ex12", "category": "plumbing", "confidence": 0.95, "summary": "Plumbing permit under a garage-to-office conversion with a second-story bedroom and bath addition."}}
 """
 
 
