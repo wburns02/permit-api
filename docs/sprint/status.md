@@ -41,10 +41,14 @@ rates: 88.4% vs well_permits, 76.4% vs wells; the sub-80% wells rate was
 investigated per the gate and isolated to warehouse vintage, not API
 formatting: the RRC wellbore EWA extract is Nov-2020 content and the
 daf802 permit master has a 2023-25 hole (186 permits in 2024 vs ~10K
-expected). Remediation started immediately: 2023-25 daily archive
-backfill running; a wellbore refresh source needs investigation (the MFT
-EWA file IS the stale artifact). Pipelines documented in
-docs/acquisition/. Next: verify backfill closes the permit hole.
+expected). Remediation completed same day: 1,041 daily archive files
+backfilled 2023-25, restoring per-year counts to trend (2023: 9,225,
+2024: 8,657, 2025: 7,420 vs 186 in 2024 before) and lifting the FracFocus
+match rate from 88.4% to 98.8% (99.7% for 2023+ disclosures). OPEN
+follow-up: canonical.wells completion data remains Nov-2020 vintage; the
+MFT EWA file itself is the stale artifact, so a different RRC source
+(nightly completions zips or statewide API files) is needed for wellbore
+recency. Pipelines documented in docs/acquisition/.
 
 ## Phase 3: Railway Deploy Hardening (complete, 2026-06-10)
 
