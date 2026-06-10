@@ -121,6 +121,17 @@ async def _run_startup_migrations() -> None:
     except Exception as e:
         logger.warning("Could not apply password_hash migration: %s", e)
 
+    # Auto-migrate: alert source_type (building permits vs W-1 drilling permits)
+    try:
+        from app.database import primary_engine
+        async with primary_engine.begin() as conn:
+            await conn.execute(_text(
+                "ALTER TABLE permit_alerts ADD COLUMN IF NOT EXISTS "
+                "source_type TEXT NOT NULL DEFAULT 'permits'"
+            ))
+    except Exception as e:
+        logger.warning("Could not apply alert source_type migration: %s", e)
+
     # Auto-migrate: add softphone columns to call_logs
     try:
         async with primary_engine.begin() as conn:
@@ -566,6 +577,16 @@ app.include_router(rural_score_router, prefix="/v1")
 app.include_router(wells_router, prefix="/v1")
 app.include_router(well_permits_router, prefix="/v1")
 app.include_router(map_tiles_router, prefix="/v1")
+
+
+@app.get("/healthz")
+async def healthz():
+    """Liveness probe — NO DB dependency. Returns 200 as soon as uvicorn is
+    serving requests. Used by Railway's deploy healthcheck (railway.toml) so
+    the previous container keeps serving traffic until the new one is up,
+    eliminating the public 502 window during deploys. For DB-aware health,
+    use /health."""
+    return {"status": "ok", "version": settings.VERSION}
 
 
 @app.get("/health")

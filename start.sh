@@ -1,34 +1,56 @@
 #!/bin/sh
 set -e
 
-echo "Starting Tailscale..."
-tailscaled --tun=userspace-networking --socks5-server=localhost:1055 --outbound-http-proxy-listen=localhost:1056 &
-sleep 3
-# Reset Tailscale state so we always rejoin as the SAME node identity instead
-# of spawning a new permit-api-railway-N zombie on every container restart.
-tailscale up --reset --authkey="${TAILSCALE_AUTHKEY}" --hostname=permit-api-railway
-# Prefer the stable Ashburn (iad) DERP relay (TCP/443) over the flapping direct UDP path
-tailscale debug force-prefer-derp 27 2>/dev/null || true
-echo "Tailscale connected, validating route to T430..."
+# ---------------------------------------------------------------------------
+# Railway container entrypoint.
+#
+# The network bootstrap (Tailscale + SOCKS fallback proxies + Cloudflare PG
+# tunnel) is guarded behind RAILWAY_ENVIRONMENT so this script degrades to a
+# plain `exec uvicorn` on any other host (e.g. R730 systemd, which runs
+# uvicorn directly anyway).
+#
+# Boot order is PARALLEL, not serial:
+#   - tailscaled / `tailscale up` / the T430 ping check run in the background.
+#     They only serve the FALLBACK DB path (127.0.0.1:5442) plus the R730-2
+#     replica (5433) and anthropic proxy (9877).
+#   - The SOCKS5 fallback proxies start immediately (they dial tailscaled's
+#     SOCKS port lazily, per client connection, so they don't need to wait).
+#   - The LIVE DB path is the cloudflared listener on 127.0.0.1:5432. uvicorn
+#     is gated only on that listener being up (typically <3s).
+#
+# Combined with the /healthz deploy healthcheck in railway.toml, Railway keeps
+# the previous container serving until uvicorn here responds, so the public
+# domain never 502s during a deploy.
+# ---------------------------------------------------------------------------
 
-# Block on confirming we can actually reach T430 (100.122.216.15) before launching
-# uvicorn. Without this we accept HTTP requests before the SOCKS5 proxy can dial PG,
-# which manifests as /v1/data-freshness returning 000/500 for the first ~30s.
-for i in $(seq 1 30); do
-  if tailscale ping --until-direct=false --c=1 100.122.216.15 > /dev/null 2>&1; then
-    echo "Tailscale route to T430 confirmed after ${i}s"
-    break
-  fi
-  if [ "$i" -eq 30 ]; then
-    echo "WARN: Tailscale route to T430 not confirmed after 30s; continuing anyway"
-  fi
-  sleep 1
-done
+if [ -n "${RAILWAY_ENVIRONMENT}" ]; then
 
-# SOCKS5 TCP proxy: forwards local ports through Tailscale to PostgreSQL servers
-# Port 5432 → T430 (100.122.216.15:5432) — primary, handles writes
-# Port 5433 → R730-2 (100.125.210.69:5432) — replica, handles reads
-python3 -c "
+  # --- Tailscale: fallback/replica paths only — fully backgrounded -----------
+  (
+    echo "Starting Tailscale (background)..."
+    tailscaled --tun=userspace-networking --socks5-server=localhost:1055 --outbound-http-proxy-listen=localhost:1056 &
+    sleep 3
+    # Reset Tailscale state so we always rejoin as the SAME node identity instead
+    # of spawning a new permit-api-railway-N zombie on every container restart.
+    tailscale up --reset --authkey="${TAILSCALE_AUTHKEY}" --hostname=permit-api-railway || echo "WARN: tailscale up failed"
+    # Prefer the stable Ashburn (iad) DERP relay (TCP/443) over the flapping direct UDP path
+    tailscale debug force-prefer-derp 27 2>/dev/null || true
+    # Log (don't block on) route confirmation to T430 — this path is fallback only.
+    for i in $(seq 1 30); do
+      if tailscale ping --until-direct=false --c=1 100.122.216.15 > /dev/null 2>&1; then
+        echo "Tailscale route to T430 confirmed after ${i}s"
+        break
+      fi
+      [ "$i" -eq 30 ] && echo "WARN: Tailscale route to T430 not confirmed after 30s"
+      sleep 1
+    done
+  ) &
+
+  # --- SOCKS5 TCP fallback proxies (dial tailscaled lazily per connection) ---
+  # Port 5442 → T430 (100.122.216.15:5432) — primary FALLBACK (live path is cloudflared on 5432)
+  # Port 5433 → R730-2 (100.125.210.69:5432) — replica, handles reads
+  # Port 9877 → R730-2 anthropic proxy
+  python3 -c "
 import socket, threading, struct, sys
 
 def socks5_connect(target_host, target_port, proxy_host='127.0.0.1', proxy_port=1055):
@@ -91,7 +113,7 @@ def start_proxy(local_port, target_host, target_port, label):
         threading.Thread(target=handler, args=(client,), daemon=True).start()
 
 # Primary (T430) — writes. Kept on 5442 as a Tailscale FALLBACK only.
-# The live DB path is now the Cloudflare tunnel bound to 127.0.0.1:5432 (see below),
+# The live DB path is the Cloudflare tunnel bound to 127.0.0.1:5432 (see below),
 # because Railway's egress NAT destabilises the Tailscale direct path post-outage.
 t_primary = threading.Thread(target=start_proxy, args=(5442, '100.122.216.15', 5432, 'T430-primary-fallback'), daemon=True)
 t_primary.start()
@@ -107,21 +129,26 @@ t_anthropic.start()
 # Keep main thread alive
 t_primary.join()
 " &
-sleep 2
 
-# Live DB transport: Cloudflare tunnel client (outbound TCP/443, NAT-immune).
-# Binds 127.0.0.1:5432 -> pg.ecbtx.com -> cloudflared on T430 -> Postgres.
-# Auth is the permit_api scram password in DATABASE_URL (pg.ecbtx.com has no public
-# port; reachable only via the cloudflared access protocol + DB password).
-echo "Starting Cloudflare tunnel client for Postgres (pg.ecbtx.com -> 127.0.0.1:5432)..."
-cloudflared access tcp --hostname pg.ecbtx.com --url 127.0.0.1:5432 > /tmp/cf-pg.log 2>&1 &
-for i in $(seq 1 30); do
-  if (exec 3<>/dev/tcp/127.0.0.1/5432) 2>/dev/null; then
-    echo "Cloudflare PG listener ready after ${i}s"; break
-  fi
-  [ "$i" -eq 30 ] && echo "WARN: Cloudflare PG listener not ready after 30s; continuing anyway"
-  sleep 1
-done
+  # --- Live DB transport: Cloudflare tunnel client (outbound TCP/443) --------
+  # Binds 127.0.0.1:5432 -> pg.ecbtx.com -> cloudflared on T430 -> Postgres.
+  # Auth is the permit_api scram password in DATABASE_URL (pg.ecbtx.com has no
+  # public port; reachable only via the cloudflared access protocol + DB password).
+  echo "Starting Cloudflare tunnel client for Postgres (pg.ecbtx.com -> 127.0.0.1:5432)..."
+  cloudflared access tcp --hostname pg.ecbtx.com --url 127.0.0.1:5432 > /tmp/cf-pg.log 2>&1 &
+  # Gate uvicorn only on the LOCAL listener being up. NOTE: the old probe used
+  # /dev/tcp, a bash-ism that always fails under dash (/bin/sh here), which
+  # silently burned a guaranteed 30s on every boot. Use a real TCP connect.
+  for i in $(seq 1 30); do
+    if python3 -c "import socket; socket.create_connection(('127.0.0.1', 5432), 1).close()" 2>/dev/null; then
+      echo "Cloudflare PG listener ready after ${i} attempt(s)"
+      break
+    fi
+    [ "$i" -eq 30 ] && echo "WARN: Cloudflare PG listener not ready after 30 attempts; continuing anyway"
+    sleep 1
+  done
+
+fi
 
 echo "Starting PermitLookup API..."
 exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080} --timeout-keep-alive 30
