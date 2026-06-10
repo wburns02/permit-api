@@ -5,6 +5,7 @@ Searches contractor_licenses (503K records — FL, CA) and prospect_contacts
 is NULL for all 835M rows.
 """
 
+import logging
 from datetime import date
 
 from fastapi import APIRouter, Depends, Query, HTTPException, Request
@@ -21,6 +22,8 @@ from app.models.data_layers import ContractorLicense
 from app.services.response_guard import guard_response
 
 router = APIRouter(prefix="/contractors", tags=["Contractors"])
+
+logger = logging.getLogger(__name__)
 
 # States covered by the contractor_licenses table
 _LICENSE_STATES = {"FL", "CA"}
@@ -93,9 +96,19 @@ async def search_contractors(
 
         cl_where = and_(*cl_conditions) if cl_conditions else True
 
-        # Count
+        # Count — best-effort. A `%name%` count over 2.4M rows can exceed the
+        # statement_timeout; degrade to the sentinel instead of 500-ing the
+        # whole search (the data query below is trigram-indexed + LIMITed and
+        # stays fast). See trigram indexes idx_cl_business_name_trgm /
+        # idx_cl_full_business_name_trgm.
         count_q = select(func.count()).select_from(ContractorLicense).where(cl_where)
-        cl_total = (await db.execute(count_q)).scalar() or 0
+        try:
+            cl_total = (await db.execute(count_q)).scalar() or 0
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("contractor cl count degraded: %s", exc)
+            await db.rollback()
+            await db.execute(text("SET LOCAL statement_timeout = '10s'"))
+            cl_total = -1
 
         # Data
         cl_query = (
@@ -114,7 +127,13 @@ async def search_contractors(
             .limit(page_size)
             .offset(offset)
         )
-        cl_rows = (await db.execute(cl_query)).all()
+        try:
+            cl_rows = (await db.execute(cl_query)).all()
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("contractor cl data query degraded: %s", exc)
+            await db.rollback()
+            await db.execute(text("SET LOCAL statement_timeout = '10s'"))
+            cl_rows = []
 
         for r in cl_rows:
             results_list.append({
@@ -128,7 +147,8 @@ async def search_contractors(
                 "email": None,
                 "source": r.source,
             })
-        total += cl_total
+        # A degraded count (-1) marks total as unknown for the whole response.
+        total = -1 if (total == -1 or cl_total == -1) else total + cl_total
 
     # ------------------------------------------------------------------
     # 2. Query prospect_contacts for states NOT in contractor_licenses
@@ -166,8 +186,17 @@ async def search_contractors(
 
             pc_where = " AND ".join(pc_conditions)
 
+            # Best-effort count over 15M-row prospect_contacts (trigram-indexed
+            # ILIKE, but a broad `%name%` can still match millions). Degrade to
+            # the sentinel rather than 500.
             pc_count_sql = text(f"SELECT count(*) FROM prospect_contacts WHERE {pc_where}")
-            pc_total = (await db.execute(pc_count_sql, params)).scalar() or 0
+            try:
+                pc_total = (await db.execute(pc_count_sql, params)).scalar() or 0
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("contractor pc count degraded: %s", exc)
+                await db.rollback()
+                await db.execute(text("SET LOCAL statement_timeout = '10s'"))
+                pc_total = -1
 
             pc_query = text(f"""
                 SELECT name, license_number, license_type, status,
@@ -177,7 +206,13 @@ async def search_contractors(
                 ORDER BY name
                 LIMIT :limit OFFSET :offset
             """)
-            pc_rows = (await db.execute(pc_query, params)).all()
+            try:
+                pc_rows = (await db.execute(pc_query, params)).all()
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("contractor pc data query degraded: %s", exc)
+                await db.rollback()
+                await db.execute(text("SET LOCAL statement_timeout = '10s'"))
+                pc_rows = []
 
             for r in pc_rows:
                 results_list.append({
@@ -191,7 +226,7 @@ async def search_contractors(
                     "email": r.email,
                     "source": r.source,
                 })
-            total += pc_total
+            total = -1 if (total == -1 or pc_total == -1) else total + pc_total
 
     # Log usage
     log_usage(

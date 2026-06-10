@@ -341,6 +341,59 @@ async def _run_startup_migrations() -> None:
     except Exception as e:
         logger.warning("Could not create hail_leads_unified view: %s", e)
 
+    # Deduplicated list MV: one row per lead_id (best storm by score), the
+    # source the list/export endpoints read. `hail_leads_unified` fans every
+    # lead out across storm-event matches (~862k leads → ~20M rows), so the
+    # old DISTINCT-ON-over-the-whole-view list query took 50-60s and hit the
+    # statement_timeout, returning EMPTY. This MV does that collapse ONCE at
+    # refresh time; the endpoint then reads it with plain WHERE/ORDER/LIMIT.
+    # Created WITH NO DATA so a fresh DB doesn't block startup walking 20M
+    # rows — the refresh job (mv_refresh._MVS) populates it. On the existing
+    # prod DB it's already built + populated out-of-band.
+    try:
+        async with primary_engine.begin() as conn:
+            await conn.execute(_text("SET LOCAL lock_timeout = '15s'"))
+            await conn.execute(_text("SET LOCAL statement_timeout = '30s'"))
+            await conn.execute(_text(r"""
+                CREATE MATERIALIZED VIEW IF NOT EXISTS hail_leads_list AS
+                SELECT DISTINCT ON (lead_id)
+                    lead_id, permit_number, address, city, state, zip, county, lat, lng,
+                    issue_date, permit_type, work_class, description, valuation,
+                    contractor_company, contractor_phone, owner_name, source, jurisdiction,
+                    storm_event_id, storm_type, storm_magnitude, storm_date,
+                    days_after_storm, lead_category, hail_lead_score, storm_source
+                  FROM hail_leads_unified
+                 WHERE storm_type = 'Hail'
+                   AND address IS NOT NULL
+                   AND address !~ '^[0-9]+$'
+                 ORDER BY lead_id, hail_lead_score DESC NULLS LAST
+                WITH NO DATA
+            """))
+        # Indexes in their own txn (the unique index also enables a later
+        # REFRESH MATERIALIZED VIEW CONCURRENTLY).
+        async with primary_engine.begin() as conn:
+            await conn.execute(_text("SET LOCAL lock_timeout = '15s'"))
+            for ddl in (
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_hail_leads_list_lead "
+                "ON hail_leads_list (lead_id)",
+                "CREATE INDEX IF NOT EXISTS ix_hll_county_score "
+                "ON hail_leads_list (county, hail_lead_score DESC NULLS LAST)",
+                "CREATE INDEX IF NOT EXISTS ix_hll_score "
+                "ON hail_leads_list (hail_lead_score DESC NULLS LAST)",
+                "CREATE INDEX IF NOT EXISTS ix_hll_storm_date "
+                "ON hail_leads_list (storm_date DESC NULLS LAST)",
+                "CREATE INDEX IF NOT EXISTS ix_hll_category "
+                "ON hail_leads_list (lead_category)",
+                "CREATE INDEX IF NOT EXISTS ix_hll_magnitude "
+                "ON hail_leads_list (storm_magnitude)",
+            ):
+                try:
+                    await conn.execute(_text(ddl))
+                except Exception as ie:  # noqa: BLE001
+                    logger.warning("hail_leads_list index skipped: %s", ie)
+    except Exception as e:
+        logger.warning("Could not create hail_leads_list MV: %s", e)
+
     print("[migrations] background auto-migration run complete", flush=True, file=sys.stderr)
 
 
