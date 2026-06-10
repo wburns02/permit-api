@@ -15,7 +15,9 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import and_, func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_read_db
+# canonical.* lives only on the primary; r730-2 replica does not
+# replicate the canonical schema yet. Pin to get_db until it does.
+from app.database import get_db
 from app.middleware.api_key_auth import get_current_user
 from app.middleware.rate_limit import check_rate_limit
 from app.models.api_key import ApiUser, PlanTier, resolve_plan
@@ -125,7 +127,7 @@ async def well_search(
     page: int = Query(1, ge=1, le=400),
     limit: int = Query(25, ge=1, le=100),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_read_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Search oil & gas wellbores. Requires Pro Leads plan or higher."""
     _require_pro(user)
@@ -192,7 +194,7 @@ async def well_search(
 
 
 @wells_router.get("/stats")
-async def well_stats(db: AsyncSession = Depends(get_read_db)):
+async def well_stats(db: AsyncSession = Depends(get_db)):
     """Public endpoint — well database statistics."""
     total = await fast_count(db, "wells", schema="canonical")
 
@@ -219,7 +221,7 @@ async def well_detail(
     request: Request,
     state: str = Query("TX", max_length=2),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_read_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Well detail by API number (8/10/14-digit), incl. operator + permits."""
     _require_pro(user)
@@ -291,7 +293,7 @@ async def well_permit_search(
     page: int = Query(1, ge=1, le=400),
     limit: int = Query(25, ge=1, le=100),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_read_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Search W-1 drilling permits (nightly RRC refresh).
 
@@ -364,7 +366,7 @@ async def well_permit_search(
 
 
 @well_permits_router.get("/stats")
-async def well_permit_stats(db: AsyncSession = Depends(get_read_db)):
+async def well_permit_stats(db: AsyncSession = Depends(get_db)):
     """Public endpoint — drilling permit statistics + freshness."""
     total = await fast_count(db, "well_permits", schema="canonical")
 
@@ -410,7 +412,7 @@ async def well_permit_detail(
     request: Request,
     state: str = Query("TX", max_length=2),
     user: ApiUser = Depends(get_current_user),
-    db: AsyncSession = Depends(get_read_db),
+    db: AsyncSession = Depends(get_db),
 ):
     """Drilling permit detail by RRC status/permit number."""
     _require_pro(user)
