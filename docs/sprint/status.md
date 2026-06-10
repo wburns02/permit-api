@@ -63,5 +63,33 @@ timeout, and the whole bootstrap is guarded behind RAILWAY_ENVIRONMENT so
 R730's plain systemd path is untouched. R730 verified active with
 /health and /healthz both 200 after merge.
 
-## Phase 4: Enrichment at Scale (agent running: taxonomy + eval gate +
-checkpointed TX bulk run)
+## Phase 4: Enrichment at Scale (complete, 2026-06-10)
+
+Eval-gated and running. Taxonomy v1 (35 closed categories, derived from
+top-200 TX permit_type frequencies); eval set of 500 stratified TX permits
+labeled by qwen3.5:122b with a claude critique pass (86.6% agreement, 67
+critic overrides, exclusions logged). Gate iteration trail: 122B+v1 passed
+at 93.87% but at ~4 rows/min the 3.8M-row bulk run would take ~660 days;
+35B prompt iterations v2 and v3 each fixed two categories and broke two
+others; the fix that ended the whack-a-mole was recognizing the contested
+cases are deterministic: a rules layer (pre_classify, 37 unit tests from
+real confusion rows) handles trade-prefix/sign/demolition/flatwork permits
+at 100% accuracy and the GPU-resident 35B classifies only the genuinely
+fuzzy remainder. Hybrid result: 97.14% overall, no major category below
+94%, GATE PASS, independently recomputed from artifacts. Bulk run
+tx_bulk_v2 is live on R730 at ~34 rows/min (8.5x the 122B): recent slice
+(2024-26) enriched in ~6 days, 2020+ in ~25, full 3.8M in ~78. Production
+safety added after an incident: an un-gated prompt variant briefly wrote
+56 rows (purged); canonical.classifier_gate + a startup guard now ensure
+only eval-gated classifier versions can write enrichment rows. Momentum
+MV SQL is staged and can ship when recent-slice coverage lands.
+
+## Sprint complete
+
+All five phases hit their completion promises. Operational notes: a
+self-rewaking Fable background agent caused repeated dual-operator
+interference and one production data incident during Phase 4 (purged,
+gate-guarded); per Will's directive the standing model pipeline is now
+Fable plan -> Opus orchestrate -> Sonnet build -> Fable test. The
+rules+LLM hybrid pattern and the eval-gate-before-bulk-write guard are
+the durable architecture takeaways.
