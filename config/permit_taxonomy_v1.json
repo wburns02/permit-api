@@ -1,0 +1,205 @@
+{
+  "version": "taxonomy_v1",
+  "created": "2026-06-10",
+  "notes": [
+    "Closed-set taxonomy for canonical.permits TX classification.",
+    "Derived from the top 200 permit_type values by frequency for vetted TX rows (data/tx_permit_types_top200.txt).",
+    "Precedence rule: classify by the permit's OWN scope, not the parent project. A standalone 'Electrical Permit / New' pulled for a new house is 'electrical', not 'residential_new'. Only the building permit itself for a new dwelling is 'residential_new'.",
+    "Trade-permit subtypes (New/Remodel/Repair/Change Out/Addition) stay in the trade category.",
+    "When permit_type is a generic department bucket (e.g. 'Building Inspections and Permits', 'Historical'), classify from description_raw; if description is also empty/uninformative, use other_unknown."
+  ],
+  "categories": [
+    {
+      "key": "residential_new",
+      "name": "Residential New Construction",
+      "description": "New single-family home, duplex, or townhome building permit (the structure itself, not trade permits pulled under it).",
+      "examples": ["Residential Building Permit / New", "Building (BU) Single Family  New Construction / SINGLE FAMILY DWELLING", "Res New Building Permit / New"]
+    },
+    {
+      "key": "multifamily_new",
+      "name": "Multi-Family New Construction",
+      "description": "New apartment, condominium, or other multi-family building permit (3+ units).",
+      "examples": ["Building (BU) Multi Family  New Construction / MULTI-FAMILY DWELLING", "Building Permit / New (description: new 24-unit apartment building)", "Comm New Building Permit / New (description: multi-family)"]
+    },
+    {
+      "key": "residential_remodel",
+      "name": "Residential Remodel / Repair",
+      "description": "Interior or exterior remodel, renovation, alteration, or general repair of an existing residential structure (single- or multi-family).",
+      "examples": ["Residential Building Permit / Remodel", "Building (BU) Single Family  Alteration / SINGLE FAMILY DWELLING", "Residential Repair Permit"]
+    },
+    {
+      "key": "residential_addition",
+      "name": "Residential Addition",
+      "description": "Room addition, second story, attached garage addition, covered patio/porch, or addition-and-remodel on a residential structure.",
+      "examples": ["Building Permit / Addition", "Building (BU) Single Family  Addition / SINGLE FAMILY DWELLING", "Covered Patio or Porch Permit / Existing"]
+    },
+    {
+      "key": "commercial_new",
+      "name": "Commercial New Construction",
+      "description": "New commercial, office, retail, industrial, institutional, or mixed-use building, including shell buildings.",
+      "examples": ["Commercial Building Permit / New", "Comm New Building Permit / New", "Building Permit / Shell"]
+    },
+    {
+      "key": "commercial_remodel_ti",
+      "name": "Commercial Remodel / Tenant Improvement",
+      "description": "Remodel, renovation, tenant finish-out, interior alteration, or repair of an existing commercial building.",
+      "examples": ["Commercial Building Permit / Remodel", "Building (BU) Commercial  Renovation / OFFICE BUILDING", "Comm Remodel Permit / Existing"]
+    },
+    {
+      "key": "roofing",
+      "name": "Roofing / Re-Roof",
+      "description": "Roof replacement, re-roof, or roof repair on any structure type.",
+      "examples": ["Re-Roof Permit", "Building Permit / Repair (description: reroof composition shingles)", "Residential Repair Permit (description: replace roof decking and shingles)"]
+    },
+    {
+      "key": "electrical",
+      "name": "Electrical",
+      "description": "Electrical trade permit of any subtype: service upgrade, rewire, panel change, loop, temporary power, auxiliary power, security systems, low voltage.",
+      "examples": ["Electrical Permit / Remodel", "Electrical / Standalone", "Electrical Permit / Auxiliary Power"]
+    },
+    {
+      "key": "plumbing",
+      "name": "Plumbing / Gas",
+      "description": "Plumbing trade permit of any subtype: water/sewer lines, gas lines, backflow prevention, water heater change-out, sewer cut-over, fixture work.",
+      "examples": ["Plumbing Permit / Remodel", "Plumbing Backflow / Standalone", "Plumbing Gas Permit"]
+    },
+    {
+      "key": "mechanical_hvac",
+      "name": "Mechanical / HVAC",
+      "description": "Mechanical trade permit of any subtype: HVAC install, A/C or furnace change-out, ductwork, ventilation, exhaust systems.",
+      "examples": ["Mechanical Permit / Change Out", "Mechanical / Umbrella", "Mechanical (ME) Single Family  Alteration / SINGLE FAMILY DWELLING"]
+    },
+    {
+      "key": "solar",
+      "name": "Solar / Photovoltaic",
+      "description": "Solar panel or photovoltaic system installation, including battery storage tied to solar.",
+      "examples": ["Solar - Photovoltaic Permit", "Electrical Permit (description: install roof-mounted PV solar array)", "Building Permit (description: 8.5 kW solar photovoltaic system)"]
+    },
+    {
+      "key": "pool_spa",
+      "name": "Pool / Spa",
+      "description": "Swimming pool, spa, or hot tub construction, renovation, or demolition-of-pool permits.",
+      "examples": ["Swimming Pool or Spa Permit", "Swimming Pool (SW) Single Family  Renovation / SINGLE FAMILY DWELLING", "Building Permit (description: in-ground gunite pool and spa)"]
+    },
+    {
+      "key": "septic_ossf",
+      "name": "Septic / OSSF",
+      "description": "On-site sewage facility: septic tank install, repair, replacement, drainfield work, aerobic systems, septic abandonment.",
+      "examples": ["OSSF Permit", "Plumbing Permit / Cut Over/Tank Abandonment (description: abandon septic tank, connect to city sewer)", "Septic System / New"]
+    },
+    {
+      "key": "demolition",
+      "name": "Demolition",
+      "description": "Full or partial demolition of a structure, including interior non-structural demo.",
+      "examples": ["Building Permit / Demolition", "Demolition Permit SFD/Duplex / SINGLE FAMILY DWELLING", "Building Permit / Interior Demo Non-Structural"]
+    },
+    {
+      "key": "sign",
+      "name": "Sign",
+      "description": "Sign installation or alteration: on-premise signs, electrical signs, billboards, banners.",
+      "examples": ["On Premise Sign", "Sign Permit Application", "Electrical Sign New Construction / OFFICE BUILDING"]
+    },
+    {
+      "key": "fence",
+      "name": "Fence",
+      "description": "Fence or wall installation, replacement, or repair (includes retaining walls when permitted as fence/wall).",
+      "examples": ["Residential Fence Permit", "Fence (FE) Single Family  Alteration / SINGLE FAMILY DWELLING", "Electrical Permit / Wall (description: fence wall)"]
+    },
+    {
+      "key": "driveway_flatwork",
+      "name": "Driveway / Sidewalk / Flatwork",
+      "description": "Driveway, sidewalk, curb cut, drive approach, patio slab, or other concrete flatwork.",
+      "examples": ["Driveway / Sidewalks / New", "Sidewalk-Curb Permit", "Paving (Sidewalk, Drive Approaches) (PV) Single Fa / SINGLE FAMILY DWELLING"]
+    },
+    {
+      "key": "irrigation",
+      "name": "Irrigation / Lawn Sprinkler",
+      "description": "Lawn sprinkler or landscape irrigation system installation or repair.",
+      "examples": ["Plumbing Permit / Irrigation", "Plumbing Irrigation Permit", "Lawn Sprinkler (LS) Single Family  Alteration / SINGLE FAMILY DWELLING"]
+    },
+    {
+      "key": "fire_systems",
+      "name": "Fire Protection Systems",
+      "description": "Fire sprinkler, fire alarm, fire line, fire suppression, or other life-safety fire system work.",
+      "examples": ["Plumbing Permit / Fireline", "Fire Sprinkler Permit", "Building Permit / Life Safety"]
+    },
+    {
+      "key": "grading_sitework",
+      "name": "Grading / Sitework",
+      "description": "Grading, excavation, drainage, site preparation, paving of sites, erosion control, road/bridge construction and maintenance.",
+      "examples": ["Commercial Grading Permit / NA", "Comm Sitework Permit / New", "Construction / Seal Coat"]
+    },
+    {
+      "key": "mobile_home",
+      "name": "Mobile / Manufactured Home",
+      "description": "Manufactured or mobile home placement, installation, or RV-as-dwelling permits.",
+      "examples": ["Mobile Home Permit", "Manufactured Home Installation", "Building Permit / Relocation (description: move manufactured home onto lot)"]
+    },
+    {
+      "key": "accessory_structure",
+      "name": "Accessory Structure",
+      "description": "Detached garage, shed, carport, barn, workshop, gazebo, deck, or other accessory building on residential or commercial property.",
+      "examples": ["Residential Accessory Struct / New", "Commercial Accessory Structure / New", "Carport Permit"]
+    },
+    {
+      "key": "water_well",
+      "name": "Water Well",
+      "description": "Water well drilling, plugging, or pump installation (not oil/gas wells).",
+      "examples": ["Water Well Permit", "Well Drilling Permit", "Plumbing Permit (description: connect domestic water well to house)"]
+    },
+    {
+      "key": "oil_gas_surface",
+      "name": "Oil & Gas Surface Activity",
+      "description": "Oil/gas related surface permits: gas well drilling within city limits, pipelines, compressor stations, seismic surveys, production facilities.",
+      "examples": ["Gas Well Permit", "Pipeline Permit", "Gas Well Pad Site / New"]
+    },
+    {
+      "key": "row_utility",
+      "name": "Right-of-Way / Utility",
+      "description": "Work in public right-of-way, utility excavation/locates, franchise utility, street cuts, barricades, utility service connections.",
+      "examples": ["Franchise Utility", "EX / Austin Water (AW)", "Barricade (BA) Commercial  Alteration / STREET BARRICADE"]
+    },
+    {
+      "key": "event_temporary",
+      "name": "Event / Temporary Use",
+      "description": "Temporary structures or uses: tents, special events, garage sales, temporary banners, RV parking, food trailers, temporary occupancy.",
+      "examples": ["Garage Sale", "Across the Street Banner", "Garage Sale Permit/ Recreational Vehicle (RV) Parking Permits"]
+    },
+    {
+      "key": "foundation_repair",
+      "name": "Foundation Repair",
+      "description": "Foundation repair, leveling, or underpinning of an existing structure.",
+      "examples": ["Foundation Repair Permit", "Building Permit / Repair (description: install 22 foundation piers)", "Residential Repair Permit (description: foundation leveling)"]
+    },
+    {
+      "key": "land_development",
+      "name": "Land Development / Platting / Zoning",
+      "description": "Subdivision plats, site plans, zoning cases, variances, design review, floodplain development review.",
+      "examples": ["Subdivision / Final Plat", "Design Review / HCLC", "Subdivision / Subdivision Construction Plan"]
+    },
+    {
+      "key": "tree_landscape",
+      "name": "Tree / Landscape",
+      "description": "Tree removal/pruning permits, urban forestry reviews, landscape permits.",
+      "examples": ["Tree Affidavit Permit", "Urban Forestry / NA", "Tree Application"]
+    },
+    {
+      "key": "admin_licensing",
+      "name": "Administrative / Licensing / Registration",
+      "description": "Non-construction administrative records: contractor registration, certificates of occupancy, business licenses, rental registration, inspections-only records.",
+      "examples": ["Contractor Registration", "COO Application", "Housing (Multi-Family Registration, Single-Family Long-Term Registration, Short-Term Rental Registration (Airbnb, vrbo, etc.))"]
+    },
+    {
+      "key": "code_enforcement",
+      "name": "Code Enforcement / Violation",
+      "description": "Code compliance cases, violations, environmental nuisance complaints, substandard structure cases.",
+      "examples": ["Code Enforcement", "Environmental Violation / Environmental Nuisance (Self-Initiated)", "Neighborhood Services/Code Compliance (description: substandard structure case)"]
+    },
+    {
+      "key": "other_unknown",
+      "name": "Other / Unknown",
+      "description": "Cannot be determined from the given fields, or genuinely outside every other category (e.g. department-only records with empty descriptions).",
+      "examples": ["Historical", "Building Inspections and Permits (no description)", "Police Department"]
+    }
+  ]
+}

@@ -1,0 +1,4 @@
+eval set: 500 rows (67 critic overrides), 0 excluded
+[classify 8/500] 118s
+[classify 16/500] 228s
+[classify 24/500] 441s

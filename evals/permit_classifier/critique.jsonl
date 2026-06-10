@@ -1,0 +1,500 @@
+{"id": "4832f053-dd5f-417f-ba26-59d111be2654", "verdict": "agree", "better": null, "reason": ""}
+{"id": "97cf3af8-c0e3-4599-a92d-cc82e0c24f5e", "verdict": "agree", "better": null, "reason": ""}
+{"id": "c34a92bb-5a66-49a1-96b1-d48a280a7cbb", "verdict": "agree", "better": null, "reason": ""}
+{"id": "1ebde6e4-fbb6-4525-9598-4af04fd28355", "verdict": "agree", "better": null, "reason": ""}
+{"id": "cfef3b61-3a58-4eae-84da-5a947bddfacf", "verdict": "disagree", "better": "driveway_flatwork", "reason": "Permit type is Driveway/Sidewalks; per rule 1 the permit's own scope is flatwork even though the description names the parent garage-conversion project, matching how the trade permits in this batch were handled"}
+{"id": "ae510177-8449-4e91-b037-d4132aa81d03", "verdict": "agree", "better": null, "reason": ""}
+{"id": "8cde58e6-75c9-4bcb-be8a-09d740799da3", "verdict": "agree", "better": null, "reason": ""}
+{"id": "b973d6c6-db65-4b85-b477-e5bc292d2e2f", "verdict": "agree", "better": null, "reason": ""}
+{"id": "8f577a42-563c-428a-b059-a1f8316995c9", "verdict": "agree", "better": null, "reason": ""}
+{"id": "6f4c4d0a-9073-4f48-9e47-ab932c555cf6", "verdict": "agree", "better": null, "reason": ""}
+{"id": "40b0b8cd-13ff-43d0-9798-378cb94672a8", "verdict": "agree", "better": null, "reason": ""}
+{"id": "aa092497-745b-480e-93f1-5520ee341775", "verdict": "agree", "better": null, "reason": ""}
+{"id": "89311e5b-bf44-481c-9aef-7c644b0c5694", "verdict": "agree", "better": null, "reason": ""}
+{"id": "8d1cbbf3-676a-4533-a304-866e825360ed", "verdict": "agree", "better": null, "reason": ""}
+{"id": "5af38e72-5b8b-484f-a5d1-809e38b6189d", "verdict": "agree", "better": null, "reason": ""}
+{"id": "18393ff8-c0f7-41cc-adcc-0e198bbad49b", "verdict": "agree", "better": null, "reason": ""}
+{"id": "a323e7f0-4ae4-41ad-8c61-10db8c6e63e7", "verdict": "agree", "better": null, "reason": ""}
+{"id": "68cd3a72-e081-47ad-b4e3-2943a0536d79", "verdict": "agree", "better": null, "reason": ""}
+{"id": "0a24d973-742c-42f8-ade6-41d06777c472", "verdict": "agree", "better": null, "reason": ""}
+{"id": "87f17ca6-a89f-485a-9a9a-4cdde9d1fea7", "verdict": "agree", "better": null, "reason": ""}
+{"id": "1ea2acbf-5d65-45e9-9a25-90a58d9e845c", "verdict": "agree", "better": null, "reason": ""}
+{"id": "17a44dbe-fd89-434f-91bb-fd02e227146d", "verdict": "disagree", "better": "driveway_flatwork", "reason": "Permit type is Driveway/Sidewalks; description names the parent change-of-use project, but rule 1 says classify by the permit's own scope."}
+{"id": "5c0ab768-0473-4f8d-894d-92d65725242e", "verdict": "agree", "better": null, "reason": ""}
+{"id": "17038064-3c0a-4419-a531-da7982fe564d", "verdict": "agree", "better": null, "reason": ""}
+{"id": "575ea87c-15e7-436b-8a53-c1d40ba692c3", "verdict": "agree", "better": null, "reason": ""}
+{"id": "b83c5534-811e-4919-a063-5815bab260b0", "verdict": "disagree", "better": "driveway_flatwork", "reason": "Driveway/Sidewalks permit pulled under an office remodel project; rule 1 keeps it driveway_flatwork."}
+{"id": "3bca3faa-ca41-469f-8455-d43d189b88df", "verdict": "disagree", "better": "mechanical_hvac", "reason": "Mechanical trade permit under a library addition/remodel project; own scope is mechanical per rules 1 and 3."}
+{"id": "47939482-32d9-4238-9823-6ef196836c54", "verdict": "agree", "better": null, "reason": ""}
+{"id": "3434afb7-735c-414b-83ab-d8ed5ab87973", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d786ac80-3240-471b-8f94-9ddedc58c1b5", "verdict": "agree", "better": null, "reason": ""}
+{"id": "ef239bdb-6e0d-440e-b636-f5151f4fa53a", "verdict": "disagree", "better": "mechanical_hvac", "reason": "Mechanical Permit / Addition is a trade permit for the living-room addition project; rule 1 makes it mechanical_hvac, not residential_addition."}
+{"id": "c1cbdb24-80ae-4f3d-a004-6cb1572e3d1a", "verdict": "disagree", "better": "driveway_flatwork", "reason": "Driveway/Sidewalks permit under the Silicon Labs finish-out project; own scope is flatwork per rule 1."}
+{"id": "a32d25d0-c342-484a-bb6c-dd610264e14d", "verdict": "agree", "better": null, "reason": ""}
+{"id": "6668fdb7-a4fb-44a0-af9e-70877361a142", "verdict": "agree", "better": null, "reason": ""}
+{"id": "38a9c05a-9880-4071-93f1-66fea7ebbdf0", "verdict": "agree", "better": null, "reason": ""}
+{"id": "052bb986-3dc4-494c-8444-8c850236d27d", "verdict": "agree", "better": null, "reason": ""}
+{"id": "5d7bbd22-7678-4d69-9288-9cdb67ee7797", "verdict": "agree", "better": null, "reason": ""}
+{"id": "b672ba57-37f8-43e4-b459-5106d47bf7f2", "verdict": "agree", "better": null, "reason": ""}
+{"id": "c9434934-1231-4dea-9635-f1db320c1514", "verdict": "agree", "better": null, "reason": ""}
+{"id": "e963879d-d9f9-4033-aca6-76ba4476e0fe", "verdict": "agree", "better": null, "reason": ""}
+{"id": "350ee7ad-843b-413f-9696-620cf1b02175", "verdict": "agree", "better": null, "reason": ""}
+{"id": "7ccd33db-67c2-45c3-ad2a-b5b04446392f", "verdict": "agree", "better": null, "reason": ""}
+{"id": "1718e466-3161-4998-8b72-e49096c5c154", "verdict": "agree", "better": null, "reason": ""}
+{"id": "ed0e9eed-9828-4922-8a82-8c75424240ab", "verdict": "agree", "better": null, "reason": ""}
+{"id": "3f9eb4b3-6fc0-4806-93be-6d900f9d7153", "verdict": "agree", "better": null, "reason": ""}
+{"id": "c3c43e5a-7435-40f4-8e74-ce1435b91eff", "verdict": "agree", "better": null, "reason": ""}
+{"id": "31d3bae7-4cba-4063-ab51-f6c3d430f651", "verdict": "agree", "better": null, "reason": ""}
+{"id": "39ab6c5b-49c9-4d3d-936e-2eaedeb6f279", "verdict": "agree", "better": null, "reason": ""}
+{"id": "f7d5356c-aa3c-43ac-bbcc-84a39115c744", "verdict": "agree", "better": null, "reason": ""}
+{"id": "399387e1-7c51-43a8-ba55-2e3213fb69ba", "verdict": "agree", "better": null, "reason": ""}
+{"id": "144ca51f-ba7c-42a6-a0ed-3ca1a0ae6ae2", "verdict": "agree", "better": null, "reason": ""}
+{"id": "e1dd82bd-e884-4150-8bee-fce6acf3b187", "verdict": "agree", "better": null, "reason": ""}
+{"id": "5f924c52-5f4d-4825-89f4-af1809915a67", "verdict": "agree", "better": null, "reason": ""}
+{"id": "051be16d-a90c-4a7a-b07b-aba683dad40d", "verdict": "agree", "better": null, "reason": ""}
+{"id": "b2e2a9ca-2f1d-4f10-847b-7246ea0a4170", "verdict": "agree", "better": null, "reason": ""}
+{"id": "a36842db-08b3-43bd-bbbb-3d022401f417", "verdict": "agree", "better": null, "reason": ""}
+{"id": "2a9b2a35-9553-44b7-9f12-635fef6cc8fa", "verdict": "disagree", "better": "commercial_remodel_ti", "reason": "This is a Building Permit (not a mechanical trade permit) for a new central plant building plus interior renovation at a commercial/institutional facility; addition-and-remodel building work goes to commercial_remodel_ti."}
+{"id": "b3e1b83f-1e69-441c-8b81-6de21ed2c171", "verdict": "agree", "better": null, "reason": ""}
+{"id": "77700bae-d1cb-4929-b8e5-2f65d4bb63ec", "verdict": "agree", "better": null, "reason": ""}
+{"id": "e0ed3254-1e3d-493f-924c-f67b1b0350df", "verdict": "agree", "better": null, "reason": ""}
+{"id": "08d40d07-c16b-4c6a-87f8-adffd326f63d", "verdict": "agree", "better": null, "reason": ""}
+{"id": "dc90fe3c-684a-4eb6-b712-7b63ac380634", "verdict": "agree", "better": null, "reason": ""}
+{"id": "e116ae02-3925-4b07-89ed-0df1bb7167f0", "verdict": "agree", "better": null, "reason": ""}
+{"id": "c61cd205-cdab-40b6-8505-08a0887e7011", "verdict": "agree", "better": null, "reason": ""}
+{"id": "1970c119-894d-4d54-b6ef-c5e37bb77b37", "verdict": "disagree", "better": "plumbing", "reason": "Rule 1: this is a Plumbing Permit whose description restates the parent addition/remodel project; the permit's own scope is plumbing, same as the electrical permits above."}
+{"id": "07bf64c6-24f3-40eb-a76e-a4979f7ddcfa", "verdict": "agree", "better": null, "reason": ""}
+{"id": "8be107bd-982b-4b1e-8afa-f5ae874351c6", "verdict": "agree", "better": null, "reason": ""}
+{"id": "061759ab-6ccd-4fee-be8b-5f930890f76e", "verdict": "agree", "better": null, "reason": ""}
+{"id": "74981f23-4672-44de-91c8-bf2628828765", "verdict": "agree", "better": null, "reason": ""}
+{"id": "96ac8844-2d83-462d-92d0-be908cfd94b0", "verdict": "agree", "better": null, "reason": ""}
+{"id": "441dfc55-3a6e-4cff-92d0-cec475241432", "verdict": "disagree", "better": "residential_remodel", "reason": "Fire-damage repair spans drywall, insulation, electrical fixtures, and framing; reroof is only one part of a general repair, so the broader remodel/repair category fits the permit's full scope."}
+{"id": "0cd6274d-adaa-4e01-9c5e-84a7e58e330c", "verdict": "agree", "better": null, "reason": ""}
+{"id": "b07bbe14-e2ed-47ea-9b7b-87f27d4b0b6d", "verdict": "agree", "better": null, "reason": ""}
+{"id": "7cc408b1-9d78-41fb-a4c6-809edc4cbc50", "verdict": "agree", "better": null, "reason": ""}
+{"id": "0bcd0574-3aac-4d72-889d-d65021128f61", "verdict": "agree", "better": null, "reason": ""}
+{"id": "3066c476-ca09-4973-bf49-3515835f277f", "verdict": "agree", "better": null, "reason": ""}
+{"id": "46dc25f5-fa89-41a2-9ddc-2bb935a2d4a7", "verdict": "agree", "better": null, "reason": ""}
+{"id": "9bf071ec-6049-46b7-b0ac-dd5ec91a6d48", "verdict": "agree", "better": null, "reason": ""}
+{"id": "fd530780-cc87-4a96-8865-8007ca0ff0a9", "verdict": "agree", "better": null, "reason": ""}
+{"id": "1157ab40-deb9-4dc0-b089-9b7b1c3a2cea", "verdict": "agree", "better": null, "reason": ""}
+{"id": "50b83f5a-6be6-4136-97b1-14f16edfe796", "verdict": "agree", "better": null, "reason": ""}
+{"id": "28a17bef-6194-48c8-bbef-e8c248b15f68", "verdict": "agree", "better": null, "reason": ""}
+{"id": "2c4c2c1e-18c1-4e70-8517-9e3a8bd220b4", "verdict": "agree", "better": null, "reason": ""}
+{"id": "b9802033-adc9-466d-978a-f48445386d0c", "verdict": "agree", "better": null, "reason": ""}
+{"id": "b5cd51e7-7eba-4a4f-87d5-facb4b8ae864", "verdict": "agree", "better": null, "reason": ""}
+{"id": "762602f2-acee-4c7f-9d77-69edea3cd114", "verdict": "agree", "better": null, "reason": ""}
+{"id": "134b8350-c184-4362-9b85-515ead98bbf1", "verdict": "agree", "better": null, "reason": ""}
+{"id": "9821a782-9a31-4cfb-99cd-bb2e16c2b826", "verdict": "agree", "better": null, "reason": ""}
+{"id": "fad70a76-dc11-430e-8cde-9fb14ee973e5", "verdict": "agree", "better": null, "reason": ""}
+{"id": "bf32d993-4a2b-45ce-b507-3da3b32c14b6", "verdict": "agree", "better": null, "reason": ""}
+{"id": "71940ba6-b353-4c30-8e94-b3597075a5d5", "verdict": "agree", "better": null, "reason": ""}
+{"id": "19bc208c-0432-420c-b18c-9fb26fab88a8", "verdict": "agree", "better": null, "reason": ""}
+{"id": "25b2c858-fa3f-4e2b-b7f4-ebb411fff544", "verdict": "agree", "better": null, "reason": ""}
+{"id": "ac71187f-c143-4669-8c7e-ba83c27333bb", "verdict": "agree", "better": null, "reason": ""}
+{"id": "08676962-bfe9-4ec4-9353-ec4b788128fb", "verdict": "agree", "better": null, "reason": ""}
+{"id": "dd2024a6-2364-4fc2-8f91-6e3df37a47a8", "verdict": "agree", "better": null, "reason": ""}
+{"id": "0098028a-b718-40d4-95db-5c5b13622a25", "verdict": "agree", "better": null, "reason": ""}
+{"id": "b6f9aef4-1bcf-4e68-9925-435a46e085b6", "verdict": "agree", "better": null, "reason": ""}
+{"id": "22f52c0c-070a-4f45-aef3-630efb352027", "verdict": "agree", "better": null, "reason": ""}
+{"id": "34a2b814-d870-4dc9-9d1a-226ba5d6c672", "verdict": "agree", "better": null, "reason": ""}
+{"id": "cfc6dbf2-a7d2-4a0f-9d98-86501d3e2c06", "verdict": "agree", "better": null, "reason": ""}
+{"id": "79facc4f-9bad-4694-8816-e0782f68737e", "verdict": "agree", "better": null, "reason": ""}
+{"id": "b0f16eec-6ea1-4daf-bb98-9a7ef8873821", "verdict": "agree", "better": null, "reason": ""}
+{"id": "6a5d04fb-34f7-4cf5-907c-52dd66ca5f82", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d5b66bc4-daf8-4697-8022-1003084657ed", "verdict": "agree", "better": null, "reason": ""}
+{"id": "2371facd-ffef-44e6-9852-86798cfa1b1d", "verdict": "agree", "better": null, "reason": ""}
+{"id": "30cfc659-e768-4072-8295-a68b42bbb888", "verdict": "agree", "better": null, "reason": ""}
+{"id": "7385f278-c6fc-405e-9161-2d2952cdd5da", "verdict": "agree", "better": null, "reason": ""}
+{"id": "8ae7b6ae-6042-4949-a6de-733148d71eb2", "verdict": "agree", "better": null, "reason": ""}
+{"id": "6d14aa1d-befe-44c4-bbab-9d0c10f0cc7a", "verdict": "agree", "better": null, "reason": ""}
+{"id": "495aa60f-93af-4080-9eaa-3fe04e5f2762", "verdict": "agree", "better": null, "reason": ""}
+{"id": "6af25ece-efbf-44d0-928f-249044f2c6d3", "verdict": "disagree", "better": "plumbing", "reason": "MEP trade permit naming a plumbing contractor (Lecea Plumbing) indicates a plumbing trade permit, not unknown."}
+{"id": "8b0b4182-3abe-43fd-8998-fc632feca544", "verdict": "agree", "better": null, "reason": ""}
+{"id": "0246ff17-9462-4d72-83d1-335d1b9fb2aa", "verdict": "agree", "better": null, "reason": ""}
+{"id": "854ea692-2c39-4352-b38d-007937577102", "verdict": "agree", "better": null, "reason": ""}
+{"id": "de68c8d1-cbae-4819-9e8e-40b95a3b13a2", "verdict": "agree", "better": null, "reason": ""}
+{"id": "bef226f8-4c13-4894-bab9-72a6722f4712", "verdict": "agree", "better": null, "reason": ""}
+{"id": "a08c1871-3d76-4b83-8de6-0843f8d36de4", "verdict": "agree", "better": null, "reason": ""}
+{"id": "fe78491f-1834-428b-8c6a-6acfb4e3f5b5", "verdict": "agree", "better": null, "reason": ""}
+{"id": "2a062945-192e-4dd7-95a1-4cdae3e0cb62", "verdict": "agree", "better": null, "reason": ""}
+{"id": "a891fa86-425f-4f44-8499-2257d0d58b16", "verdict": "agree", "better": null, "reason": ""}
+{"id": "1c5399af-edbe-4747-b2f9-afa9127ef071", "verdict": "agree", "better": null, "reason": ""}
+{"id": "93d5d19e-ee0c-44ff-8ef8-93230ba822d5", "verdict": "agree", "better": null, "reason": ""}
+{"id": "910d78e6-0d71-4d33-8482-a17803c8191a", "verdict": "agree", "better": null, "reason": ""}
+{"id": "e4a11f32-4816-41b8-b608-046ec51a4627", "verdict": "agree", "better": null, "reason": ""}
+{"id": "db738460-b5c0-4bc7-a3a1-d0df1b4892f1", "verdict": "agree", "better": null, "reason": ""}
+{"id": "847b7181-1090-4c46-af8a-54c21cdddc68", "verdict": "disagree", "better": "other_unknown", "reason": "A lot number is a location, not a scope of work; nothing indicates platting or subdivision review."}
+{"id": "fb18a950-4dac-44c7-9600-3164a2fa8f6e", "verdict": "agree", "better": null, "reason": ""}
+{"id": "c84468ab-7142-44ca-9401-e5dd258c6af1", "verdict": "agree", "better": null, "reason": ""}
+{"id": "8989002f-6264-4bb0-ae14-c867dee16d39", "verdict": "disagree", "better": "residential_remodel", "reason": "Permit type 'Residential Repair Permit' is informative; general repair of an existing residential structure fits residential_remodel."}
+{"id": "c1d8473f-82ed-4f8a-9fb9-a1638efc51bb", "verdict": "agree", "better": null, "reason": ""}
+{"id": "1a3f4ecf-516d-4b8a-b3d1-a1f3357c6a35", "verdict": "agree", "better": null, "reason": ""}
+{"id": "66c87df4-dfe9-4748-8753-faf3aa5dc85c", "verdict": "agree", "better": null, "reason": ""}
+{"id": "377dad8d-9905-4fb8-9276-97f91a39ef16", "verdict": "agree", "better": null, "reason": ""}
+{"id": "dfe350d0-ba12-440b-9228-0c3189f0f02b", "verdict": "agree", "better": null, "reason": ""}
+{"id": "4fba1058-8b7f-450b-adc2-6696e642f72f", "verdict": "agree", "better": null, "reason": ""}
+{"id": "2c5b6604-1fb4-40b8-a4d0-ad3567edbca1", "verdict": "agree", "better": null, "reason": ""}
+{"id": "fd06e5fc-8daf-4646-b5fa-cfd82946404a", "verdict": "agree", "better": null, "reason": ""}
+{"id": "794aa9ff-112a-4eae-ae4c-3447780d0670", "verdict": "agree", "better": null, "reason": ""}
+{"id": "1099aa15-9850-48a6-8081-8a0ec9c1dff6", "verdict": "agree", "better": null, "reason": ""}
+{"id": "cd71fafa-8277-49f9-aac2-d5f0b508d45f", "verdict": "agree", "better": null, "reason": ""}
+{"id": "89a83625-48f9-4611-92a2-68765d3ea14b", "verdict": "agree", "better": null, "reason": ""}
+{"id": "907046bd-05b7-4a99-ab47-f473064f8106", "verdict": "agree", "better": null, "reason": ""}
+{"id": "80fe3d30-d106-4e9d-b402-d666f64c791c", "verdict": "agree", "better": null, "reason": ""}
+{"id": "566fdb02-23bf-4ab8-befa-03c7b285005b", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d0ab781c-a7e4-404f-a31d-ccc7f63b7cd9", "verdict": "agree", "better": null, "reason": ""}
+{"id": "2ffe6f84-5e96-4ee2-b8df-f584e2a77dde", "verdict": "agree", "better": null, "reason": ""}
+{"id": "8f3a50a6-8bc0-4622-969f-76c509a879f5", "verdict": "agree", "better": null, "reason": ""}
+{"id": "acbc4e84-205f-4b45-9e91-4451eacb48f3", "verdict": "agree", "better": null, "reason": ""}
+{"id": "dad7945c-190d-46ac-90c0-1fc70cab6c73", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d057561c-19e9-43e3-b26c-9c2eb650cda1", "verdict": "agree", "better": null, "reason": ""}
+{"id": "1b9af13f-30f8-4e80-8042-5150320d1649", "verdict": "disagree", "better": "mechanical_hvac", "reason": "Permit type is Mechanical Permit; rule 1 classifies by the trade permit's own scope, not the parent addition project (consistent with the Mechanical 'New Residence' permit labeled mechanical_hvac)."}
+{"id": "61f62363-f6cd-4fd1-813d-1003e01dd233", "verdict": "agree", "better": null, "reason": ""}
+{"id": "a955e0b6-255f-4d0f-8935-d7ccd0cd0aa1", "verdict": "agree", "better": null, "reason": ""}
+{"id": "77fe5823-f3ff-499f-b029-a2f0097b6e2b", "verdict": "agree", "better": null, "reason": ""}
+{"id": "c15c2e62-5671-4cac-9937-502066ec33ee", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d4cf76c8-8198-4f86-a02d-8995fac8eb05", "verdict": "agree", "better": null, "reason": ""}
+{"id": "823aec8a-582d-45c9-b317-872e97f52cb2", "verdict": "agree", "better": null, "reason": ""}
+{"id": "7507dae5-60cb-4de0-87e2-9229b343b1cc", "verdict": "agree", "better": null, "reason": ""}
+{"id": "a63efed8-1298-4158-8abf-3e27247c6ccf", "verdict": "agree", "better": null, "reason": ""}
+{"id": "65d49798-456f-485e-ab84-c5385a58f02a", "verdict": "agree", "better": null, "reason": ""}
+{"id": "17a7cf48-2284-4ca4-b270-79123aa544ef", "verdict": "disagree", "better": "plumbing", "reason": "Plumbing trade permit pulled for a mobile home project; rule 1 says classify by the permit's own scope, not the parent project."}
+{"id": "6da00a44-a762-4ac2-9c7d-db8c9327a04d", "verdict": "agree", "better": null, "reason": ""}
+{"id": "8754bf4a-d6b2-4b94-b4cb-5f5bb0c7d27c", "verdict": "agree", "better": null, "reason": ""}
+{"id": "7ab0c599-308e-4cfa-be7e-85bb052be388", "verdict": "agree", "better": null, "reason": ""}
+{"id": "4b0caf1b-552c-4ac2-843c-0bdc16900824", "verdict": "agree", "better": null, "reason": ""}
+{"id": "b0993da4-015b-4a15-a977-6459c4b759b9", "verdict": "agree", "better": null, "reason": ""}
+{"id": "dfc5f267-a68c-485b-a897-9bdb3846e2e6", "verdict": "agree", "better": null, "reason": ""}
+{"id": "7aaf4131-b6ad-4154-aad8-43798589e19a", "verdict": "agree", "better": null, "reason": ""}
+{"id": "6a0bbb7a-5cea-4e52-ba12-88471fc94e88", "verdict": "agree", "better": null, "reason": ""}
+{"id": "bbd81e33-b14d-4bb9-936c-1def80969ec5", "verdict": "agree", "better": null, "reason": ""}
+{"id": "8a885c5f-235c-4968-a22a-b7c798dbd0a1", "verdict": "agree", "better": null, "reason": ""}
+{"id": "19723a50-a80c-4e9c-9945-32b573ccd866", "verdict": "agree", "better": null, "reason": ""}
+{"id": "ee01242e-6b73-419b-8b9c-1bd324d8bc93", "verdict": "agree", "better": null, "reason": ""}
+{"id": "8869bc23-cb08-4fdc-9b10-37b94aba5d73", "verdict": "agree", "better": null, "reason": ""}
+{"id": "92ae8c02-04de-4d52-9c62-0ff3e2d15b05", "verdict": "agree", "better": null, "reason": ""}
+{"id": "fc4081cb-7fdf-45d1-b6b5-9bb244e682e6", "verdict": "agree", "better": null, "reason": ""}
+{"id": "9862bc80-7d8e-43fc-ba0a-9fd007d16602", "verdict": "agree", "better": null, "reason": ""}
+{"id": "1adba6dd-abe5-4f3a-98d9-d5dd492d0161", "verdict": "agree", "better": null, "reason": ""}
+{"id": "3396cc86-0290-4896-9c55-d48a6b3a6df8", "verdict": "agree", "better": null, "reason": ""}
+{"id": "97e1e55c-1753-4503-9c51-a43c6558ffb5", "verdict": "agree", "better": null, "reason": ""}
+{"id": "64377665-1cc0-4d96-8ab8-4d48409b2e0c", "verdict": "agree", "better": null, "reason": ""}
+{"id": "aea1d89b-9d96-4c9b-9e62-f02e894c434e", "verdict": "agree", "better": null, "reason": ""}
+{"id": "83489da3-0d94-44c7-b5f0-16e8eeda1b40", "verdict": "agree", "better": null, "reason": ""}
+{"id": "b8a6f296-30d5-4e81-8720-84de4379387e", "verdict": "disagree", "better": "plumbing", "reason": "Plumbing trade permit pulled under a garage demolition; rule 1 keeps it plumbing (e.g. sewer cap), same as the Plumbing/Interior Demo permits above."}
+{"id": "75c66dc8-b67c-465f-beef-9aa5dba71f0a", "verdict": "disagree", "better": "mechanical_hvac", "reason": "Mechanical trade permit pulled under a residence demolition; rule 1 says classify by the permit's own trade scope, not the parent demolition project."}
+{"id": "8ae11c71-018e-499a-8d18-ba977bc371fa", "verdict": "disagree", "better": "plumbing", "reason": "Plumbing trade permit pulled under a demo/remodel project; rule 1 classifies by the permit's own trade scope, not the parent project."}
+{"id": "8ec13bba-8438-44fc-8c83-b3694cf8990e", "verdict": "disagree", "better": "plumbing", "reason": "Plumbing trade permit with an interior-demo work class; the permit's own scope is plumbing, not demolition."}
+{"id": "4b2b9b85-ce86-4862-84aa-58bd78b4415e", "verdict": "disagree", "better": "mechanical_hvac", "reason": "Mechanical trade permit pulled for the demolition project; rule 3 keeps trade permits in their trade category regardless of work-class subtype."}
+{"id": "3211e13f-a4cd-487f-be25-d8cb082a5d36", "verdict": "disagree", "better": "mechanical_hvac", "reason": "Mechanical trade permit with interior-demo subtype; own scope is mechanical work, not the demolition itself."}
+{"id": "0c894740-7883-4837-9bd5-02bd91b27437", "verdict": "disagree", "better": "plumbing", "reason": "Plumbing trade permit under a remodel/relocate project; classify by the plumbing trade scope per rule 1."}
+{"id": "d204b263-143f-472c-87a4-acaf0d8fd47a", "verdict": "disagree", "better": "mechanical_hvac", "reason": "Mechanical permit pulled to disconnect/remove mechanical systems for a commercial demo; the permit's own scope is mechanical, not demolition."}
+{"id": "9e4f83cb-0589-4be9-82cb-b87a1ccf9bab", "verdict": "agree", "better": null, "reason": ""}
+{"id": "40f78cd5-58fe-47f6-8cae-2a38ee0256ea", "verdict": "agree", "better": null, "reason": ""}
+{"id": "55cd3454-208e-4dc9-a402-12d59c2d40b3", "verdict": "agree", "better": null, "reason": ""}
+{"id": "54f174e6-c237-4dca-8948-ade0fb69e3f3", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d679e855-cec8-490b-8492-741b1726f8db", "verdict": "agree", "better": null, "reason": ""}
+{"id": "19360c52-a3f5-4e43-9cb0-9f7ad49ba1fe", "verdict": "agree", "better": null, "reason": ""}
+{"id": "5209d119-9d5c-4f27-8b5a-096cd50e474b", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d07ee9d7-0a59-4d25-9d59-c68a74ef3afb", "verdict": "agree", "better": null, "reason": ""}
+{"id": "52cf5388-8fd1-4d8b-a76f-45f2068d37d7", "verdict": "agree", "better": null, "reason": ""}
+{"id": "ff9342f9-0fa1-4cbd-9a60-143992077129", "verdict": "agree", "better": null, "reason": ""}
+{"id": "ba55e0c4-aac1-4e1e-a5d1-6e41c4329f82", "verdict": "agree", "better": null, "reason": ""}
+{"id": "8dbc011c-0416-4da8-8e27-976bff56dad5", "verdict": "agree", "better": null, "reason": ""}
+{"id": "02203460-f89a-4a9a-aefb-8e9760565dce", "verdict": "agree", "better": null, "reason": ""}
+{"id": "07dbce5c-0496-4885-8b89-fd72241fd86e", "verdict": "agree", "better": null, "reason": ""}
+{"id": "b9662e8f-55f6-42cc-a116-7df9d459c472", "verdict": "agree", "better": null, "reason": ""}
+{"id": "8e51414b-eaa6-456c-9012-24cb743f256a", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d4893b48-1317-4af1-81a6-ae48867ec394", "verdict": "agree", "better": null, "reason": ""}
+{"id": "38f80b0e-c03e-42ef-9e03-8cf66f4f44a7", "verdict": "agree", "better": null, "reason": ""}
+{"id": "9ea29411-73fa-475a-955e-844551041233", "verdict": "agree", "better": null, "reason": ""}
+{"id": "41ff0155-39ce-4004-a1cf-eb2cae9aa374", "verdict": "agree", "better": null, "reason": ""}
+{"id": "02289263-d3c3-4c99-99f2-d56f485d4428", "verdict": "agree", "better": null, "reason": ""}
+{"id": "b8fcd78a-3464-401f-86d4-7d335542c395", "verdict": "agree", "better": null, "reason": ""}
+{"id": "fbc2a291-21af-4cdd-bac2-dac971a8670b", "verdict": "agree", "better": null, "reason": ""}
+{"id": "15f8eda0-7a89-4ccf-b596-2e72ea603a5c", "verdict": "agree", "better": null, "reason": ""}
+{"id": "31d5bc1e-2f13-4140-b5e9-8e6ad801fd6f", "verdict": "agree", "better": null, "reason": ""}
+{"id": "af8907c0-507a-4bda-8d3e-0d363a7fb16a", "verdict": "agree", "better": null, "reason": ""}
+{"id": "aad078b2-ebfa-4c41-836b-057ffe3639f2", "verdict": "agree", "better": null, "reason": ""}
+{"id": "991fb333-7d35-4a45-81e7-832a35e87259", "verdict": "agree", "better": null, "reason": ""}
+{"id": "13d57ffe-a5b0-493a-bbec-81efe14206b9", "verdict": "agree", "better": null, "reason": ""}
+{"id": "cf7701c9-b34c-4bd9-bd88-d976b0a3a17c", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d37da278-fed9-402b-8937-62a5da12b3f4", "verdict": "agree", "better": null, "reason": ""}
+{"id": "bf434476-5e1c-4524-b9cc-8a386888d331", "verdict": "agree", "better": null, "reason": ""}
+{"id": "c38a52bb-4973-446d-9998-9bc43d2dd1fb", "verdict": "agree", "better": null, "reason": ""}
+{"id": "ab1a02b0-a024-4962-84b6-3012dc8ac1f3", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d0054ae0-4da2-4400-b3f9-253f6021ed42", "verdict": "agree", "better": null, "reason": ""}
+{"id": "36af0cf1-0af2-4aa0-807b-8b1adda5217c", "verdict": "agree", "better": null, "reason": ""}
+{"id": "585f4772-cc81-4479-baad-7c293ea7c536", "verdict": "agree", "better": null, "reason": ""}
+{"id": "1105587b-e3cf-41e3-a52e-39ef39e1b238", "verdict": "agree", "better": null, "reason": ""}
+{"id": "92aaecea-8711-4d74-a52c-659b3399782f", "verdict": "agree", "better": null, "reason": ""}
+{"id": "4850a41e-0661-443b-b379-2921fbd869ac", "verdict": "agree", "better": null, "reason": ""}
+{"id": "45ed7407-dc13-4545-815c-3a641f97db3d", "verdict": "agree", "better": null, "reason": ""}
+{"id": "fb15c8bc-4417-483b-91e6-d6698c546889", "verdict": "agree", "better": null, "reason": ""}
+{"id": "7aea23ac-1e6d-4d15-9813-da340d855267", "verdict": "agree", "better": null, "reason": ""}
+{"id": "ead42025-56ac-4e63-af78-ad8bd2a25ce4", "verdict": "agree", "better": null, "reason": ""}
+{"id": "10c324cd-bd69-4442-b040-868a178e0255", "verdict": "agree", "better": null, "reason": ""}
+{"id": "71a5885e-44f0-4b1b-8f24-2c7b93f4c96d", "verdict": "agree", "better": null, "reason": ""}
+{"id": "4e20c5b5-d656-4bcb-a9bb-76cdb0bb40dc", "verdict": "agree", "better": null, "reason": ""}
+{"id": "990d2f76-4f65-4c16-9129-7c42c8e81198", "verdict": "agree", "better": null, "reason": ""}
+{"id": "7e141b28-5f87-4611-a8a5-46810743327d", "verdict": "agree", "better": null, "reason": ""}
+{"id": "e4397ed0-94a8-4f41-823a-8c61ffec19ae", "verdict": "agree", "better": null, "reason": ""}
+{"id": "52e697c1-8dd1-4b87-a303-17a0739ac89e", "verdict": "agree", "better": null, "reason": ""}
+{"id": "3931e303-e247-4a22-964e-dc39a7397f67", "verdict": "agree", "better": null, "reason": ""}
+{"id": "2d6cbe43-5295-4c8a-b5c6-177d07614045", "verdict": "agree", "better": null, "reason": ""}
+{"id": "df79db0e-a4e9-4e55-829d-d4e99ab4f7cd", "verdict": "agree", "better": null, "reason": ""}
+{"id": "cb7c7a5a-9284-4c24-97f3-91745230a026", "verdict": "agree", "better": null, "reason": ""}
+{"id": "8f638a37-70f8-4393-8fc5-b33e1744566d", "verdict": "agree", "better": null, "reason": ""}
+{"id": "6f2400ea-c49b-4749-b9eb-057f4a6965ef", "verdict": "agree", "better": null, "reason": ""}
+{"id": "80df426e-039d-4bbf-9ba3-3aeba1112c7f", "verdict": "agree", "better": null, "reason": ""}
+{"id": "cb07a15a-44d0-4813-971b-58d4fc0a7319", "verdict": "agree", "better": null, "reason": ""}
+{"id": "45b0ca86-729c-438d-bb54-1926d8bee86f", "verdict": "agree", "better": null, "reason": ""}
+{"id": "a7443087-bfa9-4ea5-ad36-029124aedae1", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d771fa5d-da63-4829-9f6f-413a468e8500", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d48e2dfa-3ed8-49a3-99d7-59d3c5fa52c7", "verdict": "agree", "better": null, "reason": ""}
+{"id": "7522ad03-6499-402f-a341-2ced05cdf5b7", "verdict": "agree", "better": null, "reason": ""}
+{"id": "3ac2bd05-fb62-4feb-baf7-d45090e958e3", "verdict": "agree", "better": null, "reason": ""}
+{"id": "b7709bd5-d221-4a4e-aa92-4c78f7db8952", "verdict": "agree", "better": null, "reason": ""}
+{"id": "7a47c799-f106-4eca-8606-d441093445d0", "verdict": "agree", "better": null, "reason": ""}
+{"id": "c4bd46fb-dd7f-469f-9ac1-5d145cfdf9ab", "verdict": "agree", "better": null, "reason": ""}
+{"id": "5bc02345-c562-4ded-9b85-0561a453cf95", "verdict": "agree", "better": null, "reason": ""}
+{"id": "c882273c-38d3-4d2a-8d7b-a2b88b6d6c75", "verdict": "agree", "better": null, "reason": ""}
+{"id": "e8f352ff-8dbc-4797-ae5f-db694a502276", "verdict": "disagree", "better": "plumbing", "reason": "Permit type 'Plumbing / Single Family' is informative despite empty description; rule 6 only applies to generic department-only types."}
+{"id": "b71ab5ca-2a30-4377-9f74-88d2ea86da73", "verdict": "agree", "better": null, "reason": ""}
+{"id": "554dca3a-5d5e-42e7-9a62-8ad91a36a9e1", "verdict": "agree", "better": null, "reason": ""}
+{"id": "529dd4db-0f17-41ab-80b9-0a885fad398a", "verdict": "agree", "better": null, "reason": ""}
+{"id": "9369eaca-3100-4320-ad3d-2b8abb16984c", "verdict": "agree", "better": null, "reason": ""}
+{"id": "a355eb65-c0b1-484c-b225-7ea2b7f426ff", "verdict": "disagree", "better": "row_utility", "reason": "Permit type 'Right of Way Management' clearly indicates right-of-way work even with empty description."}
+{"id": "b4ba2163-c639-4f03-b221-146d80610f7b", "verdict": "agree", "better": null, "reason": ""}
+{"id": "30d76f3e-6ade-4610-8179-4e2718ef1aba", "verdict": "agree", "better": null, "reason": ""}
+{"id": "8535d61c-fcd7-46ec-8305-b8f19e7d1b51", "verdict": "agree", "better": null, "reason": ""}
+{"id": "0deef1c5-73d4-4edc-a14d-243fa62db209", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d53ea532-6573-4c11-8f7e-caeef81a9980", "verdict": "agree", "better": null, "reason": ""}
+{"id": "ce6a245f-d64e-446d-b229-d2f8e44e95b8", "verdict": "disagree", "better": "admin_licensing", "reason": "admin_licensing explicitly covers inspections-only records; 'Inspection Reports' type is informative."}
+{"id": "3cf13925-5601-4e3f-aca6-3302b15b42b7", "verdict": "agree", "better": null, "reason": ""}
+{"id": "be1095fb-66e3-4487-b83a-d2049cc85318", "verdict": "agree", "better": null, "reason": ""}
+{"id": "4e62ffe5-2564-4947-8339-fe738ac6070b", "verdict": "agree", "better": null, "reason": ""}
+{"id": "80fea84f-b756-4516-9894-68f6f052773f", "verdict": "agree", "better": null, "reason": ""}
+{"id": "cdff3f46-144c-4368-8243-281fd4d9a0bb", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d2bd40d5-fa30-4ee2-b2d0-7359bf4903bf", "verdict": "agree", "better": null, "reason": ""}
+{"id": "ff709cd8-cef0-4469-8119-ec80f78f4799", "verdict": "agree", "better": null, "reason": ""}
+{"id": "bb731e89-fcb7-48e2-b87f-9e0ed994eca8", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d31b66e3-747e-470c-b1bc-2306ad6e763a", "verdict": "agree", "better": null, "reason": ""}
+{"id": "42f82e8c-fdc7-4e86-a1bc-dff512eb6509", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d3d62c36-8980-4293-bf22-b092af9f409c", "verdict": "agree", "better": null, "reason": ""}
+{"id": "778fafe2-5025-4b5d-9c3a-741ca02d32be", "verdict": "disagree", "better": "admin_licensing", "reason": "Inspection-only record; admin_licensing explicitly covers inspections-only records"}
+{"id": "6b8c653d-d154-436a-9582-0e6d081800a3", "verdict": "agree", "better": null, "reason": ""}
+{"id": "4747a533-a68a-43b6-8da0-e53c845ab8ab", "verdict": "agree", "better": null, "reason": ""}
+{"id": "fea02e8e-119e-4ebf-9e31-d89ec992b197", "verdict": "agree", "better": null, "reason": ""}
+{"id": "1d96abcc-32b0-453b-a866-89bd0c7658ba", "verdict": "agree", "better": null, "reason": ""}
+{"id": "a3507850-9832-4d8c-9c01-415f0a97b5e5", "verdict": "agree", "better": null, "reason": ""}
+{"id": "9d2acd47-efaf-450e-987c-1cb805edc679", "verdict": "agree", "better": null, "reason": ""}
+{"id": "096a46ce-8eb6-4317-a02a-75ba194d70e4", "verdict": "disagree", "better": "row_utility", "reason": "Geotech borings explicitly located in the public ROW; rule 8 routes right-of-way excavation to row_utility"}
+{"id": "6923f1d7-251c-415d-86b9-db9664addbc4", "verdict": "agree", "better": null, "reason": ""}
+{"id": "40b7830f-3ac4-46bf-ac3c-fd85cdf0d388", "verdict": "disagree", "better": "residential_remodel", "reason": "Maintenance permit at an apartment complex is repair of an existing multi-family structure, not undeterminable"}
+{"id": "b0900f1c-0e7c-4a56-954a-72fcc90babdc", "verdict": "agree", "better": null, "reason": ""}
+{"id": "0531aa75-4f12-43db-a6d2-f9cb17922fc1", "verdict": "agree", "better": null, "reason": ""}
+{"id": "52feaae7-4a42-40f8-ae98-4d6e3b7c4737", "verdict": "agree", "better": null, "reason": ""}
+{"id": "174ca031-3921-4b8a-a2d7-b677c4eae29f", "verdict": "agree", "better": null, "reason": ""}
+{"id": "19273755-a891-432f-8d6d-059de9ff293b", "verdict": "disagree", "better": "mechanical_hvac", "reason": "Mechanical trade permit pulled under a demo project; rule 1 classifies by the permit's own scope"}
+{"id": "e526ee96-876a-48df-ae3b-8016c278c300", "verdict": "agree", "better": null, "reason": ""}
+{"id": "3f8bff3b-c40f-4867-a2aa-e75b9961fb64", "verdict": "disagree", "better": "plumbing", "reason": "Plumbing trade permit under an interior demo project; rule 1 keeps it plumbing"}
+{"id": "ade396ee-a7c0-4eee-802e-5f0c2d7ad41a", "verdict": "disagree", "better": "driveway_flatwork", "reason": "Permit's own type is driveway/sidewalks; description restates the parent addition project (rule 1)"}
+{"id": "9dab0f62-fd5e-46cb-937c-bb9c1ceebcac", "verdict": "disagree", "better": "electrical", "reason": "Electrical trade permit under a demo project; rule 1 keeps it electrical (consistent with e526ee96)"}
+{"id": "6089cb80-4a7f-44e9-995e-45becd87f2ec", "verdict": "disagree", "better": "plumbing", "reason": "Plumbing trade permit under a demolition project; rule 1 keeps it plumbing"}
+{"id": "d7f6100c-91fd-4d1b-8b22-58b2091b2bdc", "verdict": "disagree", "better": "electrical", "reason": "Subtype Change Out is a trade subtype; rule 3 keeps the electrical permit in electrical despite the sign description"}
+{"id": "82e9ee23-9d1b-4536-9cae-90954a674cad", "verdict": "disagree", "better": "electrical", "reason": "Permit's own scope is an electrical trade permit (Electrical Permit / Billboard); sign is the parent project, rule 1 keeps it electrical."}
+{"id": "dd7637c9-557e-471e-bba6-757edba92e2a", "verdict": "disagree", "better": "plumbing", "reason": "This is a plumbing trade permit pulled under a demolition project; rule 1 classifies by the permit's own scope, not the parent demo."}
+{"id": "25fe6c99-daa5-4fff-8cd8-8528a7ed7356", "verdict": "disagree", "better": "electrical", "reason": "Electrical trade permit for sign wiring; the sign is the parent project, so rule 1 puts it in electrical."}
+{"id": "ff66c463-31b5-4a8b-84ac-c047eed99305", "verdict": "disagree", "better": "mechanical_hvac", "reason": "Mechanical trade permit pulled under a demolish-and-replace project; own scope is mechanical, not demolition."}
+{"id": "0c2e2d46-b244-42db-b77a-d748feedccf1", "verdict": "disagree", "better": "electrical", "reason": "Electrical trade permit (disconnect) for a garage demolition; rule 1 keeps it electrical."}
+{"id": "803de44f-7ad7-44d5-983c-c008159ec437", "verdict": "disagree", "better": "electrical", "reason": "Electrical trade permit for tank replacement work; neither the permit's own scope nor the description is demolition."}
+{"id": "353e1b11-97d0-4158-9df5-565609346a3a", "verdict": "disagree", "better": "electrical", "reason": "Electrical trade permit for sign wiring; per rule 1 the trade scope wins over the sign project."}
+{"id": "1684207f-201b-40c2-ae68-814d95a697a3", "verdict": "disagree", "better": "electrical", "reason": "Electrical trade permit pulled under an apartment demolition; own scope is electrical."}
+{"id": "8562651d-278b-41ed-b7a1-3a133bafbc27", "verdict": "disagree", "better": "electrical", "reason": "Electrical trade permit for refacing a pole sign; rule 1 keeps trade permits in their trade category."}
+{"id": "21459b5f-b223-420f-9d35-95306322a1ad", "verdict": "disagree", "better": "plumbing", "reason": "Plumbing trade permit (e.g. sewer cap/disconnect) under a residence demolition; own scope is plumbing."}
+{"id": "6e192ffa-8907-40ec-8c75-930dc05aaf2e", "verdict": "disagree", "better": "plumbing", "reason": "Plumbing trade permit pulled for a demolition project; rule 1 classifies it as plumbing."}
+{"id": "5f767c56-fc72-423c-b3c4-1b9efec71010", "verdict": "disagree", "better": "plumbing", "reason": "Plumbing trade permit under a residence demolition; own scope is plumbing, not the parent demo."}
+{"id": "9018c0fa-6c51-48f6-ac78-9411e3ad6854", "verdict": "disagree", "better": "mechanical_hvac", "reason": "Mechanical trade permit; the house description is the parent project, and rule 1 keeps the permit in its trade category."}
+{"id": "05ffac64-e84e-4b24-b995-f3f5bbedf189", "verdict": "disagree", "better": "mechanical_hvac", "reason": "Mechanical trade permit pulled under a demo-and-rebuild garage project; own scope is mechanical."}
+{"id": "d15afdd2-0513-486e-9a17-9f1e07d5b759", "verdict": "disagree", "better": "plumbing", "reason": "This is a plumbing (disconnect) permit pulled under the MH-move project; rule 1 says classify by the permit's own trade scope, not the parent project."}
+{"id": "e249757d-1632-4676-9d73-156cb561572e", "verdict": "disagree", "better": "plumbing", "reason": "A moved duplex is not a manufactured home, and the record is a plumbing permit under the move/remodel project (rule 1)."}
+{"id": "d4da424b-58f7-4486-9e56-cb0c0c4cd17a", "verdict": "disagree", "better": "plumbing", "reason": "Permit type is a plumbing permit (demolition subtype = line cap/disconnect) under the garage demo; own scope is plumbing, not the demolition itself."}
+{"id": "c6a6813e-4cf4-4c7c-971a-941c0fc329c4", "verdict": "disagree", "better": "mechanical_hvac", "reason": "Mechanical trade permit ($250 trade-sized value) pulled under a residence remodel project; rule 1 keeps it mechanical."}
+{"id": "0ffdd6c0-decf-4e9d-8a57-d7826e5b4d9d", "verdict": "disagree", "better": "plumbing", "reason": "Plumbing permit (disconnect/cap) pulled for the residence demolition project; own scope is plumbing per rule 1."}
+{"id": "62c0650b-ab90-4ee8-bb33-ffcc087931e3", "verdict": "disagree", "better": "electrical", "reason": "Electrical trade permit pulled under the tenant finish-out project; rule 1 says electrical, not the parent TI project."}
+{"id": "a6f26055-4fa5-46ca-ab1d-723b6320a71a", "verdict": "disagree", "better": "mechanical_hvac", "reason": "Mechanical trade permit pulled under the tenant finish-out project; rule 1 says mechanical_hvac."}
+{"id": "3a799ded-fed8-4ea3-a738-f84d867e97f2", "verdict": "agree", "better": null, "reason": ""}
+{"id": "b856c1dd-4816-4d26-af85-97d14ec458e5", "verdict": "agree", "better": null, "reason": ""}
+{"id": "690bacb5-2f41-4254-a227-18855f2229d4", "verdict": "disagree", "better": "plumbing", "reason": "Plumbing disconnect permit under a minimum-standards demolition; own trade scope is plumbing per rule 1."}
+{"id": "f66fd5c9-e3a4-4463-80d7-0f2c0666d18e", "verdict": "agree", "better": null, "reason": ""}
+{"id": "4284a56e-6ab1-4a36-916c-e42201100060", "verdict": "agree", "better": null, "reason": ""}
+{"id": "b71cca15-a903-4937-a4c9-2d7a9a5c8c01", "verdict": "disagree", "better": "plumbing", "reason": "Plumbing permit for utility hookup of a mobile home ($100 connection job), not the MH placement permit itself."}
+{"id": "07b45f2a-5d4a-4e52-958d-5711cdc03e99", "verdict": "agree", "better": null, "reason": ""}
+{"id": "ff3495e2-3632-4f4d-b863-307ef4ecd24c", "verdict": "agree", "better": null, "reason": ""}
+{"id": "771bc1da-8e84-48f7-b225-34ef5e4a0634", "verdict": "agree", "better": null, "reason": ""}
+{"id": "ce70c16e-6459-4b60-b240-d96686ee06f7", "verdict": "agree", "better": null, "reason": ""}
+{"id": "99c420d2-4b6b-4e8c-b962-3de699fce325", "verdict": "disagree", "better": "plumbing", "reason": "Plumbing trade permit pulled under the new garage/workshop project; rule 1 keeps it plumbing, same as the electrical-permit-for-new-house example."}
+{"id": "9d33fb0d-131e-4d8a-a99e-70b084ce4871", "verdict": "agree", "better": null, "reason": ""}
+{"id": "5374c46e-03d3-4edf-8035-6f80bac6694e", "verdict": "agree", "better": null, "reason": ""}
+{"id": "07070842-e35d-4ce8-9052-07ac40822e07", "verdict": "agree", "better": null, "reason": ""}
+{"id": "8d7e6434-ec2d-4d48-a71e-733904092be4", "verdict": "agree", "better": null, "reason": ""}
+{"id": "4ce6dd53-52a9-4c6e-9b8a-56ed250680e2", "verdict": "agree", "better": null, "reason": ""}
+{"id": "f1c07794-87e7-4fa9-b903-df15ad5d2fcd", "verdict": "disagree", "better": "electrical", "reason": "Description explicitly says repair of electric service; the mechanical permit_type is miscoded, and specific description beats the type field."}
+{"id": "4a135f4d-81e5-463b-a9bf-1c70a3516737", "verdict": "agree", "better": null, "reason": ""}
+{"id": "98647148-6934-4f1a-b0cc-a5cde8b826bd", "verdict": "agree", "better": null, "reason": ""}
+{"id": "10789103-6bcf-4f81-ba15-1c5789277faa", "verdict": "agree", "better": null, "reason": ""}
+{"id": "fe0d8fbf-62a7-4f3a-8a65-fef8b7cfeeb8", "verdict": "agree", "better": null, "reason": ""}
+{"id": "e75e017d-4237-4c4d-a4ef-f77c4329aaf0", "verdict": "agree", "better": null, "reason": ""}
+{"id": "77e6519e-3db7-45af-b0b2-98ae149a739e", "verdict": "agree", "better": null, "reason": ""}
+{"id": "a0eacd65-cac3-4c6c-b17b-4ae8acfa4a80", "verdict": "agree", "better": null, "reason": ""}
+{"id": "492625f9-e944-4620-8992-0b14c262ee1c", "verdict": "agree", "better": null, "reason": ""}
+{"id": "8e619cef-d3fb-4942-844f-f5831db686e4", "verdict": "agree", "better": null, "reason": ""}
+{"id": "61add8f6-80ff-4153-bf78-c47f67b40d5a", "verdict": "agree", "better": null, "reason": ""}
+{"id": "3bf1e569-ab1a-42d3-877a-c7a476584e40", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d310e0e4-2d21-407e-ae8c-04bc97ba7178", "verdict": "agree", "better": null, "reason": ""}
+{"id": "7513b636-9af8-41f4-83fc-38bfb3443f6d", "verdict": "agree", "better": null, "reason": ""}
+{"id": "79c4fe18-0439-42c3-bcbd-cbe026ac1fcc", "verdict": "agree", "better": null, "reason": ""}
+{"id": "86fe3065-5de4-438b-92a6-bd471b87316f", "verdict": "disagree", "better": "accessory_structure", "reason": "Description and $42k value show the permit's scope is the boat dock structure itself, not HVAC work; the mechanical permit_type appears miscoded."}
+{"id": "2d23437c-3ae1-4067-8ecc-6b858915f7b3", "verdict": "agree", "better": null, "reason": ""}
+{"id": "4c54d7d1-17f5-4171-9201-5a4587935b61", "verdict": "agree", "better": null, "reason": ""}
+{"id": "b891b3df-9160-4295-bea4-0641019992e4", "verdict": "agree", "better": null, "reason": ""}
+{"id": "7d45f3bf-f7a6-4eb3-b8f2-ba4a84179b78", "verdict": "disagree", "better": "residential_remodel", "reason": "Scope spans minimum-standards repair, foundation repair, and new roof; a general whole-structure repair fits residential_remodel rather than the single foundation_repair component."}
+{"id": "6d06462f-7c6a-430e-b30f-1c07c01f40d9", "verdict": "agree", "better": null, "reason": ""}
+{"id": "63e4064b-03a0-473d-9b23-f2386e5aef67", "verdict": "agree", "better": null, "reason": ""}
+{"id": "1c0fc852-fc9e-4d1a-9591-573e4f0b69ed", "verdict": "agree", "better": null, "reason": ""}
+{"id": "e1aed942-7fb8-4deb-adf8-bb6df6cf737a", "verdict": "agree", "better": null, "reason": ""}
+{"id": "1e2b06dd-ac44-4ca1-b7ce-bc965e0d6117", "verdict": "agree", "better": null, "reason": ""}
+{"id": "03a16d86-454a-4e4b-a586-678ec34f2682", "verdict": "agree", "better": null, "reason": ""}
+{"id": "e01903cb-60a8-45ae-8fb9-02acd1b17c43", "verdict": "agree", "better": null, "reason": ""}
+{"id": "bfdb4a96-3604-4918-8b10-78260ea3a77c", "verdict": "agree", "better": null, "reason": ""}
+{"id": "cd9c3d50-5b52-4269-a374-efc365e2c08a", "verdict": "agree", "better": null, "reason": ""}
+{"id": "c8883760-0391-40d7-8fcf-50fc3615ee70", "verdict": "agree", "better": null, "reason": ""}
+{"id": "adb2e12d-487d-4847-a17a-d89359989e26", "verdict": "agree", "better": null, "reason": ""}
+{"id": "7f860c24-8a3c-48ee-a231-71e2f1edef9c", "verdict": "agree", "better": null, "reason": ""}
+{"id": "ef03c4e1-33ff-4f67-9d5b-caa96d62cbb5", "verdict": "agree", "better": null, "reason": ""}
+{"id": "3329abcb-c362-44ff-897f-569f507ccfa6", "verdict": "agree", "better": null, "reason": ""}
+{"id": "89c2391a-4e13-4272-8a97-4e98abb606b0", "verdict": "agree", "better": null, "reason": ""}
+{"id": "b44d89cb-3abd-4cd1-89d5-1f6998bce0a5", "verdict": "agree", "better": null, "reason": ""}
+{"id": "1d3372a2-fb23-4edd-ba00-e633b010737b", "verdict": "agree", "better": null, "reason": ""}
+{"id": "21d55820-4eee-4e5a-8ba1-a90831561d4e", "verdict": "agree", "better": null, "reason": ""}
+{"id": "e42fc081-7b0b-4d3a-8ad3-e8140d30e906", "verdict": "agree", "better": null, "reason": ""}
+{"id": "7d39bebd-13c2-4876-bb98-a7824ab43bab", "verdict": "agree", "better": null, "reason": ""}
+{"id": "1e7ec918-60e1-4c79-b8dd-837e86056876", "verdict": "agree", "better": null, "reason": ""}
+{"id": "a69487e4-18ae-419c-b683-ede75219d33f", "verdict": "agree", "better": null, "reason": ""}
+{"id": "8f0fe9b3-c4f1-41cb-95ae-af43c4dfedeb", "verdict": "agree", "better": null, "reason": ""}
+{"id": "6c443ad8-8f2e-4b8d-9ca7-64b8dcc48bf1", "verdict": "agree", "better": null, "reason": ""}
+{"id": "16597177-bdd3-436c-9cdf-ccdf911c40f2", "verdict": "agree", "better": null, "reason": ""}
+{"id": "3cb21815-4bd3-4ebf-857d-51ab5a2d4f77", "verdict": "agree", "better": null, "reason": ""}
+{"id": "a122a40f-868a-4b72-91b4-71158eb3268a", "verdict": "agree", "better": null, "reason": ""}
+{"id": "e8ccb7a9-7ea0-469d-bfad-05b3184cca93", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d6f90fd2-b85f-4dae-ad7e-097b04a366ca", "verdict": "agree", "better": null, "reason": ""}
+{"id": "9bfe0651-4937-4f11-840e-efb409125006", "verdict": "agree", "better": null, "reason": ""}
+{"id": "74a5fa58-0274-4744-8f00-dee9b25d7091", "verdict": "disagree", "better": "driveway_flatwork", "reason": "Permit type is Driveway/Sidewalks/New; rule 1 says classify by the permit's own scope, not the parent SF residence project (matches handling of 16597177)."}
+{"id": "2bf8c8e4-ddca-4a2f-b01a-1f7f293def39", "verdict": "agree", "better": null, "reason": ""}
+{"id": "b5e8c5ee-69af-4093-8bc8-eedd7b02c9b2", "verdict": "agree", "better": null, "reason": ""}
+{"id": "3a47b84c-b3da-4e4b-bdd8-fc962777293e", "verdict": "agree", "better": null, "reason": ""}
+{"id": "0ab667a8-3459-424b-9913-f2dc9f38d647", "verdict": "agree", "better": null, "reason": ""}
+{"id": "80a36879-9cc0-4238-a6c8-25ceefef84b4", "verdict": "agree", "better": null, "reason": ""}
+{"id": "fc8cf911-24fc-4527-9c00-3b37ff19c086", "verdict": "agree", "better": null, "reason": ""}
+{"id": "26a2aa2e-5321-4832-bbd3-701f0d43ba1d", "verdict": "agree", "better": null, "reason": ""}
+{"id": "0fa76808-eef1-498b-8e3c-e956ca161f41", "verdict": "agree", "better": null, "reason": ""}
+{"id": "c9297d73-3d74-4da4-a904-b511f6cf7c9f", "verdict": "agree", "better": null, "reason": ""}
+{"id": "72e0dca0-c595-435e-9042-c6140183ea10", "verdict": "agree", "better": null, "reason": ""}
+{"id": "950122a4-414d-43d3-bec1-192d6dcd3f05", "verdict": "agree", "better": null, "reason": ""}
+{"id": "98cc91e7-1f98-4fcf-adab-59dbb5a38116", "verdict": "agree", "better": null, "reason": ""}
+{"id": "7803aeba-3a86-423d-81d2-40aee9ad4671", "verdict": "agree", "better": null, "reason": ""}
+{"id": "3754b598-7225-40ef-a0f9-4b10185b16d3", "verdict": "agree", "better": null, "reason": ""}
+{"id": "6e8c99c8-f893-477d-9956-1d7f5c68dea9", "verdict": "agree", "better": null, "reason": ""}
+{"id": "69037a65-21f8-4f50-b1fa-fb9cbdd404a8", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d32de4ad-5769-4c04-a24b-1c97a374401a", "verdict": "agree", "better": null, "reason": ""}
+{"id": "492f28b1-1910-4b52-8046-aacb7f51f338", "verdict": "agree", "better": null, "reason": ""}
+{"id": "92178666-ffc8-4b8e-874d-f1ec3c986e29", "verdict": "agree", "better": null, "reason": ""}
+{"id": "2ad2dd58-db5a-42f8-a0c0-19bce446d337", "verdict": "agree", "better": null, "reason": ""}
+{"id": "2aa5cecb-66f6-4266-91e0-47426d12c5fa", "verdict": "agree", "better": null, "reason": ""}
+{"id": "52a34fcd-1c06-41a9-a872-0348b201f626", "verdict": "agree", "better": null, "reason": ""}
+{"id": "2415cb64-76e5-442c-ad0a-5b75e8befbf1", "verdict": "agree", "better": null, "reason": ""}
+{"id": "70970d81-b093-4666-afb2-dd61e008b1a9", "verdict": "agree", "better": null, "reason": ""}
+{"id": "fbd071f3-5b21-42e2-9cd8-415689481aff", "verdict": "agree", "better": null, "reason": ""}
+{"id": "3b8937bf-e934-4fcb-a09d-e5d35af83d08", "verdict": "agree", "better": null, "reason": ""}
+{"id": "22123c7f-659d-45db-a26c-42bc94c1d19a", "verdict": "agree", "better": null, "reason": ""}
+{"id": "1f0e1517-ca11-48e3-82af-b642112aa5da", "verdict": "agree", "better": null, "reason": ""}
+{"id": "dc7c7445-2f13-4e47-b753-b0d69cb2d85a", "verdict": "agree", "better": null, "reason": ""}
+{"id": "2db497c4-dcdc-4869-bde4-fa5ecf4e09f4", "verdict": "agree", "better": null, "reason": ""}
+{"id": "edd29c7c-fade-4703-8906-73bececb8928", "verdict": "agree", "better": null, "reason": ""}
+{"id": "f36ecdf8-84d1-4ce2-94fb-fd0e0bb80371", "verdict": "agree", "better": null, "reason": ""}
+{"id": "95c67fa3-94ff-4dd1-8009-9edf2f09fece", "verdict": "agree", "better": null, "reason": ""}
+{"id": "91b41080-a79b-4640-973a-64197737cf60", "verdict": "agree", "better": null, "reason": ""}
+{"id": "da981719-0652-4c00-a5c0-53fd85822d97", "verdict": "agree", "better": null, "reason": ""}
+{"id": "c874db2c-8744-43d4-927e-f30fccffd10b", "verdict": "agree", "better": null, "reason": ""}
+{"id": "fcdfcecf-fa63-4f39-ba00-4a53379bd82f", "verdict": "agree", "better": null, "reason": ""}
+{"id": "5b0896a2-97d7-4395-9f9e-2aea4f9bbe8c", "verdict": "agree", "better": null, "reason": ""}
+{"id": "cfefddad-9fa2-402c-8558-da6d1fac173c", "verdict": "agree", "better": null, "reason": ""}
+{"id": "2403cdb7-fb4f-40c6-bda3-13baa7ff8621", "verdict": "agree", "better": null, "reason": ""}
+{"id": "6f7aeeb4-616c-43b2-a72d-71fb2e616601", "verdict": "agree", "better": null, "reason": ""}
+{"id": "996e9691-f917-4507-b0e7-34052027146f", "verdict": "agree", "better": null, "reason": ""}
+{"id": "980b601b-e4dc-4943-816a-ad90279f6d3e", "verdict": "agree", "better": null, "reason": ""}
+{"id": "81ce9729-dc71-428c-8717-c23b095f99bf", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d87df5c4-d8fe-4a6b-89dd-5b27de7c651b", "verdict": "agree", "better": null, "reason": ""}
+{"id": "67099fa2-b6ad-4ac7-9294-622ff5f64d69", "verdict": "agree", "better": null, "reason": ""}
+{"id": "dacf1f64-4940-4303-b43d-3fc67e3043ad", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d8014cc6-9c8f-40bb-ac22-5a2ca5be7435", "verdict": "agree", "better": null, "reason": ""}
+{"id": "6bb84d43-daa7-4c50-9146-6dc4f3703c3e", "verdict": "agree", "better": null, "reason": ""}
+{"id": "1205cd46-5f74-4443-9f07-5d466eb2f0d9", "verdict": "agree", "better": null, "reason": ""}
+{"id": "dced2bc2-bc51-4a22-bb9a-b422f518196f", "verdict": "agree", "better": null, "reason": ""}
+{"id": "108964ee-53ac-46ca-a0bc-6e70c4b980c6", "verdict": "agree", "better": null, "reason": ""}
+{"id": "8e141eb0-278e-4db9-aba6-3c163f6781b7", "verdict": "agree", "better": null, "reason": ""}
+{"id": "9f92e416-9d43-41b5-b498-e9958211eea2", "verdict": "agree", "better": null, "reason": ""}
+{"id": "ab0ead43-6d85-43c9-a086-ce1390db4c17", "verdict": "agree", "better": null, "reason": ""}
+{"id": "955d93ee-2323-4c95-ac53-39aff8a25bfa", "verdict": "agree", "better": null, "reason": ""}
+{"id": "b311a5ad-7945-4ef4-a169-92512b210d11", "verdict": "agree", "better": null, "reason": ""}
+{"id": "23ca67bc-336b-45cf-9bb6-a2d23c2212ae", "verdict": "agree", "better": null, "reason": ""}
+{"id": "f652e8c0-3a0b-4ed3-a4f0-e7190e6c7407", "verdict": "agree", "better": null, "reason": ""}
+{"id": "46e2da32-2917-4f4b-9815-682cf20ee776", "verdict": "agree", "better": null, "reason": ""}
+{"id": "be86eee3-84da-499a-a71c-7ce152e181b5", "verdict": "agree", "better": null, "reason": ""}
+{"id": "6944cb00-d990-4326-b1ef-45f4bb83b43e", "verdict": "agree", "better": null, "reason": ""}
+{"id": "bdd5afb9-7bb9-45eb-b34a-05d76ddea979", "verdict": "agree", "better": null, "reason": ""}
+{"id": "5084b883-db83-43cb-9876-5fe63af473db", "verdict": "agree", "better": null, "reason": ""}
+{"id": "58fd41ca-82ae-4bed-833a-e20c1bb88654", "verdict": "agree", "better": null, "reason": ""}
+{"id": "0820cbf0-d39c-4a39-a565-b6b988df01a0", "verdict": "agree", "better": null, "reason": ""}
+{"id": "814e0165-8da2-4850-8c84-df219b050e9a", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d3733815-d333-4096-a04f-9cc9eb199bf1", "verdict": "agree", "better": null, "reason": ""}
+{"id": "905f344d-a95c-4ed6-bade-bf68fc330798", "verdict": "disagree", "better": "electrical", "reason": "A 'Loop For MH' is an electric meter loop for a mobile home; 'loop' is an explicitly electrical subtype and the $200 value fits, so the description's specific scope overrides the Mechanical permit-type label."}
+{"id": "90b10445-cbe2-4f35-a552-2dd43ed5c201", "verdict": "agree", "better": null, "reason": ""}
+{"id": "dfc648da-8753-48fa-8e16-dad0e844627c", "verdict": "agree", "better": null, "reason": ""}
+{"id": "30306e6b-2065-4536-adc8-5c939cd45ecd", "verdict": "agree", "better": null, "reason": ""}
+{"id": "283499b1-c70a-46de-b839-fbc8580812f2", "verdict": "agree", "better": null, "reason": ""}
+{"id": "63af2716-442e-47d8-bf21-d503d872784c", "verdict": "agree", "better": null, "reason": ""}
+{"id": "5169a34d-6d2c-4df6-8fa8-12c9cbd4bdee", "verdict": "agree", "better": null, "reason": ""}
+{"id": "11fcbfc3-2d92-4963-9df0-54860f5ce237", "verdict": "agree", "better": null, "reason": ""}
+{"id": "b9a892bf-cae2-4bb4-91c2-555d60803179", "verdict": "agree", "better": null, "reason": ""}
+{"id": "af585827-1a94-4cbc-88cb-18ddecc48231", "verdict": "disagree", "better": "electrical", "reason": "Electrical trade permit pulled under a cooling tower project; rule 1 says classify by the permit's own scope, which is electrical."}
+{"id": "44be268d-f227-4dc0-8368-00b4560b3e7d", "verdict": "agree", "better": null, "reason": ""}
+{"id": "dc4a54c4-92c2-4add-b3b7-332c6fa8420b", "verdict": "agree", "better": null, "reason": ""}
+{"id": "2c52c79c-df76-492d-81bb-fabaf43362f2", "verdict": "agree", "better": null, "reason": ""}
+{"id": "4967d600-2b81-4527-b52f-11eba2844079", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d17e0728-4ae0-4ff8-81e2-e000786a0e48", "verdict": "agree", "better": null, "reason": ""}
+{"id": "8671400f-b27e-4771-9e16-ad89e0b68b76", "verdict": "agree", "better": null, "reason": ""}
+{"id": "c4f106b2-8a46-4487-acb6-b2ce1e570b28", "verdict": "agree", "better": null, "reason": ""}
+{"id": "01198b28-0a9b-4495-a91f-bfa241df58b2", "verdict": "agree", "better": null, "reason": ""}
+{"id": "99ee7bd5-8d43-4d56-8997-4d30c748a066", "verdict": "agree", "better": null, "reason": ""}
+{"id": "a5597610-7b32-4c22-b957-4bb64dbd407a", "verdict": "disagree", "better": "mechanical_hvac", "reason": "Mechanical trade permit pulled under an electrical service upgrade project; rule 1 keeps it in its own trade scope (mechanical)."}
+{"id": "adfc14ef-9b21-4c3b-9fa3-424e6a5757d9", "verdict": "agree", "better": null, "reason": ""}
+{"id": "38f04372-d287-4daf-8468-f5b025e58a59", "verdict": "agree", "better": null, "reason": ""}
+{"id": "faecd6be-35f3-4e26-9769-dbeb180f44d7", "verdict": "agree", "better": null, "reason": ""}
+{"id": "5305ade4-29f2-486b-b0e5-e000dcc75aa6", "verdict": "agree", "better": null, "reason": ""}
+{"id": "ecc27d66-f7db-4844-8f34-86d6b1f88f9a", "verdict": "agree", "better": null, "reason": ""}
+{"id": "8ba90f13-b0dc-485e-8c7f-ada02a2ec68b", "verdict": "disagree", "better": "mechanical_hvac", "reason": "Mechanical trade permit pulled under a restaurant tenant finish-out; rule 1 says classify by own scope (mechanical), matching how the office-remodel mechanical permit was handled."}
+{"id": "69ea370d-8312-40b4-9314-7c1f57f757f7", "verdict": "agree", "better": null, "reason": ""}
+{"id": "6180dc2d-5f20-4815-a7d9-0c9c534530ab", "verdict": "agree", "better": null, "reason": ""}
+{"id": "3ecdfb66-aead-4e29-94d4-f0472fe77605", "verdict": "agree", "better": null, "reason": ""}
+{"id": "1b8c688b-5e8a-46ba-b512-949ff1bbc240", "verdict": "agree", "better": null, "reason": ""}
+{"id": "f1fa46bd-bec9-4acf-9f4b-0dc146e34776", "verdict": "agree", "better": null, "reason": ""}
+{"id": "e26d7973-da36-45e3-b647-c27e439c8948", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d60d2e2c-8ceb-44b0-95c8-76704c1fecc4", "verdict": "agree", "better": null, "reason": ""}
+{"id": "045b23f0-7a81-4094-ae47-b50622f6284b", "verdict": "agree", "better": null, "reason": ""}
+{"id": "2d6ba06f-43e0-471a-8534-0e2a92ea2780", "verdict": "agree", "better": null, "reason": ""}
+{"id": "d601729f-c3c3-4036-91a5-c42541039d12", "verdict": "agree", "better": null, "reason": ""}
+{"id": "1a5091bd-1445-4147-86c6-c5171753685d", "verdict": "agree", "better": null, "reason": ""}
+{"id": "0fbe700a-8a58-4eb3-92b8-5bf10977f86e", "verdict": "disagree", "better": "accessory_structure", "reason": "Description clearly states boathouse repair, a determinable accessory building, so it is not other_unknown."}
