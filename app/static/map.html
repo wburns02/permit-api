@@ -70,31 +70,36 @@
 <script src="https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl.js"
         integrity="sha384-SYKAG6cglRMN0RVvhNeBY0r3FYKNOJtznwA0v7B5Vp9tr31xAHsZC0DqkQ/pZDmj" crossorigin="anonymous"></script>
 <script>
+// scraped free-text (operator/lease names, addresses) must never reach
+// innerHTML unescaped
+const esc = s => String(s ?? "").replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
 const LAYERS = {
   "well-permits": {
     color: ["match", ["get","profile"],
             "horizontal","#ef4444", "directional","#f97316",
             "sidetrack","#eab308", "#3b82f6"],
     minzoom: 4,
-    popup: p => `<b>W-1 Permit ${p.permit_number}</b><br>
-      ${p.operator || ""}<br>${p.county || ""} County, ${p.profile || "unknown"} ${p.purpose || ""}<br>
-      ${p.status || ""}${p.approved ? " " + p.approved : ""}${p.depth ? "<br>TD " + Math.round(p.depth).toLocaleString() + " ft" : ""}`
+    popup: p => `<b>W-1 Permit ${esc(p.permit_number)}</b><br>
+      ${esc(p.operator)}<br>${esc(p.county)} County, ${esc(p.profile || "unknown")} ${esc(p.purpose)}<br>
+      ${esc(p.status)}${p.approved ? " " + esc(p.approved) : ""}${p.depth ? "<br>TD " + Math.round(p.depth).toLocaleString() + " ft" : ""}`
   },
   "wells": {
     color: ["match", ["get","status"],
             "PRODUCING","#22c55e", "SHUT IN","#94a3b8",
             "INJECTION","#a855f7", "TEMP ABANDONED","#64748b", "#0ea5e9"],
     minzoom: 6,
-    popup: p => `<b>Well ${p.api10}</b><br>${p.well_name || ""}<br>
-      ${p.operator || ""}<br>${p.county || ""} County, ${p.well_type || ""} ${p.status || ""}
-      ${p.completed ? "<br>Completed " + p.completed : ""}`
+    popup: p => `<b>Well ${esc(p.api10)}</b><br>${esc(p.well_name)}<br>
+      ${esc(p.operator)}<br>${esc(p.county)} County, ${esc(p.well_type)} ${esc(p.status)}
+      ${p.completed ? "<br>Completed " + esc(p.completed) : ""}`
   },
   "permits": {
     color: "#f59e0b",
     minzoom: 8,
-    popup: p => `<b>Permit ${p.permit_number || ""}</b><br>
-      ${p.permit_type || ""}<br>${p.address || ""}<br>
-      ${p.status || ""}${p.issued ? " " + p.issued : ""}
+    popup: p => `<b>Permit ${esc(p.permit_number)}</b><br>
+      ${esc(p.permit_type)}<br>${esc(p.address)}<br>
+      ${esc(p.status)}${p.issued ? " " + esc(p.issued) : ""}
       ${p.value ? "<br>$" + Math.round(p.value).toLocaleString() : ""}`
   },
 };
