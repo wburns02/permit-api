@@ -75,6 +75,7 @@ from app.api.v1.roofer_leads import router as roofer_leads_router
 from app.api.v1.enrichment import router as enrichment_router
 from app.api.v1.rural_score import router as rural_score_router
 from app.api.v1.wells import wells_router, well_permits_router
+from app.api.v1.map_tiles import router as map_tiles_router
 from app.models.parcel_screen import (  # noqa: F401 — registers tables for Base.metadata.create_all
     ParcelJurisdiction,
     ParcelStateLaw,
@@ -564,6 +565,7 @@ app.include_router(enrichment_router, prefix="/v1")
 app.include_router(rural_score_router, prefix="/v1")
 app.include_router(wells_router, prefix="/v1")
 app.include_router(well_permits_router, prefix="/v1")
+app.include_router(map_tiles_router, prefix="/v1")
 
 
 @app.get("/health")
@@ -1388,6 +1390,12 @@ def _get_index_html() -> str:
 async def root():
     from fastapi.responses import HTMLResponse
     return HTMLResponse(_get_index_html(), headers={"Cache-Control": "no-cache, no-store, must-revalidate"})
+
+
+@app.get("/map", include_in_schema=False)
+async def map_page():
+    return FileResponse(STATIC_DIR / "map.html",
+                        headers={"Cache-Control": "no-cache, must-revalidate"})
 
 
 # SPA catch-all routes — serve index.html for frontend pages
