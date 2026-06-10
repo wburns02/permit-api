@@ -32,8 +32,8 @@ from app.services.parcel_hot_picks import refresh_city
 from app.services.parcel_screen_service import run_parcel_screen
 
 try:
-    from anthropic import AsyncAnthropic
-except ImportError:  # pragma: no cover — anthropic is in requirements.txt
+    from app.services.llm_client import AsyncLocalAnthropic as AsyncAnthropic
+except ImportError:  # pragma: no cover
     AsyncAnthropic = None
 
 logger = logging.getLogger(__name__)

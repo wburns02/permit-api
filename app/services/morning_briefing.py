@@ -18,7 +18,7 @@ from app.models.dialer import CallLog
 logger = logging.getLogger(__name__)
 
 try:
-    from anthropic import Anthropic
+    from app.services.llm_client import LocalAnthropic as Anthropic
 except ImportError:
     Anthropic = None
 

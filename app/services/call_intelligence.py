@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 ANTHROPIC_API_KEY = getattr(settings, "ANTHROPIC_API_KEY", None) or None
 
 try:
-    from anthropic import Anthropic
+    from app.services.llm_client import LocalAnthropic as Anthropic
 except ImportError:
     Anthropic = None
 
