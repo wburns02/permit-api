@@ -26,6 +26,10 @@ _MVS = (
     ("mv_refresh_hail_leads", "hail_leads"),
     ("mv_refresh_hail_leads_spc", "hail_leads_spc"),
     ("mv_refresh_address_permit_history", "address_permit_history"),
+    # Derives from hail_leads_unified (= hail_leads + hail_leads_spc), so it
+    # MUST refresh last — after the base MVs above are current. Has a unique
+    # index on lead_id, so REFRESH ... CONCURRENTLY works.
+    ("mv_refresh_hail_leads_list", "hail_leads_list"),
 )
 
 

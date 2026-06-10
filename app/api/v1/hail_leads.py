@@ -831,38 +831,40 @@ def _list_select_sql(order_by: str) -> str:
     Uses DISTINCT ON to keep highest-score row per lead_id, then re-sorts
     the collapsed set by the requested order.
     """
+    # Reads the deduplicated `hail_leads_list` MV (one row per lead_id, best
+    # storm by score — see app/main.py migration). No DISTINCT ON here: the
+    # collapse already happened at refresh time, so this is a plain indexed
+    # filter+sort over ~862k rows instead of the 20M-row sort that timed out
+    # and returned empty. The aph/hle LEFT JOINs stay at query time (keyed,
+    # ~50 rows per page).
     return f"""
-        WITH filtered AS (
-            SELECT DISTINCT ON (hl.lead_id)
-                hl.lead_id::text                                     AS lead_id,
-                hl.address                                            AS address,
-                hl.city                                               AS city,
-                hl.zip                                                AS zip,
-                hl.county                                             AS county,
-                hl.storm_date                                         AS storm_date,
-                hl.storm_type                                         AS storm_type,
-                hl.storm_magnitude                                    AS hail_size_inches,
-                hl.issue_date                                         AS permit_date,
-                hl.days_after_storm                                   AS days_after_storm,
-                hl.lead_category                                      AS lead_category,
-                hl.description                                        AS permit_description,
-                hl.contractor_company                                 AS competitor_contractor,
-                hl.hail_lead_score                                    AS score,
-                hl.storm_source                                       AS storm_source,
-                COALESCE(aph.prior_roof_permits, 0)                    AS prior_roof_permits,
-                aph.last_roof_permit_date                             AS last_roof_permit_date,
-                (hle.address_norm IS NOT NULL)                        AS owner_enriched
-            FROM hail_leads_unified hl
-            LEFT JOIN address_permit_history aph
-                   ON aph.address_norm = {_ADDRESS_NORM_SQL}
-                  AND aph.zip = hl.zip
-            LEFT JOIN hail_leads_enriched hle
-                   ON hle.address_norm = aph.address_norm
-                  AND hle.zip = aph.zip
-            WHERE {{where_sql}}
-            ORDER BY hl.lead_id, hl.hail_lead_score DESC NULLS LAST
-        )
-        SELECT * FROM filtered
+        SELECT
+            hl.lead_id::text                                     AS lead_id,
+            hl.address                                            AS address,
+            hl.city                                               AS city,
+            hl.zip                                                AS zip,
+            hl.county                                             AS county,
+            hl.storm_date                                         AS storm_date,
+            hl.storm_type                                         AS storm_type,
+            hl.storm_magnitude                                    AS hail_size_inches,
+            hl.issue_date                                         AS permit_date,
+            hl.days_after_storm                                   AS days_after_storm,
+            hl.lead_category                                      AS lead_category,
+            hl.description                                        AS permit_description,
+            hl.contractor_company                                 AS competitor_contractor,
+            hl.hail_lead_score                                    AS score,
+            hl.storm_source                                       AS storm_source,
+            COALESCE(aph.prior_roof_permits, 0)                    AS prior_roof_permits,
+            aph.last_roof_permit_date                             AS last_roof_permit_date,
+            (hle.address_norm IS NOT NULL)                        AS owner_enriched
+        FROM hail_leads_list hl
+        LEFT JOIN address_permit_history aph
+               ON aph.address_norm = {_ADDRESS_NORM_SQL}
+              AND aph.zip = hl.zip
+        LEFT JOIN hail_leads_enriched hle
+               ON hle.address_norm = aph.address_norm
+              AND hle.zip = aph.zip
+        WHERE {{where_sql}}
         ORDER BY {order_by}
     """
 
@@ -907,15 +909,25 @@ async def hail_leads_list(
         "{where_sql}", where_sql
     )
 
-    # COUNT subquery is intentionally NOT run on the request path. Even
-    # though the query is sub-100ms in psql, opening a 2nd asyncpg session
-    # (in addition to the request's `db` session) was flaking through
-    # Railway's Tailscale tunnel and adding 30+ seconds per request. The
-    # frontend already handles total=-1 (shows "show more" pagination
-    # instead of a fixed page count), so the trade-off is: lose the exact
-    # row count, gain reliability. If we want totals back later, compute
-    # them in mv_refresh and read from a 1-row sidecar table.
+    # COUNT over the deduplicated MV. Historically skipped (total=-1) because
+    # counting the 20M-row DISTINCT-ON view added 30s+; now that the list
+    # source is the 862k-row indexed `hail_leads_list`, the count is a cheap
+    # indexed aggregate on the SAME session, so we restore exact totals.
+    # Degrades to -1 (frontend's "show more" mode) if it errors, so a count
+    # hiccup never blanks the results.
     total = -1
+    count_sql = (
+        "SELECT count(*) FROM hail_leads_list hl WHERE " + where_sql
+    )
+    try:
+        total = int((await db.execute(text(count_sql), params)).scalar() or 0)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("hail-leads count failed (degrading to -1): %s", exc)
+        try:
+            await db.rollback()
+        except Exception:  # noqa: BLE001
+            pass
+        total = -1
 
     offset = (page - 1) * page_size
     page_params = {**params, "_limit": page_size, "_offset": offset}
