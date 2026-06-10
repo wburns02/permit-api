@@ -39,7 +39,8 @@ def d8(v):
         dt = date(int(v[:4]), int(v[4:6]), int(v[6:8]))
     except ValueError:  # invalid calendar dates exist in historical data
         return None
-    if dt.year < 1900 or dt.year > 2100:
+    # century typos exist too (2061, 2070 observed for 1961/1970 wells)
+    if dt.year < 1900 or dt > date.today():
         return None
     return dt.isoformat()
 

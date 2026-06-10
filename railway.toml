@@ -1,3 +1,11 @@
 [build]
 dockerfilePath = "Dockerfile"
 noCache = true
+
+[deploy]
+# Gate traffic swap on the new container actually serving HTTP. /healthz has
+# no DB dependency (see app/main.py) — it passes as soon as uvicorn binds.
+# Railway keeps the OLD container serving until this passes, so the public
+# domain never 502s during the build+boot window.
+healthcheckPath = "/healthz"
+healthcheckTimeout = 300
