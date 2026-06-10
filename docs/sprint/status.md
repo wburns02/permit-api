@@ -28,7 +28,36 @@ webhook delivery pipeline, including a MIDLAND county digest with correct
 contents, zero-match no-fire, lease pattern + min_depth filtering, and
 no-backfill on activation. Next: Phase 4 eval set construction.
 
-## Phase 2: FracFocus + TexNet (agent running)
+## Phase 2: FracFocus + TexNet (complete, 2026-06-10)
 
-## Phase 3: Railway Deploy Hardening (agent running; /healthz + parallel
-boot committed as 490fefc, deploy observation in progress)
+Both datasets loaded and verified: fracfocus.disclosures 247,482 (121,818
+TX) plus 7.17M ingredient-level registry rows from the nightly CSV
+snapshot, and texnet.events 48,473 earthquakes (2016-12 to present) pulled
+from the TexNet ArcGIS catalog after confirming no bulk/FDSN endpoint
+exists. The texnet.swd_seismicity MV materializes 1.92M commercial-SWD x
+event pairs within 25km with sane spot checks (an M5.1 at 1,269m from a
+Fisher County SWD matches the 2024 Hermleigh sequence). FracFocus match
+rates: 88.4% vs well_permits, 76.4% vs wells; the sub-80% wells rate was
+investigated per the gate and isolated to warehouse vintage, not API
+formatting: the RRC wellbore EWA extract is Nov-2020 content and the
+daf802 permit master has a 2023-25 hole (186 permits in 2024 vs ~10K
+expected). Remediation started immediately: 2023-25 daily archive
+backfill running; a wellbore refresh source needs investigation (the MFT
+EWA file IS the stale artifact). Pipelines documented in
+docs/acquisition/. Next: verify backfill closes the permit hole.
+
+## Phase 3: Railway Deploy Hardening (complete, 2026-06-10)
+
+Zero public 502s observed across a full deploy (54 polls at 5s through
+push, build, swap, and 3.5 minutes post-SUCCESS), achieved in one
+iteration (commit 490fefc). Root cause was double: no healthcheck gated
+Railway's traffic swap, and a /dev/tcp probe in start.sh (a bash-ism that
+always fails under dash) burned a guaranteed 30s every boot. Now uvicorn
+binds in ~3s gated only on the cloudflared DB listener, Tailscale boots in
+the background, /healthz (no DB dependency) gates the swap with a 300s
+timeout, and the whole bootstrap is guarded behind RAILWAY_ENVIRONMENT so
+R730's plain systemd path is untouched. R730 verified active with
+/health and /healthz both 200 after merge.
+
+## Phase 4: Enrichment at Scale (agent running: taxonomy + eval gate +
+checkpointed TX bulk run)
