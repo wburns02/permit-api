@@ -177,7 +177,8 @@ def to_row(p, counties, source, source_file):
             "approved_date": d8(fw(r2, 130, 8)),
             "spud_date": d8(fw(r2, 154, 8)),
             "status_date": d8(fw(r2, 171, 8)),
-            "api10": f"42{api8}" if api8 and api8.isdigit() and int(api8) > 0 else None,
+            "api10": (f"42{api8}" if api8 and api8.isdigit()
+                      and len(api8) == 8 and int(api8) > 0 else None),
         })
     if p.surface:
         row["lng"], row["lat"] = str(p.surface[0]), str(p.surface[1])
