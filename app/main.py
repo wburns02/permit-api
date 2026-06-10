@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import os
 from pathlib import Path
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -63,10 +64,17 @@ from app.api.v1.batch import router as batch_router
 from app.api.v1.campaigns import router as campaigns_router
 from app.api.v1.dialer_ws import router as dialer_ws_router
 from app.api.v1.freshness import router as freshness_router
+from app.api.v1.data_freshness import router as data_freshness_router
 from app.api.v1.hman_auth import router as hman_auth_router
 from app.api.v1.pricing import router as pricing_router
 from app.api.v1.hail_leads import router as hail_leads_router
 from app.api.v1.parcel_screen import router as parcel_screen_router
+from app.api.v1.broadband import router as broadband_router
+from app.api.v1.internal_rural_v5 import router as internal_rural_v5_router
+from app.api.v1.roofer_leads import router as roofer_leads_router
+from app.api.v1.enrichment import router as enrichment_router
+from app.api.v1.rural_score import router as rural_score_router
+from app.api.v1.wells import wells_router, well_permits_router
 from app.models.parcel_screen import (  # noqa: F401 — registers tables for Base.metadata.create_all
     ParcelJurisdiction,
     ParcelStateLaw,
@@ -363,10 +371,15 @@ async def lifespan(app: FastAPI):
     app.state.migrations_task = asyncio.create_task(_run_startup_migrations())
 
     from app.services.scheduler import start_scheduler, stop_scheduler
-    try:
-        start_scheduler()
-    except Exception as e:
-        logger.warning("Failed to start alert scheduler: %s", e)
+    SCHEDULER_ENABLED = os.environ.get("SCHEDULER_ENABLED", "true").lower() == "true"
+    if SCHEDULER_ENABLED:
+        try:
+            start_scheduler()
+            logger.info("Scheduler started")
+        except Exception as e:
+            logger.warning("Failed to start alert scheduler: %s", e)
+    else:
+        logger.warning("SCHEDULER_ENABLED=false — scheduler skipped (alert batches will not run)")
 
     print("[lifespan] yielding to uvicorn", flush=True, file=sys.stderr)
     yield
@@ -402,6 +415,59 @@ app.add_middleware(
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
+
+# ---------------------------------------------------------------------------
+# Transient-DB-disconnect retry middleware
+# ---------------------------------------------------------------------------
+# Railway's egress NAT rebinds its UDP port after an outage, which flaps the
+# Tailscale *direct* WireGuard path and drops in-flight PG connections
+# (asyncpg ConnectionDoesNotExistError, usually wrapped by SQLAlchemy). Only
+# idempotent GETs are retried — never POST/PATCH/PUT/DELETE, to avoid double
+# writes and double activity-tracking.
+import asyncpg  # noqa: E402
+import sqlalchemy.exc  # noqa: E402
+
+_TRANSIENT_EXC = (
+    sqlalchemy.exc.DBAPIError,
+    sqlalchemy.exc.OperationalError,
+    sqlalchemy.exc.InterfaceError,
+    asyncpg.exceptions.ConnectionDoesNotExistError,
+    asyncpg.exceptions.InterfaceError,
+    asyncpg.exceptions.CannotConnectNowError,
+    ConnectionResetError,
+    OSError,
+    asyncio.TimeoutError,
+)
+
+
+def _is_transient_disconnect(exc: BaseException) -> bool:
+    """True if exc — or any link in its __cause__/__context__ chain — is a
+    transient DB disconnect we can safely retry."""
+    seen = set()
+    cur = exc
+    while cur is not None and id(cur) not in seen:
+        seen.add(id(cur))
+        if isinstance(cur, _TRANSIENT_EXC):
+            return True
+        cur = cur.__cause__ or cur.__context__
+    return False
+
+
+@app.middleware("http")
+async def db_retry_middleware(request, call_next):
+    if request.method != "GET":
+        return await call_next(request)
+
+    attempts = 4
+    for attempt in range(1, attempts + 1):
+        try:
+            return await call_next(request)
+        except BaseException as exc:
+            if attempt >= attempts or not _is_transient_disconnect(exc):
+                raise
+            await asyncio.sleep(0.3 * attempt)
+
+
 # Mount v1 routers
 app.include_router(permits_router, prefix="/v1")
 app.include_router(auth_router, prefix="/v1")
@@ -433,10 +499,18 @@ app.include_router(batch_router, prefix="/v1")
 app.include_router(campaigns_router, prefix="/v1")
 app.include_router(dialer_ws_router)  # WebSocket routes at root (no /v1 prefix)
 app.include_router(freshness_router, prefix="/v1")
+app.include_router(data_freshness_router, prefix="/v1")
 app.include_router(hman_auth_router, prefix="/v1")
 app.include_router(pricing_router, prefix="/v1")
 app.include_router(hail_leads_router, prefix="/v1")
 app.include_router(parcel_screen_router, prefix="/v1")
+app.include_router(broadband_router, prefix="/v1")
+app.include_router(internal_rural_v5_router, prefix="/v1")
+app.include_router(roofer_leads_router, prefix="/v1")
+app.include_router(enrichment_router, prefix="/v1")
+app.include_router(rural_score_router, prefix="/v1")
+app.include_router(wells_router, prefix="/v1")
+app.include_router(well_permits_router, prefix="/v1")
 
 
 @app.get("/health")
@@ -476,6 +550,7 @@ async def health():
             "replica": "connected" if replica_ok else "down (using primary fallback)",
             "version": settings.VERSION,
             "environment": settings.ENVIRONMENT,
+            "build": "cf-tunnel-v1",
         },
     )
 

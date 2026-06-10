@@ -109,6 +109,13 @@ class Settings(BaseSettings):
     DEMO_ADMIN_KEY: str = ""        # X-Admin-Key header for POST /v1/hail-leads/enrich
     BATCHDATA_API_KEY: str | None = None  # Bearer token for api.batchdata.com
 
+    # Internal service-to-service auth (Mac CRM ↔ permit-api Rural v5 proxy).
+    # When set, X-Internal-Key matching this value bypasses DB-backed API-key
+    # auth and is treated as an enterprise-tier service caller. Used by the
+    # react-crm-api Rural Lead Engine to proxy /v1/internal/rural-leads/v5/*
+    # endpoints from Railway.
+    INTERNAL_API_KEY: str = ""
+
     @model_validator(mode="after")
     def validate_production(self) -> "Settings":
         if self.ENVIRONMENT.lower() in ("production", "prod"):

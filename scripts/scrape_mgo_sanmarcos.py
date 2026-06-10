@@ -43,8 +43,8 @@ DB_PORT = "5432"
 DB_NAME = "permits"
 DB_USER = "will"
 
-MGO_EMAIL = os.getenv("MGO_EMAIL", "willwalterburns@gmail.com")
-MGO_PASSWORD = os.getenv("MGO_PASSWORD", "#Espn202512")
+MGO_EMAIL = os.environ["MGO_EMAIL"]
+MGO_PASSWORD = os.environ["MGO_PASSWORD"]
 
 LOGIN_URL = "https://www.mgoconnect.org/cp/login"
 API_BASE = "https://api.mgoconnect.org"

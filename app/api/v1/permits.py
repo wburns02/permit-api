@@ -197,6 +197,14 @@ async def search(
     lng: float | None = Query(None, description="Longitude for geo search"),
     radius: float | None = Query(None, description="Radius in miles (default 0.5)", le=25),
     enrichment: EnrichmentType = Query(EnrichmentType.NONE, description="Lead enrichment: none, phone, email, property, full"),
+    include_broadband: bool = Query(
+        False,
+        description=(
+            "If true, attach a compact `broadband` summary to each result "
+            "(isp_count, has_fiber, only_satellite, max_dl_mbps). Adds "
+            "~1 lookup per 10 results to your daily quota."
+        ),
+    ),
     page: int = Query(1, ge=1, le=20),
     page_size: int = Query(25, ge=1, le=50),
     user: ApiUser = Depends(get_current_user),
@@ -302,6 +310,35 @@ async def search(
         request, results.get("results", []), page=page, zip_code=zip, state=state,
     )
     results["results"] = guarded_results
+
+    # Optional broadband enrichment (Deliverable C — opt-in, defaults to false).
+    # Adds a slim `broadband` field per result; existing response shape is
+    # untouched when include_broadband is false (the default).
+    if include_broadband and results.get("results"):
+        try:
+            from app.services.enrichment import summarize_broadband_for_address
+
+            extra_cost = max(1, (len(results["results"]) + 9) // 10)
+            await check_rate_limit(request, lookup_count=extra_cost)
+
+            for r in results["results"]:
+                addr = r.get("address") or r.get("address_full") or r.get("street_address")
+                st = r.get("state") or state
+                if not addr or not st:
+                    r["broadband"] = None
+                    continue
+                summary = await summarize_broadband_for_address(
+                    db,
+                    address=str(addr),
+                    city=r.get("city"),
+                    state=str(st),
+                    zip_code=str(r.get("zip") or r.get("zip_code") or "") or None,
+                )
+                r["broadband"] = summary.model_dump() if summary else None
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("include_broadband enrichment failed: %s", exc)
+            for r in results["results"]:
+                r.setdefault("broadband", None)
 
     response = {
         **results,

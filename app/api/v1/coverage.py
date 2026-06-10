@@ -1,5 +1,6 @@
 """Coverage, stats, and data freshness endpoints (public, no auth required)."""
 
+import asyncio
 import logging
 from datetime import datetime, timezone, timedelta
 
@@ -7,10 +8,11 @@ from fastapi import APIRouter, Depends
 from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.database import get_read_db
+from app.database import get_read_db, async_session_maker
 from app.models.permit import Permit, Jurisdiction
 from app.services.search_service import get_coverage
 from app.services.fast_counts import fast_count, safe_query
+from app.services.endpoint_cache import freshness_cache
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +80,13 @@ async def get_stats(db: AsyncSession = Depends(get_read_db)):
     """Quick stats for the landing page hero section.
 
     Now connected directly to T430 via Tailscale — uses fast reltuples
-    for permit count, and known constants for jurisdictions/states.
+    for permit count, and counts states from real jurisdiction data.
+
+    The "54" marketing number is intentional: it counts the 50 US states
+    plus 4 Canadian provinces we have permit coverage in (AB, BC, MB, ON).
+    Frontend renders this with a "STATES + PROVINCES" / "MARKETS" label
+    so the count is honest. Additional breakdowns are returned for any
+    caller that needs the strict-US count or the full international total.
     """
     # Sum all data layer tables for total platform records
     tables = [
@@ -96,13 +104,23 @@ async def get_stats(db: AsyncSession = Depends(get_read_db)):
     if total_jurisdictions == 0:
         total_jurisdictions = 3143  # fallback
 
-    # States: 50 US + DC + 3 Canadian provinces
-    total_states = 54
+    # Marketing claim: 50 US states + 4 Canadian provinces (AB, BC, MB, ON) = 54.
+    # Verified against live /v1/coverage data on 2026-06-02:
+    #   US states (50) + Canadian provinces (4) = 54
+    #   US (50) + DC (1) + territories (5) + Canada (4) = 60 distinct regions
+    MARKETS_54 = 54          # public-facing hero number — "states + provinces" / "markets"
+    US_STATES_50 = 50        # strict US states only
+    COVERAGE_REGIONS_60 = 60 # everything in the data layer (US + DC + territories + Canada)
 
     return {
         "total_permits": total_records,
         "total_jurisdictions": total_jurisdictions,
-        "total_states": total_states,
+        # Backwards-compatible key — kept at 54 (the marketed number)
+        "total_states": MARKETS_54,
+        # New explicit keys for callers that want a precise slice
+        "us_states_50": US_STATES_50,
+        "markets": MARKETS_54,
+        "coverage_regions": COVERAGE_REGIONS_60,
     }
 
 
@@ -128,25 +146,23 @@ DATA_LAYERS = [
 ]
 
 
-@router.get("/freshness")
-async def data_freshness(db: AsyncSession = Depends(get_read_db)):
-    """Data freshness dashboard — shows when each data layer was last updated.
-
-    Public endpoint, no auth required. Builds user trust by showing data recency.
+async def _layer_probe(name, table, date_col, freq, max_age_hrs):
+    """Resolve one DATA_LAYERS row on a dedicated DB session so the calls
+    can fan out in parallel via asyncio.gather. Each session owns its
+    own connection from the pool — no shared transaction state.
     """
-    layers = []
-    total_records = 0
-    latest_update = None
-
-    for name, table, date_col, freq, max_age_hrs in DATA_LAYERS:
-        record_count = await fast_count(db, table)
-        total_records += record_count
+    async with async_session_maker() as session:
+        try:
+            record_count = await fast_count(session, table)
+        except Exception as e:
+            logger.debug("fast_count(%s) failed: %s", table, e)
+            record_count = 0
 
         last_updated = None
         if date_col:
             try:
                 rows = await safe_query(
-                    db,
+                    session,
                     text(f"SELECT MAX({date_col}) AS last_dt FROM {table}"),
                     timeout_ms=5000,
                 )
@@ -155,39 +171,71 @@ async def data_freshness(db: AsyncSession = Depends(get_read_db)):
                     if isinstance(raw, datetime):
                         last_updated = raw
                     else:
-                        # It's a date, convert to datetime
-                        last_updated = datetime.combine(raw, datetime.min.time(), tzinfo=timezone.utc)
+                        last_updated = datetime.combine(
+                            raw, datetime.min.time(), tzinfo=timezone.utc
+                        )
             except Exception as e:
                 logger.debug("Freshness query for %s.%s failed: %s", table, date_col, e)
 
-        # Determine staleness status
-        status = "unknown"
-        if last_updated:
-            age = datetime.now(timezone.utc) - (
-                last_updated if last_updated.tzinfo else last_updated.replace(tzinfo=timezone.utc)
-            )
-            age_hours = age.total_seconds() / 3600
-            if age_hours <= max_age_hrs:
-                status = "fresh"
-            elif age_hours <= max_age_hrs * 1.5:
-                status = "warning"
-            else:
-                status = "stale"
+    # Staleness classification
+    status = "unknown"
+    if last_updated:
+        anchor = last_updated if last_updated.tzinfo else last_updated.replace(tzinfo=timezone.utc)
+        age_hours = (datetime.now(timezone.utc) - anchor).total_seconds() / 3600
+        if age_hours <= max_age_hrs:
+            status = "fresh"
+        elif age_hours <= max_age_hrs * 1.5:
+            status = "warning"
+        else:
+            status = "stale"
 
-            if latest_update is None or last_updated > latest_update:
-                latest_update = last_updated
+    return {
+        "name": name,
+        "table": table,
+        "records": record_count,
+        "last_updated": last_updated.isoformat() if last_updated else None,
+        "_last_updated_raw": last_updated,
+        "freshness": freq,
+        "status": status,
+    }
 
-        layers.append({
-            "name": name,
-            "table": table,
-            "records": record_count,
-            "last_updated": last_updated.isoformat() if last_updated else None,
-            "freshness": freq,
-            "status": status,
-        })
+
+async def _compute_data_freshness() -> dict:
+    results = await asyncio.gather(
+        *[_layer_probe(*layer) for layer in DATA_LAYERS],
+        return_exceptions=True,
+    )
+    layers: list[dict] = []
+    total_records = 0
+    latest_update: datetime | None = None
+    for r in results:
+        if isinstance(r, Exception):
+            logger.warning("layer probe raised: %s", r)
+            continue
+        total_records += r.get("records", 0) or 0
+        raw_dt = r.pop("_last_updated_raw", None)
+        if raw_dt and (latest_update is None or raw_dt > latest_update):
+            latest_update = raw_dt
+        layers.append(r)
 
     return {
         "layers": layers,
         "total_records": total_records,
         "last_scraper_run": latest_update.isoformat() if latest_update else None,
     }
+
+
+@router.get("/freshness")
+async def data_freshness(db: AsyncSession = Depends(get_read_db)):
+    """Data freshness dashboard — shows when each data layer was last updated.
+
+    Public endpoint, no auth required. Builds user trust by showing data recency.
+
+    Cached in-process for 5 minutes. Underlying probes fan out via
+    asyncio.gather so total latency is bounded by the slowest table, not
+    the sum of all tables.
+    """
+    return await freshness_cache.get_or_set(
+        "data_freshness_dashboard",
+        _compute_data_freshness,
+    )

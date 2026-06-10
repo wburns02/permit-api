@@ -4,13 +4,30 @@ set -e
 echo "Starting Tailscale..."
 tailscaled --tun=userspace-networking --socks5-server=localhost:1055 --outbound-http-proxy-listen=localhost:1056 &
 sleep 3
-tailscale up --authkey="${TAILSCALE_AUTHKEY}" --hostname=permit-api-railway
-echo "Tailscale connected, waiting for routes..."
-sleep 5
+# Reset Tailscale state so we always rejoin as the SAME node identity instead
+# of spawning a new permit-api-railway-N zombie on every container restart.
+tailscale up --reset --authkey="${TAILSCALE_AUTHKEY}" --hostname=permit-api-railway
+# Prefer the stable Ashburn (iad) DERP relay (TCP/443) over the flapping direct UDP path
+tailscale debug force-prefer-derp 27 2>/dev/null || true
+echo "Tailscale connected, validating route to T430..."
+
+# Block on confirming we can actually reach T430 (100.122.216.15) before launching
+# uvicorn. Without this we accept HTTP requests before the SOCKS5 proxy can dial PG,
+# which manifests as /v1/data-freshness returning 000/500 for the first ~30s.
+for i in $(seq 1 30); do
+  if tailscale ping --until-direct=false --c=1 100.122.216.15 > /dev/null 2>&1; then
+    echo "Tailscale route to T430 confirmed after ${i}s"
+    break
+  fi
+  if [ "$i" -eq 30 ]; then
+    echo "WARN: Tailscale route to T430 not confirmed after 30s; continuing anyway"
+  fi
+  sleep 1
+done
 
 # SOCKS5 TCP proxy: forwards local ports through Tailscale to PostgreSQL servers
 # Port 5432 → T430 (100.122.216.15:5432) — primary, handles writes
-# Port 5433 → R730-2 (100.87.214.106:5432) — replica, handles reads
+# Port 5433 → R730-2 (100.125.210.69:5432) — replica, handles reads
 python3 -c "
 import socket, threading, struct, sys
 
@@ -73,22 +90,38 @@ def start_proxy(local_port, target_host, target_port, label):
         client, addr = server.accept()
         threading.Thread(target=handler, args=(client,), daemon=True).start()
 
-# Primary (T430) — writes
-t_primary = threading.Thread(target=start_proxy, args=(5432, '100.122.216.15', 5432, 'T430-primary'), daemon=True)
+# Primary (T430) — writes. Kept on 5442 as a Tailscale FALLBACK only.
+# The live DB path is now the Cloudflare tunnel bound to 127.0.0.1:5432 (see below),
+# because Railway's egress NAT destabilises the Tailscale direct path post-outage.
+t_primary = threading.Thread(target=start_proxy, args=(5442, '100.122.216.15', 5432, 'T430-primary-fallback'), daemon=True)
 t_primary.start()
 
 # Replica (R730-2) — reads
-t_replica = threading.Thread(target=start_proxy, args=(5433, '100.87.214.106', 5432, 'R730-2-replica'), daemon=True)
+t_replica = threading.Thread(target=start_proxy, args=(5433, '100.125.210.69', 5432, 'R730-2-replica'), daemon=True)
 t_replica.start()
 
 # Anthropic proxy (R730-2) — AI API calls
-t_anthropic = threading.Thread(target=start_proxy, args=(9877, '100.87.214.106', 9877, 'R730-2-anthropic-proxy'), daemon=True)
+t_anthropic = threading.Thread(target=start_proxy, args=(9877, '100.125.210.69', 9877, 'R730-2-anthropic-proxy'), daemon=True)
 t_anthropic.start()
 
 # Keep main thread alive
 t_primary.join()
 " &
 sleep 2
+
+# Live DB transport: Cloudflare tunnel client (outbound TCP/443, NAT-immune).
+# Binds 127.0.0.1:5432 -> pg.ecbtx.com -> cloudflared on T430 -> Postgres.
+# Auth is the permit_api scram password in DATABASE_URL (pg.ecbtx.com has no public
+# port; reachable only via the cloudflared access protocol + DB password).
+echo "Starting Cloudflare tunnel client for Postgres (pg.ecbtx.com -> 127.0.0.1:5432)..."
+cloudflared access tcp --hostname pg.ecbtx.com --url 127.0.0.1:5432 > /tmp/cf-pg.log 2>&1 &
+for i in $(seq 1 30); do
+  if (exec 3<>/dev/tcp/127.0.0.1/5432) 2>/dev/null; then
+    echo "Cloudflare PG listener ready after ${i}s"; break
+  fi
+  [ "$i" -eq 30 ] && echo "WARN: Cloudflare PG listener not ready after 30s; continuing anyway"
+  sleep 1
+done
 
 echo "Starting PermitLookup API..."
 exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8080} --timeout-keep-alive 30

@@ -11,11 +11,22 @@ from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
-async def fast_count(db: AsyncSession, table_name: str) -> int:
-    """Get approximate row count from pg_class.reltuples. Instant, no table scan."""
+async def fast_count(db: AsyncSession, table_name: str, schema: str = "public") -> int:
+    """Get approximate row count from pg_class.reltuples. Instant, no table scan.
+
+    For partitioned tables, sums the partitions (the parent's reltuples is 0).
+    """
     result = await db.execute(
-        text("SELECT reltuples::bigint FROM pg_class WHERE relname = :tbl"),
-        {"tbl": table_name},
+        text("""
+            SELECT COALESCE(SUM(GREATEST(c.reltuples::bigint, 0)), 0)
+            FROM pg_class c
+            JOIN pg_namespace n ON n.oid = c.relnamespace
+            WHERE n.nspname = :schema
+              AND (c.relname = :tbl
+                   OR c.oid IN (SELECT inhrelid FROM pg_inherits
+                                WHERE inhparent = format('%I.%I', :schema, :tbl)::regclass))
+        """),
+        {"tbl": table_name, "schema": schema},
     )
     count = result.scalar()
     return max(int(count), 0) if count else 0

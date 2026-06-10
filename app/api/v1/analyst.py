@@ -74,11 +74,16 @@ SCHEMA_CONTEXT = """You are an expert PostgreSQL analyst. You have access to a p
 permits (760M rows): id, permit_number, address, city, state_code (2-letter), zip_code,
     county, lat, lng, project_type, work_type, trade, status, description,
     date_created (timestamp), owner_name, applicant_name, source
+    - CRITICAL: project_type is a free-form municipal classification CODE column (values like "RRPL", "CALT", "A2", "02 - Automobile") — it is NOT a normalized English category label. DO NOT filter by ILIKE on words like 'residential', 'commercial', 'new construction', 'remodel' against project_type — that will return zero rows for most cities. For category-style filters use description, work_type, or trade columns instead. For project_type, only use it for equality match against known codes.
 
 hot_leads (daily fresh): id, permit_number, permit_type, work_class, description,
-    address, city, state, zip, valuation (numeric), sqft, issue_date (date),
+    address, city, state, zip, sqft, issue_date (date),
     contractor_company, contractor_name, contractor_phone,
     applicant_name, applicant_phone, jurisdiction, source
+    - valuation (double precision): permit job value in dollars. Has a btree index — use
+      `valuation > X` directly for "over $X" / "above $X" / "more than $X" filters.
+      Do NOT cast or wrap with COALESCE; it's already numeric. NULL means unknown value,
+      so `valuation > X` will exclude unknowns (which is what users want).
 
 business_entities (13M): id, entity_name, entity_type, state (2-letter), filing_number, status,
     formation_date (date), registered_agent_name, principal_address, source
@@ -125,10 +130,35 @@ QUERY RULES:
   * "top contractors", "rankings", "license", "Florida", "California", "FL", "CA" → USE contractor_licenses TABLE. 503K rows, fast. Status column is often NULL — do NOT filter on status. Do NOT join to other tables.
   * "historical", "all time", "2024", "2023", specific non-TX states → USE permits TABLE. MUST include narrow WHERE + LIMIT.
   * IMPORTANT: The word "permits" in a user's question does NOT mean use the permits table. "Show me roofing permits in Austin" → use hot_leads. The permits table (760M rows) has an 8-second timeout and will fail for most queries.
-- When user says "this month" use CURRENT_DATE - interval '30 days'
-- When user says "this week" use CURRENT_DATE - interval '7 days'
-- When user says "this year" use date_trunc('year', CURRENT_DATE)
+- RELATIVE DATE SEMANTICS (use date_trunc — produces tighter, index-friendly windows):
+  * "this month" -> `issue_date >= date_trunc('month', CURRENT_DATE)`
+  * "this week" -> `issue_date >= date_trunc('week', CURRENT_DATE)`
+  * "this year" -> `issue_date >= date_trunc('year', CURRENT_DATE)`
+  * "last month" -> `issue_date >= date_trunc('month', CURRENT_DATE - interval '1 month') AND issue_date < date_trunc('month', CURRENT_DATE)`
+  * "last week" -> `issue_date >= date_trunc('week', CURRENT_DATE - interval '1 week') AND issue_date < date_trunc('week', CURRENT_DATE)`
+  * "last year" -> `issue_date >= date_trunc('year', CURRENT_DATE - interval '1 year') AND issue_date < date_trunc('year', CURRENT_DATE)`
+  * "recent" / "new" / "latest" (no explicit window) -> `issue_date >= CURRENT_DATE - interval '14 days'`
+  * "last N days" -> `issue_date >= CURRENT_DATE - interval 'N days'`
 - State names should be converted to 2-letter codes (Texas->TX, California->CA, etc.)
+- CRITICAL: City values in hot_leads are stored inconsistently — Austin may be "AUSTIN", "Austin", or "Austin, TX". ALWAYS use `city ILIKE '%austin%'` (NOT `city = 'Austin'`). Same for any city filter.
+- CRITICAL: When a city is mentioned AND its state is known, ALSO add a `state = 'XX'` predicate. The state column is a cheap btree filter and slices the candidate set ~30x before the trigram pass on city/description. NEVER emit a city-only predicate when the state is inferable. City -> state mapping:
+  * TX: Austin, Houston, Dallas, San Antonio, Fort Worth, El Paso, Arlington, Waco, Plano, Corpus Christi, Lubbock, Garland, Irving, Frisco, Mckinney, Round Rock, Pearland, Sugar Land, Grand Prairie, Brownsville, Killeen, Pasadena, Mesquite, Carrollton, Midland, Denton, Abilene, Beaumont, Odessa, Tyler, Laredo
+  * FL: Miami, Jacksonville, Tampa, Orlando, St Petersburg, Hialeah, Tallahassee, Fort Lauderdale, Cape Coral, Pembroke Pines, Hollywood, Gainesville, Coral Springs, Clearwater, Miramar, Palm Bay, West Palm Beach, Lakeland
+  * CA: Los Angeles, San Diego, San Jose, San Francisco, Fresno, Sacramento, Long Beach, Oakland, Bakersfield, Anaheim, Santa Ana, Riverside, Stockton, Irvine, Fremont, San Bernardino, Modesto, Oxnard, Fontana, Glendale
+  * AZ: Phoenix, Tucson, Mesa, Chandler, Scottsdale, Glendale, Gilbert, Tempe, Peoria, Surprise
+  * NY: New York, Buffalo, Rochester, Yonkers, Syracuse, Albany
+  * IL: Chicago, Aurora, Naperville, Joliet, Rockford, Springfield
+  * NC: Charlotte, Raleigh, Greensboro, Durham, Winston-Salem, Fayetteville, Cary
+  * GA: Atlanta, Augusta, Columbus, Savannah, Athens, Sandy Springs
+  * WA: Seattle, Spokane, Tacoma, Vancouver, Bellevue, Kent
+  * CO: Denver, Colorado Springs, Aurora, Fort Collins, Lakewood, Thornton
+  * MA: Boston, Worcester, Springfield, Cambridge, Lowell
+  * TN: Nashville, Memphis, Knoxville, Chattanooga, Clarksville
+  * NV: Las Vegas, Henderson, Reno, North Las Vegas
+  * OR: Portland, Eugene, Salem, Gresham, Hillsboro
+  * OH: Columbus, Cleveland, Cincinnati, Toledo, Akron, Dayton
+  * MI: Detroit, Grand Rapids, Warren, Sterling Heights, Ann Arbor
+  * Example: "Roofing permits in Austin this month" -> `WHERE state = 'TX' AND city ILIKE '%austin%' AND ...`
 - Always include useful columns in SELECT (address, city, state, etc.)
 - For aggregations, use meaningful aliases
 - Never use SELECT * — always specify columns
@@ -137,17 +167,98 @@ QUERY RULES:
 """
 
 # ---------------------------------------------------------------------------
-# SQL safety
+# Date-filter stripper for no-results fallback
 # ---------------------------------------------------------------------------
-_FORBIDDEN_PATTERNS = re.compile(
-    r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE|EXECUTE|COPY|"
-    r"pg_read_file|pg_write_file|lo_import|lo_export)\b",
+# Matches WHERE-clause predicates that filter on a date/timestamp column,
+# whether they reference CURRENT_DATE, INTERVAL math, or literal dates.
+# Used when the LLM-generated SQL returned 0 rows — we strip the date
+# filter, re-run, and tell the user how stale the freshest record is.
+_DATE_COLS = (
+    "issue_date", "date_created", "sale_date", "violation_date",
+    "filing_date", "install_date", "expiration_date", "begin_date",
+    "period_end", "formation_date", "scored_at", "last_updated",
+    "scraped_at", "last_inspection",
+)
+_DATE_PREDICATE_RE = re.compile(
+    (
+        r"(?:AND\s+|OR\s+)?"                                        # leading conjunction (optional)
+        r"\(?\s*"                                                    # optional opening paren
+        r"(?:[a-zA-Z_][a-zA-Z0-9_]*\.)?"                             # optional table alias
+        r"(?:" + "|".join(_DATE_COLS) + r")\b"
+        r"\s*(?:>=|<=|>|<|=|BETWEEN|IS\s+NOT\s+NULL|IS\s+NULL)"
+        r"[^)]*?"                                                    # match up to a closing paren / next clause
+        r"(?:CURRENT_DATE|INTERVAL\s+'[^']+'|'\d{4}-\d{2}-\d{2}'|\d+)"
+        r"(?:\s*(?:\+|-|AND)\s*(?:INTERVAL\s+'[^']+'|CURRENT_DATE|'\d{4}-\d{2}-\d{2}'|\d+))*"
+        r"\s*\)?"                                                    # optional closing paren
+    ),
     re.IGNORECASE,
 )
 
 
+def _strip_date_filters(sql: str) -> str:
+    """Remove date predicates from a SELECT's WHERE clause so we can find
+    the freshest matching record regardless of date. Best-effort regex —
+    leaves all non-date filters (city, state, ILIKE, etc.) intact.
+    Returns the cleaned SQL, or the original if nothing matched.
+    """
+    cleaned = _DATE_PREDICATE_RE.sub(" ", sql)
+    # Tidy up dangling AND/OR/WHERE artefacts
+    cleaned = re.sub(r"\bWHERE\s+(AND|OR)\s+", "WHERE ", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\bAND\s+AND\b", "AND", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\bOR\s+OR\b", "OR", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\bWHERE\s+(ORDER|GROUP|LIMIT|HAVING)\b",
+                     r"\1", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\bAND\s+(ORDER|GROUP|LIMIT|HAVING)\b",
+                     r"\1", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    # If nothing meaningful changed, return original
+    return cleaned if cleaned != sql.strip() else sql
+
+
+def _detect_date_column(sql: str) -> str | None:
+    """Return the first known date column referenced in the SQL, or None."""
+    low = sql.lower()
+    for col in _DATE_COLS:
+        if col in low:
+            return col
+    return None
+
+
+# ---------------------------------------------------------------------------
+# SQL safety
+# ---------------------------------------------------------------------------
+_FORBIDDEN_PATTERNS = re.compile(
+    r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|GRANT|REVOKE|EXECUTE|COPY|"
+    r"MERGE|CALL|VACUUM|REINDEX|LOCK|"
+    r"pg_read_file|pg_write_file|lo_import|lo_export)\b",
+    re.IGNORECASE,
+)
+
+# Strip single-quoted string literals (including '' escapes), $$-quoted strings,
+# -- line comments, and /* */ block comments. Tokens like ALTER/DROP/UPDATE that
+# only appear inside literals or comments must not trip the forbidden check.
+_SQL_LITERAL_OR_COMMENT = re.compile(
+    r"'(?:''|[^'])*'"            # 'single quoted', supports '' escape
+    r"|\$\$.*?\$\$"              # $$dollar quoted$$
+    r"|--[^\n]*"                 # -- line comment
+    r"|/\*.*?\*/",               # /* block comment */
+    re.DOTALL,
+)
+
+
+def _strip_sql_literals_and_comments(sql: str) -> str:
+    """Replace string literals and comments with spaces so keyword checks see only code."""
+    return _SQL_LITERAL_OR_COMMENT.sub(" ", sql)
+
+
 def _validate_sql(sql: str) -> str:
-    """Validate that generated SQL is a safe SELECT query. Returns cleaned SQL."""
+    """Validate that generated SQL is a safe SELECT query. Returns cleaned SQL.
+
+    The forbidden-keyword check is token-aware: string literals (e.g.
+    ``ILIKE '%alteration%'``) and comments are stripped before scanning so they
+    can't trip the safety check. Only real SQL keywords (DDL/DML) are rejected.
+    Also enforces that the statement begins with SELECT or WITH ... SELECT (CTE).
+    """
     sql = sql.strip().rstrip(";")
 
     # Strip markdown code fences if Claude wrapped it
@@ -156,10 +267,19 @@ def _validate_sql(sql: str) -> str:
         lines = [l for l in lines if not l.strip().startswith("```")]
         sql = "\n".join(lines).strip()
 
-    if _FORBIDDEN_PATTERNS.search(sql):
+    # Scan for forbidden keywords against a copy with string literals & comments removed
+    scrubbed = _strip_sql_literals_and_comments(sql)
+
+    if _FORBIDDEN_PATTERNS.search(scrubbed):
         raise ValueError("Query contains forbidden operations. Only SELECT queries are allowed.")
 
-    if not sql.upper().lstrip().startswith("SELECT"):
+    # Reject multi-statement payloads (anything after a `;` in the scrubbed code).
+    # Trailing whitespace/comments-only after `;` is fine — those were already scrubbed.
+    if ";" in scrubbed.strip().rstrip(";"):
+        raise ValueError("Multiple statements are not allowed. Only a single SELECT is permitted.")
+
+    head = scrubbed.lstrip().upper()
+    if not (head.startswith("SELECT") or head.startswith("WITH")):
         raise ValueError("Only SELECT queries are allowed.")
 
     # Enforce LIMIT
@@ -189,6 +309,12 @@ class AnalystResponse(BaseModel):
     row_count: int
     execution_time_ms: int
     query_id: str
+    fallback: dict | None = None  # populated when we recovered from a 0-result query
+    # When the original LLM-generated SQL returned 0 rows and a relaxed/upgraded
+    # query produced the rows actually returned. UI should warn the user that
+    # their filter did not match — these are closest related results, not matches.
+    filter_relaxed: bool = False
+    original_filter_matched: int | None = None
 
 
 class ReportResponse(BaseModel):
@@ -204,6 +330,52 @@ class ReportResponse(BaseModel):
     market: list[dict]
     risk_score: int
     ai_summary: str
+
+
+# ---------------------------------------------------------------------------
+# Analyst-specific SQL execution
+# ---------------------------------------------------------------------------
+# The engine-wide asyncpg `command_timeout=10` (set in app/database.py) is
+# correct for most read endpoints — long queries elsewhere are bugs. But
+# analyst LLM-generated SQL legitimately spans wider scans and needs more
+# headroom. We do NOT raise the engine-wide value; instead we override both
+# layers here, per-query:
+#
+#   1. Postgres `statement_timeout` via `SET LOCAL` (server-side budget).
+#      Requires an open transaction so the LOCAL scope is meaningful.
+#   2. asyncpg per-execute `timeout=...` kwarg (client-side budget).
+#      Without this, asyncpg's 10s client-side timer fires first and the
+#      SET LOCAL is useless. We reach the raw asyncpg connection through
+#      SQLAlchemy's `get_raw_connection().driver_connection`.
+#
+# Touching the engine config or any other endpoint is intentionally out of
+# scope — those should keep failing fast at 10s.
+ANALYST_SQL_TIMEOUT_S = 30.0
+
+
+async def _analyst_fetch(db: AsyncSession, sql: str, timeout_s: float = ANALYST_SQL_TIMEOUT_S) -> tuple[list[str], list[tuple]]:
+    """Execute analyst SQL with a per-query timeout that survives both layers.
+
+    Opens an explicit transaction so SET LOCAL statement_timeout sticks, then
+    uses the raw asyncpg connection's fetch(..., timeout=...) so the asyncpg
+    client-side timer matches the Postgres-side budget.
+
+    Returns (columns, rows-as-tuples). Caller serializes.
+    """
+    ms = int(timeout_s * 1000)
+    async with db.begin():
+        sa_conn = await db.connection()
+        raw = await sa_conn.get_raw_connection()
+        asyncpg_conn = raw.driver_connection  # asyncpg.Connection
+        # Server-side budget. `SET LOCAL` is scoped to the current tx.
+        await asyncpg_conn.execute(f"SET LOCAL statement_timeout = '{ms}ms'", timeout=5.0)
+        # Client-side budget. Overrides the engine-wide command_timeout=10.
+        records = await asyncpg_conn.fetch(sql, timeout=timeout_s)
+    if not records:
+        return [], []
+    columns = list(records[0].keys())
+    rows = [tuple(r.values()) for r in records]
+    return columns, rows
 
 
 # ---------------------------------------------------------------------------
@@ -248,16 +420,25 @@ async def analyst_query(
     """
     _require_pro_leads(user)
 
+    # Shared state so the outer 40s timeout catch can log the generated SQL +
+    # query_id even though they're set deep inside _run_analyst_query.
+    debug_state: dict = {"query_id": None, "sql": None}
+
     try:
         return await asyncio.wait_for(
-            _run_analyst_query(body, request, user, db),
-            timeout=25.0,
+            _run_analyst_query(body, request, user, db, debug_state=debug_state),
+            timeout=40.0,
         )
     except asyncio.TimeoutError:
-        logger.error("[Analyst] handler exceeded 25s for question=%r", body.question)
+        logger.error(
+            "[Analyst] handler exceeded 40s reason=timeout question=%r query_id=%s sql=%s",
+            body.question,
+            debug_state.get("query_id"),
+            debug_state.get("sql"),
+        )
         raise HTTPException(
             status_code=504,
-            detail="Query took longer than 25 seconds. Try a more specific question (add a city, state, or date filter).",
+            detail="Query took longer than 40 seconds. Try a more specific question (add a city, state, or date filter).",
         )
 
 
@@ -266,8 +447,16 @@ async def _run_analyst_query(
     request: Request,
     user: ApiUser,
     db: AsyncSession,
+    debug_state: dict | None = None,
 ) -> AnalystResponse:
-    """Core handler logic for /v1/analyst/query, wrapped in asyncio.wait_for by the route."""
+    """Core handler logic for /v1/analyst/query, wrapped in asyncio.wait_for by the route.
+
+    `debug_state` is a shared dict the outer 40s wrapper uses to log the generated
+    SQL and query_id when it fires. We mutate it as soon as those values are
+    available so the timeout catch isn't logging None.
+    """
+    if debug_state is None:
+        debug_state = {}
     client = _get_client()
     if not client:
         raise HTTPException(
@@ -276,6 +465,7 @@ async def _run_analyst_query(
         )
 
     query_id = str(uuid.uuid4())[:12]
+    debug_state["query_id"] = query_id
     t0 = time.time()
     logger.info("[Analyst:%s] START question=%r", query_id, body.question)
 
@@ -322,14 +512,13 @@ async def _run_analyst_query(
         logger.warning("Unsafe SQL rejected for query %s: %s — SQL: %s", query_id, e, raw_sql)
         raise HTTPException(status_code=422, detail=f"Generated query was rejected for safety: {e}")
 
+    debug_state["sql"] = safe_sql
     logger.info("[Analyst:%s] user=%s question=%r sql=%s", query_id, user.id, body.question, safe_sql)
 
-    # ── Step 3: Execute the SQL (with 5s timeout to prevent slow queries hanging) ──
+    # ── Step 3: Execute the SQL (30s budget — see _analyst_fetch docstring) ──
     try:
-        await db.execute(text("SET LOCAL statement_timeout = '5000'"))
-        result = await db.execute(text(safe_sql))
-        columns = list(result.keys())
-        rows = [dict(zip(columns, row)) for row in result.fetchall()]
+        columns, raw_rows = await _analyst_fetch(db, safe_sql)
+        rows = [dict(zip(columns, row)) for row in raw_rows]
     except Exception as e:
         logger.warning("SQL execution failed for query %s: %s", query_id, e)
         # Try to get Claude to fix the query
@@ -350,10 +539,10 @@ async def _run_analyst_query(
             )
             fixed_sql = _validate_sql(fix_response.content[0].text.strip())
             logger.info("[Analyst:%s] Retrying with fixed SQL: %s", query_id, fixed_sql)
-            result = await db.execute(text(fixed_sql))
-            columns = list(result.keys())
-            rows = [dict(zip(columns, row)) for row in result.fetchall()]
+            columns, raw_rows = await _analyst_fetch(db, fixed_sql)
+            rows = [dict(zip(columns, row)) for row in raw_rows]
             safe_sql = fixed_sql
+            debug_state["sql"] = safe_sql
         except Exception as e2:
             logger.error("SQL retry also failed for query %s: %s", query_id, e2)
             raise HTTPException(
@@ -381,10 +570,10 @@ async def _run_analyst_query(
 
     # ── Step 3b: Sonnet fallback — if Haiku returned 0, retry with smarter model ──
     upgraded = False
-    if not serialized_rows and time.time() - t0 > 18:
+    if not serialized_rows and time.time() - t0 > 32:
         raise HTTPException(
             status_code=504,
-            detail="Query took longer than 25 seconds. Try a more specific question.",
+            detail="Query took longer than 40 seconds. Try a more specific question.",
         )
     if not serialized_rows and (time.time() - t0) < 6.0:
         logger.info("[Analyst:%s] 0 results from Haiku — upgrading to Sonnet", query_id)
@@ -399,7 +588,13 @@ async def _run_analyst_query(
                         f"A previous attempt to answer this question returned 0 results. "
                         f"The failed SQL was: {safe_sql}\n\n"
                         f"Generate a BETTER PostgreSQL query that will actually return results. "
-                        f"Try a different table or relax the filters. "
+                        f"Try a different table or relax the filters.\n\n"
+                        f"RELAXATION PRIORITY ORDER (apply in this order, stopping as soon as you have any results):\n"
+                        f"1. Widen the date window (e.g. \"last 30 days\" -> \"last 90 days\" -> \"last 180 days\" -> \"this year\")\n"
+                        f"2. Drop the dollar/valuation threshold\n"
+                        f"3. Loosen industry keyword (use broader synonyms or partial matches)\n"
+                        f"4. ONLY AS A LAST RESORT drop the city filter — and when you do, state in the SQL comment \"RELAXED: city filter dropped\"\n\n"
+                        f"NEVER drop the city filter while keeping a tight keyword filter. NEVER drop both the city and the keyword filter in the same retry.\n\n"
                         f"Return ONLY the raw SQL — no explanation.\n\n"
                         f"Question: {body.question}"
                     ),
@@ -407,10 +602,8 @@ async def _run_analyst_query(
             )
             upgraded_sql = _validate_sql(sonnet_response.content[0].text.strip())
             logger.info("[Analyst:%s] Sonnet SQL: %s", query_id, upgraded_sql)
-            await db.execute(text("SET LOCAL statement_timeout = '5000'"))
-            result2 = await db.execute(text(upgraded_sql))
-            columns2 = list(result2.keys())
-            rows2 = [dict(zip(columns2, row)) for row in result2.fetchall()]
+            columns2, raw_rows2 = await _analyst_fetch(db, upgraded_sql)
+            rows2 = [dict(zip(columns2, row)) for row in raw_rows2]
             if rows2:
                 serialized_rows = []
                 for row in rows2:
@@ -430,6 +623,114 @@ async def _run_analyst_query(
                 logger.info("[Analyst:%s] Sonnet found %d rows", query_id, len(serialized_rows))
         except Exception as e:
             logger.warning("[Analyst:%s] Sonnet fallback failed: %s", query_id, e)
+
+    exec_ms = int((time.time() - t0) * 1000)
+
+    # ── Step 3c: Graceful no-results fallback ─────────────────────────
+    # If we still have 0 rows after Haiku + Sonnet, strip the date
+    # filters from the SQL and re-run. This lets us either:
+    #   (a) show "most recent matching records regardless of date" when
+    #       the geography/type has stale data, or
+    #   (b) tell the user honestly that the freshest record is N days old.
+    fallback_info: dict | None = None
+    if not serialized_rows and safe_sql:
+        # The current `db` session may be in a poisoned state from the
+        # previous failed/timeout SQL — open a fresh session for the probe.
+        from app.database import replica_session_maker
+
+        stripped_sql = _strip_date_filters(safe_sql)
+        if stripped_sql and stripped_sql != safe_sql.strip():
+            date_col = _detect_date_column(safe_sql)
+            # Ensure ORDER BY <date_col> DESC so we get the freshest first
+            probe_sql = stripped_sql
+            if date_col and "order by" not in probe_sql.lower():
+                probe_sql = re.sub(
+                    r"\s+LIMIT\s+\d+\s*$",
+                    f" ORDER BY {date_col} DESC NULLS LAST LIMIT 10",
+                    probe_sql,
+                    flags=re.IGNORECASE,
+                )
+            elif "limit" not in probe_sql.lower():
+                probe_sql += " LIMIT 10"
+
+            logger.info("[Analyst:%s] No-results fallback — stripped date filter, probing: %s",
+                        query_id, probe_sql)
+            try:
+                async with replica_session_maker() as probe_db:
+                    probe_cols, probe_raw = await _analyst_fetch(probe_db, probe_sql)
+                    probe_rows = [dict(zip(probe_cols, row)) for row in probe_raw]
+            except Exception as e:
+                logger.warning("[Analyst:%s] No-results fallback probe failed: %s", query_id, e)
+                probe_rows = []
+
+            if probe_rows:
+                # Serialize
+                serialized_probe = []
+                latest_date = None
+                for row in probe_rows:
+                    clean = {}
+                    for k, v in row.items():
+                        if isinstance(v, datetime):
+                            clean[k] = v.isoformat()
+                            if date_col and k == date_col and (latest_date is None or v > latest_date):
+                                latest_date = v
+                        elif isinstance(v, uuid.UUID):
+                            clean[k] = str(v)
+                        elif hasattr(v, "isoformat"):
+                            clean[k] = v.isoformat()
+                            if date_col and k == date_col:
+                                # Date-like (date, not datetime)
+                                try:
+                                    as_dt = datetime.combine(v, datetime.min.time(), tzinfo=timezone.utc) if not isinstance(v, datetime) else v
+                                    if latest_date is None or as_dt > latest_date:
+                                        latest_date = as_dt
+                                except Exception:
+                                    pass
+                        else:
+                            clean[k] = v
+                    serialized_probe.append(clean)
+
+                serialized_rows = serialized_probe
+                safe_sql = probe_sql
+
+                # Build fallback message
+                if latest_date:
+                    anchor = latest_date if latest_date.tzinfo else latest_date.replace(tzinfo=timezone.utc)
+                    age_days = (datetime.now(timezone.utc) - anchor).days
+                    latest_str = anchor.date().isoformat()
+                    if age_days > 30:
+                        reason = "data_stale"
+                        msg = (
+                            f"No results in your time window. The most recent matching record is from "
+                            f"{latest_str} ({age_days} days ago) — data may be stale for this geography "
+                            f"or permit type. Showing the {len(serialized_rows)} most recent records "
+                            f"regardless of date."
+                        )
+                    else:
+                        reason = "no_results_in_window"
+                        msg = (
+                            f"No results in your requested window. Broadened the search and found "
+                            f"{len(serialized_rows)} recent records (latest: {latest_str}, "
+                            f"{age_days} days ago)."
+                        )
+                else:
+                    reason = "no_results_in_window"
+                    latest_str = None
+                    age_days = None
+                    msg = (
+                        f"No results in your requested window. Broadened the search and found "
+                        f"{len(serialized_rows)} matching records."
+                    )
+
+                fallback_info = {
+                    "applied": True,
+                    "reason": reason,
+                    "latest_record_date": latest_str,
+                    "latest_record_age_days": age_days,
+                    "user_message": msg,
+                }
+                logger.info("[Analyst:%s] Fallback succeeded — %d rows, latest=%s, age=%s",
+                            query_id, len(serialized_rows), latest_str, age_days)
 
     exec_ms = int((time.time() - t0) * 1000)
 
@@ -482,8 +783,26 @@ async def _run_analyst_query(
     else:
         summary = "No results found. Try broadening your search or rephrasing the question."
 
+    # Honest fallback signaling: rows came from either the Sonnet retry or the
+    # date-strip probe \u2014 in both cases the user's original SQL returned 0 rows
+    # and the rows we're about to return are "closest related," not matches.
+    # Set filter_relaxed so the client UI can warn, and prepend a blunt notice
+    # to the summary so even clients that ignore the flag see what happened.
+    used_fallback = bool(serialized_rows) and (upgraded or fallback_info is not None)
+
     if upgraded and serialized_rows:
         summary = "\u2728 Upgraded AI found results. " + summary
+
+    # If we recovered via the no-results fallback, prepend the user message
+    # so the chat bubble explains what happened before any LLM summary.
+    if fallback_info:
+        summary = fallback_info["user_message"] + ("\n\n" + summary if summary else "")
+
+    if used_fallback:
+        summary = (
+            "NO RESULTS MATCHED YOUR ORIGINAL FILTER. Showing closest related results:\n\n"
+            + (summary or "")
+        )
 
     return AnalystResponse(
         question=body.question,
@@ -493,6 +812,9 @@ async def _run_analyst_query(
         row_count=len(serialized_rows),
         execution_time_ms=exec_ms,
         query_id=query_id,
+        fallback=fallback_info,
+        filter_relaxed=used_fallback,
+        original_filter_matched=0 if used_fallback else None,
     )
 
 
