@@ -74,6 +74,7 @@ from app.api.v1.internal_rural_v5 import router as internal_rural_v5_router
 from app.api.v1.roofer_leads import router as roofer_leads_router
 from app.api.v1.enrichment import router as enrichment_router
 from app.api.v1.rural_score import router as rural_score_router
+from app.api.v1.wells import wells_router, well_permits_router
 from app.models.parcel_screen import (  # noqa: F401 — registers tables for Base.metadata.create_all
     ParcelJurisdiction,
     ParcelStateLaw,
@@ -508,6 +509,8 @@ app.include_router(internal_rural_v5_router, prefix="/v1")
 app.include_router(roofer_leads_router, prefix="/v1")
 app.include_router(enrichment_router, prefix="/v1")
 app.include_router(rural_score_router, prefix="/v1")
+app.include_router(wells_router, prefix="/v1")
+app.include_router(well_permits_router, prefix="/v1")
 
 
 @app.get("/health")
