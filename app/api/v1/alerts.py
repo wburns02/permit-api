@@ -17,9 +17,19 @@ from app.services.stripe_service import get_alert_limit
 router = APIRouter(prefix="/alerts", tags=["Alerts"])
 
 
+SOURCE_TYPES = {"permits", "well_permits"}
+
+
 class AlertCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
-    filters: dict = Field(..., description="Filter criteria: state, city, permit_type, contractor, address, keyword")
+    source_type: str = Field(
+        "permits",
+        description="What to watch: 'permits' (building permits) or 'well_permits' (RRC W-1 drilling permits)",
+    )
+    filters: dict = Field(..., description=(
+        "permits: state, city, permit_type, contractor, address, keyword. "
+        "well_permits: state, county, operator, lease, district, wellbore_profile, filing_purpose, min_depth"
+    ))
     frequency: AlertFrequency = AlertFrequency.DAILY
     webhook_url: str | None = None
     email_notify: bool = True
@@ -34,10 +44,29 @@ class AlertUpdate(BaseModel):
     is_active: bool | None = None
 
 
+def _validate_source_filters(source_type: str, filters: dict) -> None:
+    if source_type not in SOURCE_TYPES:
+        raise HTTPException(status_code=400, detail=f"source_type must be one of {sorted(SOURCE_TYPES)}")
+    if source_type == "well_permits":
+        from app.services.alert_engine import W1_FILTER_KEYS
+        unknown = set(filters) - W1_FILTER_KEYS
+        if unknown:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown well_permits filter keys: {sorted(unknown)}. Allowed: {sorted(W1_FILTER_KEYS)}",
+            )
+        if not (set(filters) & {"county", "operator", "lease", "district"}):
+            raise HTTPException(
+                status_code=400,
+                detail="well_permits watchlists need at least one of: county, operator, lease, district.",
+            )
+
+
 def _alert_to_dict(a: PermitAlert) -> dict:
     return {
         "id": str(a.id),
         "name": a.name,
+        "source_type": getattr(a, "source_type", None) or "permits",
         "filters": a.filters,
         "frequency": a.frequency.value,
         "webhook_url": a.webhook_url,
@@ -88,9 +117,12 @@ async def create_alert(
     if count >= limit:
         raise HTTPException(status_code=403, detail=f"Alert limit reached ({limit}). Upgrade your plan for more alerts.")
 
+    _validate_source_filters(body.source_type, body.filters)
+
     alert = PermitAlert(
         user_id=user.id,
         name=body.name,
+        source_type=body.source_type,
         filters=body.filters,
         frequency=body.frequency,
         webhook_url=body.webhook_url,
@@ -199,6 +231,10 @@ async def update_alert(
         raise HTTPException(status_code=404, detail="Alert not found.")
 
     updates = body.model_dump(exclude_unset=True)
+    if "filters" in updates:
+        _validate_source_filters(
+            getattr(alert, "source_type", None) or "permits", updates["filters"]
+        )
     if updates:
         for k, v in updates.items():
             setattr(alert, k, v)

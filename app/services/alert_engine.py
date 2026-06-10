@@ -3,7 +3,7 @@
 import asyncio
 import logging
 from datetime import datetime, timezone
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import primary_session_maker as async_session_maker
@@ -14,14 +14,85 @@ from app.services.search_service import build_filter_conditions, PERMIT_COLUMNS,
 from app.services.email_service import send_alert_email
 from app.services.webhook_service import deliver_webhook
 from app.models.permit import Permit
+from app.models.oil_gas import WellPermit
 
 logger = logging.getLogger(__name__)
 
 MATCH_LIMIT = 100
 
+# Allowed filter keys for W-1 drilling permit watchlists. Adding a key here
+# (and a condition below) is the whole change needed to watch a new field —
+# criteria live in JSONB, so no schema migration.
+W1_FILTER_KEYS = {
+    "state", "county", "operator", "lease", "district",
+    "wellbore_profile", "filing_purpose", "min_depth",
+}
+
+
+def build_w1_conditions(filters: dict) -> list:
+    """SQLAlchemy conditions for a W-1 drilling permit watchlist."""
+    conditions = [
+        WellPermit.state == (filters.get("state") or "TX").upper(),
+        WellPermit.current_status == "approved",
+    ]
+    if filters.get("county"):
+        conditions.append(func.upper(WellPermit.county) == filters["county"].upper())
+    if filters.get("operator"):
+        conditions.append(WellPermit.operator_name_raw.ilike(f"%{filters['operator']}%"))
+    if filters.get("lease"):
+        conditions.append(WellPermit.lease_name.ilike(f"%{filters['lease']}%"))
+    if filters.get("district"):
+        conditions.append(WellPermit.district == str(filters["district"]).upper())
+    if filters.get("wellbore_profile"):
+        conditions.append(WellPermit.wellbore_profile == filters["wellbore_profile"].lower())
+    if filters.get("filing_purpose"):
+        conditions.append(WellPermit.filing_purpose.ilike(f"%{filters['filing_purpose']}%"))
+    if filters.get("min_depth"):
+        conditions.append(WellPermit.total_depth >= float(filters["min_depth"]))
+    return conditions
+
+
+def w1_row_to_dict(p: WellPermit) -> dict:
+    return {
+        "permit_number": p.permit_number,
+        "county": p.county,
+        "district": p.district,
+        "operator": p.operator_name_raw,
+        "operator_number": p.operator_number,
+        "lease_name": p.lease_name,
+        "well_number": p.well_number,
+        "wellbore_profile": p.wellbore_profile,
+        "filing_purpose": p.filing_purpose,
+        "total_depth": float(p.total_depth) if p.total_depth is not None else None,
+        "submitted_date": p.submitted_date.isoformat() if p.submitted_date else None,
+        "approved_date": p.approved_date.isoformat() if p.approved_date else None,
+        "lat": p.lat,
+        "lng": p.lng,
+    }
+
 
 async def match_alert(alert: PermitAlert, db: AsyncSession) -> list[dict]:
-    """Find new permits matching alert filters since last check."""
+    """Find new records matching alert filters since last check."""
+    source_type = getattr(alert, "source_type", None) or "permits"
+
+    if source_type == "well_permits":
+        conditions = build_w1_conditions(alert.filters or {})
+        # Temporal: only newly approved W-1s since last check. No backfill:
+        # the first run after activation sets the cursor without matching.
+        if alert.last_checked_at:
+            conditions.append(WellPermit.approved_date > alert.last_checked_at.date())
+        else:
+            return []
+        query = (
+            select(WellPermit)
+            .where(and_(*conditions))
+            .order_by(WellPermit.county.asc().nullslast(),
+                      WellPermit.approved_date.desc().nullslast())
+            .limit(MATCH_LIMIT)
+        )
+        result = await db.execute(query)
+        return [w1_row_to_dict(p) for p in result.scalars().all()]
+
     conditions = build_filter_conditions(alert.filters)
 
     # Temporal: only new permits since last check
@@ -71,7 +142,10 @@ async def execute_alert(alert: PermitAlert, db: AsyncSession) -> int:
         # Load user email
         user = await db.get(ApiUser, alert.user_id)
         if user:
-            email_ok = await send_alert_email(user.email, alert.name, matches)
+            email_ok = await send_alert_email(
+                user.email, alert.name, matches,
+                source_type=getattr(alert, "source_type", None) or "permits",
+            )
             if not email_ok:
                 errors.append("email delivery failed")
         else:
@@ -82,6 +156,7 @@ async def execute_alert(alert: PermitAlert, db: AsyncSession) -> int:
         payload = {
             "alert_id": str(alert.id),
             "alert_name": alert.name,
+            "source_type": getattr(alert, "source_type", None) or "permits",
             "match_count": len(matches),
             "matches": matches,
             "run_at": now.isoformat(),

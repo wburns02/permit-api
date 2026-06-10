@@ -23,9 +23,14 @@ class PermitAlert(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("api_users.id"), nullable=False)
     name = Column(String(200), nullable=False)
+    # What the alert watches: 'permits' (building permits, default) or
+    # 'well_permits' (RRC W-1 drilling permits). Criteria live in the same
+    # JSONB filters column so new watchable fields never need migrations.
+    source_type = Column(String(30), nullable=False, default="permits", server_default="permits")
     # Filter criteria stored as JSON
     filters = Column(JSONB, nullable=False, default=dict)
-    # e.g. {"state": "TX", "city": "Austin", "permit_type": "building", "contractor": "Smith", "address": "Main St"}
+    # permits: {"state": "TX", "city": "Austin", "permit_type": "building", "contractor": "Smith", "address": "Main St"}
+    # well_permits: {"state": "TX", "county": "MIDLAND", "operator": "PIONEER", "lease": "BUCHANAN", "district": "08", "wellbore_profile": "horizontal", "min_depth": 8000}
     frequency = Column(PGEnum(AlertFrequency, name="alert_frequency"), default=AlertFrequency.DAILY, nullable=False)
     webhook_url = Column(Text)  # Optional webhook endpoint
     email_notify = Column(Boolean, default=True)
