@@ -61,3 +61,12 @@ sweep script: check partitions independently, never the parent.
   preserved on every row; the mapping needs per-source vocabulary work in
   the enrichment phase. Do not build product logic on the normalized
   status column yet.
+- KNOWN DEFECT (found 2026-06-10 during enrichment scoping): hot_leads.state
+  defaults to 'TX', so the canonical backfill stamped out-of-state MGO
+  jurisdictions as Texas (e.g. "Avoyelles Parish, TX", "Bossier Parish,
+  TX" are Louisiana). ~70K rows affected. Interim: bulk enrichment filters
+  through canonical.enrichment_tx_sources (121 vetted sources with recorded
+  basis; zip-audit evidence in permit-api data/tx_source_zip_audit.txt).
+  Real fix: re-derive state per source_id (most sources are
+  single-jurisdiction) and correct canonical.jurisdictions + permits; until
+  then do not trust state for MGO-sourced rows.
