@@ -52,6 +52,22 @@ async def coverage(db: AsyncSession = Depends(get_read_db)):
 
     states = {row.state: row.count for row in state_rows if row.state}
 
+    # Jurisdiction count: the `jurisdictions` metadata table is unpopulated on
+    # prod (real data lives in the partitioned `permits` table loaded via
+    # source feeds), so len(jurisdictions)==0 surfaced "0 jurisdictions" on the
+    # public landing page. Fall back to distinct source feeds that actually
+    # loaded rows — a cheap, honest proxy for covered data sources.
+    total_jurisdictions = len(jurisdictions)
+    if total_jurisdictions == 0:
+        try:
+            jur_count = await db.execute(text(
+                "SELECT COUNT(DISTINCT source_name) FROM hot_leads_sources "
+                "WHERE records_loaded > 0"
+            ))
+            total_jurisdictions = int(jur_count.scalar() or 0)
+        except Exception:
+            total_jurisdictions = 0
+
     # Fallback: if fast_count returned 0 for partitioned permits table,
     # sum partition stats instead
     if total_records == 0:
@@ -68,7 +84,7 @@ async def coverage(db: AsyncSession = Depends(get_read_db)):
 
     return {
         "total_records": total_records,
-        "total_jurisdictions": len(jurisdictions),
+        "total_jurisdictions": total_jurisdictions,
         "total_states": len(states),
         "states": states,
         "jurisdictions": jurisdictions,
