@@ -125,6 +125,69 @@ ACCELA_CITIES = {
     "ANCHORAGE":    ("Anchorage", "AK"),
 }
 
+# ── Catalog-discovered additions (data-catalog 2026-05-26) ─────────────────
+# Source: /home/will/burns-layer-4/data-catalog/scripts/permitlookup-integration
+ACCELA_CITIES.update({
+    "BIRMINGHAM": ("Birmingham", "AL"),
+    "MONTCOOH": ("Montgomery", "AL"),
+    "PIMA": ("Pima County / Tucson", "AZ"),
+    "COSPRINGS": ("Colorado Springs", "CO"),
+    "BOCC": ("Volusia County", "FL"),
+    "BRADENTON": ("Bradenton", "FL"),
+    "FTL": ("Fort Lauderdale", "FL"),
+    "HOLLYWOOD": ("Hollywood", "FL"),
+    "OSCEOLA": ("Osceola County", "FL"),
+    "PASCO": ("Pasco County", "FL"),
+    "PLANTATION": ("Plantation", "FL"),
+    "ALBANY": ("Albany", "GA"),
+    "ATLANTA_GA": ("Atlanta", "GA"),
+    "BOISE": ("Boise", "ID"),
+    "MERIDIAN": ("Meridian", "ID"),
+    "SOUTHBENDIN": ("South Bend", "IN"),
+    "LEXKY": ("Lexington-Fayette", "KY"),
+    "FREDERICK": ("Frederick", "MD"),
+    "MIMM": ("Michigan State", "MI"),
+    "ROCHESTER": ("Rochester", "MN"),
+    "COHP": ("High Point", "NC"),
+    "WINSALEM": ("Winston-Salem", "NC"),
+    "COC": ("Columbus", "OH"),
+    "DAYTON": ("Dayton", "OH"),
+    "LANCASTER": ("Lancaster", "PA"),
+    "LJCMG": ("Nashville-Davidson County", "TN"),
+    "SHELBYCO": ("Germantown / Shelby County", "TN"),
+    "BROWNSVILLE": ("Brownsville", "TX"),
+    "SLCREF": ("Salt Lake City", "UT"),
+    "ARLINGTONCO": ("Arlington County", "VA"),
+    "CHESAPEAKE": ("Chesapeake", "VA"),
+    "CVB": ("Virginia Beach", "VA"),
+})
+
+# ── Per-city search overrides ──────────────────────────────────────────────
+# Some Accela portals do NOT index a global "permit" keyword search.
+# For those, hit Cap/CapHome.aspx?module=<MODULE> with an ASP.NET WebForms
+# POST that submits a date-range "btnNewSearch" event. Each entry:
+#   {
+#     "strategy": "module_post",
+#     "module":   "<Accela module slug>",
+#     "days":     90,            # how far back to search by Open Date
+#     "tabname":  "<optional>",  # defaults to module
+#   }
+# Cities NOT in this dict fall through to the generic GlobalSearchResults
+# QueryText=permit path.
+ACCELA_OVERRIDES = {
+    # Confirmed via probing on 2026-05-12 — these cities return zero rows for
+    # GlobalSearchResults?QueryText=permit but DO return rows when posting a
+    # date-range search against the right module.
+    "SANDIEGO":  {"strategy": "module_post", "module": "CE",          "days": 30},
+    "KNOXVILLE": {"strategy": "module_post", "module": "Building",    "days": 30},
+    "ANCHORAGE": {"strategy": "module_post", "module": "EnvHealth",   "days": 90},
+    "INDY":      {"strategy": "module_post", "module": "Permits",     "days": 30},
+    "ANAHEIM":   {"strategy": "module_post", "module": "Building",    "days": 30},
+    "SANTAANA":  {"strategy": "module_post", "module": "Building",    "days": 180},
+    "TORRANCE":  {"strategy": "module_post", "module": "EnvHealth",   "days": 90},
+    "SLC":       {"strategy": "module_post", "module": "PublicWorks", "days": 30},
+}
+
 
 def log(msg):
     print(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')} {msg}", flush=True)
@@ -132,6 +195,117 @@ def log(msg):
 
 def get_conn():
     return psycopg2.connect(host=DB_HOST, port=DB_PORT, dbname=DB_NAME, user=DB_USER)
+
+
+# Header tokens that mark a "date-like" column in Accela result tables.
+# CapHome POST results vary widely: "Date", "OpenDate", "Open Date",
+# "Application Date", "Created Date", "Opened", "Issued Date", "Issue Date".
+_DATE_HEADER_TOKENS = (
+    "Date", "OpenDate", "Open Date", "Application Date",
+    "Created Date", "Opened", "Issued Date", "Issue Date",
+)
+# Header tokens that mark the permit/record number column.
+_NUMBER_HEADER_TOKENS = (
+    "Record Number", "Permit Number", "Number", "Application Number",
+    "Case Number", "Project Number",
+)
+
+
+def parse_capview_result_table(html, city_code, city_name, state):
+    """
+    Parser for Cap/CapHome.aspx WebForms POST results (gdvPermitList grid).
+
+    These tables differ from GlobalSearchResults:
+      - Leading checkbox column (empty cell at index 0)
+      - Date column header varies (Date / Application Date / Opened / ...)
+      - Number column header varies (Record Number / Permit Number / ...)
+
+    We identify the header by scanning for a row whose direct cells contain
+    BOTH a date-token and a number-token, build a column map, then walk
+    subsequent data rows.
+    """
+    soup = BeautifulSoup(html, "html.parser")
+    permits = []
+    rows = soup.find_all("tr")
+
+    header_idx = -1
+    header_texts = []
+    for idx, row in enumerate(rows):
+        direct = row.find_all(["th", "td"], recursive=False)
+        if not direct:
+            continue
+        texts = [c.get_text(strip=True) for c in direct]
+        has_date = any(t in _DATE_HEADER_TOKENS for t in texts)
+        has_num = any(t in _NUMBER_HEADER_TOKENS for t in texts)
+        if has_date and has_num and len(texts) >= 4:
+            header_idx = idx
+            header_texts = texts
+            break
+
+    if header_idx < 0:
+        return permits
+
+    def find_col(*labels):
+        for label in labels:
+            if label in header_texts:
+                return header_texts.index(label)
+        return -1
+
+    date_idx = find_col("Date", "OpenDate", "Open Date", "Application Date",
+                        "Created Date", "Opened", "Issued Date", "Issue Date")
+    number_idx = find_col("Record Number", "Permit Number", "Number",
+                          "Application Number", "Case Number", "Project Number")
+    type_idx = find_col("Record Type", "Permit Type", "Type", "Case Type")
+    addr_idx = find_col("Address")
+    status_idx = find_col("Status")
+    desc_idx = find_col("Description", "Short Notes", "Project Name",
+                        "Application Name")
+
+    for row in rows[header_idx + 1:]:
+        direct = row.find_all(["th", "td"], recursive=False)
+        if len(direct) < 3:
+            continue
+        texts = [c.get_text(strip=True) for c in direct]
+
+        def get(idx, default=""):
+            return texts[idx] if 0 <= idx < len(texts) else default
+
+        date_str = get(date_idx)
+        if not re.match(r"\d{2}/\d{2}/\d{4}", date_str):
+            continue
+        permit_number = get(number_idx)
+        if not permit_number:
+            continue
+
+        issue_date = None
+        try:
+            issue_date = datetime.strptime(date_str, "%m/%d/%Y").date()
+        except ValueError:
+            pass
+
+        raw_addr = get(addr_idx)
+        if raw_addr:
+            parts = [p.strip() for p in raw_addr.split("  ") if p.strip()]
+            addr = parts[0] if parts else raw_addr.strip()
+        else:
+            addr = ""
+
+        permits.append({
+            "permit_number": permit_number[:100],
+            "permit_type": (get(type_idx) or None) and get(type_idx)[:100],
+            "work_class": None,
+            "description": (get(desc_idx) or None) and get(desc_idx)[:500],
+            "address": addr[:200] if addr else None,
+            "city": city_name,
+            "state": state,
+            "zip": None,
+            "issue_date": issue_date,
+            "status": (get(status_idx) or None) and get(status_idx)[:100],
+            "jurisdiction": f"{city_name}, {state}",
+            "source": f"accela_{city_code.lower()}",
+        })
+
+    return permits
 
 
 def make_session(city_code):
@@ -187,8 +361,9 @@ def parse_permits_from_html(html, city_code, city_name, state):
 
         texts = [c.get_text(strip=True) for c in cells]
 
-        # Header row: starts with "Date" and has "Record Number" right after
-        if (len(texts) >= 4 and texts[0] == "Date" and
+        # Header row: starts with "Date" or "OpenDate" and has "Record Number"
+        # right after. Charlotte uses "OpenDate" (no space) — handle either.
+        if (len(texts) >= 4 and texts[0] in ("Date", "OpenDate", "Open Date") and
                 "Record Number" in texts and "Record Type" in texts):
             header_row_idx = idx
             header_texts = texts
@@ -202,7 +377,7 @@ def parse_permits_from_html(html, city_code, city_name, state):
     for i, h in enumerate(header_texts):
         col_map[h] = i
 
-    date_idx = col_map.get("Date", 0)
+    date_idx = col_map.get("Date", col_map.get("OpenDate", col_map.get("Open Date", 0)))
     number_idx = col_map.get("Record Number", 1)
     type_idx = col_map.get("Record Type", 2)
     module_idx = col_map.get("Module", 3)
@@ -307,12 +482,98 @@ def get_total_results(html):
     return None
 
 
+def scrape_city_module_post(city_code, city_name, state, override, max_pages=DEFAULT_MAX_PAGES):
+    """
+    Scrape via the Cap/CapHome.aspx?module=<MODULE> WebForms POST path.
+
+    Used for cities whose global QueryText search returns zero. We GET the
+    CapHome page, harvest hidden __VIEWSTATE/__VIEWSTATEGENERATOR/__EVENTVALIDATION,
+    fill in date-range inputs, and POST with __EVENTTARGET=btnNewSearch.
+
+    The HTML returned then has the same results table layout that
+    parse_permits_from_html already understands.
+    """
+    module = override.get("module")
+    days = int(override.get("days", 30))
+    tabname = override.get("tabname", module)
+    if not module:
+        log(f"  [{city_code}] override missing 'module' — skipping")
+        return []
+
+    cap_url = f"{BASE_URL}/{city_code}/Cap/CapHome.aspx?module={module}&TabName={tabname}"
+    session = make_session(city_code)
+
+    # GET the search form to harvest hidden fields
+    try:
+        r = session.get(cap_url, headers={"Referer": f"{BASE_URL}/{city_code}/Default.aspx"})
+    except Exception as e:
+        log(f"  [{city_code}] CapHome GET failed: {e}")
+        return []
+
+    if r.status_code != 200:
+        log(f"  [{city_code}] CapHome HTTP {r.status_code}")
+        return []
+    if "btnNewSearch" not in r.text:
+        log(f"  [{city_code}] CapHome missing btnNewSearch — module '{module}' may be wrong")
+        return []
+
+    soup = BeautifulSoup(r.text, "html.parser")
+    data = {}
+    for inp in soup.find_all("input", type="hidden"):
+        n = inp.get("name")
+        v = inp.get("value", "")
+        if n:
+            data[n] = v
+
+    end_date = date.today()
+    start_date = date.fromordinal(end_date.toordinal() - days)
+    prefix = "ctl00$PlaceHolderMain$generalSearchForm"
+    data[f"{prefix}$txtGSStartDate"] = start_date.strftime("%m/%d/%Y")
+    data[f"{prefix}$txtGSEndDate"] = end_date.strftime("%m/%d/%Y")
+    data["__EVENTTARGET"] = "ctl00$PlaceHolderMain$btnNewSearch"
+    data["__EVENTARGUMENT"] = ""
+
+    post_headers = {
+        "Referer": cap_url,
+        "Origin": "https://aca-prod.accela.com",
+        "Content-Type": "application/x-www-form-urlencoded",
+    }
+
+    log(f"  [{city_code}] POST date-range search: module={module} {start_date}..{end_date}")
+    try:
+        r2 = session.post(cap_url, data=data, headers=post_headers)
+    except Exception as e:
+        log(f"  [{city_code}] POST failed: {e}")
+        return []
+
+    if r2.status_code != 200:
+        log(f"  [{city_code}] POST HTTP {r2.status_code}")
+        return []
+
+    if "returned no results" in r2.text or "No Records Found" in r2.text:
+        log(f"  [{city_code}] No results in {days}-day window for {module}")
+        return []
+
+    permits = parse_capview_result_table(r2.text, city_code, city_name, state)
+    log(f"  [{city_code}] Page 1 (module POST): {len(permits)} permits")
+    total = get_total_results(r2.text)
+    if total:
+        log(f"  [{city_code}] Total available: {total}")
+    return permits
+
+
 def scrape_city(city_code, city_name, state, query=DEFAULT_QUERY, max_pages=DEFAULT_MAX_PAGES):
     """
     Scrape permits from a single Accela city portal.
 
     Returns list of normalized permit dicts.
     """
+    # Per-city override path: WebForms module POST (for portals whose global
+    # keyword search is blank/unindexed).
+    override = ACCELA_OVERRIDES.get(city_code)
+    if override and override.get("strategy") == "module_post":
+        return scrape_city_module_post(city_code, city_name, state, override, max_pages)
+
     all_permits = []
     session = make_session(city_code)
 
@@ -430,7 +691,7 @@ def load_to_hot_leads(conn, permits):
     try:
         execute_values(cur, sql, batch, page_size=500)
         conn.commit()
-        return len(batch)
+        return cur.rowcount
     except Exception as e:
         conn.rollback()
         log(f"  DB insert error: {e}")

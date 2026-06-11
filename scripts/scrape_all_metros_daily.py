@@ -142,7 +142,7 @@ METROS = {
     "henderson": {
         "name": "Henderson (Las Vegas metro)", "state": "NV",
         "url": "https://performance.cityofhenderson.com/resource/fpc9-568j.json",
-        "date_field": "issueddate", "records": 260867,
+        "date_field": "issuedate", "records": 260867,
         "fields": {
             "permit_number": "permitnumber", "permit_type": "permittype",
             "work_class": "workclass", "description": "permitdescription",

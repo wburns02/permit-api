@@ -33,7 +33,7 @@ router = APIRouter(prefix="/analyst", tags=["AI Analyst"])
 ANTHROPIC_API_KEY = getattr(settings, "ANTHROPIC_API_KEY", None) or None
 
 try:
-    from anthropic import AsyncAnthropic
+    from app.services.llm_client import AsyncLocalAnthropic as AsyncAnthropic
 except ImportError:
     AsyncAnthropic = None
 
