@@ -97,6 +97,9 @@ jobs:
         #                                   100.122.216.15, unreachable from GitHub Actions.
         #                                   See postgres-punchlist in ci.yml header comments to
         #                                   fix this and run it against the CI service container.
+        #   tests/test_burns_events_emit.py - Burns L4 emitter; needs burns_events DSN on r730-2
+        #                                   infra + psycopg2. L4 is feature-flagged OFF and out of
+        #                                   scope (docs/pipeline/PLAN.md deferred items).
         run: |
           pytest \
             --tb=short \
@@ -105,4 +108,5 @@ jobs:
             --ignore=tests/test_full_e2e.py \
             --ignore=tests/test_analyst_features.py \
             --ignore=tests/test_w1_alerts.py \
+            --ignore=tests/test_burns_events_emit.py \
             tests/
