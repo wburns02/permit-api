@@ -48,6 +48,10 @@ The Phase 5 monetization plumbing (signup, keys, metering, Stripe) is common fou
 
 ## 2. Architecture Decision
 
+**AMENDED 2026-06-11 during Phase 0.** Discovery: permits.ecbtx.com DNS is a CNAME to Railway. Railway has been the public-serving primary all along (and is why the API survived both power outages); the R730 is the warm spare. The decision below flips accordingly: **Railway stays primary serving; the R730 becomes the drilled standby** (cutover = DNS flip to the existing cloudflared tunnel hostname via the Cloudflare API). Everything else stands, and the stakes sharpen in one place: the T430 Postgres at home serves Railway through the pg.ecbtx.com tunnel, so home power and that tunnel remain the true SPOF. The UPS and the DB bounding work in Phase 2 are now THE resilience items, and the failover drill becomes: kill the DB path or the R730, measure what breaks, flip what's flippable.
+
+Original decision text follows for the record; read R730/Railway roles as swapped.
+
 **Decided: R730 stays primary serving; Railway becomes a real, drilled hot standby; the data moat and GPU enrichment stay home.**
 
 Rationale: the 617GB permits DB on the T430 has data gravity (serving from Railway would push every query through one tunnel, which is the same SPOF being eliminated). Owner's standing preference is self-hosted with engineering time as the currency. The residential-power risk is bounded with a UPS and a tested cutover, not solved with a hosting migration.
