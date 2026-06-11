@@ -20,7 +20,9 @@ from typing import Any
 import httpx
 
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://100.85.99.69:11434")
-OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen3.5:122b")
+# Default is the gate-passing cascade model (97%+ with the rules layer,
+# ~3.5x fewer params than the 122b). Override with OLLAMA_MODEL.
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen3.5:35b")
 
 _HERE = Path(__file__).resolve().parent
 # Works both from repo (/home/will/permit-api/scripts) and live dir.
@@ -47,7 +49,8 @@ def classifier_version(tax: dict | None = None) -> str:
 
 
 # Hybrid classifier version prefix prepended when the rules layer fires.
-_RULES_PREFIX = "rules_v1+"
+RULES_VERSION = "rules_v2"
+_RULES_PREFIX = RULES_VERSION + "+"
 
 
 # ---------------------------------------------------------------------------
@@ -131,6 +134,178 @@ _RE_SOLAR = re.compile(
     re.IGNORECASE,
 )
 
+# ---------------------------------------------------------------------------
+# rules_v2 additions (eval evidence: see scores_rules_v2_cascade.md)
+# ---------------------------------------------------------------------------
+
+# Specific-scope keywords that override a generic/building permit type
+# (taxonomy DECISION RULE 3, "specific beats general"). Any type-based v2
+# rule defers to the LLM when the description names one of these scopes.
+# Eval evidence this guard is mandatory: "Residential Accessory Struct / New"
+# with a NEW SWIMMING POOL description is labeled pool_spa; "Residential
+# Building Permit / Remodel" installing roof-mounted solar is labeled solar.
+_RE_SPECIFIC_SCOPE = re.compile(
+    r"\b(re-?roof\w*|roof\w*|shingle|solar|photovoltaic|pool|spa|hot\s*tub|"
+    r"septic|ossf|fence|sign|billboard|irrigat\w*|sprinkler|"
+    r"demo(?:lish|lition)?\b|driveway|sidewalk|foundation|shed|carport|"
+    r"barn|gazebo|detached\s+garage|mobile\s*home|manufactured\s*home|"
+    r"water\s*well|fire\s*(line|alarm|sprinkler|suppression))\b",
+    re.IGNORECASE,
+)
+
+# Residential-vs-commercial cross-signals: a "Commercial Building Permit /
+# New" whose description builds a residential cottage in a multifamily
+# community is labeled residential_new; apartment/condo keywords on a
+# residential-typed permit mean multifamily. Either direction: defer.
+_RE_RES_WORDS = re.compile(
+    r"\b(residential|cottage|sfr|single\s*family|house|duplex|town\s*home|townhouse)\b",
+    re.IGNORECASE,
+)
+_RE_MF_WORDS = re.compile(
+    r"\b(apartment|multi-?family|condo\w*|\d+\s*units?)\b",
+    re.IGNORECASE,
+)
+
+# Generic department-bucket permit types (DECISION RULE 6): with an empty
+# description there is nothing to classify from -> other_unknown.
+# Sample evidence: 12,647/12,647 such rows have an empty description;
+# eval evidence: 107/107 are labeled other_unknown.
+_GENERIC_DEPT_TYPES = {
+    "building inspections and permits",
+    "building inspections",
+    "building department",
+    "historical",
+    "historical records",
+    "engineering",
+    "neighborhood services",
+    "police department",
+    "fire department",
+}
+
+# Direct permit_type -> category maps where the type itself IS the scope.
+# Checked against the specific-scope guard (desc may still override).
+_TYPE_DIRECT = [
+    (re.compile(r"^re-?roof", re.IGNORECASE), "roofing"),
+    (re.compile(r"^roof(ing)?\b", re.IGNORECASE), "roofing"),
+    (re.compile(r"^foundation\s+repair", re.IGNORECASE), "foundation_repair"),
+    (re.compile(r"^garage\s+sale", re.IGNORECASE), "event_temporary"),
+    (re.compile(r"^contractor\s+registration", re.IGNORECASE), "admin_licensing"),
+    (re.compile(r"^fence", re.IGNORECASE), "fence"),
+    (re.compile(r"^(swimming\s+pool|pool\b|spa\b)", re.IGNORECASE), "pool_spa"),
+    (re.compile(r"^sign\b", re.IGNORECASE), "sign"),
+    (re.compile(r"^(septic|ossf|on-?site\s+sewage)", re.IGNORECASE), "septic_ossf"),
+    (re.compile(r"^water\s+well", re.IGNORECASE), "water_well"),
+    (re.compile(r"^(irrigation|lawn\s+sprinkler)", re.IGNORECASE), "irrigation"),
+    (re.compile(r"^solar\b", re.IGNORECASE), "solar"),
+    (re.compile(r"^(mobile\s+home|manufactured\s+ho(me|using))", re.IGNORECASE), "mobile_home"),
+    (re.compile(r"^(residential|commercial)\s+accessory\s+struct", re.IGNORECASE), "accessory_structure"),
+]
+
+# Residential/commercial building permit types where the type names the
+# occupancy and the subtype names the action. Guarded by _RE_SPECIFIC_SCOPE
+# plus the res/com cross-signals above.
+_RE_RES_BLDG_TYPE = re.compile(
+    r"^(residential\s+building\s+permit|res\s+new\s+building\s+permit|"
+    r"residential\s+repair\s+permit|building\s*\(bu\)\s*single\s+family)",
+    re.IGNORECASE,
+)
+_RE_COM_BLDG_TYPE = re.compile(
+    r"^(commercial\s+building\s+permit|building\s*\(bu\)\s*commercial)",
+    re.IGNORECASE,
+)
+_RE_SUB_NEW = re.compile(r"\b(new(\s+construction)?)\b", re.IGNORECASE)
+_RE_SUB_ADDITION = re.compile(r"\baddition\b", re.IGNORECASE)
+_RE_SUB_REMODEL = re.compile(
+    r"\b(remodel|renovation|alteration|reconstruction|repair|finish[\s-]?out|tenant)\b",
+    re.IGNORECASE,
+)
+
+# Description keywords that name a specific work scope, mapped to the
+# category that scope belongs to. A type-based rule defers whenever the
+# description names a scope belonging to a DIFFERENT category than the
+# rule's target (so a Re-Roof permit describing shingles still fires, but
+# an Accessory Struct permit describing a swimming pool defers).
+_SCOPE_PATTERNS: list[tuple[re.Pattern, str]] = [
+    (re.compile(r"\b(re-?roof\w*|roof\w*|shingle)\b", re.IGNORECASE), "roofing"),
+    (re.compile(r"\b(solar|photovoltaic)\b", re.IGNORECASE), "solar"),
+    (re.compile(r"\b(pool|spa|hot\s*tub)\b", re.IGNORECASE), "pool_spa"),
+    (re.compile(r"\b(septic|ossf)\b", re.IGNORECASE), "septic_ossf"),
+    (re.compile(r"\bfence\b", re.IGNORECASE), "fence"),
+    (re.compile(r"\b(sign|billboard)\b", re.IGNORECASE), "sign"),
+    (re.compile(r"\b(irrigat\w*|sprinkler)\b", re.IGNORECASE), "irrigation"),
+    (re.compile(r"\bdemo(?:lish\w*|lition)?\b", re.IGNORECASE), "demolition"),
+    (re.compile(r"\b(driveway|sidewalk|drive\s+approach)\b", re.IGNORECASE), "driveway_flatwork"),
+    (re.compile(r"\bfoundation\b", re.IGNORECASE), "foundation_repair"),
+    (re.compile(r"\b(shed|carport|barn|gazebo|detached\s+garage)\b", re.IGNORECASE), "accessory_structure"),
+    (re.compile(r"\b(mobile\s*home|manufactured\s*ho(me|using))\b", re.IGNORECASE), "mobile_home"),
+    (re.compile(r"\bwater\s*well\b", re.IGNORECASE), "water_well"),
+    (re.compile(r"\bfire\s*(line|alarm|sprinkler|suppression)\b", re.IGNORECASE), "fire_systems"),
+]
+
+
+def _scope_conflict(desc: str, target: str) -> bool:
+    """True if the description names a specific scope outside `target`."""
+    for rx, cat in _SCOPE_PATTERNS:
+        if cat != target and rx.search(desc):
+            return True
+    return False
+
+
+def _pre_classify_v2_nontrade(ptype: str, subtype: str, desc: str) -> str | None:
+    """rules_v2: deterministic categories for non-trade, non-flatwork types."""
+    # T4: no permit_type and no description: nothing to classify from.
+    if not ptype:
+        return "other_unknown" if not desc else None
+
+    head = ptype.split("/")[0].strip().lower()
+
+    # T1: generic department-bucket type with an empty description.
+    if head in _GENERIC_DEPT_TYPES:
+        return "other_unknown" if not desc else None
+
+    # T5: building-permit demolition subtype (trade demo handled in R1b).
+    if _RE_DEMO_SUBTYPE.search(subtype):
+        if not desc:
+            return "demolition"
+        if _RE_DEMO_REMODEL_DESC.search(desc):
+            return None
+        if _RE_DEMO_DESC_POSITIVE.search(desc) or _RE_FLATWORK_DEMO_START.match(desc):
+            return "demolition"
+        return None
+
+    # T2: the permit type itself names the scope.
+    for rx, cat in _TYPE_DIRECT:
+        if rx.match(ptype):
+            if desc and _scope_conflict(desc, cat):
+                return None
+            return cat
+
+    # T3: residential/commercial building types where the action word can
+    # live in the subtype ("Residential Building Permit / New") OR in the
+    # type head itself ("Building (BU) Single Family Alteration / SINGLE
+    # FAMILY"), so search the whole type string.
+    action_src = ptype
+    if _RE_RES_BLDG_TYPE.match(ptype):
+        if desc and (_scope_conflict(desc, "") or _RE_MF_WORDS.search(desc)):
+            return None
+        if _RE_SUB_ADDITION.search(action_src):
+            return "residential_addition"
+        if _RE_SUB_REMODEL.search(action_src):
+            return "residential_remodel"
+        if _RE_SUB_NEW.search(action_src):
+            return "residential_new"
+        return None
+    if _RE_COM_BLDG_TYPE.match(ptype):
+        if desc and (_scope_conflict(desc, "") or _RE_RES_WORDS.search(desc)):
+            return None
+        if _RE_SUB_ADDITION.search(action_src) or _RE_SUB_REMODEL.search(action_src):
+            return "commercial_remodel_ti"
+        if _RE_SUB_NEW.search(action_src):
+            return "commercial_new"
+        return None
+
+    return None
+
 
 def pre_classify(row: dict) -> str | None:
     """Deterministic rules layer. Returns a taxonomy category key or None.
@@ -206,7 +381,8 @@ def pre_classify(row: dict) -> str | None:
     # R1: Trade-type permit
     # -----------------------------------------------------------------------
     if not _RE_TRADE_TYPE.match(ptype):
-        return None  # not a trade or flatwork permit
+        # rules_v2: non-trade, non-flatwork types get their own rules.
+        return _pre_classify_v2_nontrade(ptype, subtype, desc)
 
     ptype_lower = ptype.lower()
     if ptype_lower.startswith("electrical"):
@@ -258,23 +434,37 @@ def pre_classify(row: dict) -> str | None:
     # (e.g. "[Plumbing Permit / Remodel] Mechanical Changeout" is labeled mechanical_hvac,
     # not plumbing; "[Electrical Permit / Remodel] Replace & Relocate Cooling Tower" is
     # labeled electrical despite mechanical language).
+    # Cross-trade guard (any description length): if the description names a
+    # DIFFERENT trade explicitly, defer to the LLM
+    # (e.g. "[Plumbing Permit / Remodel] Mechanical Changeout" is labeled
+    # mechanical_hvac, not plumbing).
+    if trade_cat == "plumbing" and re.search(
+        r"\b(mechanical|hvac|a/c|ac unit|cooling|heating|furnace|changeout)\b",
+        desc, re.IGNORECASE
+    ):
+        return None  # let LLM handle cross-trade descriptions
+    if trade_cat == "mechanical_hvac" and re.search(
+        r"\b(plumbing|backflow|sewer|gas line|service panel|electrical panel|panel upgrade)\b",
+        desc, re.IGNORECASE
+    ):
+        return None
+    if trade_cat == "electrical" and re.search(r"\b(plumbing|mechanical|hvac)\b", desc, re.IGNORECASE):
+        return None
+
+    # R1h: Short description => trade category.
     if len(desc) <= 80:
-        if trade_cat == "plumbing" and re.search(
-            r"\b(mechanical|hvac|a/c|ac unit|cooling|heating|furnace|changeout)\b",
-            desc, re.IGNORECASE
-        ):
-            return None  # let LLM handle cross-trade descriptions
-        if trade_cat == "mechanical_hvac" and re.search(
-            r"\b(plumbing|backflow|sewer|gas line|service panel|electrical panel|panel upgrade)\b",
-            desc, re.IGNORECASE
-        ):
-            return None
-        if trade_cat == "electrical" and re.search(r"\b(plumbing|mechanical|hvac)\b", desc, re.IGNORECASE):
-            return None
         return trade_cat
 
-    # Longer descriptions: defer to LLM
-    return None
+    # rules_v2 R1i: LONG description => still the trade category (DECISION
+    # RULE 1: the permit's own work is the trade no matter how long the
+    # parent-project description runs), UNLESS the description names a
+    # specific scope (sign/solar/demo/roof/...) that rule-1 exceptions or
+    # rule-3 specific-beats-general could reroute - then defer to the LLM.
+    # Eval evidence: every v1-deferred trade-type row is labeled with its
+    # trade except two demolition rows, both carrying demolition language.
+    if _scope_conflict(desc, ""):
+        return None
+    return trade_cat
 
 
 # ---------------------------------------------------------------------------

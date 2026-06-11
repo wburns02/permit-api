@@ -1,7 +1,10 @@
 """Bulk TX permit classification — Rig & Permit Radar Phase 4.
 
-Classifies canonical.permits (TX universe, ~3.8M rows) with qwen3.5:122b via
-Ollama into canonical.permit_enrichment. Recent permits first
+Classifies canonical.permits (TX universe, ~3.8M rows) into
+canonical.permit_enrichment with an inverted cascade: the deterministic
+rules layer (rules_v2, ~75-80% of rows, free) runs first and only the
+remainder goes to the LLM (qwen3.5:35b via Ollama, category-only output,
+templated summaries). Recent permits first
 (ORDER BY issued_date DESC, permit_id DESC), keyset-paginated, checkpointed in
 canonical.enrichment_progress so a crash/restart resumes from the last
 committed batch. Rows with NULL issued_date (~27K) are processed in a final
@@ -39,7 +42,7 @@ from permit_classifier_lib import (  # noqa: E402
 )
 
 DSN = os.environ.get("ENRICH_DB_DSN", "host=100.122.216.15 port=5432 dbname=permits user=will")
-LLM_BATCH = int(os.environ.get("ENRICH_LLM_BATCH", "8"))
+LLM_BATCH = int(os.environ.get("ENRICH_LLM_BATCH", "16"))
 DB_CHUNK = int(os.environ.get("ENRICH_DB_CHUNK", "320"))
 LOG_EVERY = 100  # LLM batches
 NULL_DATE_SENTINEL = "0001-01-01"  # cursor value marking the NULL-date phase
@@ -74,6 +77,13 @@ ORDER BY p.permit_id DESC
 LIMIT %(lim)s
 """
 
+def _template_summary(r: dict) -> str:
+    """Deterministic summary from permit fields (no LLM tokens spent)."""
+    desc_snippet = (r.get("description_raw") or "")[:80]
+    ptype = r.get("permit_type") or ""
+    return (f"{ptype}: {desc_snippet}" if desc_snippet else ptype)[:600]
+
+
 def _retry_singly(batch, sp, tax, client, stats) -> dict:
     """Per-row fallback after a batch-level model failure. Connection errors
     back off and retry the same row (never skip rows on outages); content
@@ -82,7 +92,8 @@ def _retry_singly(batch, sp, tax, client, stats) -> dict:
     for r in batch:
         while True:
             try:
-                single, st = classify_batch([r], system_prompt=sp, tax=tax, client=client)
+                single, st = classify_batch([r], system_prompt=sp, tax=tax, client=client,
+                                            include_summary=False)
                 results.update(single)
                 stats["output_tokens"] = stats.get("output_tokens", 0) + st.get("output_tokens", 0)
                 break
@@ -111,7 +122,11 @@ def main() -> None:
     args = ap.parse_args()
 
     tax = load_taxonomy()
-    sp = build_system_prompt(tax)
+    # Category-only wire format: the gated eval configs were all scored
+    # without LLM summaries, and dropping them cuts output tokens ~2.6x
+    # (50 vs 130 per item). Summaries are templated from permit fields
+    # instead, identical to what rules-layer rows always got.
+    sp = build_system_prompt(tax, include_summary=False)
     cv = classifier_version(tax)
 
     # autocommit: never hold a transaction open across an LLM call (the
@@ -209,13 +224,10 @@ def main() -> None:
             for r in batch:
                 cat = pre_classify(r)
                 if cat is not None:
-                    desc_snippet = (r.get("description_raw") or "")[:80]
-                    ptype = r.get("permit_type") or ""
-                    summary = f"{ptype}: {desc_snippet}" if desc_snippet else ptype
                     rules_hits[str(r["id"])] = {
                         "category": cat,
                         "confidence": 1.0,
-                        "summary": summary[:600],
+                        "summary": _template_summary(r),
                         "classifier_version": _RULES_PREFIX + cv,
                     }
                 else:
@@ -230,7 +242,8 @@ def main() -> None:
                 # served the wrong model store; never burn rows on outages.
                 while True:
                     try:
-                        results, stats = classify_batch(llm_batch, system_prompt=sp, tax=tax, client=client)
+                        results, stats = classify_batch(llm_batch, system_prompt=sp, tax=tax,
+                                                        client=client, include_summary=False)
                         break
                     except (httpx.ConnectError, httpx.ConnectTimeout, httpx.ReadTimeout) as e:
                         log.warning("Ollama unreachable (%s); backing off 60s, cursor held", e)
@@ -264,7 +277,8 @@ def main() -> None:
                         row_cv = res.get("classifier_version", cv)
                         conn.execute(UPSERT, (
                             r["id"], r["source_id"], r["source_record_id"],
-                            res["category"], res["confidence"], res["summary"], row_cv,
+                            res["category"], res["confidence"],
+                            res.get("summary") or _template_summary(r), row_cv,
                         ))
                         rows_done += 1
                         session_done += 1

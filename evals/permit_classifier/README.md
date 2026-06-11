@@ -91,3 +91,21 @@ Iterate on the PROMPT only (bump `PROMPT_VERSION` in
   v3 35b 90.59% FAIL (plumbing 75%, electrical 71%);
   **v4+rules 35b 95.91% PASS** (no category with >=20 examples below 80%;
   trade categories 92-93%, sign 100%, demolition 95%).
+
+## Offline cascade scoring (rules_v2, 2026-06-11)
+
+The pipeline is inverted: the deterministic rules layer classifies first and
+only deferred rows reach the LLM (qwen3.5:35b, category-only output).
+
+- `score_cascade.py` — scores rules + cached pure-LLM predictions
+  (`preds_qwen3.5-35b_prompt_v4.jsonl`) against the eval set with NO model
+  calls, so rules iterations take milliseconds. `--write-gate` inserts the
+  passing version into `canonical.classifier_gate`.
+- `coverage_sample.py` — measures rules-layer hit rate on
+  `data/rules_v2_sample.csv` (132,674 random unenriched TX-universe rows;
+  re-pull with the \copy in the file header comment when stale).
+- Unit tests: `tests/test_permit_classifier_rules.py`.
+
+rules_v2 results: eval 98.16% (480/489), rules handle 68.9% of eval rows with
+zero rule errors; 78.2% coverage on the unenriched-universe sample
+(rules_v1 was 55.2%). Gate row: `rules_v2+qwen3.5-35b/taxonomy_v1/prompt_v4`.
