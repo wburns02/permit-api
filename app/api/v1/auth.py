@@ -1,5 +1,6 @@
 """API key management and signup endpoints."""
 
+import os
 import asyncio
 import hashlib
 import logging
@@ -271,14 +272,15 @@ async def signup(body: SignupRequest, db: AsyncSession = Depends(get_db)):
 @router.post("/demo")
 async def demo_login():
     """
-    Get the demo API key instantly — no database hit.
-    The demo account is pre-created on T430.
+    Get the demo API key instantly, no database hit.
+    The demo account is pre-created on T430; its key is supplied via the
+    DEMO_API_KEY environment variable (never hardcoded).
     """
-    # Pre-existing demo key (created directly on T430)
-    # This avoids the slow SOCKS proxy write entirely
-    DEMO_KEY = "pl_live_iQIhA0cTg50qP1nW6ITuzwz7ltHdQF4iYhi_uP8eEYA"
+    demo_key = os.environ.get("DEMO_API_KEY")
+    if not demo_key:
+        raise HTTPException(status_code=503, detail="Demo temporarily unavailable")
     return {
-        "api_key": DEMO_KEY,
+        "api_key": demo_key,
         "email": "demo@permitlookup.com",
         "company_name": "PermitLookup Demo",
         "plan": "enterprise",
