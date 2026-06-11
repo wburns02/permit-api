@@ -1,0 +1,500 @@
+{"id": "4832f053-dd5f-417f-ba26-59d111be2654", "category": "electrical", "confidence": 0.98, "summary": "Electrical permit for extending a master bedroom and bath in a residence."}
+{"id": "97cf3af8-c0e3-4599-a92d-cc82e0c24f5e", "category": "residential_addition", "confidence": 0.95, "summary": "Building permit for a covered patio addition to a residence."}
+{"id": "c34a92bb-5a66-49a1-96b1-d48a280a7cbb", "category": "other_unknown", "confidence": 0.95, "summary": "Historical record with no description provided."}
+{"id": "1ebde6e4-fbb6-4525-9598-4af04fd28355", "category": "other_unknown", "confidence": 0.95, "summary": "Historical record with no description provided."}
+{"id": "cfef3b61-3a58-4eae-84da-5a947bddfacf", "category": "residential_remodel", "confidence": 0.92, "summary": "Driveway/sidewalk permit for enclosing an existing garage to create a laundry room."}
+{"id": "ae510177-8449-4e91-b037-d4132aa81d03", "category": "other_unknown", "confidence": 0.95, "summary": "Historical record with no description provided."}
+{"id": "8cde58e6-75c9-4bcb-be8a-09d740799da3", "category": "electrical", "confidence": 0.98, "summary": "Electrical permit for a detached accessory addition for maid quarters."}
+{"id": "b973d6c6-db65-4b85-b477-e5bc292d2e2f", "category": "residential_addition", "confidence": 0.97, "summary": "Building permit for adding a bedroom, family room, and bathroom to an existing residence."}
+{"id": "8f577a42-563c-428a-b059-a1f8316995c9", "category": "mechanical_hvac", "confidence": 0.95, "summary": "Mechanical permit for a 1000 sq ft bedroom, bath, den addition and 300 sq ft deck."}
+{"id": "6f4c4d0a-9073-4f48-9e47-ab932c555cf6", "category": "other_unknown", "confidence": 0.98, "summary": "Historical record with no description provided."}
+{"id": "40b0b8cd-13ff-43d0-9798-378cb94672a8", "category": "other_unknown", "confidence": 0.98, "summary": "Historical record with no description provided."}
+{"id": "aa092497-745b-480e-93f1-5520ee341775", "category": "other_unknown", "confidence": 0.98, "summary": "Historical record with no description provided."}
+{"id": "89311e5b-bf44-481c-9aef-7c644b0c5694", "category": "plumbing", "confidence": 0.95, "summary": "Plumbing permit for house relocation, residential remodel, and covered porch addition."}
+{"id": "8d1cbbf3-676a-4533-a304-866e825360ed", "category": "electrical", "confidence": 0.95, "summary": "Electrical permit for house move, foundation work, remodel, and bedroom-bath addition."}
+{"id": "5af38e72-5b8b-484f-a5d1-809e38b6189d", "category": "other_unknown", "confidence": 0.98, "summary": "Historical record with no description provided."}
+{"id": "18393ff8-c0f7-41cc-adcc-0e198bbad49b", "category": "other_unknown", "confidence": 0.98, "summary": "Historical record with no description provided."}
+{"id": "a323e7f0-4ae4-41ad-8c61-10db8c6e63e7", "category": "other_unknown", "confidence": 0.95, "summary": "Historical record with no description provided."}
+{"id": "68cd3a72-e081-47ad-b4e3-2943a0536d79", "category": "other_unknown", "confidence": 0.95, "summary": "Engineering record with no description provided."}
+{"id": "0a24d973-742c-42f8-ade6-41d06777c472", "category": "other_unknown", "confidence": 0.95, "summary": "Historical record with no description provided."}
+{"id": "87f17ca6-a89f-485a-9a9a-4cdde9d1fea7", "category": "other_unknown", "confidence": 0.95, "summary": "Historical record with no description provided."}
+{"id": "1ea2acbf-5d65-45e9-9a25-90a58d9e845c", "category": "commercial_remodel_ti", "confidence": 0.9, "summary": "Cancelled permit for expanding a putt-putt golf clubhouse."}
+{"id": "17a44dbe-fd89-434f-91bb-fd02e227146d", "category": "commercial_remodel_ti", "confidence": 0.85, "summary": "Driveway/sidewalk permit associated with a change of use from retail to office."}
+{"id": "5c0ab768-0473-4f8d-894d-92d65725242e", "category": "other_unknown", "confidence": 0.95, "summary": "Historical record with no description provided."}
+{"id": "17038064-3c0a-4419-a531-da7982fe564d", "category": "electrical", "confidence": 0.98, "summary": "Electrical permit for adding a second floor to an existing residence."}
+{"id": "575ea87c-15e7-436b-8a53-c1d40ba692c3", "category": "residential_addition", "confidence": 0.98, "summary": "Building permit for adding a wood frame den to a residence."}
+{"id": "b83c5534-811e-4919-a063-5815bab260b0", "category": "commercial_remodel_ti", "confidence": 0.95, "summary": "Driveway/sidewalk permit type with description for remodeling admin and professional offices."}
+{"id": "3bca3faa-ca41-469f-8455-d43d189b88df", "category": "commercial_remodel_ti", "confidence": 0.92, "summary": "Mechanical permit type for adding to a library and remodeling a patio."}
+{"id": "47939482-32d9-4238-9823-6ef196836c54", "category": "other_unknown", "confidence": 0.99, "summary": "Historical permit record with no description provided."}
+{"id": "3434afb7-735c-414b-83ab-d8ed5ab87973", "category": "other_unknown", "confidence": 0.99, "summary": "Historical permit record with no description provided."}
+{"id": "d786ac80-3240-471b-8f94-9ddedc58c1b5", "category": "other_unknown", "confidence": 0.99, "summary": "Historical permit record with no description provided."}
+{"id": "ef239bdb-6e0d-440e-b636-f5151f4fa53a", "category": "residential_addition", "confidence": 0.96, "summary": "Mechanical permit type for a one-story addition to extend a living room."}
+{"id": "c1cbdb24-80ae-4f3d-a004-6cb1572e3d1a", "category": "commercial_remodel_ti", "confidence": 0.94, "summary": "Driveway/sidewalk permit type for a finish-out project for Silicon Laboratories."}
+{"id": "a32d25d0-c342-484a-bb6c-dd610264e14d", "category": "other_unknown", "confidence": 0.95, "summary": "Historical record with no description provided."}
+{"id": "6668fdb7-a4fb-44a0-af9e-70877361a142", "category": "accessory_structure", "confidence": 0.95, "summary": "Building permit for a new wood deck."}
+{"id": "38a9c05a-9880-4071-93f1-66fea7ebbdf0", "category": "land_development", "confidence": 0.98, "summary": "Withdrawn final plat for Anderson Mill East Section 3-A."}
+{"id": "052bb986-3dc4-494c-8444-8c850236d27d", "category": "other_unknown", "confidence": 0.95, "summary": "Historical record with no description provided."}
+{"id": "5d7bbd22-7678-4d69-9288-9cdb67ee7797", "category": "electrical", "confidence": 0.98, "summary": "Electrical permit to upgrade existing service for a home addition."}
+{"id": "b672ba57-37f8-43e4-b459-5106d47bf7f2", "category": "land_development", "confidence": 0.98, "summary": "Subdivision construction plan for Marshall's Point."}
+{"id": "c9434934-1231-4dea-9635-f1db320c1514", "category": "land_development", "confidence": 0.98, "summary": "Resubdivision final plat for Shoalmont Addition lots 23 and 22."}
+{"id": "e963879d-d9f9-4033-aca6-76ba4476e0fe", "category": "other_unknown", "confidence": 0.95, "summary": "Historical record with no description provided."}
+{"id": "350ee7ad-843b-413f-9696-620cf1b02175", "category": "land_development", "confidence": 0.98, "summary": "Subdivision final plat for the Brown-Wehmeyer Subdivision amended plat."}
+{"id": "7ccd33db-67c2-45c3-ad2a-b5b04446392f", "category": "land_development", "confidence": 0.98, "summary": "Partial vacation of Lot 13, Block F in Willow Run Section 8."}
+{"id": "1718e466-3161-4998-8b72-e49096c5c154", "category": "other_unknown", "confidence": 0.95, "summary": "Engineering record with no description provided for the address."}
+{"id": "ed0e9eed-9828-4922-8a82-8c75424240ab", "category": "electrical", "confidence": 0.97, "summary": "Electrical permit for an addition to an existing single-family residence."}
+{"id": "3f9eb4b3-6fc0-4806-93be-6d900f9d7153", "category": "other_unknown", "confidence": 0.95, "summary": "Historical record with no description provided for the address."}
+{"id": "c3c43e5a-7435-40f4-8e74-ce1435b91eff", "category": "other_unknown", "confidence": 0.95, "summary": "Historical record with no description provided for the address."}
+{"id": "31d3bae7-4cba-4063-ab51-f6c3d430f651", "category": "land_development", "confidence": 0.98, "summary": "Resubdivision of Lot 1, Block C in North Park Section 4."}
+{"id": "39ab6c5b-49c9-4d3d-936e-2eaedeb6f279", "category": "other_unknown", "confidence": 0.95, "summary": "Historical record with no description provided for the address."}
+{"id": "f7d5356c-aa3c-43ac-bbcc-84a39115c744", "category": "residential_addition", "confidence": 0.98, "summary": "Building permit for an addition to an existing single-family residence including a bedroom, bath, and kitchen expansion."}
+{"id": "399387e1-7c51-43a8-ba55-2e3213fb69ba", "category": "other_unknown", "confidence": 0.95, "summary": "Historical permit record with no description provided."}
+{"id": "144ca51f-ba7c-42a6-a0ed-3ca1a0ae6ae2", "category": "accessory_structure", "confidence": 0.95, "summary": "Building permit for the addition of a deck with a declared value of $1,500."}
+{"id": "e1dd82bd-e884-4150-8bee-fce6acf3b187", "category": "land_development", "confidence": 0.98, "summary": "Subdivision final plat permit for The Summit on Eck Lane."}
+{"id": "5f924c52-5f4d-4825-89f4-af1809915a67", "category": "other_unknown", "confidence": 0.95, "summary": "Historical permit record with no description provided."}
+{"id": "051be16d-a90c-4a7a-b07b-aba683dad40d", "category": "admin_licensing", "confidence": 0.92, "summary": "Life safety permit for a certificate of occupancy."}
+{"id": "b2e2a9ca-2f1d-4f10-847b-7246ea0a4170", "category": "other_unknown", "confidence": 0.95, "summary": "Historical permit record with no description provided."}
+{"id": "a36842db-08b3-43bd-bbbb-3d022401f417", "category": "land_development", "confidence": 0.98, "summary": "Subdivision final plat permit for Hillcrest Section 3."}
+{"id": "2a9b2a35-9553-44b7-9f12-635fef6cc8fa", "category": "mechanical_hvac", "confidence": 0.95, "summary": "Mechanical permit for a new central HVAC system including a central plant building and interior renovations."}
+{"id": "b3e1b83f-1e69-441c-8b81-6de21ed2c171", "category": "mechanical_hvac", "confidence": 0.92, "summary": "Mechanical permit for a new addition and interior remodel to an existing single-family residence."}
+{"id": "77700bae-d1cb-4929-b8e5-2f65d4bb63ec", "category": "other_unknown", "confidence": 0.98, "summary": "Historical permit record with no description provided."}
+{"id": "e0ed3254-1e3d-493f-924c-f67b1b0350df", "category": "accessory_structure", "confidence": 0.9, "summary": "Building permit to add covered parking to an existing parking area."}
+{"id": "08d40d07-c16b-4c6a-87f8-adffd326f63d", "category": "residential_addition", "confidence": 0.98, "summary": "Building permit for a bathroom, family room, patio, and porch addition to an existing single-family residence."}
+{"id": "dc90fe3c-684a-4eb6-b712-7b63ac380634", "category": "electrical", "confidence": 0.93, "summary": "Electrical permit for deck conversion, bedroom addition, and various interior remodels."}
+{"id": "e116ae02-3925-4b07-89ed-0df1bb7167f0", "category": "pool_spa", "confidence": 0.99, "summary": "Building permit for the construction of a new swimming pool and spa."}
+{"id": "c61cd205-cdab-40b6-8505-08a0887e7011", "category": "foundation_repair", "confidence": 0.99, "summary": "Building permit to repair the foundation of a single-family residence by installing four new piers."}
+{"id": "1970c119-894d-4d54-b6ef-c5e37bb77b37", "category": "residential_addition", "confidence": 0.95, "summary": ""}
+{"id": "07bf64c6-24f3-40eb-a76e-a4979f7ddcfa", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "8be107bd-982b-4b1e-8afa-f5ae874351c6", "category": "row_utility", "confidence": 0.98, "summary": ""}
+{"id": "061759ab-6ccd-4fee-be8b-5f930890f76e", "category": "solar", "confidence": 0.99, "summary": ""}
+{"id": "74981f23-4672-44de-91c8-bf2628828765", "category": "other_unknown", "confidence": 0.99, "summary": ""}
+{"id": "96ac8844-2d83-462d-92d0-be908cfd94b0", "category": "other_unknown", "confidence": 0.99, "summary": ""}
+{"id": "441dfc55-3a6e-4cff-92d0-cec475241432", "category": "roofing", "confidence": 0.92, "summary": ""}
+{"id": "0cd6274d-adaa-4e01-9c5e-84a7e58e330c", "category": "other_unknown", "confidence": 0.99, "summary": ""}
+{"id": "b07bbe14-e2ed-47ea-9b7b-87f27d4b0b6d", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "7cc408b1-9d78-41fb-a4c6-809edc4cbc50", "category": "electrical", "confidence": 0.98, "summary": ""}
+{"id": "0bcd0574-3aac-4d72-889d-d65021128f61", "category": "sign", "confidence": 0.99, "summary": ""}
+{"id": "3066c476-ca09-4973-bf49-3515835f277f", "category": "pool_spa", "confidence": 0.98, "summary": ""}
+{"id": "46dc25f5-fa89-41a2-9ddc-2bb935a2d4a7", "category": "plumbing", "confidence": 0.99, "summary": ""}
+{"id": "9bf071ec-6049-46b7-b0ac-dd5ec91a6d48", "category": "commercial_remodel_ti", "confidence": 0.99, "summary": ""}
+{"id": "fd530780-cc87-4a96-8865-8007ca0ff0a9", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "1157ab40-deb9-4dc0-b089-9b7b1c3a2cea", "category": "residential_new", "confidence": 0.92, "summary": ""}
+{"id": "50b83f5a-6be6-4136-97b1-14f16edfe796", "category": "land_development", "confidence": 0.98, "summary": ""}
+{"id": "28a17bef-6194-48c8-bbef-e8c248b15f68", "category": "land_development", "confidence": 0.98, "summary": ""}
+{"id": "2c4c2c1e-18c1-4e70-8517-9e3a8bd220b4", "category": "solar", "confidence": 0.99, "summary": ""}
+{"id": "b9802033-adc9-466d-978a-f48445386d0c", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "b5cd51e7-7eba-4a4f-87d5-facb4b8ae864", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "762602f2-acee-4c7f-9d77-69edea3cd114", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "134b8350-c184-4362-9b85-515ead98bbf1", "category": "irrigation", "confidence": 0.99, "summary": ""}
+{"id": "9821a782-9a31-4cfb-99cd-bb2e16c2b826", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "fad70a76-dc11-430e-8cde-9fb14ee973e5", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "bf32d993-4a2b-45ce-b507-3da3b32c14b6", "category": "irrigation", "confidence": 0.98, "summary": ""}
+{"id": "71940ba6-b353-4c30-8e94-b3597075a5d5", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "19bc208c-0432-420c-b18c-9fb26fab88a8", "category": "land_development", "confidence": 0.98, "summary": ""}
+{"id": "25b2c858-fa3f-4e2b-b7f4-ebb411fff544", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "ac71187f-c143-4669-8c7e-ba83c27333bb", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "08676962-bfe9-4ec4-9353-ec4b788128fb", "category": "sign", "confidence": 0.98, "summary": ""}
+{"id": "dd2024a6-2364-4fc2-8f91-6e3df37a47a8", "category": "land_development", "confidence": 0.98, "summary": ""}
+{"id": "0098028a-b718-40d4-95db-5c5b13622a25", "category": "residential_remodel", "confidence": 0.98, "summary": ""}
+{"id": "b6f9aef4-1bcf-4e68-9925-435a46e085b6", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "22f52c0c-070a-4f45-aef3-630efb352027", "category": "land_development", "confidence": 0.99, "summary": ""}
+{"id": "34a2b814-d870-4dc9-9d1a-226ba5d6c672", "category": "foundation_repair", "confidence": 0.99, "summary": ""}
+{"id": "cfc6dbf2-a7d2-4a0f-9d98-86501d3e2c06", "category": "roofing", "confidence": 0.99, "summary": ""}
+{"id": "79facc4f-9bad-4694-8816-e0782f68737e", "category": "electrical", "confidence": 0.98, "summary": ""}
+{"id": "b0f16eec-6ea1-4daf-bb98-9a7ef8873821", "category": "land_development", "confidence": 0.99, "summary": ""}
+{"id": "6a5d04fb-34f7-4cf5-907c-52dd66ca5f82", "category": "fence", "confidence": 0.95, "summary": ""}
+{"id": "d5b66bc4-daf8-4697-8022-1003084657ed", "category": "commercial_new", "confidence": 0.95, "summary": ""}
+{"id": "2371facd-ffef-44e6-9852-86798cfa1b1d", "category": "event_temporary", "confidence": 0.98, "summary": ""}
+{"id": "30cfc659-e768-4072-8295-a68b42bbb888", "category": "residential_remodel", "confidence": 0.99, "summary": ""}
+{"id": "7385f278-c6fc-405e-9161-2d2952cdd5da", "category": "residential_new", "confidence": 0.99, "summary": ""}
+{"id": "8ae7b6ae-6042-4949-a6de-733148d71eb2", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "6d14aa1d-befe-44c4-bbab-9d0c10f0cc7a", "category": "row_utility", "confidence": 0.98, "summary": ""}
+{"id": "495aa60f-93af-4080-9eaa-3fe04e5f2762", "category": "other_unknown", "confidence": 0.85, "summary": ""}
+{"id": "6af25ece-efbf-44d0-928f-249044f2c6d3", "category": "other_unknown", "confidence": 0.9, "summary": ""}
+{"id": "8b0b4182-3abe-43fd-8998-fc632feca544", "category": "plumbing", "confidence": 0.98, "summary": ""}
+{"id": "0246ff17-9462-4d72-83d1-335d1b9fb2aa", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "854ea692-2c39-4352-b38d-007937577102", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "de68c8d1-cbae-4819-9e8e-40b95a3b13a2", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "bef226f8-4c13-4894-bab9-72a6722f4712", "category": "accessory_structure", "confidence": 0.97, "summary": ""}
+{"id": "a08c1871-3d76-4b83-8de6-0843f8d36de4", "category": "residential_new", "confidence": 0.95, "summary": ""}
+{"id": "fe78491f-1834-428b-8c6a-6acfb4e3f5b5", "category": "residential_new", "confidence": 0.98, "summary": ""}
+{"id": "2a062945-192e-4dd7-95a1-4cdae3e0cb62", "category": "admin_licensing", "confidence": 0.92, "summary": ""}
+{"id": "a891fa86-425f-4f44-8499-2257d0d58b16", "category": "code_enforcement", "confidence": 0.98, "summary": ""}
+{"id": "1c5399af-edbe-4747-b2f9-afa9127ef071", "category": "residential_new", "confidence": 0.95, "summary": ""}
+{"id": "93d5d19e-ee0c-44ff-8ef8-93230ba822d5", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "910d78e6-0d71-4d33-8482-a17803c8191a", "category": "electrical", "confidence": 0.98, "summary": ""}
+{"id": "e4a11f32-4816-41b8-b608-046ec51a4627", "category": "event_temporary", "confidence": 0.99, "summary": ""}
+{"id": "db738460-b5c0-4bc7-a3a1-d0df1b4892f1", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "847b7181-1090-4c46-af8a-54c21cdddc68", "category": "land_development", "confidence": 0.9, "summary": ""}
+{"id": "fb18a950-4dac-44c7-9600-3164a2fa8f6e", "category": "mechanical_hvac", "confidence": 0.95, "summary": ""}
+{"id": "c84468ab-7142-44ca-9401-e5dd258c6af1", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "8989002f-6264-4bb0-ae14-c867dee16d39", "category": "other_unknown", "confidence": 0.9, "summary": ""}
+{"id": "c1d8473f-82ed-4f8a-9fb9-a1638efc51bb", "category": "mechanical_hvac", "confidence": 0.98, "summary": ""}
+{"id": "1a3f4ecf-516d-4b8a-b3d1-a1f3357c6a35", "category": "code_enforcement", "confidence": 0.95, "summary": ""}
+{"id": "66c87df4-dfe9-4748-8753-faf3aa5dc85c", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "377dad8d-9905-4fb8-9276-97f91a39ef16", "category": "residential_addition", "confidence": 0.98, "summary": ""}
+{"id": "dfe350d0-ba12-440b-9228-0c3189f0f02b", "category": "mechanical_hvac", "confidence": 0.95, "summary": ""}
+{"id": "4fba1058-8b7f-450b-adc2-6696e642f72f", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "2c5b6604-1fb4-40b8-a4d0-ad3567edbca1", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "fd06e5fc-8daf-4646-b5fa-cfd82946404a", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "794aa9ff-112a-4eae-ae4c-3447780d0670", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "1099aa15-9850-48a6-8081-8a0ec9c1dff6", "category": "sign", "confidence": 0.98, "summary": ""}
+{"id": "cd71fafa-8277-49f9-aac2-d5f0b508d45f", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "89a83625-48f9-4611-92a2-68765d3ea14b", "category": "residential_addition", "confidence": 0.92, "summary": ""}
+{"id": "907046bd-05b7-4a99-ab47-f473064f8106", "category": "sign", "confidence": 0.98, "summary": ""}
+{"id": "80fe3d30-d106-4e9d-b402-d666f64c791c", "category": "mechanical_hvac", "confidence": 0.95, "summary": ""}
+{"id": "566fdb02-23bf-4ab8-befa-03c7b285005b", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "d0ab781c-a7e4-404f-a31d-ccc7f63b7cd9", "category": "mechanical_hvac", "confidence": 0.9, "summary": ""}
+{"id": "2ffe6f84-5e96-4ee2-b8df-f584e2a77dde", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "8f3a50a6-8bc0-4622-969f-76c509a879f5", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "acbc4e84-205f-4b45-9e91-4451eacb48f3", "category": "demolition", "confidence": 0.98, "summary": ""}
+{"id": "dad7945c-190d-46ac-90c0-1fc70cab6c73", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "d057561c-19e9-43e3-b26c-9c2eb650cda1", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "1b9af13f-30f8-4e80-8042-5150320d1649", "category": "accessory_structure", "confidence": 0.92, "summary": ""}
+{"id": "61f62363-f6cd-4fd1-813d-1003e01dd233", "category": "electrical", "confidence": 0.95, "summary": ""}
+{"id": "a955e0b6-255f-4d0f-8935-d7ccd0cd0aa1", "category": "other_unknown", "confidence": 0.98, "summary": ""}
+{"id": "77fe5823-f3ff-499f-b029-a2f0097b6e2b", "category": "other_unknown", "confidence": 0.98, "summary": ""}
+{"id": "c15c2e62-5671-4cac-9937-502066ec33ee", "category": "other_unknown", "confidence": 0.98, "summary": ""}
+{"id": "d4cf76c8-8198-4f86-a02d-8995fac8eb05", "category": "other_unknown", "confidence": 0.98, "summary": ""}
+{"id": "823aec8a-582d-45c9-b317-872e97f52cb2", "category": "residential_new", "confidence": 0.95, "summary": ""}
+{"id": "7507dae5-60cb-4de0-87e2-9229b343b1cc", "category": "other_unknown", "confidence": 0.98, "summary": ""}
+{"id": "a63efed8-1298-4158-8abf-3e27247c6ccf", "category": "other_unknown", "confidence": 0.98, "summary": ""}
+{"id": "65d49798-456f-485e-ab84-c5385a58f02a", "category": "sign", "confidence": 0.98, "summary": ""}
+{"id": "17a7cf48-2284-4ca4-b270-79123aa544ef", "category": "mobile_home", "confidence": 0.95, "summary": ""}
+{"id": "6da00a44-a762-4ac2-9c7d-db8c9327a04d", "category": "mechanical_hvac", "confidence": 0.92, "summary": ""}
+{"id": "8754bf4a-d6b2-4b94-b4cb-5f5bb0c7d27c", "category": "other_unknown", "confidence": 0.99, "summary": ""}
+{"id": "7ab0c599-308e-4cfa-be7e-85bb052be388", "category": "electrical", "confidence": 0.94, "summary": ""}
+{"id": "4b0caf1b-552c-4ac2-843c-0bdc16900824", "category": "mechanical_hvac", "confidence": 0.93, "summary": ""}
+{"id": "b0993da4-015b-4a15-a977-6459c4b759b9", "category": "plumbing", "confidence": 0.93, "summary": ""}
+{"id": "dfc5f267-a68c-485b-a897-9bdb3846e2e6", "category": "mechanical_hvac", "confidence": 0.93, "summary": ""}
+{"id": "7aaf4131-b6ad-4154-aad8-43798589e19a", "category": "mechanical_hvac", "confidence": 0.95, "summary": ""}
+{"id": "6a0bbb7a-5cea-4e52-ba12-88471fc94e88", "category": "plumbing", "confidence": 0.95, "summary": ""}
+{"id": "bbd81e33-b14d-4bb9-936c-1def80969ec5", "category": "plumbing", "confidence": 0.95, "summary": ""}
+{"id": "8a885c5f-235c-4968-a22a-b7c798dbd0a1", "category": "plumbing", "confidence": 0.95, "summary": ""}
+{"id": "19723a50-a80c-4e9c-9945-32b573ccd866", "category": "mechanical_hvac", "confidence": 0.95, "summary": ""}
+{"id": "ee01242e-6b73-419b-8b9c-1bd324d8bc93", "category": "plumbing", "confidence": 0.95, "summary": ""}
+{"id": "8869bc23-cb08-4fdc-9b10-37b94aba5d73", "category": "mechanical_hvac", "confidence": 0.95, "summary": ""}
+{"id": "92ae8c02-04de-4d52-9c62-0ff3e2d15b05", "category": "plumbing", "confidence": 0.95, "summary": ""}
+{"id": "fc4081cb-7fdf-45d1-b6b5-9bb244e682e6", "category": "mechanical_hvac", "confidence": 0.98, "summary": ""}
+{"id": "9862bc80-7d8e-43fc-ba0a-9fd007d16602", "category": "mechanical_hvac", "confidence": 0.98, "summary": ""}
+{"id": "1adba6dd-abe5-4f3a-98d9-d5dd492d0161", "category": "plumbing", "confidence": 0.98, "summary": ""}
+{"id": "3396cc86-0290-4896-9c55-d48a6b3a6df8", "category": "plumbing", "confidence": 0.98, "summary": ""}
+{"id": "97e1e55c-1753-4503-9c51-a43c6558ffb5", "category": "plumbing", "confidence": 0.98, "summary": ""}
+{"id": "64377665-1cc0-4d96-8ab8-4d48409b2e0c", "category": "plumbing", "confidence": 0.98, "summary": ""}
+{"id": "aea1d89b-9d96-4c9b-9e62-f02e894c434e", "category": "mechanical_hvac", "confidence": 0.98, "summary": ""}
+{"id": "83489da3-0d94-44c7-b5f0-16e8eeda1b40", "category": "plumbing", "confidence": 0.98, "summary": ""}
+{"id": "b8a6f296-30d5-4e81-8720-84de4379387e", "category": "demolition", "confidence": 0.95, "summary": ""}
+{"id": "75c66dc8-b67c-465f-beef-9aa5dba71f0a", "category": "demolition", "confidence": 0.95, "summary": ""}
+{"id": "8ae11c71-018e-499a-8d18-ba977bc371fa", "category": "demolition", "confidence": 0.9, "summary": ""}
+{"id": "8ec13bba-8438-44fc-8c83-b3694cf8990e", "category": "demolition", "confidence": 0.9, "summary": ""}
+{"id": "4b2b9b85-ce86-4862-84aa-58bd78b4415e", "category": "demolition", "confidence": 0.95, "summary": ""}
+{"id": "3211e13f-a4cd-487f-be25-d8cb082a5d36", "category": "demolition", "confidence": 0.9, "summary": ""}
+{"id": "0c894740-7883-4837-9bd5-02bd91b27437", "category": "demolition", "confidence": 0.9, "summary": ""}
+{"id": "d204b263-143f-472c-87a4-acaf0d8fd47a", "category": "demolition", "confidence": 0.95, "summary": ""}
+{"id": "9e4f83cb-0589-4be9-82cb-b87a1ccf9bab", "category": "plumbing", "confidence": 0.95, "summary": ""}
+{"id": "40f78cd5-58fe-47f6-8cae-2a38ee0256ea", "category": "mechanical_hvac", "confidence": 0.95, "summary": ""}
+{"id": "55cd3454-208e-4dc9-a402-12d59c2d40b3", "category": "plumbing", "confidence": 0.95, "summary": ""}
+{"id": "54f174e6-c237-4dca-8948-ade0fb69e3f3", "category": "plumbing", "confidence": 0.95, "summary": ""}
+{"id": "d679e855-cec8-490b-8492-741b1726f8db", "category": "plumbing", "confidence": 0.95, "summary": ""}
+{"id": "19360c52-a3f5-4e43-9cb0-9f7ad49ba1fe", "category": "mechanical_hvac", "confidence": 0.95, "summary": ""}
+{"id": "5209d119-9d5c-4f27-8b5a-096cd50e474b", "category": "land_development", "confidence": 0.98, "summary": ""}
+{"id": "d07ee9d7-0a59-4d25-9d59-c68a74ef3afb", "category": "sign", "confidence": 0.98, "summary": ""}
+{"id": "52cf5388-8fd1-4d8b-a76f-45f2068d37d7", "category": "sign", "confidence": 0.98, "summary": ""}
+{"id": "ff9342f9-0fa1-4cbd-9a60-143992077129", "category": "land_development", "confidence": 0.99, "summary": ""}
+{"id": "ba55e0c4-aac1-4e1e-a5d1-6e41c4329f82", "category": "land_development", "confidence": 0.99, "summary": ""}
+{"id": "8dbc011c-0416-4da8-8e27-976bff56dad5", "category": "land_development", "confidence": 0.99, "summary": ""}
+{"id": "02203460-f89a-4a9a-aefb-8e9760565dce", "category": "land_development", "confidence": 0.99, "summary": ""}
+{"id": "07dbce5c-0496-4885-8b89-fd72241fd86e", "category": "sign", "confidence": 0.98, "summary": ""}
+{"id": "b9662e8f-55f6-42cc-a116-7df9d459c472", "category": "other_unknown", "confidence": 0.9, "summary": ""}
+{"id": "8e51414b-eaa6-456c-9012-24cb743f256a", "category": "mechanical_hvac", "confidence": 0.97, "summary": ""}
+{"id": "d4893b48-1317-4af1-81a6-ae48867ec394", "category": "land_development", "confidence": 0.98, "summary": ""}
+{"id": "38f80b0e-c03e-42ef-9e03-8cf66f4f44a7", "category": "land_development", "confidence": 0.98, "summary": ""}
+{"id": "9ea29411-73fa-475a-955e-844551041233", "category": "sign", "confidence": 0.95, "summary": ""}
+{"id": "41ff0155-39ce-4004-a1cf-eb2cae9aa374", "category": "sign", "confidence": 0.95, "summary": ""}
+{"id": "02289263-d3c3-4c99-99f2-d56f485d4428", "category": "land_development", "confidence": 0.98, "summary": ""}
+{"id": "b8fcd78a-3464-401f-86d4-7d335542c395", "category": "other_unknown", "confidence": 0.9, "summary": ""}
+{"id": "fbc2a291-21af-4cdd-bac2-dac971a8670b", "category": "land_development", "confidence": 0.98, "summary": ""}
+{"id": "15f8eda0-7a89-4ccf-b596-2e72ea603a5c", "category": "land_development", "confidence": 0.98, "summary": ""}
+{"id": "31d5bc1e-2f13-4140-b5e9-8e6ad801fd6f", "category": "land_development", "confidence": 0.98, "summary": ""}
+{"id": "af8907c0-507a-4bda-8d3e-0d363a7fb16a", "category": "demolition", "confidence": 0.95, "summary": ""}
+{"id": "aad078b2-ebfa-4c41-836b-057ffe3639f2", "category": "land_development", "confidence": 0.98, "summary": ""}
+{"id": "991fb333-7d35-4a45-81e7-832a35e87259", "category": "sign", "confidence": 0.97, "summary": ""}
+{"id": "13d57ffe-a5b0-493a-bbec-81efe14206b9", "category": "land_development", "confidence": 0.98, "summary": ""}
+{"id": "cf7701c9-b34c-4bd9-bd88-d976b0a3a17c", "category": "land_development", "confidence": 0.98, "summary": ""}
+{"id": "d37da278-fed9-402b-8937-62a5da12b3f4", "category": "plumbing", "confidence": 0.92, "summary": ""}
+{"id": "bf434476-5e1c-4524-b9cc-8a386888d331", "category": "accessory_structure", "confidence": 0.96, "summary": ""}
+{"id": "c38a52bb-4973-446d-9998-9bc43d2dd1fb", "category": "driveway_flatwork", "confidence": 0.95, "summary": ""}
+{"id": "ab1a02b0-a024-4962-84b6-3012dc8ac1f3", "category": "land_development", "confidence": 0.98, "summary": ""}
+{"id": "d0054ae0-4da2-4400-b3f9-253f6021ed42", "category": "plumbing", "confidence": 0.92, "summary": ""}
+{"id": "36af0cf1-0af2-4aa0-807b-8b1adda5217c", "category": "land_development", "confidence": 0.98, "summary": ""}
+{"id": "585f4772-cc81-4479-baad-7c293ea7c536", "category": "land_development", "confidence": 0.98, "summary": ""}
+{"id": "1105587b-e3cf-41e3-a52e-39ef39e1b238", "category": "other_unknown", "confidence": 0.85, "summary": ""}
+{"id": "92aaecea-8711-4d74-a52c-659b3399782f", "category": "land_development", "confidence": 0.98, "summary": ""}
+{"id": "4850a41e-0661-443b-b379-2921fbd869ac", "category": "roofing", "confidence": 0.97, "summary": ""}
+{"id": "45ed7407-dc13-4545-815c-3a641f97db3d", "category": "land_development", "confidence": 0.95, "summary": ""}
+{"id": "fb15c8bc-4417-483b-91e6-d6698c546889", "category": "demolition", "confidence": 0.98, "summary": ""}
+{"id": "7aea23ac-1e6d-4d15-9813-da340d855267", "category": "sign", "confidence": 0.97, "summary": ""}
+{"id": "ead42025-56ac-4e63-af78-ad8bd2a25ce4", "category": "land_development", "confidence": 0.98, "summary": ""}
+{"id": "10c324cd-bd69-4442-b040-868a178e0255", "category": "roofing", "confidence": 0.99, "summary": ""}
+{"id": "71a5885e-44f0-4b1b-8f24-2c7b93f4c96d", "category": "plumbing", "confidence": 0.98, "summary": ""}
+{"id": "4e20c5b5-d656-4bcb-a9bb-76cdb0bb40dc", "category": "pool_spa", "confidence": 0.99, "summary": ""}
+{"id": "990d2f76-4f65-4c16-9129-7c42c8e81198", "category": "commercial_remodel_ti", "confidence": 0.98, "summary": ""}
+{"id": "7e141b28-5f87-4611-a8a5-46810743327d", "category": "land_development", "confidence": 0.98, "summary": ""}
+{"id": "e4397ed0-94a8-4f41-823a-8c61ffec19ae", "category": "admin_licensing", "confidence": 0.95, "summary": ""}
+{"id": "52e697c1-8dd1-4b87-a303-17a0739ac89e", "category": "admin_licensing", "confidence": 0.95, "summary": ""}
+{"id": "3931e303-e247-4a22-964e-dc39a7397f67", "category": "commercial_remodel_ti", "confidence": 0.98, "summary": ""}
+{"id": "2d6cbe43-5295-4c8a-b5c6-177d07614045", "category": "land_development", "confidence": 0.98, "summary": ""}
+{"id": "df79db0e-a4e9-4e55-829d-d4e99ab4f7cd", "category": "sign", "confidence": 0.97, "summary": ""}
+{"id": "cb7c7a5a-9284-4c24-97f3-91745230a026", "category": "sign", "confidence": 0.96, "summary": ""}
+{"id": "8f638a37-70f8-4393-8fc5-b33e1744566d", "category": "grading_sitework", "confidence": 0.95, "summary": ""}
+{"id": "6f2400ea-c49b-4749-b9eb-057f4a6965ef", "category": "row_utility", "confidence": 0.95, "summary": ""}
+{"id": "80df426e-039d-4bbf-9ba3-3aeba1112c7f", "category": "sign", "confidence": 0.98, "summary": ""}
+{"id": "cb07a15a-44d0-4813-971b-58d4fc0a7319", "category": "other_unknown", "confidence": 0.99, "summary": ""}
+{"id": "45b0ca86-729c-438d-bb54-1926d8bee86f", "category": "sign", "confidence": 0.97, "summary": ""}
+{"id": "a7443087-bfa9-4ea5-ad36-029124aedae1", "category": "sign", "confidence": 0.99, "summary": ""}
+{"id": "d771fa5d-da63-4829-9f6f-413a468e8500", "category": "land_development", "confidence": 0.98, "summary": ""}
+{"id": "d48e2dfa-3ed8-49a3-99d7-59d3c5fa52c7", "category": "commercial_remodel_ti", "confidence": 0.96, "summary": ""}
+{"id": "7522ad03-6499-402f-a341-2ced05cdf5b7", "category": "residential_new", "confidence": 0.99, "summary": ""}
+{"id": "3ac2bd05-fb62-4feb-baf7-d45090e958e3", "category": "land_development", "confidence": 0.95, "summary": ""}
+{"id": "b7709bd5-d221-4a4e-aa92-4c78f7db8952", "category": "sign", "confidence": 0.98, "summary": ""}
+{"id": "7a47c799-f106-4eca-8606-d441093445d0", "category": "plumbing", "confidence": 0.99, "summary": ""}
+{"id": "c4bd46fb-dd7f-469f-9ac1-5d145cfdf9ab", "category": "sign", "confidence": 0.97, "summary": ""}
+{"id": "5bc02345-c562-4ded-9b85-0561a453cf95", "category": "admin_licensing", "confidence": 0.95, "summary": ""}
+{"id": "c882273c-38d3-4d2a-8d7b-a2b88b6d6c75", "category": "accessory_structure", "confidence": 0.98, "summary": ""}
+{"id": "e8f352ff-8dbc-4797-ae5f-db694a502276", "category": "other_unknown", "confidence": 0.9, "summary": ""}
+{"id": "b71ab5ca-2a30-4377-9f74-88d2ea86da73", "category": "admin_licensing", "confidence": 0.95, "summary": ""}
+{"id": "554dca3a-5d5e-42e7-9a62-8ad91a36a9e1", "category": "driveway_flatwork", "confidence": 0.98, "summary": ""}
+{"id": "529dd4db-0f17-41ab-80b9-0a885fad398a", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "9369eaca-3100-4320-ad3d-2b8abb16984c", "category": "fire_systems", "confidence": 0.92, "summary": ""}
+{"id": "a355eb65-c0b1-484c-b225-7ea2b7f426ff", "category": "other_unknown", "confidence": 0.9, "summary": ""}
+{"id": "b4ba2163-c639-4f03-b221-146d80610f7b", "category": "other_unknown", "confidence": 0.99, "summary": ""}
+{"id": "30d76f3e-6ade-4610-8179-4e2718ef1aba", "category": "plumbing", "confidence": 0.95, "summary": ""}
+{"id": "8535d61c-fcd7-46ec-8305-b8f19e7d1b51", "category": "irrigation", "confidence": 0.97, "summary": ""}
+{"id": "0deef1c5-73d4-4edc-a14d-243fa62db209", "category": "sign", "confidence": 0.98, "summary": ""}
+{"id": "d53ea532-6573-4c11-8f7e-caeef81a9980", "category": "land_development", "confidence": 0.98, "summary": ""}
+{"id": "ce6a245f-d64e-446d-b229-d2f8e44e95b8", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "3cf13925-5601-4e3f-aca6-3302b15b42b7", "category": "residential_new", "confidence": 0.97, "summary": ""}
+{"id": "be1095fb-66e3-4487-b83a-d2049cc85318", "category": "row_utility", "confidence": 0.92, "summary": ""}
+{"id": "4e62ffe5-2564-4947-8339-fe738ac6070b", "category": "admin_licensing", "confidence": 0.98, "summary": ""}
+{"id": "80fea84f-b756-4516-9894-68f6f052773f", "category": "tree_landscape", "confidence": 0.95, "summary": ""}
+{"id": "cdff3f46-144c-4368-8243-281fd4d9a0bb", "category": "other_unknown", "confidence": 0.9, "summary": ""}
+{"id": "d2bd40d5-fa30-4ee2-b2d0-7359bf4903bf", "category": "other_unknown", "confidence": 0.9, "summary": ""}
+{"id": "ff709cd8-cef0-4469-8119-ec80f78f4799", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "bb731e89-fcb7-48e2-b87f-9e0ed994eca8", "category": "pool_spa", "confidence": 0.98, "summary": ""}
+{"id": "d31b66e3-747e-470c-b1bc-2306ad6e763a", "category": "residential_new", "confidence": 0.99, "summary": ""}
+{"id": "42f82e8c-fdc7-4e86-a1bc-dff512eb6509", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "d3d62c36-8980-4293-bf22-b092af9f409c", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "778fafe2-5025-4b5d-9c3a-741ca02d32be", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "6b8c653d-d154-436a-9582-0e6d081800a3", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "4747a533-a68a-43b6-8da0-e53c845ab8ab", "category": "electrical", "confidence": 0.92, "summary": ""}
+{"id": "fea02e8e-119e-4ebf-9e31-d89ec992b197", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "1d96abcc-32b0-453b-a866-89bd0c7658ba", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "a3507850-9832-4d8c-9c01-415f0a97b5e5", "category": "electrical", "confidence": 0.98, "summary": ""}
+{"id": "9d2acd47-efaf-450e-987c-1cb805edc679", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "096a46ce-8eb6-4317-a02a-75ba194d70e4", "category": "grading_sitework", "confidence": 0.9, "summary": ""}
+{"id": "6923f1d7-251c-415d-86b9-db9664addbc4", "category": "electrical", "confidence": 0.95, "summary": ""}
+{"id": "40b7830f-3ac4-46bf-ac3c-fd85cdf0d388", "category": "other_unknown", "confidence": 0.85, "summary": ""}
+{"id": "b0900f1c-0e7c-4a56-954a-72fcc90babdc", "category": "residential_new", "confidence": 0.98, "summary": ""}
+{"id": "0531aa75-4f12-43db-a6d2-f9cb17922fc1", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "52feaae7-4a42-40f8-ae98-4d6e3b7c4737", "category": "plumbing", "confidence": 0.9, "summary": ""}
+{"id": "174ca031-3921-4b8a-a2d7-b677c4eae29f", "category": "sign", "confidence": 0.95, "summary": ""}
+{"id": "19273755-a891-432f-8d6d-059de9ff293b", "category": "demolition", "confidence": 0.95, "summary": ""}
+{"id": "e526ee96-876a-48df-ae3b-8016c278c300", "category": "electrical", "confidence": 0.9, "summary": ""}
+{"id": "3f8bff3b-c40f-4867-a2aa-e75b9961fb64", "category": "demolition", "confidence": 0.95, "summary": ""}
+{"id": "ade396ee-a7c0-4eee-802e-5f0c2d7ad41a", "category": "residential_addition", "confidence": 0.9, "summary": ""}
+{"id": "9dab0f62-fd5e-46cb-937c-bb9c1ceebcac", "category": "demolition", "confidence": 0.95, "summary": ""}
+{"id": "6089cb80-4a7f-44e9-995e-45becd87f2ec", "category": "demolition", "confidence": 0.98, "summary": ""}
+{"id": "d7f6100c-91fd-4d1b-8b22-58b2091b2bdc", "category": "sign", "confidence": 0.95, "summary": ""}
+{"id": "82e9ee23-9d1b-4536-9cae-90954a674cad", "category": "sign", "confidence": 0.95, "summary": ""}
+{"id": "dd7637c9-557e-471e-bba6-757edba92e2a", "category": "demolition", "confidence": 0.98, "summary": ""}
+{"id": "25fe6c99-daa5-4fff-8cd8-8528a7ed7356", "category": "sign", "confidence": 0.95, "summary": ""}
+{"id": "ff66c463-31b5-4a8b-84ac-c047eed99305", "category": "demolition", "confidence": 0.92, "summary": ""}
+{"id": "0c2e2d46-b244-42db-b77a-d748feedccf1", "category": "demolition", "confidence": 0.98, "summary": ""}
+{"id": "803de44f-7ad7-44d5-983c-c008159ec437", "category": "demolition", "confidence": 0.9, "summary": ""}
+{"id": "353e1b11-97d0-4158-9df5-565609346a3a", "category": "sign", "confidence": 0.95, "summary": ""}
+{"id": "1684207f-201b-40c2-ae68-814d95a697a3", "category": "demolition", "confidence": 0.9, "summary": ""}
+{"id": "8562651d-278b-41ed-b7a1-3a133bafbc27", "category": "sign", "confidence": 0.95, "summary": ""}
+{"id": "21459b5f-b223-420f-9d35-95306322a1ad", "category": "demolition", "confidence": 0.95, "summary": ""}
+{"id": "6e192ffa-8907-40ec-8c75-930dc05aaf2e", "category": "demolition", "confidence": 0.95, "summary": ""}
+{"id": "5f767c56-fc72-423c-b3c4-1b9efec71010", "category": "demolition", "confidence": 0.95, "summary": ""}
+{"id": "9018c0fa-6c51-48f6-ac78-9411e3ad6854", "category": "demolition", "confidence": 0.9, "summary": ""}
+{"id": "05ffac64-e84e-4b24-b995-f3f5bbedf189", "category": "demolition", "confidence": 0.9, "summary": ""}
+{"id": "d15afdd2-0513-486e-9a17-9f1e07d5b759", "category": "mobile_home", "confidence": 0.95, "summary": ""}
+{"id": "e249757d-1632-4676-9d73-156cb561572e", "category": "mobile_home", "confidence": 0.9, "summary": ""}
+{"id": "d4da424b-58f7-4486-9e56-cb0c0c4cd17a", "category": "demolition", "confidence": 0.98, "summary": ""}
+{"id": "c6a6813e-4cf4-4c7c-971a-941c0fc329c4", "category": "residential_remodel", "confidence": 0.92, "summary": ""}
+{"id": "0ffdd6c0-decf-4e9d-8a57-d7826e5b4d9d", "category": "demolition", "confidence": 0.98, "summary": ""}
+{"id": "62c0650b-ab90-4ee8-bb33-ffcc087931e3", "category": "commercial_remodel_ti", "confidence": 0.96, "summary": ""}
+{"id": "a6f26055-4fa5-46ca-ab1d-723b6320a71a", "category": "commercial_remodel_ti", "confidence": 0.96, "summary": ""}
+{"id": "3a799ded-fed8-4ea3-a738-f84d867e97f2", "category": "sign", "confidence": 0.99, "summary": ""}
+{"id": "b856c1dd-4816-4d26-af85-97d14ec458e5", "category": "sign", "confidence": 0.95, "summary": ""}
+{"id": "690bacb5-2f41-4254-a227-18855f2229d4", "category": "demolition", "confidence": 0.9, "summary": ""}
+{"id": "f66fd5c9-e3a4-4463-80d7-0f2c0666d18e", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "4284a56e-6ab1-4a36-916c-e42201100060", "category": "electrical", "confidence": 0.98, "summary": ""}
+{"id": "b71cca15-a903-4937-a4c9-2d7a9a5c8c01", "category": "mobile_home", "confidence": 0.92, "summary": ""}
+{"id": "07b45f2a-5d4a-4e52-958d-5711cdc03e99", "category": "electrical", "confidence": 0.97, "summary": ""}
+{"id": "ff3495e2-3632-4f4d-b863-307ef4ecd24c", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "771bc1da-8e84-48f7-b225-34ef5e4a0634", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "ce70c16e-6459-4b60-b240-d96686ee06f7", "category": "mechanical_hvac", "confidence": 0.95, "summary": ""}
+{"id": "99c420d2-4b6b-4e8c-b962-3de699fce325", "category": "accessory_structure", "confidence": 0.92, "summary": ""}
+{"id": "9d33fb0d-131e-4d8a-a99e-70b084ce4871", "category": "mechanical_hvac", "confidence": 0.95, "summary": ""}
+{"id": "5374c46e-03d3-4edf-8035-6f80bac6694e", "category": "mechanical_hvac", "confidence": 0.9, "summary": ""}
+{"id": "07070842-e35d-4ce8-9052-07ac40822e07", "category": "other_unknown", "confidence": 0.98, "summary": ""}
+{"id": "8d7e6434-ec2d-4d48-a71e-733904092be4", "category": "commercial_remodel_ti", "confidence": 0.95, "summary": ""}
+{"id": "4ce6dd53-52a9-4c6e-9b8a-56ed250680e2", "category": "other_unknown", "confidence": 0.98, "summary": ""}
+{"id": "f1c07794-87e7-4fa9-b903-df15ad5d2fcd", "category": "mechanical_hvac", "confidence": 0.9, "summary": ""}
+{"id": "4a135f4d-81e5-463b-a9bf-1c70a3516737", "category": "electrical", "confidence": 0.98, "summary": ""}
+{"id": "98647148-6934-4f1a-b0cc-a5cde8b826bd", "category": "mechanical_hvac", "confidence": 0.98, "summary": ""}
+{"id": "10789103-6bcf-4f81-ba15-1c5789277faa", "category": "other_unknown", "confidence": 0.99, "summary": ""}
+{"id": "fe0d8fbf-62a7-4f3a-8a65-fef8b7cfeeb8", "category": "mechanical_hvac", "confidence": 0.99, "summary": ""}
+{"id": "e75e017d-4237-4c4d-a4ef-f77c4329aaf0", "category": "plumbing", "confidence": 0.98, "summary": ""}
+{"id": "77e6519e-3db7-45af-b0b2-98ae149a739e", "category": "other_unknown", "confidence": 0.99, "summary": ""}
+{"id": "a0eacd65-cac3-4c6c-b17b-4ae8acfa4a80", "category": "plumbing", "confidence": 0.97, "summary": ""}
+{"id": "492625f9-e944-4620-8992-0b14c262ee1c", "category": "mechanical_hvac", "confidence": 0.98, "summary": ""}
+{"id": "8e619cef-d3fb-4942-844f-f5831db686e4", "category": "mechanical_hvac", "confidence": 0.95, "summary": ""}
+{"id": "61add8f6-80ff-4153-bf78-c47f67b40d5a", "category": "other_unknown", "confidence": 0.98, "summary": ""}
+{"id": "3bf1e569-ab1a-42d3-877a-c7a476584e40", "category": "plumbing", "confidence": 0.95, "summary": ""}
+{"id": "d310e0e4-2d21-407e-ae8c-04bc97ba7178", "category": "other_unknown", "confidence": 0.98, "summary": ""}
+{"id": "7513b636-9af8-41f4-83fc-38bfb3443f6d", "category": "other_unknown", "confidence": 0.98, "summary": ""}
+{"id": "79c4fe18-0439-42c3-bcbd-cbe026ac1fcc", "category": "other_unknown", "confidence": 0.98, "summary": ""}
+{"id": "86fe3065-5de4-438b-92a6-bd471b87316f", "category": "mechanical_hvac", "confidence": 0.9, "summary": ""}
+{"id": "2d23437c-3ae1-4067-8ecc-6b858915f7b3", "category": "other_unknown", "confidence": 0.98, "summary": ""}
+{"id": "4c54d7d1-17f5-4171-9201-5a4587935b61", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "b891b3df-9160-4295-bea4-0641019992e4", "category": "driveway_flatwork", "confidence": 0.9, "summary": ""}
+{"id": "7d45f3bf-f7a6-4eb3-b8f2-ba4a84179b78", "category": "foundation_repair", "confidence": 0.85, "summary": ""}
+{"id": "6d06462f-7c6a-430e-b30f-1c07c01f40d9", "category": "irrigation", "confidence": 0.98, "summary": ""}
+{"id": "63e4064b-03a0-473d-9b23-f2386e5aef67", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "1c0fc852-fc9e-4d1a-9591-573e4f0b69ed", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "e1aed942-7fb8-4deb-adf8-bb6df6cf737a", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "1e2b06dd-ac44-4ca1-b7ce-bc965e0d6117", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "03a16d86-454a-4e4b-a586-678ec34f2682", "category": "electrical", "confidence": 0.95, "summary": ""}
+{"id": "e01903cb-60a8-45ae-8fb9-02acd1b17c43", "category": "other_unknown", "confidence": 0.98, "summary": ""}
+{"id": "bfdb4a96-3604-4918-8b10-78260ea3a77c", "category": "other_unknown", "confidence": 0.98, "summary": ""}
+{"id": "cd9c3d50-5b52-4269-a374-efc365e2c08a", "category": "other_unknown", "confidence": 0.98, "summary": ""}
+{"id": "c8883760-0391-40d7-8fcf-50fc3615ee70", "category": "other_unknown", "confidence": 0.98, "summary": ""}
+{"id": "adb2e12d-487d-4847-a17a-d89359989e26", "category": "electrical", "confidence": 0.97, "summary": ""}
+{"id": "7f860c24-8a3c-48ee-a231-71e2f1edef9c", "category": "pool_spa", "confidence": 0.99, "summary": ""}
+{"id": "ef03c4e1-33ff-4f67-9d5b-caa96d62cbb5", "category": "mechanical_hvac", "confidence": 0.97, "summary": ""}
+{"id": "3329abcb-c362-44ff-897f-569f507ccfa6", "category": "plumbing", "confidence": 0.98, "summary": ""}
+{"id": "89c2391a-4e13-4272-8a97-4e98abb606b0", "category": "plumbing", "confidence": 0.95, "summary": ""}
+{"id": "b44d89cb-3abd-4cd1-89d5-1f6998bce0a5", "category": "electrical", "confidence": 0.98, "summary": ""}
+{"id": "1d3372a2-fb23-4edd-ba00-e633b010737b", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "21d55820-4eee-4e5a-8ba1-a90831561d4e", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "e42fc081-7b0b-4d3a-8ad3-e8140d30e906", "category": "residential_new", "confidence": 0.98, "summary": ""}
+{"id": "7d39bebd-13c2-4876-bb98-a7824ab43bab", "category": "electrical", "confidence": 0.98, "summary": ""}
+{"id": "1e7ec918-60e1-4c79-b8dd-837e86056876", "category": "residential_new", "confidence": 0.98, "summary": ""}
+{"id": "a69487e4-18ae-419c-b683-ede75219d33f", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "8f0fe9b3-c4f1-41cb-95ae-af43c4dfedeb", "category": "mechanical_hvac", "confidence": 0.98, "summary": ""}
+{"id": "6c443ad8-8f2e-4b8d-9ca7-64b8dcc48bf1", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "16597177-bdd3-436c-9cdf-ccdf911c40f2", "category": "driveway_flatwork", "confidence": 0.92, "summary": ""}
+{"id": "3cb21815-4bd3-4ebf-857d-51ab5a2d4f77", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "a122a40f-868a-4b72-91b4-71158eb3268a", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "e8ccb7a9-7ea0-469d-bfad-05b3184cca93", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "d6f90fd2-b85f-4dae-ad7e-097b04a366ca", "category": "residential_new", "confidence": 0.99, "summary": ""}
+{"id": "9bfe0651-4937-4f11-840e-efb409125006", "category": "commercial_remodel_ti", "confidence": 0.98, "summary": ""}
+{"id": "74a5fa58-0274-4744-8f00-dee9b25d7091", "category": "residential_new", "confidence": 0.95, "summary": ""}
+{"id": "2bf8c8e4-ddca-4a2f-b01a-1f7f293def39", "category": "other_unknown", "confidence": 0.99, "summary": ""}
+{"id": "b5e8c5ee-69af-4093-8bc8-eedd7b02c9b2", "category": "other_unknown", "confidence": 0.99, "summary": ""}
+{"id": "3a47b84c-b3da-4e4b-bdd8-fc962777293e", "category": "roofing", "confidence": 0.97, "summary": ""}
+{"id": "0ab667a8-3459-424b-9913-f2dc9f38d647", "category": "plumbing", "confidence": 0.96, "summary": ""}
+{"id": "80a36879-9cc0-4238-a6c8-25ceefef84b4", "category": "residential_new", "confidence": 0.99, "summary": ""}
+{"id": "fc8cf911-24fc-4527-9c00-3b37ff19c086", "category": "other_unknown", "confidence": 0.99, "summary": ""}
+{"id": "26a2aa2e-5321-4832-bbd3-701f0d43ba1d", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "0fa76808-eef1-498b-8e3c-e956ca161f41", "category": "plumbing", "confidence": 0.98, "summary": ""}
+{"id": "c9297d73-3d74-4da4-a904-b511f6cf7c9f", "category": "mechanical_hvac", "confidence": 0.99, "summary": ""}
+{"id": "72e0dca0-c595-435e-9042-c6140183ea10", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "950122a4-414d-43d3-bec1-192d6dcd3f05", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "98cc91e7-1f98-4fcf-adab-59dbb5a38116", "category": "driveway_flatwork", "confidence": 0.99, "summary": ""}
+{"id": "7803aeba-3a86-423d-81d2-40aee9ad4671", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "3754b598-7225-40ef-a0f9-4b10185b16d3", "category": "plumbing", "confidence": 0.9, "summary": ""}
+{"id": "6e8c99c8-f893-477d-9956-1d7f5c68dea9", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "69037a65-21f8-4f50-b1fa-fb9cbdd404a8", "category": "mechanical_hvac", "confidence": 0.98, "summary": ""}
+{"id": "d32de4ad-5769-4c04-a24b-1c97a374401a", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "492f28b1-1910-4b52-8046-aacb7f51f338", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "92178666-ffc8-4b8e-874d-f1ec3c986e29", "category": "plumbing", "confidence": 0.9, "summary": ""}
+{"id": "2ad2dd58-db5a-42f8-a0c0-19bce446d337", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "2aa5cecb-66f6-4266-91e0-47426d12c5fa", "category": "plumbing", "confidence": 0.9, "summary": ""}
+{"id": "52a34fcd-1c06-41a9-a872-0348b201f626", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "2415cb64-76e5-442c-ad0a-5b75e8befbf1", "category": "mechanical_hvac", "confidence": 0.98, "summary": ""}
+{"id": "70970d81-b093-4666-afb2-dd61e008b1a9", "category": "plumbing", "confidence": 0.95, "summary": ""}
+{"id": "fbd071f3-5b21-42e2-9cd8-415689481aff", "category": "electrical", "confidence": 0.95, "summary": ""}
+{"id": "3b8937bf-e934-4fcb-a09d-e5d35af83d08", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "22123c7f-659d-45db-a26c-42bc94c1d19a", "category": "mechanical_hvac", "confidence": 0.98, "summary": ""}
+{"id": "1f0e1517-ca11-48e3-82af-b642112aa5da", "category": "electrical", "confidence": 0.95, "summary": ""}
+{"id": "dc7c7445-2f13-4e47-b753-b0d69cb2d85a", "category": "plumbing", "confidence": 0.98, "summary": ""}
+{"id": "2db497c4-dcdc-4869-bde4-fa5ecf4e09f4", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "edd29c7c-fade-4703-8906-73bececb8928", "category": "plumbing", "confidence": 0.98, "summary": ""}
+{"id": "f36ecdf8-84d1-4ce2-94fb-fd0e0bb80371", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "95c67fa3-94ff-4dd1-8009-9edf2f09fece", "category": "residential_remodel", "confidence": 0.99, "summary": ""}
+{"id": "91b41080-a79b-4640-973a-64197737cf60", "category": "mechanical_hvac", "confidence": 0.95, "summary": ""}
+{"id": "da981719-0652-4c00-a5c0-53fd85822d97", "category": "residential_new", "confidence": 0.99, "summary": ""}
+{"id": "c874db2c-8744-43d4-927e-f30fccffd10b", "category": "plumbing", "confidence": 0.95, "summary": ""}
+{"id": "fcdfcecf-fa63-4f39-ba00-4a53379bd82f", "category": "plumbing", "confidence": 0.98, "summary": ""}
+{"id": "5b0896a2-97d7-4395-9f9e-2aea4f9bbe8c", "category": "plumbing", "confidence": 0.95, "summary": ""}
+{"id": "cfefddad-9fa2-402c-8558-da6d1fac173c", "category": "electrical", "confidence": 0.95, "summary": ""}
+{"id": "2403cdb7-fb4f-40c6-bda3-13baa7ff8621", "category": "electrical", "confidence": 0.98, "summary": ""}
+{"id": "6f7aeeb4-616c-43b2-a72d-71fb2e616601", "category": "mechanical_hvac", "confidence": 0.99, "summary": ""}
+{"id": "996e9691-f917-4507-b0e7-34052027146f", "category": "fence", "confidence": 0.99, "summary": ""}
+{"id": "980b601b-e4dc-4943-816a-ad90279f6d3e", "category": "electrical", "confidence": 0.98, "summary": ""}
+{"id": "81ce9729-dc71-428c-8717-c23b095f99bf", "category": "mechanical_hvac", "confidence": 0.9, "summary": ""}
+{"id": "d87df5c4-d8fe-4a6b-89dd-5b27de7c651b", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "67099fa2-b6ad-4ac7-9294-622ff5f64d69", "category": "electrical", "confidence": 0.99, "summary": ""}
+{"id": "dacf1f64-4940-4303-b43d-3fc67e3043ad", "category": "plumbing", "confidence": 0.95, "summary": ""}
+{"id": "d8014cc6-9c8f-40bb-ac22-5a2ca5be7435", "category": "electrical", "confidence": 0.98, "summary": ""}
+{"id": "6bb84d43-daa7-4c50-9146-6dc4f3703c3e", "category": "electrical", "confidence": 0.92, "summary": ""}
+{"id": "1205cd46-5f74-4443-9f07-5d466eb2f0d9", "category": "electrical", "confidence": 0.98, "summary": ""}
+{"id": "dced2bc2-bc51-4a22-bb9a-b422f518196f", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "108964ee-53ac-46ca-a0bc-6e70c4b980c6", "category": "electrical", "confidence": 0.95, "summary": ""}
+{"id": "8e141eb0-278e-4db9-aba6-3c163f6781b7", "category": "electrical", "confidence": 0.95, "summary": ""}
+{"id": "9f92e416-9d43-41b5-b498-e9958211eea2", "category": "electrical", "confidence": 0.99, "summary": ""}
+{"id": "ab0ead43-6d85-43c9-a086-ce1390db4c17", "category": "mechanical_hvac", "confidence": 0.98, "summary": ""}
+{"id": "955d93ee-2323-4c95-ac53-39aff8a25bfa", "category": "mechanical_hvac", "confidence": 0.98, "summary": ""}
+{"id": "b311a5ad-7945-4ef4-a169-92512b210d11", "category": "mechanical_hvac", "confidence": 0.98, "summary": ""}
+{"id": "23ca67bc-336b-45cf-9bb6-a2d23c2212ae", "category": "mechanical_hvac", "confidence": 0.98, "summary": ""}
+{"id": "f652e8c0-3a0b-4ed3-a4f0-e7190e6c7407", "category": "residential_new", "confidence": 0.99, "summary": ""}
+{"id": "46e2da32-2917-4f4b-9815-682cf20ee776", "category": "electrical", "confidence": 0.95, "summary": ""}
+{"id": "be86eee3-84da-499a-a71c-7ce152e181b5", "category": "mechanical_hvac", "confidence": 0.98, "summary": ""}
+{"id": "6944cb00-d990-4326-b1ef-45f4bb83b43e", "category": "electrical", "confidence": 0.99, "summary": ""}
+{"id": "bdd5afb9-7bb9-45eb-b34a-05d76ddea979", "category": "other_unknown", "confidence": 0.95, "summary": ""}
+{"id": "5084b883-db83-43cb-9876-5fe63af473db", "category": "plumbing", "confidence": 0.98, "summary": ""}
+{"id": "58fd41ca-82ae-4bed-833a-e20c1bb88654", "category": "electrical", "confidence": 0.97, "summary": ""}
+{"id": "0820cbf0-d39c-4a39-a565-b6b988df01a0", "category": "residential_new", "confidence": 0.99, "summary": ""}
+{"id": "814e0165-8da2-4850-8c84-df219b050e9a", "category": "plumbing", "confidence": 0.98, "summary": ""}
+{"id": "d3733815-d333-4096-a04f-9cc9eb199bf1", "category": "plumbing", "confidence": 0.98, "summary": ""}
+{"id": "905f344d-a95c-4ed6-bade-bf68fc330798", "category": "mechanical_hvac", "confidence": 0.95, "summary": ""}
+{"id": "90b10445-cbe2-4f35-a552-2dd43ed5c201", "category": "mechanical_hvac", "confidence": 0.95, "summary": ""}
+{"id": "dfc648da-8753-48fa-8e16-dad0e844627c", "category": "electrical", "confidence": 0.95, "summary": ""}
+{"id": "30306e6b-2065-4536-adc8-5c939cd45ecd", "category": "irrigation", "confidence": 0.98, "summary": ""}
+{"id": "283499b1-c70a-46de-b839-fbc8580812f2", "category": "electrical", "confidence": 0.95, "summary": ""}
+{"id": "63af2716-442e-47d8-bf21-d503d872784c", "category": "plumbing", "confidence": 0.98, "summary": ""}
+{"id": "5169a34d-6d2c-4df6-8fa8-12c9cbd4bdee", "category": "mechanical_hvac", "confidence": 0.98, "summary": ""}
+{"id": "11fcbfc3-2d92-4963-9df0-54860f5ce237", "category": "residential_new", "confidence": 0.99, "summary": ""}
+{"id": "b9a892bf-cae2-4bb4-91c2-555d60803179", "category": "electrical", "confidence": 0.95, "summary": ""}
+{"id": "af585827-1a94-4cbc-88cb-18ddecc48231", "category": "mechanical_hvac", "confidence": 0.97, "summary": ""}
+{"id": "44be268d-f227-4dc0-8368-00b4560b3e7d", "category": "mechanical_hvac", "confidence": 0.95, "summary": ""}
+{"id": "dc4a54c4-92c2-4add-b3b7-332c6fa8420b", "category": "electrical", "confidence": 0.98, "summary": ""}
+{"id": "2c52c79c-df76-492d-81bb-fabaf43362f2", "category": "electrical", "confidence": 0.98, "summary": ""}
+{"id": "4967d600-2b81-4527-b52f-11eba2844079", "category": "residential_new", "confidence": 0.92, "summary": ""}
+{"id": "d17e0728-4ae0-4ff8-81e2-e000786a0e48", "category": "residential_remodel", "confidence": 0.98, "summary": ""}
+{"id": "8671400f-b27e-4771-9e16-ad89e0b68b76", "category": "mechanical_hvac", "confidence": 0.96, "summary": ""}
+{"id": "c4f106b2-8a46-4487-acb6-b2ce1e570b28", "category": "mechanical_hvac", "confidence": 0.98, "summary": ""}
+{"id": "01198b28-0a9b-4495-a91f-bfa241df58b2", "category": "plumbing", "confidence": 0.95, "summary": ""}
+{"id": "99ee7bd5-8d43-4d56-8997-4d30c748a066", "category": "roofing", "confidence": 0.98, "summary": ""}
+{"id": "a5597610-7b32-4c22-b957-4bb64dbd407a", "category": "electrical", "confidence": 0.95, "summary": ""}
+{"id": "adfc14ef-9b21-4c3b-9fa3-424e6a5757d9", "category": "electrical", "confidence": 0.92, "summary": ""}
+{"id": "38f04372-d287-4daf-8468-f5b025e58a59", "category": "electrical", "confidence": 0.92, "summary": ""}
+{"id": "faecd6be-35f3-4e26-9769-dbeb180f44d7", "category": "mechanical_hvac", "confidence": 0.9, "summary": ""}
+{"id": "5305ade4-29f2-486b-b0e5-e000dcc75aa6", "category": "driveway_flatwork", "confidence": 0.95, "summary": ""}
+{"id": "ecc27d66-f7db-4844-8f34-86d6b1f88f9a", "category": "mechanical_hvac", "confidence": 0.92, "summary": ""}
+{"id": "8ba90f13-b0dc-485e-8c7f-ada02a2ec68b", "category": "commercial_remodel_ti", "confidence": 0.96, "summary": ""}
+{"id": "69ea370d-8312-40b4-9314-7c1f57f757f7", "category": "mechanical_hvac", "confidence": 0.98, "summary": ""}
+{"id": "6180dc2d-5f20-4815-a7d9-0c9c534530ab", "category": "residential_new", "confidence": 0.99, "summary": ""}
+{"id": "3ecdfb66-aead-4e29-94d4-f0472fe77605", "category": "residential_new", "confidence": 0.99, "summary": ""}
+{"id": "1b8c688b-5e8a-46ba-b512-949ff1bbc240", "category": "electrical", "confidence": 0.95, "summary": ""}
+{"id": "f1fa46bd-bec9-4acf-9f4b-0dc146e34776", "category": "commercial_remodel_ti", "confidence": 0.98, "summary": ""}
+{"id": "e26d7973-da36-45e3-b647-c27e439c8948", "category": "residential_remodel", "confidence": 0.96, "summary": ""}
+{"id": "d60d2e2c-8ceb-44b0-95c8-76704c1fecc4", "category": "electrical", "confidence": 0.97, "summary": ""}
+{"id": "045b23f0-7a81-4094-ae47-b50622f6284b", "category": "land_development", "confidence": 0.99, "summary": ""}
+{"id": "2d6ba06f-43e0-471a-8534-0e2a92ea2780", "category": "commercial_remodel_ti", "confidence": 0.98, "summary": ""}
+{"id": "d601729f-c3c3-4036-91a5-c42541039d12", "category": "electrical", "confidence": 0.99, "summary": ""}
+{"id": "1a5091bd-1445-4147-86c6-c5171753685d", "category": "demolition", "confidence": 0.99, "summary": ""}
+{"id": "0fbe700a-8a58-4eb3-92b8-5bf10977f86e", "category": "other_unknown", "confidence": 0.85, "summary": ""}

@@ -46,3 +46,27 @@ sweep script: check partitions independently, never the parent.
 - 226,634 wells (22%) with unresolved operator_id: operators absent from
   the current P-5 file (historical/defunct). Expected; operator_name_raw
   retained on every row.
+
+## Supplemental checks (full battery, completed 2026-06-10)
+
+- production_monthly coverage: continuous 402 months, 1993-01 through
+  2026-06, no gaps.
+- disposal_wells -> wells join rate on api10: 118,278 / 126,600 (93%).
+- canonical.permits: 0 duplicate (source_id, source_record_id), 0 orphans
+  vs permit_keys, 0 swapped/invalid coordinates, 0 future issue dates.
+- 1,320,868 permits (10.5%) in the default partition: NULL or pre-1990
+  issued_date. Expected for sources that don't carry an issue date.
+- KNOWN LIMITATION: the v1 status normalization regex maps 6.79M rows to
+  'applied', only 136K to 'issued', and leaves 2.37M NULL. status_raw is
+  preserved on every row; the mapping needs per-source vocabulary work in
+  the enrichment phase. Do not build product logic on the normalized
+  status column yet.
+- KNOWN DEFECT (found 2026-06-10 during enrichment scoping): hot_leads.state
+  defaults to 'TX', so the canonical backfill stamped out-of-state MGO
+  jurisdictions as Texas (e.g. "Avoyelles Parish, TX", "Bossier Parish,
+  TX" are Louisiana). ~70K rows affected. Interim: bulk enrichment filters
+  through canonical.enrichment_tx_sources (121 vetted sources with recorded
+  basis; zip-audit evidence in permit-api data/tx_source_zip_audit.txt).
+  Real fix: re-derive state per source_id (most sources are
+  single-jurisdiction) and correct canonical.jurisdictions + permits; until
+  then do not trust state for MGO-sourced rows.
