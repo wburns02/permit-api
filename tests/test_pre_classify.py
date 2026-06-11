@@ -222,5 +222,10 @@ class TestNonTradeReturnsNone:
     def test_building_permit_returns_none(self):
         assert pre_classify(_row("Building Permit / Remodel", "New Storage Shed")) is None
 
-    def test_generic_permit_returns_none(self):
-        assert pre_classify(_row("Building Inspections and Permits", "")) is None
+    def test_generic_permit_empty_desc_is_other_unknown(self):
+        # Generic department-only permit_type with empty description has
+        # nothing to classify from -> other_unknown (eval evidence: 107/107).
+        assert pre_classify(_row("Building Inspections and Permits", "")) == "other_unknown"
+
+    def test_generic_permit_with_desc_defers_to_llm(self):
+        assert pre_classify(_row("Building Inspections and Permits", "New Storage Shed")) is None

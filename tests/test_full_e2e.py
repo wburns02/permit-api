@@ -4,12 +4,19 @@ Tests all major features against the live deployed site.
 """
 
 import asyncio
+import os
+
 import pytest
 import httpx
 
-BASE_URL = "https://permits.ecbtx.com"
+BASE_URL = os.environ.get("PERMIT_API_E2E_BASE_URL", "https://permits.ecbtx.com")
 API_URL = f"{BASE_URL}/v1"
-API_KEY = "pl_live_iQIhA0cTg50qP1nW6ITuzwz7ltHdQF4iYhi_uP8eEYA"
+API_KEY = os.environ.get("PERMIT_API_E2E_KEY")
+if not API_KEY:
+    pytest.skip(
+        "PERMIT_API_E2E_KEY not set; e2e suite runs against live prod only",
+        allow_module_level=True,
+    )
 HEADERS = {"X-API-Key": API_KEY}
 
 
