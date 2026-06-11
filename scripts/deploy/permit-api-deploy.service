@@ -1,0 +1,8 @@
+[Unit]
+Description=permit-api auto-deploy from origin/main
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=will
+ExecStart=/home/will/permit-api-live/scripts/deploy/r730_deploy.sh
