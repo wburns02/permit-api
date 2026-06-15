@@ -1,0 +1,35 @@
+# Gitleaks configuration — allowlist for known/reviewed findings.
+# Each allowlist entry represents a deliberate owner decision.
+# Any new finding NOT in this list will fail the CI build.
+
+title = "PermitLookup gitleaks config"
+
+[allowlist]
+description = "Known findings reviewed 2026-06-15"
+commits = [
+  # sk_test_placeholder in .github/workflows/ci.yml:61
+  # FALSE POSITIVE: the word "placeholder" makes this a non-secret dummy value.
+  "c00c4924",
+
+  # OpenGov API key (Kne3XYPvChciFOG9DvQ01Ukm1wyBTdTQ)
+  # OWNER GATE: key appears in docs/opengov-investigation.md and scripts/scrape_opengov.py.
+  # OpenGov scraper is a one-time tool, not deployed. Owner should verify key is inactive.
+  # If active: rotate the OpenGov API key and redact from this commit.
+  "a99c95b1",
+
+  # pl_live_iQIhA0cTg50qP1nW6ITuzwz7ltHdQF4iYhi_uP8eEYA
+  # ROTATED: this demo key was scrubbed from code/docs in commit 3d4da48.
+  # These historical commits contain the key before rotation.
+  "c20e4cdc",
+  "25c4605a",
+  "8909980b",
+
+  # D263FA78-0CFF-3E87-B353-5D16C99D39E9 in scripts/scrape_energy_environmental.py:583
+  # FALSE POSITIVE: this is a UUID used as a data filter value, not a credential.
+  "361f6edd",
+
+  # pl_live_GyZ72kR15lL7Q3TOO9w2OLf6P9HUEQZVvpwWfc-jWT8
+  # ROTATED: a different demo key from docs/superpowers/plans/2026-03-19-data-security.md.
+  # Key was rotated per standard key rotation practice; this commit predates rotation.
+  "ff0069b4",
+]
