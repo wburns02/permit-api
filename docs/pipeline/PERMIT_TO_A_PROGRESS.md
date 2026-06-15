@@ -90,3 +90,7 @@ No stubs, no scope-narrowing that defeats the criteria, no assertions weakened t
 **Suite:** 128 passed / 1 skipped / 4 failed (pre-existing env, excluded in CI). New tests: 3/3 pass.
 
 **Verdict: READY FOR MERGE.**
+
+---
+
+MERGED TO MAIN d1f68a3cdd17cab99540dfce173d0858ded4a5ee — R730 DEPLOY QUEUED
