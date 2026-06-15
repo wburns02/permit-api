@@ -30,6 +30,7 @@ import csv
 import io
 import logging
 import time
+import uuid
 from contextlib import asynccontextmanager
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
@@ -159,6 +160,26 @@ _ADDRESS_NORM_SQL = (
 )
 
 
+def _base_list_filter() -> tuple[list[str], dict[str, Any]]:
+    """Base predicates that define the *deliverable* hail-leads product.
+
+    Shared by `_build_filter_sql` (list/export) and `/stats` so the dashboard
+    header KPIs can never disagree with what the list endpoint actually serves.
+    Without this, /stats counted every raw storm×permit pair (all event types,
+    un-deduped) and overstated the product by ~680x.
+    """
+    return (
+        [
+            "hl.storm_type = 'Hail'",
+            "hl.lead_category = ANY(:_allowed_categories)",
+            "hl.address !~ '^[0-9]+$'",
+            "hl.address IS NOT NULL",
+            f"COALESCE(hl.description, '') !~* '{_FALSE_POSITIVE_REGEX}'",
+        ],
+        {"_allowed_categories": list(_ALLOWED_CATEGORIES)},
+    )
+
+
 def _build_filter_sql(
     *,
     county: str | None,
@@ -171,18 +192,10 @@ def _build_filter_sql(
 ) -> tuple[str, dict[str, Any]]:
     """Return (where_sql, params) for list/export endpoints.
 
-    Predicates target columns on `hail_leads_unified` (alias `hl`), which has
+    Predicates target columns on the served MV (alias `hl`), which has
     `lead_category` baked in (no separate categorized view join needed).
     """
-    params: dict[str, Any] = {}
-    clauses: list[str] = [
-        "hl.storm_type = 'Hail'",
-        "hl.lead_category = ANY(:_allowed_categories)",
-        "hl.address !~ '^[0-9]+$'",
-        "hl.address IS NOT NULL",
-        f"COALESCE(hl.description, '') !~* '{_FALSE_POSITIVE_REGEX}'",
-    ]
-    params["_allowed_categories"] = list(_ALLOWED_CATEGORIES)
+    clauses, params = _base_list_filter()
 
     if county:
         clauses.append("hl.county ILIKE :county")
@@ -248,42 +261,32 @@ async def hail_leads_stats(
     if cached is not None and now - float(_STATS_CACHE["ts"]) < _STATS_TTL:
         return cached  # type: ignore[return-value]
 
-    # ONE SQL round-trip. Six independent scalars combined in a single
-    # SELECT so we don't multiply Tailscale RTT by query count. Each
-    # subquery is index-only or pg_class/pg_stats lookup — total ~150ms
-    # from a warm primary, sub-second cold. The 60s in-memory cache
-    # absorbs the rest.
+    # ONE SQL round-trip over the deduplicated, indexed `hail_leads_list` MV
+    # (721k rows), filtered by the SAME base predicate the list endpoint serves
+    # (`_base_list_filter`). These are EXACT counts of the deliverable product,
+    # not reltuples/pg_stats estimates over the raw 20M-row storm×permit pairs.
+    # Measured ~0.3s cold; the 60s in-memory cache absorbs the rest.
     #
-    # See the prior (6-round-trip) version's commit history for why
-    # each subquery is shaped the way it is — TL;DR: hail_leads has no
-    # index on storm_date or county, so anything but reltuples /
-    # pg_stats / spc-only / small-range-scan is a 60+s seq-scan trap.
-    row = (await db.execute(text("""
+    # latest_storm_date here covers BOTH NOAA and SPC sources (the list MV is
+    # derived from hail_leads_unified). Per-source staleness — e.g. the NOAA
+    # MV frozen behind a failed refresh — is surfaced by GET /health, not here.
+    base_clauses, base_params = _base_list_filter()
+    base_where = " AND ".join(base_clauses)
+    row = (await db.execute(text(f"""
         SELECT
-            (SELECT COALESCE(SUM(GREATEST(reltuples,0)),0)::bigint
-               FROM pg_class
-              WHERE relname IN ('hail_leads','hail_leads_spc')) AS total_leads,
-            (SELECT GREATEST(reltuples,0)::bigint
-               FROM pg_class
-              WHERE relname='address_permit_history') AS unique_addresses,
-            (SELECT COALESCE(MAX(GREATEST(n_distinct,0))::bigint,0)
-               FROM pg_stats
-              WHERE tablename IN ('hail_leads','hail_leads_spc')
-                AND attname='county') AS counties_covered,
-            (SELECT MAX(storm_date) FROM hail_leads_spc) AS latest_storm_date,
-            ((SELECT COUNT(*) FROM hail_leads
-                WHERE storm_date >= CURRENT_DATE - INTERVAL '7 days')
-             + (SELECT COUNT(*) FROM hail_leads_spc
-                WHERE storm_date >= CURRENT_DATE - INTERVAL '7 days'))
-                AS fresh_leads_this_week,
-            ((SELECT COALESCE(GREATEST(n_distinct,0)::bigint,0)
-                FROM pg_stats
-               WHERE tablename='hail_leads' AND attname='storm_event_id')
-             + (SELECT COALESCE(GREATEST(n_distinct,0)::bigint,0)
-                FROM pg_stats
-               WHERE tablename='hail_leads_spc' AND attname='storm_report_id'))
-                AS hail_events_last_year
-    """))).first()
+            count(*)::bigint                                          AS total_leads,
+            count(DISTINCT (hl.address, hl.zip))::bigint              AS unique_addresses,
+            count(DISTINCT hl.county)::bigint                         AS counties_covered,
+            MAX(hl.storm_date)                                        AS latest_storm_date,
+            count(*) FILTER (
+                WHERE hl.storm_date >= CURRENT_DATE - INTERVAL '7 days'
+            )::bigint                                                 AS fresh_leads_this_week,
+            count(DISTINCT hl.storm_event_id) FILTER (
+                WHERE hl.storm_date >= CURRENT_DATE - INTERVAL '365 days'
+            )::bigint                                                 AS hail_events_last_year
+        FROM hail_leads_list hl
+        WHERE {base_where}
+    """), base_params)).first()
 
     total_leads = int(row.total_leads or 0)
     unique_addresses = int(row.unique_addresses or 0)
@@ -939,12 +942,21 @@ async def hail_leads_list(
         result = await db.execute(text(rows_sql), page_params)
         rows = result.mappings().all()
     except Exception as exc:  # noqa: BLE001
+        # Do NOT degrade to an empty result set: an empty `results` is
+        # indistinguishable from a genuine zero-match and reads as "no leads
+        # exist" — the worst possible empty state for a lead product. A failed
+        # main query is transient (cold pool / replica hiccup / timeout), so
+        # signal it honestly with 503 so the client retries instead of showing
+        # a falsely-empty list.
         logger.warning("hail-leads list main query failed: %s", exc)
         try:
             await db.rollback()
         except Exception:  # noqa: BLE001
             pass
-        rows = []
+        raise HTTPException(
+            status_code=503,
+            detail="Hail leads temporarily unavailable — please retry.",
+        ) from exc
 
     items = [
         HailLeadListItem(
@@ -1061,7 +1073,7 @@ async def hail_leads_export_csv(
     # Extend list query to also pull year_built and enriched owner/phone/email.
     rows_sql = f"""
         WITH filtered AS (
-            SELECT DISTINCT ON (hl.lead_id)
+            SELECT
                 hl.lead_id::text                                     AS lead_id,
                 hl.address                                            AS address,
                 hl.city                                               AS city,
@@ -1096,7 +1108,7 @@ async def hail_leads_export_csv(
                   || (CASE WHEN hle.email_2 IS NOT NULL THEN jsonb_build_array(hle.email_2) ELSE '[]'::jsonb END),
                   '[]'::jsonb
                 )                                                      AS emails
-            FROM hail_leads_unified hl
+            FROM hail_leads_list hl
             LEFT JOIN address_permit_history aph
                    ON aph.address_norm = {_ADDRESS_NORM_SQL}
                   AND aph.zip = hl.zip
@@ -1107,7 +1119,6 @@ async def hail_leads_export_csv(
                    ON tyb.address_norm = aph.address_norm
                   AND tyb.zip = aph.zip
             WHERE {where_sql}
-            ORDER BY hl.lead_id, hl.hail_lead_score DESC NULLS LAST
         )
         SELECT * FROM filtered
         ORDER BY {_sort_expression(sort)}
@@ -1178,6 +1189,17 @@ async def _fetch_leads_for_enrich(
     """Return [{lead_id, address, city, state, zip, address_norm}] for given IDs."""
     if not lead_ids:
         return []
+    # Drop non-UUID ids up front: the native-uuid predicate below would
+    # otherwise abort the whole batch on one malformed id. Invalid ids simply
+    # won't match → counted as "missing" by the caller, same as before.
+    valid_ids = []
+    for raw in lead_ids:
+        try:
+            valid_ids.append(str(uuid.UUID(str(raw))))
+        except (ValueError, TypeError, AttributeError):
+            continue
+    if not valid_ids:
+        return []
     q = text(f"""
         SELECT DISTINCT ON (hl.lead_id)
             hl.lead_id::text    AS lead_id,
@@ -1187,10 +1209,10 @@ async def _fetch_leads_for_enrich(
             hl.zip              AS zip,
             {_ADDRESS_NORM_SQL} AS address_norm
         FROM hail_leads_unified hl
-        WHERE hl.lead_id::text = ANY(:lead_ids)
+        WHERE hl.lead_id = ANY(CAST(:lead_ids AS uuid[]))
         ORDER BY hl.lead_id, hl.hail_lead_score DESC NULLS LAST
     """)
-    result = await db.execute(q, {"lead_ids": lead_ids})
+    result = await db.execute(q, {"lead_ids": valid_ids})
     return [dict(r) for r in result.mappings().all()]
 
 
@@ -1510,7 +1532,7 @@ async def hail_lead_detail(
         LEFT JOIN tcad_year_built tyb
                ON tyb.address_norm = aph.address_norm
               AND tyb.zip = aph.zip
-        WHERE hl.lead_id::text = :lead_id
+        WHERE hl.lead_id = CAST(:lead_id AS uuid)
         ORDER BY hl.hail_lead_score DESC NULLS LAST
         LIMIT 1
     """)
