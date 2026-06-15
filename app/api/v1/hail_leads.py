@@ -1495,7 +1495,7 @@ async def hail_lead_detail(
             hl.lead_category                                          AS lead_category,
             hl.storm_source                                           AS storm_source,
             aph.address_norm                                          AS address_norm,
-            aph.permit_count                                          AS total_permits,
+            aph.total_permits                                         AS total_permits,
             aph.prior_roof_permits                                     AS prior_roof_permits,
             aph.earliest_permit_date                                  AS earliest_permit_date,
             aph.latest_permit_date                                    AS latest_permit_date,
