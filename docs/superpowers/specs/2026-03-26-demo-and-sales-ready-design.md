@@ -372,7 +372,7 @@ Update `stripe_service.py` with new price IDs.
 
 ## Appendix B: Demo Key Security
 
-The demo key (`pl_live_iQIhA0cTg50qP1nW6ITuzwz7ltHdQF4iYhi_uP8eEYA`) is currently:
+The demo key (`pl_live_REDACTED_ROTATED_KEY`) is currently:
 - Hardcoded in `auth.py` line 262
 - Returns Enterprise-level access
 - No separate rate limiting

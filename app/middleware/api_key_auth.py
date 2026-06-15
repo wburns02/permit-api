@@ -2,6 +2,7 @@
 
 import asyncio
 import hashlib
+import hmac
 import logging
 import uuid
 from datetime import datetime, timezone
@@ -81,7 +82,13 @@ async def get_current_user(request: Request) -> ApiUser | None:
     """
     internal_key_expected = (settings.INTERNAL_API_KEY or "").strip()
     internal_key_provided = request.headers.get(INTERNAL_KEY_HEADER, "").strip()
-    if internal_key_expected and internal_key_provided and internal_key_provided == internal_key_expected:
+    # Constant-time compare: this key fully bypasses DB auth and grants a
+    # synthetic enterprise user, so don't leak length/prefix via `==` timing.
+    if (
+        internal_key_expected
+        and internal_key_provided
+        and hmac.compare_digest(internal_key_provided, internal_key_expected)
+    ):
         user = _internal_user_stub()
         request.state.user = user
         request.state.api_key = _internal_key_stub()

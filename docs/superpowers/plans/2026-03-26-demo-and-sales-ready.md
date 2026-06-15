@@ -108,7 +108,7 @@ Find where `name` is used in the SQL query building. Add a condition: if `name` 
 - [ ] **Step 4: Test**
 
 ```bash
-curl -s -H "X-API-Key: pl_live_iQIhA0cTg50qP1nW6ITuzwz7ltHdQF4iYhi_uP8eEYA" \
+curl -s -H "X-API-Key: pl_live_REDACTED_ROTATED_KEY" \
   "https://r730-2-1.tailad2d5f.ts.net/v1/contractors/search?state=TX" | head -200
 ```
 
@@ -201,13 +201,13 @@ ssh will@100.87.214.106 "echo 'ANTHROPIC_API_KEY=sk-ant-...' >> /home/will/permi
 
 Also add the demo key as env var:
 ```bash
-ssh will@100.87.214.106 "echo 'DEMO_API_KEY=pl_live_iQIhA0cTg50qP1nW6ITuzwz7ltHdQF4iYhi_uP8eEYA' >> /home/will/permit-api/.env"
+ssh will@100.87.214.106 "echo 'DEMO_API_KEY=pl_live_REDACTED_ROTATED_KEY' >> /home/will/permit-api/.env"
 ```
 
 - [ ] **Step 4: Test AI Analyst**
 
 ```bash
-curl -s -X POST -H "X-API-Key: pl_live_iQIhA0cTg50qP1nW6ITuzwz7ltHdQF4iYhi_uP8eEYA" \
+curl -s -X POST -H "X-API-Key: pl_live_REDACTED_ROTATED_KEY" \
   -H "Content-Type: application/json" \
   -d '{"question": "How many permits were filed in Austin TX this month?"}' \
   "https://r730-2-1.tailad2d5f.ts.net/v1/analyst/query"
@@ -382,7 +382,7 @@ ssh will@100.87.214.106 "cd /home/will/permit-api && python3 backend/scripts/see
 - [ ] **Step 4: Verify**
 
 ```bash
-curl -s -H "X-API-Key: pl_live_iQIhA0cTg50qP1nW6ITuzwz7ltHdQF4iYhi_uP8eEYA" \
+curl -s -H "X-API-Key: pl_live_REDACTED_ROTATED_KEY" \
   "https://r730-2-1.tailad2d5f.ts.net/v1/crm/contacts" | python3 -c "import sys,json; d=json.load(sys.stdin); print(f'Contacts: {len(d)}')"
 ```
 
@@ -717,7 +717,7 @@ Target: 5,000+ TX agents minimum for first email campaign.
 
 In `app/config.py`, add:
 ```python
-DEMO_API_KEY: str = "pl_live_iQIhA0cTg50qP1nW6ITuzwz7ltHdQF4iYhi_uP8eEYA"
+DEMO_API_KEY: str = "pl_live_REDACTED_ROTATED_KEY"
 ```
 
 In `app/api/v1/auth.py`, replace the hardcoded key:
