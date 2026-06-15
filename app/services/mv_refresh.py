@@ -16,10 +16,58 @@ import logging
 import time
 
 from sqlalchemy import text
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+from sqlalchemy.pool import NullPool
 
+from app.config import settings
 from app.database import primary_session_maker
 
 logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Dedicated maintenance engine for long-running MV REFRESHes.
+#
+# The shared primary engine pins asyncpg `command_timeout=10` (see
+# app/database.py) — a CLIENT-side cap that kills any statement after 10s.
+# That's correct for request paths, but fatal for `REFRESH MATERIALIZED VIEW`
+# on `hail_leads` (~17M rows, 40+ min) or any CONCURRENTLY refresh. Clearing
+# the Postgres `statement_timeout` (as the old code did) does nothing about
+# asyncpg's command_timeout — so every nightly refresh died at ~10s with a
+# bare `TimeoutError`, the heartbeat recorded the failure, and the MVs silently
+# froze (hail_leads stuck at storm_date 2026-02-20 for months).
+#
+# This engine disables BOTH the client command_timeout and the server-side
+# statement/lock/idle timeouts, and uses NullPool so a multi-hour refresh never
+# occupies a pooled request connection.
+# ---------------------------------------------------------------------------
+_maint_session_maker: async_sessionmaker[AsyncSession] | None = None
+
+
+def _maintenance_session_maker() -> async_sessionmaker[AsyncSession]:
+    global _maint_session_maker
+    if _maint_session_maker is None:
+        engine = create_async_engine(
+            settings.DATABASE_URL,
+            poolclass=NullPool,
+            connect_args={
+                "timeout": 10,            # connect timeout — fail fast if tunnel dead
+                "command_timeout": None,  # NO client-side cap; REFRESH runs 40+ min
+                "server_settings": {
+                    "statement_timeout": "0",
+                    "lock_timeout": "0",
+                    "idle_in_transaction_session_timeout": "0",
+                },
+            },
+        )
+        _maint_session_maker = async_sessionmaker(
+            engine, class_=AsyncSession, expire_on_commit=False
+        )
+    return _maint_session_maker
 
 
 _MVS = (
@@ -40,34 +88,19 @@ async def _refresh_one(cron_name: str, relname: str) -> None:
     MV); falls back to a plain REFRESH on failure. Both paths record the
     result in cron_heartbeat — including failures, with last_error set.
 
-    The connection-level statement_timeout (20s default from
-    `_PG_SERVER_SETTINGS`) is explicitly cleared here: full MV REFRESH on
-    `hail_leads` takes 40+ min, REFRESH CONCURRENTLY can take hours.
-    Without this override the refresh dies at 20s and the MV silently
-    rots. Same for `lock_timeout` — CONCURRENTLY needs to acquire SHARE
-    UPDATE EXCLUSIVE which can wait behind other writers.
+    Runs on the dedicated maintenance engine (`_maintenance_session_maker`),
+    which has the asyncpg client `command_timeout` AND the server-side
+    statement/lock/idle timeouts disabled — full MV REFRESH on `hail_leads`
+    takes 40+ min and REFRESH CONCURRENTLY can take hours. The old code only
+    cleared the Postgres `statement_timeout`, which did nothing about asyncpg's
+    10s command_timeout, so every refresh died at ~10s and the MV silently
+    rotted.
     """
     started = time.monotonic()
     last_error: str | None = None
     used_concurrent = True
 
-    async with primary_session_maker() as db:
-        # Disable the connection's short statement_timeout / lock_timeout
-        # for this session so the long REFRESH and its ANALYZE survive.
-        # SET LOCAL persists only for the current transaction, so we use
-        # plain SET to cover the multi-statement work below.
-        try:
-            await db.execute(text("SET statement_timeout = 0"))
-            await db.execute(text("SET lock_timeout = 0"))
-            await db.commit()
-        except Exception as exc:  # noqa: BLE001
-            await db.rollback()
-            logger.warning(
-                "MV %s: failed to disable timeouts (%s) — REFRESH may abort",
-                relname,
-                exc,
-            )
-
+    async with _maintenance_session_maker()() as db:
         try:
             await db.execute(
                 text(f"REFRESH MATERIALIZED VIEW CONCURRENTLY {relname}")
@@ -212,7 +245,7 @@ async def refresh_if_stale(threshold_hours: float = 6.0) -> None:
         )
         for _, relname in _MVS:
             try:
-                async with primary_session_maker() as db:
+                async with _maintenance_session_maker()() as db:
                     await db.execute(text(f"ANALYZE {relname}"))
                     await db.commit()
                 logger.info("ANALYZE %s ok", relname)
