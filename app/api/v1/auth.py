@@ -6,6 +6,7 @@ import hashlib
 import logging
 from datetime import date, datetime, timedelta
 from fastapi import APIRouter, Depends, HTTPException, Request
+from app.middleware.rate_limit import check_brute_force
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, EmailStr
@@ -144,7 +145,11 @@ async def contact_sales(body: ContactRequest):
 
 
 @router.post("/login", response_model=LoginResponse)
-async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
+async def login(
+    body: LoginRequest,
+    db: AsyncSession = Depends(get_db),
+    _rl: None = Depends(check_brute_force),
+):
     """
     Login with email. Generates a fresh API key for the account.
 
@@ -205,7 +210,11 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/signup", response_model=SignupResponse)
-async def signup(body: SignupRequest, db: AsyncSession = Depends(get_db)):
+async def signup(
+    body: SignupRequest,
+    db: AsyncSession = Depends(get_db),
+    _rl: None = Depends(check_brute_force),
+):
     """
     Create a free account and get an API key.
 

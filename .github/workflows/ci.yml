@@ -110,3 +110,85 @@ jobs:
             --ignore=tests/test_w1_alerts.py \
             --ignore=tests/test_burns_events_emit.py \
             tests/
+
+  # ── Route Auth Sweep ───────────────────────────────────────────────────────
+  # Phase 1 Security close-out: every non-allowlisted route must return
+  # 401/403/405 when called without an X-API-Key. Fails the build on any
+  # unauthenticated 200 outside the documented allowlist.
+  # Uses httpx.ASGITransport (no live DB needed) so it runs hermetically.
+  auth-sweep:
+    name: Route Auth Sweep
+    runs-on: ubuntu-latest
+
+    env:
+      SECRET_KEY: ci-secret-key-not-for-production
+      STRIPE_SECRET_KEY: sk_test_placeholder
+      STRIPE_PUBLISHABLE_KEY: pk_test_placeholder
+      STRIPE_WEBHOOK_SECRET: whsec_placeholder
+      STRIPE_PRICE_EXPLORER: price_placeholder
+      STRIPE_PRICE_PRO_LEADS: price_placeholder
+      STRIPE_PRICE_REAL_TIME: price_placeholder
+      DATABASE_URL: postgresql+asyncpg://permit_api:permit_api@localhost:5432/permit_api_test
+      REDIS_URL: ""
+      ENVIRONMENT: test
+      DEBUG: "false"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run route auth sweep
+        # test_security_sweep.py uses httpx.ASGITransport (no live DB needed).
+        # Auth-gated routes return 401 before DB access when no X-API-Key supplied.
+        run: |
+          pytest \
+            --tb=short \
+            -q \
+            --asyncio-mode=auto \
+            -v \
+            tests/test_security_sweep.py
+
+  # ── Secrets Audit (gitleaks) ───────────────────────────────────────────────
+  # Scans the full git history for leaked credentials. Clean = zero findings.
+  # Any finding here means a credential was committed — rotate immediately.
+  secrets-audit:
+    name: Secrets Audit (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history for gitleaks --log-opts=--all
+
+      - name: Install gitleaks
+        run: |
+          curl -sSfL \
+            https://github.com/gitleaks/gitleaks/releases/download/v8.18.4/gitleaks_8.18.4_linux_x64.tar.gz \
+            -o /tmp/gitleaks.tar.gz
+          tar -xzf /tmp/gitleaks.tar.gz -C /usr/local/bin gitleaks
+          gitleaks version
+
+      - name: Scan full git history
+        # .gitleaks.toml contains per-commit allowlist entries for reviewed findings.
+        # Any NEW finding not in .gitleaks.toml will fail this step.
+        run: |
+          gitleaks detect \
+            --source . \
+            --log-opts="--all" \
+            --config .gitleaks.toml \
+            --report-format json \
+            --report-path gitleaks-report.json \
+            --exit-code 1
+
+      - name: Upload gitleaks report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gitleaks-report
+          path: gitleaks-report.json
+          if-no-files-found: ignore

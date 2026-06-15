@@ -482,6 +482,42 @@ app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 
 # ---------------------------------------------------------------------------
+# /docs + /openapi.json rate limiting
+# ---------------------------------------------------------------------------
+# Docs are intentionally public (sales asset) but scrapers should be throttled.
+# 60 requests/minute per IP is generous for developers and tight for bots.
+
+import time as _time  # noqa: E402
+
+_docs_rate_store: dict[str, list[float]] = {}
+_DOCS_RATE_WINDOW = 60    # seconds
+_DOCS_RATE_LIMIT = 60     # requests per window per IP
+_DOCS_PATHS = {"/docs", "/redoc", "/openapi.json"}
+
+
+@app.middleware("http")
+async def docs_rate_limit_middleware(request: Request, call_next):
+    if request.url.path in _DOCS_PATHS:
+        ip = getattr(request.client, "host", None) or "unknown"
+        now = _time.monotonic()
+        bucket = _docs_rate_store.get(ip, [])
+        bucket = [t for t in bucket if now - t < _DOCS_RATE_WINDOW]
+        bucket.append(now)
+        _docs_rate_store[ip] = bucket
+        if len(bucket) > _DOCS_RATE_LIMIT:
+            from fastapi.responses import JSONResponse
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "error": "Too many requests. Try again later.",
+                    "retry_after_seconds": _DOCS_RATE_WINDOW,
+                },
+                headers={"Retry-After": str(_DOCS_RATE_WINDOW)},
+            )
+    return await call_next(request)
+
+
+# ---------------------------------------------------------------------------
 # Transient-DB-disconnect retry middleware
 # ---------------------------------------------------------------------------
 # Railway's egress NAT rebinds its UDP port after an outage, which flaps the

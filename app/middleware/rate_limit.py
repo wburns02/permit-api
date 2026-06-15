@@ -100,3 +100,63 @@ async def check_rate_limit(request: Request, lookup_count: int = 1) -> dict:
         "plan": plan.value,
         "overage": max(0, new_count - daily_limit),
     }
+
+
+# ---------------------------------------------------------------------------
+# Brute-force rate limit for auth endpoints (/v1/login, /v1/signup)
+# ---------------------------------------------------------------------------
+# Uses Redis when available; falls back to an in-process dict (single-instance
+# safe, fine for Railway's single replica). NOT shared across multiple replicas
+# — deploy Redis for multi-replica hardening.
+
+import time as _time
+
+_brute_force_store: dict[str, list[float]] = {}
+
+BRUTE_FORCE_WINDOW: int = 60   # seconds per sliding window
+BRUTE_FORCE_LIMIT: int = 10    # max requests per IP per window
+
+
+async def check_brute_force(request: Request) -> None:
+    """FastAPI dependency: per-IP rate limit for auth endpoints.
+
+    Raises HTTP 429 when an IP exceeds BRUTE_FORCE_LIMIT requests within
+    BRUTE_FORCE_WINDOW seconds. Add as Depends() to /v1/login and /v1/signup.
+    """
+    ip = getattr(request.client, "host", None) or "unknown"
+    now = _time.monotonic()
+
+    redis = await get_redis()
+    if redis:
+        key = f"bf:{ip}"
+        try:
+            pipe = redis.pipeline()
+            pipe.incr(key)
+            pipe.expire(key, BRUTE_FORCE_WINDOW)
+            results = await pipe.execute()
+            count = int(results[0])
+        finally:
+            await redis.aclose()
+        if count > BRUTE_FORCE_LIMIT:
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "error": "Too many requests. Try again later.",
+                    "retry_after_seconds": BRUTE_FORCE_WINDOW,
+                },
+                headers={"Retry-After": str(BRUTE_FORCE_WINDOW)},
+            )
+    else:
+        bucket = _brute_force_store.get(ip, [])
+        bucket = [t for t in bucket if now - t < BRUTE_FORCE_WINDOW]
+        bucket.append(now)
+        _brute_force_store[ip] = bucket
+        if len(bucket) > BRUTE_FORCE_LIMIT:
+            raise HTTPException(
+                status_code=429,
+                detail={
+                    "error": "Too many requests. Try again later.",
+                    "retry_after_seconds": BRUTE_FORCE_WINDOW,
+                },
+                headers={"Retry-After": str(BRUTE_FORCE_WINDOW)},
+            )
