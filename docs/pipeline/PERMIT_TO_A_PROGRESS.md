@@ -59,3 +59,34 @@ All pre-existing tests pass. 3 new security tests added.
 - [x] Gitleaks clean (with config) or findings queued to owner
 - [x] Rate limits return 429 under burst (`test_login_brute_force_rate_limit`, `test_signup_brute_force_rate_limit`)
 - [x] Dependency lock with hashes (`requirements.lock`)
+
+---
+
+## VERIFY-GATE verdict (2026-06-15, independent verification)
+
+**Verifier:** autonomous VERIFY-GATE worker on `auto/permit-to-a-2026-06-15`. Phase 1 commit under review: `7f82026`.
+
+### Test suite
+- `pytest tests/` (local, no live DB): **128 passed, 1 skipped, 4 failed**.
+- The 4 failures are all `test_w1_alerts.py` raising `asyncpg.InvalidPasswordError` (Postgres user "will" — no local DB creds). **Confirmed pre-existing and NOT a Phase 1 regression:** the identical 4 failures reproduce on the pre-Phase-1 parent (`7f82026~1`) in a clean worktree (125 passed / 4 failed there; HEAD adds exactly the 3 new security tests → 128 passed). These tests are also excluded in CI (`ci.yml` `--ignore=tests/test_w1_alerts.py --ignore=tests/test_burns_events_emit.py`), so they do not gate the build.
+- The phase's 3 new tests pass in isolation: `test_all_non_allowlisted_routes_require_auth`, `test_login_brute_force_rate_limit`, `test_signup_brute_force_rate_limit`.
+
+### Per-criterion verdict
+1. **Route auth sweep + permanent CI job — PASS.** `scripts/security/route_auth_sweep.py` + `tests/test_security_sweep.py` (httpx.ASGITransport, hermetic) + CI `auth-sweep` job. Live count: 214 endpoints total, **164 non-allowlisted scanned**, all return 401/403/405/422, 0 violations. Allowlist (56 entries, each with inline justification) spot-checked against PROD: allowlisted routes genuinely return 200 unauth (`/v1/coverage`, `/v1/licenses/stats`, `/v1/septic/stats`, `/v1/predictions/stats`, `/v1/analyst/suggestions` = 200 — public by design), non-allowlisted gated routes return 401 (`/v1/permits/search`, `/v1/properties/history`). Allowlist reflects reality, not auth-hole masking.
+2. **/docs + /openapi.json public but rate-limited — PASS.** `docs_rate_limit_middleware` in `app/main.py`: 60 req/min/IP sliding window, returns 429 + Retry-After.
+3. **Auth brute-force 429 — PASS.** `check_brute_force()` (10 req/60s/IP, Redis + in-memory fallback, raises 429) wired as `Depends()` on `/v1/login` and `/v1/signup`. Two tests assert 429 after the limit.
+4. **Secrets audit (gitleaks) — PASS.** Full-history scan; `.gitleaks.toml` + `docs/pipeline/gitleaks-report-2026-06-15.json` (12 findings, each dispositioned) committed; CI `secrets-audit` job runs gitleaks with config. OpenGov key correctly routed to OWNER GATE (rotation is owner-only — not performed, per spec).
+5. **Dependency pinning — PASS.** `requirements.lock` via `pip-compile --generate-hashes`: 69 pinned packages, 1831 `--hash=sha256` lines.
+
+### Non-blocking notes (not failures; flag for owner)
+- **Sweep accepts 422** in addition to spec'd {401,403,405}. Defensible (FastAPI rejects malformed bodies before auth; 422 leaks no data) but means a route whose body-validation always 422s would not have its auth path exercised by the sweep. Minor.
+- **Hail-leads endpoints are allowlisted** because `require_demo_key` fails open when `DEMO_API_KEY` is unset (local/CI). Honestly documented in-test; prod IS gated (PROD `/v1/hail-leads/stats` → 401). Consequence: the CI sweep cannot catch a hail-leads auth regression — it trusts the prod env var.
+- **Task 4 CI switch NOT done.** Lock exists (criterion met), but CI still `pip install -r requirements.txt`, not the lock. Already queued as owner-gate item #2. PLAN DoD "CI pip install switches to the hashed lock" remains open as hardening; does not block this criterion.
+- 6 allowlist entries match no current route (stale, harmless).
+
+### Test-gaming audit
+No stubs, no scope-narrowing that defeats the criteria, no assertions weakened to force green. Brute-force and docs middleware are real implementations exercised by real assertions. The 422 acceptance and hail-leads fail-open are documented trade-offs, not concealment.
+
+**Suite:** 128 passed / 1 skipped / 4 failed (pre-existing env, excluded in CI). New tests: 3/3 pass.
+
+**Verdict: READY FOR MERGE.**
