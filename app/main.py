@@ -1419,6 +1419,41 @@ async def map_page():
                         headers={"Cache-Control": "no-cache, must-revalidate"})
 
 
+# SEO: robots.txt + sitemap. Both previously 404'd (no route + explicit SPA
+# allowlist), so crawlers had no sitemap and the site was reachable on two
+# hostnames with no canonical → Google's duplicate-content/canonical noise.
+# The self-referential canonical now lives in index.html's <head>.
+_CANONICAL_ORIGIN = "https://permits.ecbtx.com"
+
+
+@app.get("/robots.txt", include_in_schema=False)
+async def robots_txt():
+    from fastapi.responses import PlainTextResponse
+    body = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        "Disallow: /v1/\n"
+        "Disallow: /docs\n"
+        f"Sitemap: {_CANONICAL_ORIGIN}/sitemap.xml\n"
+    )
+    return PlainTextResponse(body, media_type="text/plain")
+
+
+@app.get("/sitemap.xml", include_in_schema=False)
+async def sitemap_xml():
+    from fastapi.responses import Response
+    urls = ["/", "/search", "/coverage", "/pricing"]
+    locs = "".join(
+        f"<url><loc>{_CANONICAL_ORIGIN}{u}</loc></url>" for u in urls
+    )
+    body = (
+        '<?xml version="1.0" encoding="UTF-8"?>'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'
+        f"{locs}</urlset>"
+    )
+    return Response(body, media_type="application/xml")
+
+
 # SPA catch-all routes — serve index.html for frontend pages
 async def _spa_page():
     from fastapi.responses import HTMLResponse
