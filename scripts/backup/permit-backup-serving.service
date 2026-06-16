@@ -1,0 +1,10 @@
+[Unit]
+Description=permit-api nightly serving-table backup (24h RPO)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=will
+ExecStart=/usr/bin/bash /home/will/permit-api-live/scripts/backup/dump_serving.sh
+StandardOutput=journal
+StandardError=journal
