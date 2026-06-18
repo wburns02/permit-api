@@ -410,15 +410,20 @@ async def _run_startup_migrations() -> None:
     # unserviced_hail_leads MV — Tarrant County foundation pass.
     #
     # Produces one row per parcel that: (a) sits within 3 km of a TX hail-storm
-    # report (SPC, 2023-present), (b) has NOT had a roof/shingle/siding permit
-    # pulled after the matched storm. This is the "canvass list" roofers want.
+    # report (SPC, 2023-present), (b) has NOT already had contractor activity
+    # recorded in hail_leads_list for the same address+county.
+    # This is the "canvass list" roofers want.
     #
     # Address source: tx_cad_parcels.situs_* joined via account_no = parcel_id.
     # Spatial driver: tad_parcel_geometries.geom GIST index via LATERAL join with
     # ST_DWithin in geometry (degrees) space — 0.027° ≈ 3 km at TX latitudes.
-    # Serviced exclusion: any permits_tx row (state='TX', roof regex, dated after
-    # storm) whose lat/lng is within 0.0005° (~50 m) of the parcel centroid.
-    # Tarrant bbox guard: storm lat 32.5–33.0, lon -97.5 to -97.0.
+    # Serviced exclusion (primary): hail_leads_list address match by county.
+    #   hail_leads_list is the county+time-matched permit MV — it already has
+    #   398,942 Tarrant rows vs ~563 from the old permits_tx spatial probe.
+    #   Both sides are normalized before matching: UPPER, strip unit designators,
+    #   strip punctuation, collapse whitespace — mirrors normalize_address() in
+    #   app/services/search_service.py.
+    # Tarrant bbox guard: storm lat 32.5-33.0, lon -97.5 to -97.0.
     #
     # Created WITH NO DATA — startup never blocks. Refresh job populates it.
     # A UNIQUE index on parcel_id enables REFRESH CONCURRENTLY.
@@ -463,25 +468,46 @@ async def _run_startup_migrations() -> None:
                       ) tg
                      ORDER BY tg.parcel_id, sr.size_in DESC, sr.report_date DESC
                 ),
-                -- Roof permits pulled AFTER the matched storm — Tarrant bbox, indexed.
-                roof_permits AS (
-                    SELECT DISTINCT lat, lng, date_created
-                      FROM permits_tx
-                     WHERE state_code = 'TX'
-                       AND date_created IS NOT NULL
-                       AND lat  BETWEEN 32.5  AND 33.0
-                       AND lng  BETWEEN -97.5 AND -97.0
-                       AND lower(COALESCE(description, '')) ~ '(roof|shingle|siding)'
+                -- Candidate parcels with TAD address data attached.
+                -- Normalization mirrors normalize_address() in search_service.py:
+                --   UPPER + strip unit designators (SUITE/STE/UNIT/APT/# + token)
+                --   + strip punctuation (.,#) + collapse whitespace.
+                -- situs_address is already stored uppercase-abbreviated in TAD;
+                -- hail_leads_list.address is mixed-case, so we UPPER both sides.
+                candidate_with_addr AS (
+                    SELECT cp.*,
+                           TRIM(REGEXP_REPLACE(
+                               REGEXP_REPLACE(
+                                   REGEXP_REPLACE(UPPER(tcp.situs_address),
+                                       E'\\\\b(SUITE|STE|UNIT|APT)\\\\s+\\\\S+', '', 'g'),
+                               '[.,#]', '', 'g'),
+                           '\\s+', ' ')) AS norm_situs
+                      FROM candidate_parcels cp
+                      JOIN tx_cad_parcels tcp
+                            ON tcp.parcel_id = cp.account_no
+                           AND tcp.cad_source = 'TAD'
+                     WHERE tcp.situs_address IS NOT NULL
+                ),
+                -- Normalized hail_leads_list addresses for Tarrant — pre-computed
+                -- so the EXISTS subquery hits a small keyed set rather than 398K rows.
+                hll_tarrant_norm AS (
+                    SELECT DISTINCT
+                           TRIM(REGEXP_REPLACE(
+                               REGEXP_REPLACE(
+                                   REGEXP_REPLACE(UPPER(address),
+                                       E'\\\\b(SUITE|STE|UNIT|APT)\\\\s+\\\\S+', '', 'g'),
+                               '[.,#]', '', 'g'),
+                           '\\s+', ' ')) AS norm_addr
+                      FROM hail_leads_list
+                     WHERE county ILIKE 'tarrant'
                 ),
                 unserviced AS (
-                    SELECT cp.*
-                      FROM candidate_parcels cp
+                    SELECT ca.*
+                      FROM candidate_with_addr ca
                      WHERE NOT EXISTS (
                          SELECT 1
-                           FROM roof_permits rp
-                          WHERE ABS(rp.lat - cp.centroid_lat) < 0.0005
-                            AND ABS(rp.lng - cp.centroid_lon) < 0.0005
-                            AND rp.date_created >= cp.matched_storm_date
+                           FROM hll_tarrant_norm htn
+                          WHERE htn.norm_addr = ca.norm_situs
                      )
                 )
                 SELECT
@@ -495,12 +521,12 @@ async def _run_startup_migrations() -> None:
                     u.matched_storm_date,
                     u.hail_size_in,
                     (CURRENT_DATE - u.matched_storm_date)::integer AS days_since_storm,
-                    -- Score mirrors hail_leads_spc shape: recency × magnitude.
+                    -- Score mirrors hail_leads_spc shape: recency x magnitude.
                     GREATEST(0, 365 - (CURRENT_DATE - u.matched_storm_date))::double precision
                         / 365.0 * u.hail_size_in                AS lead_score,
                     'tad'::text                                 AS county_source
                   FROM unserviced u
-                  LEFT JOIN tx_cad_parcels tcp
+                  JOIN tx_cad_parcels tcp
                          ON tcp.parcel_id = u.account_no
                         AND tcp.cad_source = 'TAD'
                  WHERE tcp.situs_address IS NOT NULL
