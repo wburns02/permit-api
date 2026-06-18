@@ -80,6 +80,8 @@ ALLOWLIST = {
     "/v1/hail-leads/health",
     "/v1/hail-leads/",        # list endpoint; gated by require_demo_key
     "/v1/hail-leads/export.csv",  # CSV export; gated by require_demo_key
+    "/v1/hail-leads/unserviced",  # un-serviced canvass list; gated by require_demo_key
+    "/v1/hail-leads/unserviced/export.csv",  # un-serviced CSV export; gated by require_demo_key
     "/v1/hail-leads/{lead_id}",   # detail; gated by require_demo_key
 
     # ── Hail-leads admin: gated by DEMO_ADMIN_KEY; returns 503 when unset ────
