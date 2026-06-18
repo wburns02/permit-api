@@ -406,6 +406,126 @@ async def _run_startup_migrations() -> None:
     except Exception as e:
         logger.warning("Could not create hail_leads_list MV: %s", e)
 
+    # ---------------------------------------------------------------------------
+    # unserviced_hail_leads MV — Tarrant County foundation pass.
+    #
+    # Produces one row per parcel that: (a) sits within 3 km of a TX hail-storm
+    # report (SPC, 2023-present), (b) has NOT had a roof/shingle/siding permit
+    # pulled after the matched storm. This is the "canvass list" roofers want.
+    #
+    # Address source: tx_cad_parcels.situs_* joined via account_no = parcel_id.
+    # Spatial driver: tad_parcel_geometries.geom GIST index via LATERAL join with
+    # ST_DWithin in geometry (degrees) space — 0.027° ≈ 3 km at TX latitudes.
+    # Serviced exclusion: any permits_tx row (state='TX', roof regex, dated after
+    # storm) whose lat/lng is within 0.0005° (~50 m) of the parcel centroid.
+    # Tarrant bbox guard: storm lat 32.5–33.0, lon -97.5 to -97.0.
+    #
+    # Created WITH NO DATA — startup never blocks. Refresh job populates it.
+    # A UNIQUE index on parcel_id enables REFRESH CONCURRENTLY.
+    # ---------------------------------------------------------------------------
+    try:
+        async with primary_engine.begin() as conn:
+            await conn.execute(_text("SET LOCAL lock_timeout = '15s'"))
+            await conn.execute(_text("SET LOCAL statement_timeout = '30s'"))
+            await conn.execute(_text(r"""
+                CREATE MATERIALIZED VIEW IF NOT EXISTS unserviced_hail_leads AS
+                WITH tarrant_storms AS (
+                    SELECT report_id, report_date, lat, lon,
+                           COALESCE(size_in, 0.75) AS size_in
+                      FROM spc_storm_reports
+                     WHERE report_type = 'hail'
+                       AND state = 'TX'
+                       AND report_date >= '2023-01-01'
+                       AND lat  BETWEEN 32.5  AND 33.0
+                       AND lon  BETWEEN -97.5 AND -97.0
+                ),
+                -- Best (largest, most recent) storm per parcel — DISTINCT ON
+                -- ordered by size_in DESC, report_date DESC.
+                candidate_parcels AS (
+                    SELECT DISTINCT ON (tg.parcel_id)
+                           tg.parcel_id,
+                           tg.account_no,
+                           tg.centroid_lat,
+                           tg.centroid_lon,
+                           sr.report_id     AS storm_report_id,
+                           sr.report_date   AS matched_storm_date,
+                           sr.size_in       AS hail_size_in
+                      FROM tarrant_storms sr
+                      CROSS JOIN LATERAL (
+                          SELECT tg.parcel_id, tg.account_no,
+                                 tg.centroid_lat, tg.centroid_lon
+                            FROM tad_parcel_geometries tg
+                           WHERE ST_DWithin(
+                                     tg.geom,
+                                     ST_SetSRID(ST_MakePoint(sr.lon, sr.lat), 4326),
+                                     0.027
+                                 )
+                      ) tg
+                     ORDER BY tg.parcel_id, sr.size_in DESC, sr.report_date DESC
+                ),
+                -- Roof permits pulled AFTER the matched storm — Tarrant bbox, indexed.
+                roof_permits AS (
+                    SELECT DISTINCT lat, lng, date_created
+                      FROM permits_tx
+                     WHERE state_code = 'TX'
+                       AND date_created IS NOT NULL
+                       AND lat  BETWEEN 32.5  AND 33.0
+                       AND lng  BETWEEN -97.5 AND -97.0
+                       AND lower(COALESCE(description, '')) ~ '(roof|shingle|siding)'
+                ),
+                unserviced AS (
+                    SELECT cp.*
+                      FROM candidate_parcels cp
+                     WHERE NOT EXISTS (
+                         SELECT 1
+                           FROM roof_permits rp
+                          WHERE ABS(rp.lat - cp.centroid_lat) < 0.0005
+                            AND ABS(rp.lng - cp.centroid_lon) < 0.0005
+                            AND rp.date_created >= cp.matched_storm_date
+                     )
+                )
+                SELECT
+                    u.parcel_id,
+                    tcp.situs_address                           AS address,
+                    tcp.situs_city                              AS city,
+                    tcp.situs_zip                               AS zip,
+                    'tarrant'::text                             AS county,
+                    u.centroid_lat,
+                    u.centroid_lon,
+                    u.matched_storm_date,
+                    u.hail_size_in,
+                    (CURRENT_DATE - u.matched_storm_date)::integer AS days_since_storm,
+                    -- Score mirrors hail_leads_spc shape: recency × magnitude.
+                    GREATEST(0, 365 - (CURRENT_DATE - u.matched_storm_date))::double precision
+                        / 365.0 * u.hail_size_in                AS lead_score,
+                    'tad'::text                                 AS county_source
+                  FROM unserviced u
+                  LEFT JOIN tx_cad_parcels tcp
+                         ON tcp.parcel_id = u.account_no
+                        AND tcp.cad_source = 'TAD'
+                 WHERE tcp.situs_address IS NOT NULL
+                WITH NO DATA
+            """))
+        # Indexes in their own txn — unique index enables REFRESH CONCURRENTLY.
+        async with primary_engine.begin() as conn:
+            await conn.execute(_text("SET LOCAL lock_timeout = '15s'"))
+            for ddl in (
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_unserviced_hail_leads_parcel "
+                "ON unserviced_hail_leads (parcel_id)",
+                "CREATE INDEX IF NOT EXISTS ix_uhl_county "
+                "ON unserviced_hail_leads (county)",
+                "CREATE INDEX IF NOT EXISTS ix_uhl_storm_date "
+                "ON unserviced_hail_leads (matched_storm_date DESC)",
+                "CREATE INDEX IF NOT EXISTS ix_uhl_score "
+                "ON unserviced_hail_leads (lead_score DESC NULLS LAST)",
+            ):
+                try:
+                    await conn.execute(_text(ddl))
+                except Exception as ie:  # noqa: BLE001
+                    logger.warning("unserviced_hail_leads index skipped: %s", ie)
+    except Exception as e:
+        logger.warning("Could not create unserviced_hail_leads MV: %s", e)
+
     print("[migrations] background auto-migration run complete", flush=True, file=sys.stderr)
 
 

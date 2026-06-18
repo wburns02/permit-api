@@ -78,6 +78,11 @@ _MVS = (
     # MUST refresh last — after the base MVs above are current. Has a unique
     # index on lead_id, so REFRESH ... CONCURRENTLY works.
     ("mv_refresh_hail_leads_list", "hail_leads_list"),
+    # Parcel-level un-serviced hail leads: SPC storms × tad_parcel_geometries
+    # × tx_cad_parcels, minus parcels that pulled a roof permit post-storm.
+    # Tarrant county only for this foundation pass; Dallas/Travis UNION later.
+    # Has a unique index on parcel_id, so REFRESH ... CONCURRENTLY works.
+    ("mv_refresh_unserviced_hail_leads", "unserviced_hail_leads"),
 )
 
 
