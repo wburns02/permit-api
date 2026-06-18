@@ -474,12 +474,15 @@ async def _run_startup_migrations() -> None:
                 --   + strip punctuation (.,#) + collapse whitespace.
                 -- situs_address is already stored uppercase-abbreviated in TAD;
                 -- hail_leads_list.address is mixed-case, so we UPPER both sides.
+                -- Unit-designator strip uses POSIX ERE (^|\\s) word-boundary since
+                -- POSIX ERE does not support \\b; replacement is ' ' (space) so the
+                -- leading whitespace is cleaned by the outer REGEXP_REPLACE('\\s+',' ').
                 candidate_with_addr AS (
                     SELECT cp.*,
                            TRIM(REGEXP_REPLACE(
                                REGEXP_REPLACE(
                                    REGEXP_REPLACE(UPPER(tcp.situs_address),
-                                       E'\\\\b(SUITE|STE|UNIT|APT)\\\\s+\\\\S+', '', 'g'),
+                                       '(^|\\s)(SUITE|STE|UNIT|APT|#)\\s+\\S+', ' ', 'g'),
                                '[.,#]', '', 'g'),
                            '\\s+', ' ')) AS norm_situs
                       FROM candidate_parcels cp
@@ -495,7 +498,7 @@ async def _run_startup_migrations() -> None:
                            TRIM(REGEXP_REPLACE(
                                REGEXP_REPLACE(
                                    REGEXP_REPLACE(UPPER(address),
-                                       E'\\\\b(SUITE|STE|UNIT|APT)\\\\s+\\\\S+', '', 'g'),
+                                       '(^|\\s)(SUITE|STE|UNIT|APT|#)\\s+\\S+', ' ', 'g'),
                                '[.,#]', '', 'g'),
                            '\\s+', ' ')) AS norm_addr
                       FROM hail_leads_list
