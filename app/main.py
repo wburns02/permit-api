@@ -451,6 +451,37 @@ async def _run_startup_migrations() -> None:
     # it with county_source).
     # ---------------------------------------------------------------------------
     try:
+        # SELF-HEAL stale definition. The MV already exists in prod from an
+        # EARLY buggy definition (Tarrant-only, permits_tx serviced-exclusion,
+        # 2023 storm cutoff). `CREATE MATERIALIZED VIEW IF NOT EXISTS` silently
+        # skips when the object exists, so every later fix to this SQL never
+        # reached the DB object — the endpoint served ~284K WRONG rows.
+        #
+        # Detect staleness by inspecting the LIVE view definition for the
+        # current sentinels (hail_leads_list serviced-exclusion + the Dallas
+        # dcad_parcel_geometries CTE). If either is absent the live def predates
+        # the corrected SQL below, so DROP it and let the CREATE rebuild it.
+        # DROP only fires when stale, so steady-state redeploys don't churn.
+        async with primary_engine.begin() as conn:
+            await conn.execute(_text("SET LOCAL lock_timeout = '15s'"))
+            await conn.execute(_text("SET LOCAL statement_timeout = '30s'"))
+            try:
+                live_def = await conn.scalar(_text(
+                    "SELECT pg_get_viewdef('unserviced_hail_leads'::regclass)"
+                ))
+            except Exception:  # noqa: BLE001 — MV does not exist yet (first deploy)
+                live_def = None
+            if live_def is not None and not (
+                "hail_leads_list" in live_def
+                and "dcad_parcel_geometries" in live_def
+            ):
+                logger.warning(
+                    "unserviced_hail_leads: stale live definition detected "
+                    "(missing hail_leads_list/dcad sentinels) — dropping to rebuild"
+                )
+                await conn.execute(_text(
+                    "DROP MATERIALIZED VIEW IF EXISTS unserviced_hail_leads CASCADE"
+                ))
         async with primary_engine.begin() as conn:
             await conn.execute(_text("SET LOCAL lock_timeout = '15s'"))
             await conn.execute(_text("SET LOCAL statement_timeout = '30s'"))
