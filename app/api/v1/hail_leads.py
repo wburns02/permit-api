@@ -190,24 +190,11 @@ def _build_filter_sql(
     min_hail_inches: float | None,
     min_days_after: int | None,
     max_days_after: int | None,
-    has_permit: bool | None = None,
 ) -> tuple[str, dict[str, Any]]:
     """Return (where_sql, params) for list/export endpoints.
 
     Predicates target columns on the served MV (alias `hl`), which has
     `lead_category` baked in (no separate categorized view join needed).
-
-    `has_permit`:
-        True  — only leads with a storm-linked permit (hl.issue_date IS NOT NULL).
-        False — only leads with no permit yet (hl.issue_date IS NULL); these are the
-                un-serviced addresses, the primary value proposition for roofers.
-        None  — no filter (default behaviour, backwards-compatible).
-
-    Note: min_days_after / max_days_after filter on the number of days between
-    the storm and the permit issue date.  They only ever match rows that already
-    HAVE a permit (NULL days_after_storm never satisfies a numeric comparison), so
-    has_permit=False is entirely distinct from those filters — it surfaces leads
-    where no permit exists at all.
     """
     clauses, params = _base_list_filter()
 
@@ -234,10 +221,6 @@ def _build_filter_sql(
     if max_days_after is not None:
         clauses.append("hl.days_after_storm <= :max_days_after")
         params["max_days_after"] = max_days_after
-    if has_permit is True:
-        clauses.append("hl.issue_date IS NOT NULL")
-    elif has_permit is False:
-        clauses.append("hl.issue_date IS NULL")
 
     return " AND ".join(clauses), params
 
@@ -903,15 +886,6 @@ async def hail_leads_list(
     min_hail_inches: float | None = Query(None, ge=0.0, le=10.0),
     min_days_after: int | None = Query(None, ge=0, le=365),
     max_days_after: int | None = Query(None, ge=0, le=365),
-    has_permit: bool | None = Query(
-        None,
-        description=(
-            "Filter by permit linkage. "
-            "true = only leads that already have a storm-linked roofing permit (issued after the storm). "
-            "false = only leads with NO permit yet — the un-serviced addresses roofers want to target. "
-            "Omit (default) for no filter."
-        ),
-    ),
     include_broadband: bool = Query(
         False,
         description=(
@@ -933,7 +907,6 @@ async def hail_leads_list(
         min_hail_inches=min_hail_inches,
         min_days_after=min_days_after,
         max_days_after=max_days_after,
-        has_permit=has_permit,
     )
 
     base_select = _list_select_sql(_sort_expression(sort)).replace(
@@ -1084,15 +1057,6 @@ async def hail_leads_export_csv(
     min_hail_inches: float | None = Query(None, ge=0.0, le=10.0),
     min_days_after: int | None = Query(None, ge=0, le=365),
     max_days_after: int | None = Query(None, ge=0, le=365),
-    has_permit: bool | None = Query(
-        None,
-        description=(
-            "Filter by permit linkage. "
-            "true = only leads that already have a storm-linked roofing permit (issued after the storm). "
-            "false = only leads with NO permit yet — the un-serviced addresses roofers want to target. "
-            "Omit (default) for no filter."
-        ),
-    ),
     sort: SortKey = Query("score_desc"),
     db: AsyncSession = Depends(get_read_db),
 ) -> StreamingResponse:
@@ -1105,7 +1069,6 @@ async def hail_leads_export_csv(
         min_hail_inches=min_hail_inches,
         min_days_after=min_days_after,
         max_days_after=max_days_after,
-        has_permit=has_permit,
     )
 
     # Extend list query to also pull year_built and enriched owner/phone/email.
