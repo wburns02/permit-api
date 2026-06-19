@@ -100,10 +100,91 @@ async def _run_startup_migrations() -> None:
     import sys
     print("[migrations] starting background auto-migration run", flush=True, file=sys.stderr)
 
+    from sqlalchemy import text as _text
+    from app.database import primary_engine
+
+    # ---------------------------------------------------------------------------
+    # MULTI-WORKER DDL SERIALIZATION (advisory lock).
+    #
+    # uvicorn runs 4 workers; without a guard all 4 race these startup
+    # migrations concurrently. The DROP/CREATE MATERIALIZED VIEW pairs below are
+    # NOT mutually safe under concurrency — racing CREATEs collide on
+    # pg_type_typname_nsp_index ("duplicate key value violates unique
+    # constraint") and the losers error out, logging noise and risking an
+    # inconsistent object state.
+    #
+    # Fix: gate the whole routine behind a Postgres advisory lock. The first
+    # worker to grab it runs the migrations; every other worker sees the lock
+    # held and skips entirely (the DDL is idempotent, so one run suffices).
+    #
+    # pg_try_advisory_lock is non-blocking — losing workers return immediately
+    # instead of piling up waiting (which would stall their startup). The lock
+    # is held on a dedicated connection kept open for the whole routine and
+    # released in `finally`; a session-level lock on the pooled per-migration
+    # connections would not span them. If the worker crashes mid-run the
+    # session ends and Postgres drops the lock automatically.
+    #
+    # MIGRATION_ADVISORY_LOCK_KEY: stable arbitrary bigint = ascii "prmit"
+    # (0x70726d6974). Fixed constant so every worker contends on the same key.
+    MIGRATION_ADVISORY_LOCK_KEY = 0x70726D6974  # ascii "prmit"
+
+    lock_conn = None
+    try:
+        lock_conn = await primary_engine.connect()
+        got_lock = await lock_conn.scalar(
+            _text("SELECT pg_try_advisory_lock(:k)").bindparams(
+                k=MIGRATION_ADVISORY_LOCK_KEY
+            )
+        )
+        if not got_lock:
+            print(
+                "[migrations] another worker holds the lock, skipping",
+                flush=True,
+                file=sys.stderr,
+            )
+            logger.info("migrations: another worker holds the lock, skipping")
+            await lock_conn.close()
+            return
+    except Exception as e:
+        # If we can't even acquire the lock connection, fall back to running
+        # unguarded rather than skipping migrations on every worker (which
+        # would leave the schema unmigrated). The DDL's own try/excepts and
+        # IF [NOT] EXISTS clauses tolerate a rare race.
+        logger.warning("migrations: advisory-lock acquisition failed (%s) — running unguarded", e)
+        if lock_conn is not None:
+            try:
+                await lock_conn.close()
+            except Exception:
+                pass
+            lock_conn = None
+
+    try:
+        await _run_startup_migrations_body(_text, primary_engine)
+    finally:
+        if lock_conn is not None:
+            try:
+                await lock_conn.scalar(
+                    _text("SELECT pg_advisory_unlock(:k)").bindparams(
+                        k=MIGRATION_ADVISORY_LOCK_KEY
+                    )
+                )
+            except Exception:
+                pass
+            try:
+                await lock_conn.close()
+            except Exception:
+                pass
+
+
+async def _run_startup_migrations_body(_text, primary_engine) -> None:
+    """The actual auto-migration DDL, serialized by the advisory lock in
+    `_run_startup_migrations`. Each migration is independent with its own
+    try/except — failures are logged and skipped.
+    """
+    import sys
+
     # Auto-migrate: add webhook_url column if it doesn't exist
     try:
-        from sqlalchemy import text as _text
-        from app.database import primary_engine
         async with primary_engine.begin() as conn:
             await conn.execute(_text(
                 "ALTER TABLE api_users ADD COLUMN IF NOT EXISTS webhook_url VARCHAR(500)"
@@ -113,7 +194,6 @@ async def _run_startup_migrations() -> None:
 
     # Auto-migrate: add password_hash column for H-Man CRM JWT auth
     try:
-        from app.database import primary_engine
         async with primary_engine.begin() as conn:
             await conn.execute(_text(
                 "ALTER TABLE api_users ADD COLUMN IF NOT EXISTS password_hash VARCHAR(64)"
@@ -123,7 +203,6 @@ async def _run_startup_migrations() -> None:
 
     # Auto-migrate: alert source_type (building permits vs W-1 drilling permits)
     try:
-        from app.database import primary_engine
         async with primary_engine.begin() as conn:
             await conn.execute(_text(
                 "ALTER TABLE permit_alerts ADD COLUMN IF NOT EXISTS "
