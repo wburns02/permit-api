@@ -141,7 +141,9 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: |
+          pip install -r requirements.txt
+          pip install -r requirements-dev.txt
 
       - name: Run route auth sweep
         # test_security_sweep.py uses httpx.ASGITransport (no live DB needed).
