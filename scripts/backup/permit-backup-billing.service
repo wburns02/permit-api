@@ -1,0 +1,10 @@
+[Unit]
+Description=permit-api hourly billing-table backup (1h RPO)
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=will
+ExecStart=/usr/bin/bash /home/will/permit-api-live/scripts/backup/dump_billing.sh
+StandardOutput=journal
+StandardError=journal

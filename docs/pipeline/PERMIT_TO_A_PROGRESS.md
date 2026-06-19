@@ -94,3 +94,51 @@ No stubs, no scope-narrowing that defeats the criteria, no assertions weakened t
 ---
 
 MERGED TO MAIN d1f68a3cdd17cab99540dfce173d0858ded4a5ee — R730 DEPLOY QUEUED
+## Phase 2: Resilience Architecture — Software Artifacts COMPLETE (2026-06-15)
+
+**Branch:** `auto/permit-to-a-2026-06-15`  
+**Commit:** `fdf7980`
+
+### What was built
+
+Software Tasks A–E per `PERMIT_NEXT_PHASE.md §Build instructions`.
+
+#### Task A — Backup scripts
+
+- `scripts/backup/dump_serving.sh` — nightly pg_dump of 8 serving-critical tables (`permits`, `jurisdictions`, `contractor_licenses`, `epa_facilities`, `fema_flood_zones`, `census_demographics`, `septic_systems`, `property_valuations`) to `/dataPool/backups/serving/<timestamp>/`. gzip, 14-day retention prune.
+- `scripts/backup/dump_billing.sh` — hourly pg_dump of billing tables (`api_users`, `api_keys`, `usage_logs`, `invoices`) to `/dataPool/backups/billing/<timestamp>/`. `invoices` included by name now so Phase 5 needs no script change. gzip, 7-day retention prune.
+
+#### Task B — systemd timers
+
+- `scripts/backup/permit-backup-serving.{service,timer}` — nightly at 03:00 (after scraper refresh finishes ~02:xx), `RandomizedDelaySec=120`, `Persistent=true`.
+- `scripts/backup/permit-backup-billing.{service,timer}` — top of every hour, `Persistent=true`.
+- Install: `sudo cp scripts/backup/permit-backup-*.{service,timer} /etc/systemd/system/ && sudo systemctl daemon-reload && sudo systemctl enable --now permit-backup-serving.timer permit-backup-billing.timer`
+
+#### Task C — Restore drill script
+
+- `scripts/backup/restore_drill.sh` — spins an ephemeral Docker `postgres:16-alpine` container on port 15432, `pg_restore`s the latest dump, validates **per-table `COUNT(*)` and `md5` checksum** over an ordered projection (first 10k rows), exits 1 on any mismatch. Supports `--serving` and `--billing` modes.
+
+#### Task D — DNS cutover runbook
+
+- `docs/pipeline/CUTOVER_RUNBOOK.md` — complete Cloudflare API runbook: pre-flight checklist, one-time record-ID lookup, flip command (Railway→R730 and fail-back), verify-authed-traffic step, RTO drill log template, investigation items, ZONE_ID/RECORD_ID/CF_API_TOKEN placeholders, token location.  Does **not** exercise the flip — document only.
+
+#### Task E — Standby parity check
+
+- `scripts/backup/standby_parity.sh` — asserts both nodes' `/health` git SHA matches local `main`; probes T430 over `pg.ecbtx.com` (cloudflared) and Tailscale `100.122.216.15`; diffs env-var key sets via `railway variables`; exits 1 on any failure.
+
+### Test suite
+
+- `tests/test_phase2_resilience.py` — **50 tests, 50 passed** (hermetic; no live DB required).
+- Full suite: **163 passed, 1 skipped** (pre-existing env skip), 0 failures, 0 regressions.
+
+### Owner/orchestrator-gated items (NOT done — queued)
+
+These cannot be satisfied by code alone and are gated on the owner/orchestrator:
+
+1. **UPS purchase + install** (~$250–$450, 1500VA line-interactive) on R730 + T430 + network gear.
+2. **NUT/apcupsd config** on both boxes — low-battery → clean Postgres shutdown.
+3. **Failover drill execution** (stops live serving, flips prod DNS via the runbook, measures RTO both directions, produces Fable evidence packet). Queue for off-peak window (Sunday 02:00–04:00 CT).
+4. **Restore drill acceptance run** — one real run of `restore_drill.sh` against live `/dataPool` data.
+5. **Backblaze B2 offsite** (~$6/TB/mo) — owner spend gate, parallel hardening, non-blocking.
+
+**Phase 2 does not close** until the restore drill passes with validation, the failover drill passes inside 15-min RTO both directions, and the UPS rides a pulled-plug test.

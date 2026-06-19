@@ -38,6 +38,7 @@ from typing import Any
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
+from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -189,11 +190,24 @@ def _build_filter_sql(
     min_hail_inches: float | None,
     min_days_after: int | None,
     max_days_after: int | None,
+    has_permit: bool | None = None,
 ) -> tuple[str, dict[str, Any]]:
     """Return (where_sql, params) for list/export endpoints.
 
     Predicates target columns on the served MV (alias `hl`), which has
     `lead_category` baked in (no separate categorized view join needed).
+
+    `has_permit`:
+        True  — only leads with a storm-linked permit (hl.issue_date IS NOT NULL).
+        False — only leads with no permit yet (hl.issue_date IS NULL); these are the
+                un-serviced addresses, the primary value proposition for roofers.
+        None  — no filter (default behaviour, backwards-compatible).
+
+    Note: min_days_after / max_days_after filter on the number of days between
+    the storm and the permit issue date.  They only ever match rows that already
+    HAVE a permit (NULL days_after_storm never satisfies a numeric comparison), so
+    has_permit=False is entirely distinct from those filters — it surfaces leads
+    where no permit exists at all.
     """
     clauses, params = _base_list_filter()
 
@@ -220,6 +234,10 @@ def _build_filter_sql(
     if max_days_after is not None:
         clauses.append("hl.days_after_storm <= :max_days_after")
         params["max_days_after"] = max_days_after
+    if has_permit is True:
+        clauses.append("hl.issue_date IS NOT NULL")
+    elif has_permit is False:
+        clauses.append("hl.issue_date IS NULL")
 
     return " AND ".join(clauses), params
 
@@ -885,6 +903,15 @@ async def hail_leads_list(
     min_hail_inches: float | None = Query(None, ge=0.0, le=10.0),
     min_days_after: int | None = Query(None, ge=0, le=365),
     max_days_after: int | None = Query(None, ge=0, le=365),
+    has_permit: bool | None = Query(
+        None,
+        description=(
+            "Filter by permit linkage. "
+            "true = only leads that already have a storm-linked roofing permit (issued after the storm). "
+            "false = only leads with NO permit yet — the un-serviced addresses roofers want to target. "
+            "Omit (default) for no filter."
+        ),
+    ),
     include_broadband: bool = Query(
         False,
         description=(
@@ -906,6 +933,7 @@ async def hail_leads_list(
         min_hail_inches=min_hail_inches,
         min_days_after=min_days_after,
         max_days_after=max_days_after,
+        has_permit=has_permit,
     )
 
     base_select = _list_select_sql(_sort_expression(sort)).replace(
@@ -1056,6 +1084,15 @@ async def hail_leads_export_csv(
     min_hail_inches: float | None = Query(None, ge=0.0, le=10.0),
     min_days_after: int | None = Query(None, ge=0, le=365),
     max_days_after: int | None = Query(None, ge=0, le=365),
+    has_permit: bool | None = Query(
+        None,
+        description=(
+            "Filter by permit linkage. "
+            "true = only leads that already have a storm-linked roofing permit (issued after the storm). "
+            "false = only leads with NO permit yet — the un-serviced addresses roofers want to target. "
+            "Omit (default) for no filter."
+        ),
+    ),
     sort: SortKey = Query("score_desc"),
     db: AsyncSession = Depends(get_read_db),
 ) -> StreamingResponse:
@@ -1068,6 +1105,7 @@ async def hail_leads_export_csv(
         min_hail_inches=min_hail_inches,
         min_days_after=min_days_after,
         max_days_after=max_days_after,
+        has_permit=has_permit,
     )
 
     # Extend list query to also pull year_built and enriched owner/phone/email.
@@ -1453,6 +1491,366 @@ def _json_dumps(v: Any) -> str:
     """Safe JSON dump for JSONB insert params."""
     import json
     return json.dumps(v, default=str)
+
+
+# ---------------------------------------------------------------------------
+# 4.5) Un-serviced hail leads — the roofer canvass list.
+#
+# Reads the `unserviced_hail_leads` MV: hail-hit homes that have NOT pulled a
+# roof permit (i.e. no contractor has serviced them yet). The MV is created
+# WITH NO DATA at startup and only populated by the nightly refresh job, so an
+# UNPOPULATED MV is the EXPECTED initial state — a SELECT against it raises
+# Postgres SQLSTATE 55000 (object_not_in_prerequisite_state). We treat that as
+# "no leads yet" and return an empty list, never a 500.
+#
+# Frozen MV column contract (exactly these columns exist):
+#   parcel_id, address, city, zip, county, centroid_lat, centroid_lon,
+#   matched_storm_date, hail_size_in, days_since_storm, lead_score, county_source
+#
+# Static routes — MUST come BEFORE the /{lead_id} catch-all below.
+# ---------------------------------------------------------------------------
+
+# Postgres SQLSTATE for "materialized view has not been populated".
+_MV_UNPOPULATED_SQLSTATE = "55000"
+
+_UNSERVICED_PAGE_SIZE_CAP = 200
+_UNSERVICED_EXPORT_MAX_ROWS = 25_000
+_UNSERVICED_STATEMENT_TIMEOUT = "20s"
+
+
+class UnservicedHailLead(BaseModel):
+    """One un-serviced hail lead row (frozen MV column contract)."""
+    parcel_id: str
+    address: str | None
+    city: str | None
+    zip: str | None
+    county: str | None
+    centroid_lat: float | None
+    centroid_lon: float | None
+    matched_storm_date: date | None
+    hail_size_in: float | None
+    days_since_storm: int | None
+    lead_score: float | None
+    county_source: str | None
+
+
+class UnservicedHailLeadsResponse(BaseModel):
+    """Paginated un-serviced hail-leads list response."""
+    results: list[UnservicedHailLead]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
+
+
+def _is_mv_unpopulated(exc: Exception) -> bool:
+    """True if `exc` is the 'MV not populated' error (SQLSTATE 55000).
+
+    The MV is created WITH NO DATA; until the nightly refresh runs, any SELECT
+    raises this. We swallow it and return an empty result rather than 500.
+    """
+    sqlstate = getattr(getattr(exc, "orig", None), "sqlstate", None) or getattr(
+        getattr(exc, "orig", None), "pgcode", None
+    )
+    if sqlstate == _MV_UNPOPULATED_SQLSTATE:
+        return True
+    text_blob = f"{exc}".lower()
+    return "has not been populated" in text_blob
+
+
+def _build_unserviced_filter_sql(
+    *,
+    county: str | None,
+    min_hail_inches: float | None,
+    from_date: date | None,
+    to_date: date | None,
+    max_days_since: int | None,
+) -> tuple[str, dict[str, Any]]:
+    """Return (where_sql, params) for the un-serviced list/export endpoints.
+
+    All values are bound parameters — no string interpolation of user input.
+    """
+    clauses: list[str] = ["TRUE"]
+    params: dict[str, Any] = {}
+
+    if county:
+        clauses.append("uhl.county ILIKE :county")
+        params["county"] = county
+    if min_hail_inches is not None:
+        clauses.append("uhl.hail_size_in >= :min_hail_inches")
+        params["min_hail_inches"] = min_hail_inches
+    if from_date is not None:
+        clauses.append("uhl.matched_storm_date >= :from_date")
+        params["from_date"] = from_date
+    if to_date is not None:
+        clauses.append("uhl.matched_storm_date <= :to_date")
+        params["to_date"] = to_date
+    if max_days_since is not None:
+        clauses.append("uhl.days_since_storm <= :max_days_since")
+        params["max_days_since"] = max_days_since
+
+    return " AND ".join(clauses), params
+
+
+@router.get(
+    "/unserviced",
+    response_model=UnservicedHailLeadsResponse,
+    dependencies=[Depends(require_demo_key)],
+)
+async def unserviced_hail_leads_list(
+    county: str | None = Query(
+        None,
+        max_length=100,
+        description=(
+            "Filter by county name (case-insensitive, e.g. Tarrant / Dallas / "
+            "Travis). Omit for all counties."
+        ),
+    ),
+    min_hail_inches: float | None = Query(
+        None,
+        ge=0.0,
+        le=10.0,
+        description="Only leads where the matched storm dropped hail >= this size (inches).",
+    ),
+    from_date: date | None = Query(
+        None,
+        description="Only leads whose matched storm date is on/after this date (YYYY-MM-DD).",
+    ),
+    to_date: date | None = Query(
+        None,
+        description="Only leads whose matched storm date is on/before this date (YYYY-MM-DD).",
+    ),
+    max_days_since: int | None = Query(
+        None,
+        ge=0,
+        le=3650,
+        description=(
+            "Freshness gate — only leads from storms within the last N days "
+            "(filters on days_since_storm)."
+        ),
+    ),
+    page: int = Query(1, ge=1, le=10000, description="1-based page number."),
+    page_size: int = Query(
+        50,
+        ge=1,
+        le=_UNSERVICED_PAGE_SIZE_CAP,
+        description=f"Rows per page (max {_UNSERVICED_PAGE_SIZE_CAP}).",
+    ),
+    db: AsyncSession = Depends(get_read_db),
+) -> UnservicedHailLeadsResponse:
+    """Paginated list of un-serviced hail leads (the roofer canvass list).
+
+    Hail-hit homes that have NOT pulled a roof permit. Sorted by lead_score
+    DESC (freshest / biggest hail first).
+
+    The backing MV is created WITH NO DATA and only filled by the nightly
+    refresh — until then this returns an empty list (never a 500).
+    """
+    where_sql, params = _build_unserviced_filter_sql(
+        county=county,
+        min_hail_inches=min_hail_inches,
+        from_date=from_date,
+        to_date=to_date,
+        max_days_since=max_days_since,
+    )
+
+    offset = (page - 1) * page_size
+    page_params = {**params, "_limit": page_size, "_offset": offset}
+
+    rows_sql = f"""
+        SELECT
+            uhl.parcel_id::text       AS parcel_id,
+            uhl.address               AS address,
+            uhl.city                  AS city,
+            uhl.zip                   AS zip,
+            uhl.county                AS county,
+            uhl.centroid_lat          AS centroid_lat,
+            uhl.centroid_lon          AS centroid_lon,
+            uhl.matched_storm_date    AS matched_storm_date,
+            uhl.hail_size_in          AS hail_size_in,
+            uhl.days_since_storm      AS days_since_storm,
+            uhl.lead_score            AS lead_score,
+            uhl.county_source         AS county_source
+        FROM unserviced_hail_leads uhl
+        WHERE {where_sql}
+        ORDER BY uhl.lead_score DESC NULLS LAST,
+                 uhl.matched_storm_date DESC NULLS LAST
+        LIMIT :_limit OFFSET :_offset
+    """
+    count_sql = f"SELECT count(*) FROM unserviced_hail_leads uhl WHERE {where_sql}"
+
+    try:
+        await db.execute(
+            text(f"SET LOCAL statement_timeout = '{_UNSERVICED_STATEMENT_TIMEOUT}'")
+        )
+        total = int((await db.execute(text(count_sql), params)).scalar() or 0)
+        result = await db.execute(text(rows_sql), page_params)
+        rows = result.mappings().all()
+    except Exception as exc:  # noqa: BLE001
+        try:
+            await db.rollback()
+        except Exception:  # noqa: BLE001
+            pass
+        if _is_mv_unpopulated(exc):
+            # Expected pre-refresh state — empty MV, not an error.
+            logger.info("unserviced_hail_leads MV not yet populated; returning empty list")
+            return UnservicedHailLeadsResponse(
+                results=[], total=0, page=page, page_size=page_size, total_pages=0
+            )
+        logger.warning("unserviced hail-leads list query failed: %s", exc)
+        raise HTTPException(
+            status_code=503,
+            detail="Un-serviced hail leads temporarily unavailable — please retry.",
+        ) from exc
+
+    items = [
+        UnservicedHailLead(
+            parcel_id=r["parcel_id"],
+            address=r["address"],
+            city=r["city"],
+            zip=r["zip"],
+            county=r["county"],
+            centroid_lat=float(r["centroid_lat"]) if r["centroid_lat"] is not None else None,
+            centroid_lon=float(r["centroid_lon"]) if r["centroid_lon"] is not None else None,
+            matched_storm_date=r["matched_storm_date"],
+            hail_size_in=float(r["hail_size_in"]) if r["hail_size_in"] is not None else None,
+            days_since_storm=_days_int(r["days_since_storm"]),
+            lead_score=float(r["lead_score"]) if r["lead_score"] is not None else None,
+            county_source=r["county_source"],
+        )
+        for r in rows
+    ]
+
+    total_pages = (max(total, 0) + page_size - 1) // page_size
+
+    return UnservicedHailLeadsResponse(
+        results=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+    )
+
+
+_UNSERVICED_EXPORT_COLUMNS = [
+    "Address", "City", "Zip", "County", "Storm Date", "Hail Size (in)",
+    "Days Since Storm", "Lead Score", "Lat", "Lng",
+]
+
+
+@router.get(
+    "/unserviced/export.csv",
+    dependencies=[Depends(require_demo_key)],
+)
+async def unserviced_hail_leads_export_csv(
+    county: str | None = Query(
+        None,
+        max_length=100,
+        description="Filter by county name (case-insensitive). Omit for all counties.",
+    ),
+    min_hail_inches: float | None = Query(
+        None,
+        ge=0.0,
+        le=10.0,
+        description="Only leads where the matched storm dropped hail >= this size (inches).",
+    ),
+    from_date: date | None = Query(
+        None,
+        description="Only leads whose matched storm date is on/after this date (YYYY-MM-DD).",
+    ),
+    to_date: date | None = Query(
+        None,
+        description="Only leads whose matched storm date is on/before this date (YYYY-MM-DD).",
+    ),
+    max_days_since: int | None = Query(
+        None,
+        ge=0,
+        le=3650,
+        description="Freshness gate — only leads from storms within the last N days.",
+    ),
+    db: AsyncSession = Depends(get_read_db),
+) -> StreamingResponse:
+    """Export filtered un-serviced hail leads as CSV (cap 25,000 rows).
+
+    Empty MV (pre-refresh) yields a header-only CSV, never a 500.
+    """
+    where_sql, params = _build_unserviced_filter_sql(
+        county=county,
+        min_hail_inches=min_hail_inches,
+        from_date=from_date,
+        to_date=to_date,
+        max_days_since=max_days_since,
+    )
+    params["_limit"] = _UNSERVICED_EXPORT_MAX_ROWS
+
+    rows_sql = f"""
+        SELECT
+            uhl.address               AS address,
+            uhl.city                  AS city,
+            uhl.zip                   AS zip,
+            uhl.county                AS county,
+            uhl.matched_storm_date    AS matched_storm_date,
+            uhl.hail_size_in          AS hail_size_in,
+            uhl.days_since_storm      AS days_since_storm,
+            uhl.lead_score            AS lead_score,
+            uhl.centroid_lat          AS centroid_lat,
+            uhl.centroid_lon          AS centroid_lon
+        FROM unserviced_hail_leads uhl
+        WHERE {where_sql}
+        ORDER BY uhl.lead_score DESC NULLS LAST,
+                 uhl.matched_storm_date DESC NULLS LAST
+        LIMIT :_limit
+    """
+
+    rows: list[Any] = []
+    try:
+        await db.execute(
+            text(f"SET LOCAL statement_timeout = '{_UNSERVICED_STATEMENT_TIMEOUT}'")
+        )
+        result = await db.execute(text(rows_sql), params)
+        rows = result.mappings().all()
+    except Exception as exc:  # noqa: BLE001
+        try:
+            await db.rollback()
+        except Exception:  # noqa: BLE001
+            pass
+        if _is_mv_unpopulated(exc):
+            # Expected pre-refresh state — emit a header-only CSV.
+            logger.info("unserviced_hail_leads MV not yet populated; emitting empty CSV")
+            rows = []
+        else:
+            logger.warning("unserviced hail-leads export query failed: %s", exc)
+            raise HTTPException(
+                status_code=503,
+                detail="Un-serviced hail leads export temporarily unavailable — please retry.",
+            ) from exc
+
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(_UNSERVICED_EXPORT_COLUMNS)
+    for r in rows:
+        writer.writerow([
+            r["address"] or "",
+            r["city"] or "",
+            r["zip"] or "",
+            r["county"] or "",
+            r["matched_storm_date"].isoformat() if r["matched_storm_date"] else "",
+            r["hail_size_in"] if r["hail_size_in"] is not None else "",
+            _days_int(r["days_since_storm"]) if r["days_since_storm"] is not None else "",
+            r["lead_score"] if r["lead_score"] is not None else "",
+            r["centroid_lat"] if r["centroid_lat"] is not None else "",
+            r["centroid_lon"] if r["centroid_lon"] is not None else "",
+        ])
+
+    buf.seek(0)
+    county_slug = (county or "all").lower().replace(" ", "-")
+    today = date.today().isoformat()
+    filename = f"unserviced-hail-leads-{county_slug}-{today}.csv"
+    return StreamingResponse(
+        iter([buf.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 # ---------------------------------------------------------------------------

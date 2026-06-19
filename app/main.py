@@ -5,7 +5,7 @@ import logging
 import os
 from pathlib import Path
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
@@ -405,6 +405,266 @@ async def _run_startup_migrations() -> None:
                     logger.warning("hail_leads_list index skipped: %s", ie)
     except Exception as e:
         logger.warning("Could not create hail_leads_list MV: %s", e)
+
+    # ---------------------------------------------------------------------------
+    # unserviced_hail_leads MV — Tarrant + Dallas (multi-county canvass list).
+    #
+    # Produces one row per parcel that: (a) sits within 3 km of a recent TX
+    # hail-storm report (SPC, last 18 months), (b) has NOT already had
+    # contractor activity recorded in hail_leads_list for the same
+    # address+county. This is the "canvass list" roofers want.
+    #
+    # Per-county pattern (identical for both, UNION ALL'd into one MV):
+    #   Storm source : spc_storm_reports hail points, last 18 months, county bbox.
+    #   Spatial driver: <county>_parcel_geometries.geom GIST index via LATERAL
+    #                   join with ST_DWithin in geometry (degrees) space —
+    #                   0.027° ≈ 3 km at TX latitudes. NOT ::geography (that
+    #                   would defeat the GIST index).
+    #   Address source: tx_cad_parcels.situs_* via account_no = parcel_id and
+    #                   cad_source = <county code>.
+    #   Serviced exclusion: hail_leads_list address match by county. Both sides
+    #                   normalized (UPPER, strip unit designators, strip
+    #                   punctuation, collapse whitespace) — mirrors
+    #                   normalize_address() in app/services/search_service.py.
+    #
+    #   Tarrant: geom=tad_parcel_geometries, cad_source='TAD', county='Tarrant',
+    #            county_source='Tarrant', bbox lat 32.5-33.0, lon -97.5..-97.0.
+    #   Dallas : geom=dcad_parcel_geometries, cad_source='DCAD', county='Dallas',
+    #            county_source='Dallas', bbox lat 32.60-33.04, lon -97.02..-96.44.
+    #            Address join verified: 417,793 / 464,180 geoms join DCAD (~90%);
+    #            bounded 6-month probe gave 99.4% situs-address coverage.
+    #
+    # Travis is intentionally EXCLUDED: there is no TCAD/Travis cad_source in
+    # tx_cad_parcels (only HCAD/DCAD/TAD/WCAD/HaysCAD/CCAD/Gillespie/Kerr/Bandera)
+    # and travis_parcel_geometries has no situs columns of its own — so there is
+    # no address join for Travis parcels (same failure mode as Bexar). Adding it
+    # would ship rows with NULL addresses, which is worse than no Travis coverage.
+    #
+    # STORM WINDOW BOUND: spc_storm_reports limited to the last 18 months. Old
+    # hail damage is stale (already serviced) AND the unbounded scan is what made
+    # the nightly full refresh OOM-risky on T430. 18 months keeps the product
+    # fresh and the refresh bounded.
+    #
+    # Created WITH NO DATA — startup never blocks. Refresh job populates it.
+    # A UNIQUE index on (parcel_id, county_source) enables REFRESH CONCURRENTLY
+    # (parcel_id is only unique within a county's CAD, so the synthetic key pairs
+    # it with county_source).
+    # ---------------------------------------------------------------------------
+    try:
+        async with primary_engine.begin() as conn:
+            await conn.execute(_text("SET LOCAL lock_timeout = '15s'"))
+            await conn.execute(_text("SET LOCAL statement_timeout = '30s'"))
+            await conn.execute(_text(r"""
+                CREATE MATERIALIZED VIEW IF NOT EXISTS unserviced_hail_leads AS
+                -- ============================ TARRANT ============================
+                WITH tarrant_storms AS (
+                    SELECT report_id, report_date, lat, lon,
+                           COALESCE(size_in, 0.75) AS size_in
+                      FROM spc_storm_reports
+                     WHERE report_type = 'hail'
+                       AND state = 'TX'
+                       AND report_date >= CURRENT_DATE - INTERVAL '18 months'
+                       AND lat  BETWEEN 32.5  AND 33.0
+                       AND lon  BETWEEN -97.5 AND -97.0
+                ),
+                -- Best (largest, most recent) storm per parcel — DISTINCT ON
+                -- ordered by size_in DESC, report_date DESC.
+                tarrant_candidate_parcels AS (
+                    SELECT DISTINCT ON (tg.parcel_id)
+                           tg.parcel_id,
+                           tg.account_no,
+                           tg.centroid_lat,
+                           tg.centroid_lon,
+                           sr.report_id     AS storm_report_id,
+                           sr.report_date   AS matched_storm_date,
+                           sr.size_in       AS hail_size_in
+                      FROM tarrant_storms sr
+                      CROSS JOIN LATERAL (
+                          SELECT tg.parcel_id, tg.account_no,
+                                 tg.centroid_lat, tg.centroid_lon
+                            FROM tad_parcel_geometries tg
+                           WHERE ST_DWithin(
+                                     tg.geom,
+                                     ST_SetSRID(ST_MakePoint(sr.lon, sr.lat), 4326),
+                                     0.027
+                                 )
+                      ) tg
+                     ORDER BY tg.parcel_id, sr.size_in DESC, sr.report_date DESC
+                ),
+                -- Candidate parcels with TAD address data attached.
+                -- Normalization mirrors normalize_address() in search_service.py:
+                --   UPPER + strip unit designators (SUITE/STE/UNIT/APT/# + token)
+                --   + strip punctuation (.,#) + collapse whitespace.
+                -- situs_address is already stored uppercase-abbreviated in TAD;
+                -- hail_leads_list.address is mixed-case, so we UPPER both sides.
+                -- Unit-designator strip uses POSIX ERE (^|\\s) word-boundary since
+                -- POSIX ERE does not support \\b; replacement is ' ' (space) so the
+                -- leading whitespace is cleaned by the outer REGEXP_REPLACE('\\s+',' ').
+                tarrant_candidate_with_addr AS (
+                    SELECT cp.*,
+                           tcp.situs_address AS address,
+                           tcp.situs_city    AS city,
+                           tcp.situs_zip     AS zip,
+                           TRIM(REGEXP_REPLACE(
+                               REGEXP_REPLACE(
+                                   REGEXP_REPLACE(UPPER(tcp.situs_address),
+                                       '(^|\\s)(SUITE|STE|UNIT|APT|#)\\s+\\S+', ' ', 'g'),
+                               '[.,#]', '', 'g'),
+                           '\\s+', ' ')) AS norm_situs
+                      FROM tarrant_candidate_parcels cp
+                      JOIN tx_cad_parcels tcp
+                            ON tcp.parcel_id = cp.account_no
+                           AND tcp.cad_source = 'TAD'
+                     WHERE tcp.situs_address IS NOT NULL
+                ),
+                -- Normalized hail_leads_list addresses for Tarrant — pre-computed
+                -- so the EXISTS subquery hits a small keyed set rather than 398K rows.
+                hll_tarrant_norm AS (
+                    SELECT DISTINCT
+                           TRIM(REGEXP_REPLACE(
+                               REGEXP_REPLACE(
+                                   REGEXP_REPLACE(UPPER(address),
+                                       '(^|\\s)(SUITE|STE|UNIT|APT|#)\\s+\\S+', ' ', 'g'),
+                               '[.,#]', '', 'g'),
+                           '\\s+', ' ')) AS norm_addr
+                      FROM hail_leads_list
+                     WHERE county ILIKE 'tarrant'
+                ),
+                tarrant_rows AS (
+                    SELECT
+                        ca.parcel_id,
+                        ca.address,
+                        ca.city,
+                        ca.zip,
+                        'tarrant'::text                             AS county,
+                        ca.centroid_lat,
+                        ca.centroid_lon,
+                        ca.matched_storm_date,
+                        ca.hail_size_in,
+                        (CURRENT_DATE - ca.matched_storm_date)::integer AS days_since_storm,
+                        GREATEST(0, 365 - (CURRENT_DATE - ca.matched_storm_date))::double precision
+                            / 365.0 * ca.hail_size_in                AS lead_score,
+                        'Tarrant'::text                             AS county_source
+                      FROM tarrant_candidate_with_addr ca
+                     WHERE NOT EXISTS (
+                         SELECT 1 FROM hll_tarrant_norm htn
+                          WHERE htn.norm_addr = ca.norm_situs
+                     )
+                ),
+                -- ============================= DALLAS ============================
+                dallas_storms AS (
+                    SELECT report_id, report_date, lat, lon,
+                           COALESCE(size_in, 0.75) AS size_in
+                      FROM spc_storm_reports
+                     WHERE report_type = 'hail'
+                       AND state = 'TX'
+                       AND report_date >= CURRENT_DATE - INTERVAL '18 months'
+                       AND lat  BETWEEN 32.60  AND 33.04
+                       AND lon  BETWEEN -97.02 AND -96.44
+                ),
+                dallas_candidate_parcels AS (
+                    SELECT DISTINCT ON (tg.parcel_id)
+                           tg.parcel_id,
+                           tg.account_no,
+                           tg.centroid_lat,
+                           tg.centroid_lon,
+                           sr.report_id     AS storm_report_id,
+                           sr.report_date   AS matched_storm_date,
+                           sr.size_in       AS hail_size_in
+                      FROM dallas_storms sr
+                      CROSS JOIN LATERAL (
+                          SELECT tg.parcel_id, tg.account_no,
+                                 tg.centroid_lat, tg.centroid_lon
+                            FROM dcad_parcel_geometries tg
+                           WHERE ST_DWithin(
+                                     tg.geom,
+                                     ST_SetSRID(ST_MakePoint(sr.lon, sr.lat), 4326),
+                                     0.027
+                                 )
+                      ) tg
+                     ORDER BY tg.parcel_id, sr.size_in DESC, sr.report_date DESC
+                ),
+                dallas_candidate_with_addr AS (
+                    SELECT cp.*,
+                           tcp.situs_address AS address,
+                           tcp.situs_city    AS city,
+                           tcp.situs_zip     AS zip,
+                           TRIM(REGEXP_REPLACE(
+                               REGEXP_REPLACE(
+                                   REGEXP_REPLACE(UPPER(tcp.situs_address),
+                                       '(^|\\s)(SUITE|STE|UNIT|APT|#)\\s+\\S+', ' ', 'g'),
+                               '[.,#]', '', 'g'),
+                           '\\s+', ' ')) AS norm_situs
+                      FROM dallas_candidate_parcels cp
+                      JOIN tx_cad_parcels tcp
+                            ON tcp.parcel_id = cp.account_no
+                           AND tcp.cad_source = 'DCAD'
+                     WHERE tcp.situs_address IS NOT NULL
+                ),
+                hll_dallas_norm AS (
+                    SELECT DISTINCT
+                           TRIM(REGEXP_REPLACE(
+                               REGEXP_REPLACE(
+                                   REGEXP_REPLACE(UPPER(address),
+                                       '(^|\\s)(SUITE|STE|UNIT|APT|#)\\s+\\S+', ' ', 'g'),
+                               '[.,#]', '', 'g'),
+                           '\\s+', ' ')) AS norm_addr
+                      FROM hail_leads_list
+                     WHERE county ILIKE 'dallas'
+                ),
+                dallas_rows AS (
+                    SELECT
+                        ca.parcel_id,
+                        ca.address,
+                        ca.city,
+                        ca.zip,
+                        'dallas'::text                              AS county,
+                        ca.centroid_lat,
+                        ca.centroid_lon,
+                        ca.matched_storm_date,
+                        ca.hail_size_in,
+                        (CURRENT_DATE - ca.matched_storm_date)::integer AS days_since_storm,
+                        GREATEST(0, 365 - (CURRENT_DATE - ca.matched_storm_date))::double precision
+                            / 365.0 * ca.hail_size_in                AS lead_score,
+                        'Dallas'::text                              AS county_source
+                      FROM dallas_candidate_with_addr ca
+                     WHERE NOT EXISTS (
+                         SELECT 1 FROM hll_dallas_norm hdn
+                          WHERE hdn.norm_addr = ca.norm_situs
+                     )
+                )
+                SELECT parcel_id, address, city, zip, county,
+                       centroid_lat, centroid_lon, matched_storm_date,
+                       hail_size_in, days_since_storm, lead_score, county_source
+                  FROM tarrant_rows
+                UNION ALL
+                SELECT parcel_id, address, city, zip, county,
+                       centroid_lat, centroid_lon, matched_storm_date,
+                       hail_size_in, days_since_storm, lead_score, county_source
+                  FROM dallas_rows
+                WITH NO DATA
+            """))
+        # Indexes in their own txn — unique index enables REFRESH CONCURRENTLY.
+        async with primary_engine.begin() as conn:
+            await conn.execute(_text("SET LOCAL lock_timeout = '15s'"))
+            for ddl in (
+                # parcel_id is only unique within a county's CAD, so the unique
+                # key needed for REFRESH CONCURRENTLY pairs it with county_source.
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_unserviced_hail_leads_parcel "
+                "ON unserviced_hail_leads (parcel_id, county_source)",
+                "CREATE INDEX IF NOT EXISTS ix_uhl_county "
+                "ON unserviced_hail_leads (county)",
+                "CREATE INDEX IF NOT EXISTS ix_uhl_storm_date "
+                "ON unserviced_hail_leads (matched_storm_date DESC)",
+                "CREATE INDEX IF NOT EXISTS ix_uhl_score "
+                "ON unserviced_hail_leads (lead_score DESC NULLS LAST)",
+            ):
+                try:
+                    await conn.execute(_text(ddl))
+                except Exception as ie:  # noqa: BLE001
+                    logger.warning("unserviced_hail_leads index skipped: %s", ie)
+    except Exception as e:
+        logger.warning("Could not create unserviced_hail_leads MV: %s", e)
 
     print("[migrations] background auto-migration run complete", flush=True, file=sys.stderr)
 

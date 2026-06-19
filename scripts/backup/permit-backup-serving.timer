@@ -1,0 +1,12 @@
+[Unit]
+Description=permit-api nightly serving-table backup timer
+
+[Timer]
+# Fire at 03:00 local time — after nightly scraper refresh completes (~02:xx)
+# and well before the next business day.
+OnCalendar=*-*-* 03:00:00
+RandomizedDelaySec=120
+Persistent=true
+
+[Install]
+WantedBy=timers.target
