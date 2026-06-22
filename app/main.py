@@ -486,7 +486,7 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
         logger.warning("Could not create hail_leads_list MV: %s", e)
 
     # ---------------------------------------------------------------------------
-    # unserviced_hail_leads MV — Tarrant + Dallas (multi-county canvass list).
+    # unserviced_hail_leads MV — Tarrant + Dallas + Hays (multi-county canvass).
     #
     # Produces one row per parcel that: (a) sits within 3 km of a recent TX
     # hail-storm report (SPC, last 18 months), (b) has NOT already had
@@ -512,6 +512,17 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
     #            county_source='Dallas', bbox lat 32.60-33.04, lon -97.02..-96.44.
     #            Address join verified: 417,793 / 464,180 geoms join DCAD (~90%);
     #            bounded 6-month probe gave 99.4% situs-address coverage.
+    #   Hays   : geom=hays_parcel_geometries, cad_source='HaysCAD', county='hays',
+    #            county_source='Hays', bbox lat 29.8-30.25, lon -98.25..-97.6
+    #            (San Marcos / Kyle / Buda). NOTE the join key differs: Hays
+    #            geometries join tx_cad_parcels on geom.PARCEL_ID = parcel_id
+    #            (NOT account_no — account_no joins 0%). Verified 68,854/119,359
+    #            geoms carry a HaysCAD situs address (~57.7%); within the storm
+    #            candidate set, 8,024 carry an address and only ~1 is serviced.
+    #            CAVEAT: hail_leads_list has ~394 Hays rows but they barely
+    #            overlap the storm-near candidates, so the serviced-exclusion is
+    #            weak for Hays (same as Dallas) — treat the list as a fresh
+    #            canvass list, not a de-duped one.
     #
     # Travis is intentionally EXCLUDED: there is no TCAD/Travis cad_source in
     # tx_cad_parcels (only HCAD/DCAD/TAD/WCAD/HaysCAD/CCAD/Gillespie/Kerr/Bandera)
@@ -553,10 +564,12 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
             if live_def is not None and not (
                 "hail_leads_list" in live_def
                 and "dcad_parcel_geometries" in live_def
+                and "hays_parcel_geometries" in live_def
             ):
                 logger.warning(
                     "unserviced_hail_leads: stale live definition detected "
-                    "(missing hail_leads_list/dcad sentinels) — dropping to rebuild"
+                    "(missing hail_leads_list/dcad/hays sentinels) — dropping to "
+                    "rebuild"
                 )
                 await conn.execute(_text(
                     "DROP MATERIALIZED VIEW IF EXISTS unserviced_hail_leads CASCADE"
@@ -742,6 +755,91 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                          SELECT 1 FROM hll_dallas_norm hdn
                           WHERE hdn.norm_addr = ca.norm_situs
                      )
+                ),
+                -- ============================== HAYS =============================
+                -- San Marcos / Kyle / Buda (the warm-roofer pilot area). Mirrors
+                -- Dallas exactly EXCEPT the address join key: Hays geometries join
+                -- tx_cad_parcels on geom.parcel_id = parcel_id (account_no joins
+                -- 0%, parcel_id joins ~57.7%). cad_source = 'HaysCAD'.
+                hays_storms AS (
+                    SELECT report_id, report_date, lat, lon,
+                           COALESCE(size_in, 0.75) AS size_in
+                      FROM spc_storm_reports
+                     WHERE report_type = 'hail'
+                       AND state = 'TX'
+                       AND report_date >= CURRENT_DATE - INTERVAL '18 months'
+                       AND lat  BETWEEN 29.8   AND 30.25
+                       AND lon  BETWEEN -98.25 AND -97.6
+                ),
+                hays_candidate_parcels AS (
+                    SELECT DISTINCT ON (tg.parcel_id)
+                           tg.parcel_id,
+                           tg.centroid_lat,
+                           tg.centroid_lon,
+                           sr.report_id     AS storm_report_id,
+                           sr.report_date   AS matched_storm_date,
+                           sr.size_in       AS hail_size_in
+                      FROM hays_storms sr
+                      CROSS JOIN LATERAL (
+                          SELECT tg.parcel_id,
+                                 tg.centroid_lat, tg.centroid_lon
+                            FROM hays_parcel_geometries tg
+                           WHERE ST_DWithin(
+                                     tg.geom,
+                                     ST_SetSRID(ST_MakePoint(sr.lon, sr.lat), 4326),
+                                     0.027
+                                 )
+                      ) tg
+                     ORDER BY tg.parcel_id, sr.size_in DESC, sr.report_date DESC
+                ),
+                hays_candidate_with_addr AS (
+                    SELECT cp.*,
+                           tcp.situs_address AS address,
+                           tcp.situs_city    AS city,
+                           tcp.situs_zip     AS zip,
+                           TRIM(REGEXP_REPLACE(
+                               REGEXP_REPLACE(
+                                   REGEXP_REPLACE(UPPER(tcp.situs_address),
+                                       '(^|\\s)(SUITE|STE|UNIT|APT|#)\\s+\\S+', ' ', 'g'),
+                               '[.,#]', '', 'g'),
+                           '\\s+', ' ')) AS norm_situs
+                      FROM hays_candidate_parcels cp
+                      JOIN tx_cad_parcels tcp
+                            ON tcp.parcel_id = cp.parcel_id
+                           AND tcp.cad_source = 'HaysCAD'
+                     WHERE tcp.situs_address IS NOT NULL
+                ),
+                hll_hays_norm AS (
+                    SELECT DISTINCT
+                           TRIM(REGEXP_REPLACE(
+                               REGEXP_REPLACE(
+                                   REGEXP_REPLACE(UPPER(address),
+                                       '(^|\\s)(SUITE|STE|UNIT|APT|#)\\s+\\S+', ' ', 'g'),
+                               '[.,#]', '', 'g'),
+                           '\\s+', ' ')) AS norm_addr
+                      FROM hail_leads_list
+                     WHERE county ILIKE 'hays'
+                ),
+                hays_rows AS (
+                    SELECT
+                        ca.parcel_id,
+                        ca.address,
+                        ca.city,
+                        ca.zip,
+                        'hays'::text                                AS county,
+                        ca.centroid_lat,
+                        ca.centroid_lon,
+                        ca.matched_storm_date,
+                        ca.hail_size_in,
+                        (CURRENT_DATE - ca.matched_storm_date)::integer AS days_since_storm,
+                        GREATEST(0, 365 - (CURRENT_DATE - ca.matched_storm_date))::double precision
+                            / 365.0 * ca.hail_size_in                AS lead_score,
+                        'Hays'::text                                AS county_source
+                      FROM hays_candidate_with_addr ca
+                     WHERE NOT EXISTS (
+                         SELECT 1 FROM hll_hays_norm hhn
+                          WHERE hhn.norm_addr = ca.norm_situs
+                     )
                 )
                 SELECT parcel_id, address, city, zip, county,
                        centroid_lat, centroid_lon, matched_storm_date,
@@ -752,6 +850,11 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                        centroid_lat, centroid_lon, matched_storm_date,
                        hail_size_in, days_since_storm, lead_score, county_source
                   FROM dallas_rows
+                UNION ALL
+                SELECT parcel_id, address, city, zip, county,
+                       centroid_lat, centroid_lon, matched_storm_date,
+                       hail_size_in, days_since_storm, lead_score, county_source
+                  FROM hays_rows
                 WITH NO DATA
             """))
         # Indexes in their own txn — unique index enables REFRESH CONCURRENTLY.
