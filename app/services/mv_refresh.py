@@ -80,8 +80,9 @@ _MVS = (
     ("mv_refresh_hail_leads_list", "hail_leads_list"),
     # Parcel-level un-serviced hail leads: SPC storms (last 18 months) ×
     # <county>_parcel_geometries × tx_cad_parcels, minus parcels that pulled a
-    # roof permit post-storm. Tarrant (TAD) + Dallas (DCAD) UNION ALL'd. Travis
-    # is excluded — no TCAD address join exists in tx_cad_parcels. Refresh runs
+    # roof permit post-storm. Tarrant (TAD) + Dallas (DCAD) + Hays (HaysCAD) +
+    # Comal (CCAD) UNION ALL'd. Travis is excluded — no TCAD address join exists
+    # in tx_cad_parcels. Refresh runs
     # on the dedicated maintenance engine (no client/server timeout cap), so the
     # multi-county full/CONCURRENTLY refresh has no statement-timeout ceiling.
     # Has a unique index on (parcel_id, county_source), so REFRESH ...

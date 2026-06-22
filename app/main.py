@@ -486,7 +486,7 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
         logger.warning("Could not create hail_leads_list MV: %s", e)
 
     # ---------------------------------------------------------------------------
-    # unserviced_hail_leads MV — Tarrant + Dallas + Hays (multi-county canvass).
+    # unserviced_hail_leads MV — Tarrant + Dallas + Hays + Comal (canvass).
     #
     # Produces one row per parcel that: (a) sits within 3 km of a recent TX
     # hail-storm report (SPC, last 18 months), (b) has NOT already had
@@ -523,6 +523,20 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
     #            overlap the storm-near candidates, so the serviced-exclusion is
     #            weak for Hays (same as Dallas) — treat the list as a fresh
     #            canvass list, not a de-duped one.
+    #   Comal  : geom=comal_parcel_geometries, cad_source='CCAD', county='comal',
+    #            county_source='Comal', bbox lat 29.6-29.95, lon -98.5..-98.0
+    #            (New Braunfels / Canyon Lake / Spring Branch / Bulverde).
+    #            Same join shape as Hays: geom.parcel_id = tx_cad_parcels.parcel_id
+    #            (NOT account_no — account_no joins ~46%, parcel_id ~98%).
+    #            cad_source = 'CCAD'. hail_leads_list has ZERO Comal rows, so the
+    #            serviced-exclusion is a no-op today — this is a pure fresh canvass
+    #            list. Completes the Central TX I-35 corridor (Hays=San Marcos +
+    #            Comal=New Braunfels). NOTE: recent hail in the Comal bbox is
+    #            SPARSE (a handful of small SPC reports, latest ~2025-05), so
+    #            expect FEW, LOW-SCORING rows today. This add is for territory
+    #            completeness / future-proofing (coverage is live before the next
+    #            New Braunfels hit), not immediate hot-lead volume — low volume
+    #            here is EXPECTED, not a failure.
     #
     # Travis is intentionally EXCLUDED: there is no TCAD/Travis cad_source in
     # tx_cad_parcels (only HCAD/DCAD/TAD/WCAD/HaysCAD/CCAD/Gillespie/Kerr/Bandera)
@@ -565,11 +579,12 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                 "hail_leads_list" in live_def
                 and "dcad_parcel_geometries" in live_def
                 and "hays_parcel_geometries" in live_def
+                and "comal_parcel_geometries" in live_def
             ):
                 logger.warning(
                     "unserviced_hail_leads: stale live definition detected "
-                    "(missing hail_leads_list/dcad/hays sentinels) — dropping to "
-                    "rebuild"
+                    "(missing hail_leads_list/dcad/hays/comal sentinels) — "
+                    "dropping to rebuild"
                 )
                 await conn.execute(_text(
                     "DROP MATERIALIZED VIEW IF EXISTS unserviced_hail_leads CASCADE"
@@ -840,6 +855,91 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                          SELECT 1 FROM hll_hays_norm hhn
                           WHERE hhn.norm_addr = ca.norm_situs
                      )
+                ),
+                -- ============================== COMAL ============================
+                -- New Braunfels / Canyon Lake / Spring Branch / Bulverde. Mirrors
+                -- Hays exactly: geom.parcel_id = tx_cad_parcels.parcel_id (account_no
+                -- joins ~46%, parcel_id ~98%). cad_source = 'CCAD'. hail_leads_list
+                -- has zero Comal rows so the serviced-exclusion is a no-op today.
+                comal_storms AS (
+                    SELECT report_id, report_date, lat, lon,
+                           COALESCE(size_in, 0.75) AS size_in
+                      FROM spc_storm_reports
+                     WHERE report_type = 'hail'
+                       AND state = 'TX'
+                       AND report_date >= CURRENT_DATE - INTERVAL '18 months'
+                       AND lat  BETWEEN 29.6   AND 29.95
+                       AND lon  BETWEEN -98.5  AND -98.0
+                ),
+                comal_candidate_parcels AS (
+                    SELECT DISTINCT ON (tg.parcel_id)
+                           tg.parcel_id,
+                           tg.centroid_lat,
+                           tg.centroid_lon,
+                           sr.report_id     AS storm_report_id,
+                           sr.report_date   AS matched_storm_date,
+                           sr.size_in       AS hail_size_in
+                      FROM comal_storms sr
+                      CROSS JOIN LATERAL (
+                          SELECT tg.parcel_id,
+                                 tg.centroid_lat, tg.centroid_lon
+                            FROM comal_parcel_geometries tg
+                           WHERE ST_DWithin(
+                                     tg.geom,
+                                     ST_SetSRID(ST_MakePoint(sr.lon, sr.lat), 4326),
+                                     0.027
+                                 )
+                      ) tg
+                     ORDER BY tg.parcel_id, sr.size_in DESC, sr.report_date DESC
+                ),
+                comal_candidate_with_addr AS (
+                    SELECT cp.*,
+                           tcp.situs_address AS address,
+                           tcp.situs_city    AS city,
+                           tcp.situs_zip     AS zip,
+                           TRIM(REGEXP_REPLACE(
+                               REGEXP_REPLACE(
+                                   REGEXP_REPLACE(UPPER(tcp.situs_address),
+                                       '(^|\\s)(SUITE|STE|UNIT|APT|#)\\s+\\S+', ' ', 'g'),
+                               '[.,#]', '', 'g'),
+                           '\\s+', ' ')) AS norm_situs
+                      FROM comal_candidate_parcels cp
+                      JOIN tx_cad_parcels tcp
+                            ON tcp.parcel_id = cp.parcel_id
+                           AND tcp.cad_source = 'CCAD'
+                     WHERE tcp.situs_address IS NOT NULL
+                ),
+                hll_comal_norm AS (
+                    SELECT DISTINCT
+                           TRIM(REGEXP_REPLACE(
+                               REGEXP_REPLACE(
+                                   REGEXP_REPLACE(UPPER(address),
+                                       '(^|\\s)(SUITE|STE|UNIT|APT|#)\\s+\\S+', ' ', 'g'),
+                               '[.,#]', '', 'g'),
+                           '\\s+', ' ')) AS norm_addr
+                      FROM hail_leads_list
+                     WHERE county ILIKE 'comal'
+                ),
+                comal_rows AS (
+                    SELECT
+                        ca.parcel_id,
+                        ca.address,
+                        ca.city,
+                        ca.zip,
+                        'comal'::text                               AS county,
+                        ca.centroid_lat,
+                        ca.centroid_lon,
+                        ca.matched_storm_date,
+                        ca.hail_size_in,
+                        (CURRENT_DATE - ca.matched_storm_date)::integer AS days_since_storm,
+                        GREATEST(0, 365 - (CURRENT_DATE - ca.matched_storm_date))::double precision
+                            / 365.0 * ca.hail_size_in                AS lead_score,
+                        'Comal'::text                               AS county_source
+                      FROM comal_candidate_with_addr ca
+                     WHERE NOT EXISTS (
+                         SELECT 1 FROM hll_comal_norm hcn
+                          WHERE hcn.norm_addr = ca.norm_situs
+                     )
                 )
                 SELECT parcel_id, address, city, zip, county,
                        centroid_lat, centroid_lon, matched_storm_date,
@@ -855,6 +955,11 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                        centroid_lat, centroid_lon, matched_storm_date,
                        hail_size_in, days_since_storm, lead_score, county_source
                   FROM hays_rows
+                UNION ALL
+                SELECT parcel_id, address, city, zip, county,
+                       centroid_lat, centroid_lon, matched_storm_date,
+                       hail_size_in, days_since_storm, lead_score, county_source
+                  FROM comal_rows
                 WITH NO DATA
             """))
         # Indexes in their own txn — unique index enables REFRESH CONCURRENTLY.
