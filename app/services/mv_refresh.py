@@ -88,6 +88,12 @@ _MVS = (
     # Has a unique index on (parcel_id, county_source), so REFRESH ...
     # CONCURRENTLY works.
     ("mv_refresh_unserviced_hail_leads", "unserviced_hail_leads"),
+    # Brazoria TX permit-lead feed (Phase 3). Deduplicated/classified/geocoded
+    # one-row-per-address lead view over the Brazoria hot_leads sources. Reads
+    # geocoded_addresses (populated out-of-band by
+    # scripts/geocode_brazoria_leads.py), so ideally run AFTER that cron. Has a
+    # unique index on address_norm, so REFRESH ... CONCURRENTLY works.
+    ("mv_refresh_brazoria_permit_leads", "brazoria_permit_leads"),
 )
 
 

@@ -68,6 +68,7 @@ from app.api.v1.data_freshness import router as data_freshness_router
 from app.api.v1.hman_auth import router as hman_auth_router
 from app.api.v1.pricing import router as pricing_router
 from app.api.v1.hail_leads import router as hail_leads_router
+from app.api.v1.permit_leads import router as permit_leads_router
 from app.api.v1.parcel_screen import router as parcel_screen_router
 from app.api.v1.broadband import router as broadband_router
 from app.api.v1.internal_rural_v5 import router as internal_rural_v5_router
@@ -1091,6 +1092,202 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
     except Exception as e:
         logger.warning("Could not create unserviced_hail_leads MV: %s", e)
 
+    # ---------------------------------------------------------------------------
+    # brazoria_permit_leads — Phase 3 of the TX permit-lead feed.
+    #
+    # Turns the Brazoria `hot_leads` source rows into a deduplicated, classified,
+    # geocoded lead view: one row per normalized property address, classified to
+    # new_construction / addition / remodel / other, with coords backfilled from
+    # the geocoded_addresses cache and ALL contributing sources aggregated.
+    #
+    # SAFE on the 12.9M-row hot_leads table: filtered on `source IN (...)` via the
+    # indexed ix_hot_leads_source — NEVER a county/full scan. The source list and
+    # the classification rules live in app/services/permit_lead_classify.py and
+    # are injected here so the SQL and the Python classifier stay in lockstep.
+    #
+    # Dedup: DISTINCT ON (address_norm), keeping the RICHEST row (most populated
+    # fields), then aggregating the distinct sources and the EARLIEST event_date
+    # (the leading-indicator trigger) across all rows at that address.
+    #
+    # Created WITH NO DATA — startup never blocks. The nightly mv_refresh job
+    # (registered in app/services/mv_refresh._MVS) populates it. A UNIQUE index on
+    # address_norm enables REFRESH ... CONCURRENTLY.
+    # ---------------------------------------------------------------------------
+    try:
+        from app.services.permit_lead_classify import (
+            brazoria_sources_sql,
+            lead_class_sql,
+            source_county_sql,
+            trigger_sources_sql,
+        )
+
+        _blob = (
+            "concat_ws(' ', hl.permit_type, hl.work_class, hl.description)"
+        )
+        _class_sql = lead_class_sql(blob_expr=_blob, source_col="hl.source")
+        _county_sql = source_county_sql("hl.source")
+        _src_in = brazoria_sources_sql()
+        _trig_in = trigger_sources_sql()
+
+        # SELF-HEAL stale definition: if the live MV predates the current source
+        # registry or class rules (detected by a sentinel marker comment), drop
+        # and rebuild. CREATE ... IF NOT EXISTS is a no-op when the object exists,
+        # so without this a later rule change would never reach the DB object.
+        _SENTINEL = "brazoria_permit_leads_v2"
+        async with primary_engine.begin() as conn:
+            await conn.execute(_text("SET LOCAL lock_timeout = '15s'"))
+            await conn.execute(_text("SET LOCAL statement_timeout = '30s'"))
+            try:
+                live_def = await conn.scalar(_text(
+                    "SELECT pg_get_viewdef('brazoria_permit_leads'::regclass)"
+                ))
+            except Exception:  # noqa: BLE001 — MV does not exist yet
+                live_def = None
+            if live_def is not None and _SENTINEL not in live_def:
+                logger.warning(
+                    "brazoria_permit_leads: stale live definition (missing %s "
+                    "sentinel) — dropping to rebuild", _SENTINEL
+                )
+                await conn.execute(_text(
+                    "DROP MATERIALIZED VIEW IF EXISTS brazoria_permit_leads CASCADE"
+                ))
+
+        async with primary_engine.begin() as conn:
+            await conn.execute(_text("SET LOCAL lock_timeout = '15s'"))
+            await conn.execute(_text("SET LOCAL statement_timeout = '60s'"))
+            await conn.execute(_text(f"""
+                CREATE MATERIALIZED VIEW IF NOT EXISTS brazoria_permit_leads AS
+                -- sentinel:{_SENTINEL}
+                WITH src AS (
+                    SELECT
+                        hl.id,
+                        hl.source,
+                        hl.permit_number,
+                        hl.permit_type,
+                        hl.work_class,
+                        hl.description,
+                        hl.address,
+                        hl.city,
+                        hl.zip,
+                        -- Canonicalize county so sources that tag it
+                        -- differently ('Brazoria' vs 'BRAZORIA COUNTY')
+                        -- collapse to ONE filterable value. Strip a trailing
+                        -- ' COUNTY' then INITCAP.
+                        INITCAP(
+                            REGEXP_REPLACE(
+                                COALESCE(hl.county, {_county_sql}),
+                                '\\s+COUNTY\\s*$', '', 'i'
+                            )
+                        )                                              AS county,
+                        hl.lat,
+                        hl.lng,
+                        hl.owner_name,
+                        hl.valuation,
+                        COALESCE(hl.issue_date, hl.applied_date)        AS event_date,
+                        ({_class_sql})                                  AS lead_class,
+                        UPPER(REGEXP_REPLACE(hl.address, '[^A-Za-z0-9 ]', ' ', 'g'))
+                                                                        AS address_norm
+                      FROM hot_leads hl
+                     WHERE hl.source IN {_src_in}
+                       AND hl.address IS NOT NULL
+                       AND length(trim(hl.address)) > 3
+                ),
+                -- Per-address rollups: every distinct source + earliest trigger.
+                agg AS (
+                    SELECT
+                        address_norm,
+                        array_agg(DISTINCT source ORDER BY source)      AS sources,
+                        min(event_date)                                 AS first_event_date,
+                        max(event_date)                                 AS last_event_date,
+                        bool_or(source IN {_trig_in})                   AS has_911_trigger,
+                        count(*)                                        AS contributing_rows
+                      FROM src
+                     GROUP BY address_norm
+                ),
+                -- Richest row per address: prefer the row with the most populated
+                -- fields (owner, coords, valuation, county), tie-break to the
+                -- earliest event_date, then the smallest id for determinism.
+                best AS (
+                    SELECT DISTINCT ON (address_norm)
+                        address_norm,
+                        source                                          AS primary_source,
+                        permit_number,
+                        permit_type,
+                        work_class,
+                        description,
+                        address,
+                        city,
+                        zip,
+                        county,
+                        lat,
+                        lng,
+                        owner_name,
+                        valuation,
+                        lead_class
+                      FROM src
+                     ORDER BY
+                        address_norm,
+                        ( (owner_name IS NOT NULL)::int
+                        + (lat IS NOT NULL AND lng IS NOT NULL)::int
+                        + (valuation IS NOT NULL)::int
+                        + (county IS NOT NULL)::int
+                        + (zip IS NOT NULL)::int ) DESC,
+                        event_date ASC NULLS LAST,
+                        id ASC
+                )
+                SELECT
+                    b.address_norm,
+                    b.address,
+                    b.city,
+                    b.zip,
+                    b.county,
+                    b.owner_name,
+                    -- If ANY contributing source is a 911 new-address trigger the
+                    -- property is new construction, regardless of the richest
+                    -- row's class (mirrors classify_permit's source precedence).
+                    CASE WHEN a.has_911_trigger THEN 'new_construction'
+                         ELSE b.lead_class END                          AS lead_class,
+                    a.first_event_date                                  AS event_date,
+                    a.last_event_date,
+                    b.primary_source,
+                    a.sources,
+                    a.contributing_rows,
+                    -- coords: source coords first, else geocode cache backfill.
+                    COALESCE(b.lat, g.lat::double precision)            AS lat,
+                    COALESCE(b.lng, g.lon::double precision)            AS lng,
+                    (b.lat IS NULL AND g.lat IS NOT NULL)               AS geocoded,
+                    b.permit_number,
+                    b.permit_type,
+                    b.work_class,
+                    b.description,
+                    b.valuation
+                  FROM best b
+                  JOIN agg a USING (address_norm)
+                  LEFT JOIN geocoded_addresses g
+                         ON g.address_norm = b.address_norm
+                        AND g.lat IS NOT NULL
+                WITH NO DATA
+            """))
+
+        async with primary_engine.begin() as conn:
+            await conn.execute(_text("SET LOCAL lock_timeout = '15s'"))
+            for ddl in (
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_brazoria_permit_leads_addr "
+                "ON brazoria_permit_leads (address_norm)",
+                "CREATE INDEX IF NOT EXISTS ix_bpl_county "
+                "ON brazoria_permit_leads (county)",
+                "CREATE INDEX IF NOT EXISTS ix_bpl_class "
+                "ON brazoria_permit_leads (lead_class)",
+                "CREATE INDEX IF NOT EXISTS ix_bpl_event_date "
+                "ON brazoria_permit_leads (event_date DESC NULLS LAST)",
+            ):
+                try:
+                    await conn.execute(_text(ddl))
+                except Exception as ie:  # noqa: BLE001
+                    logger.warning("brazoria_permit_leads index skipped: %s", ie)
+    except Exception as e:
+        logger.warning("Could not create brazoria_permit_leads MV: %s", e)
+
     print("[migrations] background auto-migration run complete", flush=True, file=sys.stderr)
 
 
@@ -1289,6 +1486,7 @@ app.include_router(data_freshness_router, prefix="/v1")
 app.include_router(hman_auth_router, prefix="/v1")
 app.include_router(pricing_router, prefix="/v1")
 app.include_router(hail_leads_router, prefix="/v1")
+app.include_router(permit_leads_router, prefix="/v1")
 app.include_router(parcel_screen_router, prefix="/v1")
 app.include_router(broadband_router, prefix="/v1")
 app.include_router(internal_rural_v5_router, prefix="/v1")
