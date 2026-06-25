@@ -1129,11 +1129,40 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
         _src_in = brazoria_sources_sql()
         _trig_in = trigger_sources_sql()
 
+        # brazoria_lead_contacts — Phase 4 skip-trace cache (PAID, gated).
+        # One row per lead address_norm, written by scripts/skiptrace_brazoria_leads.py
+        # (BatchData). The MV LEFT JOINs it for best_phone/best_email. Created
+        # BEFORE the MV because the MV references it. persons holds the full
+        # normalized BatchData persons array for auditing.
+        async with primary_engine.begin() as conn:
+            await conn.execute(_text("SET LOCAL lock_timeout = '15s'"))
+            await conn.execute(_text("""
+                CREATE TABLE IF NOT EXISTS brazoria_lead_contacts (
+                    address_norm   text PRIMARY KEY,
+                    address        text,
+                    owner_name     text,
+                    best_phone     text,
+                    best_phone_type text,
+                    best_phone_dnc boolean,
+                    best_email     text,
+                    persons        jsonb,
+                    hit            boolean DEFAULT false,
+                    skiptraced     boolean DEFAULT true,
+                    cost_cents     integer DEFAULT 0,
+                    provider       text DEFAULT 'batchdata',
+                    fetched_at     timestamptz DEFAULT now()
+                )
+            """))
+
         # SELF-HEAL stale definition: if the live MV predates the current source
         # registry or class rules (detected by a sentinel marker comment), drop
         # and rebuild. CREATE ... IF NOT EXISTS is a no-op when the object exists,
         # so without this a later rule change would never reach the DB object.
-        _SENTINEL = "brazoria_permit_leads_v2"
+        # v3 (Phase 4): LEFT JOIN Brazoria CAD (tx_cad_parcels cad_source=
+        # 'BRAZORIACAD') for owner_name + mailable situs + appraised value +
+        # subdivision, and LEFT JOIN brazoria_lead_contacts for a skip-traced
+        # best phone/email. Bumping the sentinel forces the self-heal rebuild.
+        _SENTINEL = "brazoria_permit_leads_v3"
         async with primary_engine.begin() as conn:
             await conn.execute(_text("SET LOCAL lock_timeout = '15s'"))
             await conn.execute(_text("SET LOCAL statement_timeout = '30s'"))
@@ -1186,7 +1215,14 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                         COALESCE(hl.issue_date, hl.applied_date)        AS event_date,
                         ({_class_sql})                                  AS lead_class,
                         UPPER(REGEXP_REPLACE(hl.address, '[^A-Za-z0-9 ]', ' ', 'g'))
-                                                                        AS address_norm
+                                                                        AS address_norm,
+                        -- Fully-collapsed key for the CAD owner join: the MV's
+                        -- address_norm does NOT squeeze runs of whitespace, but
+                        -- CAD situs strings carry double-spaces. Collapse BOTH
+                        -- sides to the same key so '226  RIVER RD' matches.
+                        TRIM(REGEXP_REPLACE(
+                            UPPER(REGEXP_REPLACE(hl.address, '[^A-Za-z0-9 ]', ' ', 'g')),
+                            '\\s+', ' ', 'g'))                          AS addr_join_key
                       FROM hot_leads hl
                      WHERE hl.source IN {_src_in}
                        AND hl.address IS NOT NULL
@@ -1210,6 +1246,7 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                 best AS (
                     SELECT DISTINCT ON (address_norm)
                         address_norm,
+                        addr_join_key,
                         source                                          AS primary_source,
                         permit_number,
                         permit_type,
@@ -1234,6 +1271,38 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                         + (zip IS NOT NULL)::int ) DESC,
                         event_date ASC NULLS LAST,
                         id ASC
+                ),
+                -- Brazoria CAD owner/address attribution (Phase 4). One row per
+                -- collapsed situs key; when several parcels share a situs (e.g.
+                -- splits) keep the richest by appraised value, then parcel_id for
+                -- determinism. FREE — sourced from the county GIS parcel layer
+                -- via scripts/load_brazoriacad.py.
+                cad AS (
+                    SELECT DISTINCT ON (cad_key)
+                        cad_key,
+                        owner_name                                      AS cad_owner_name,
+                        situs_address                                   AS cad_situs_address,
+                        situs_city                                      AS cad_situs_city,
+                        situs_zip                                       AS cad_situs_zip,
+                        market_value                                    AS cad_market_value,
+                        subdivision                                     AS cad_subdivision,
+                        parcel_id                                       AS cad_parcel_id
+                      FROM (
+                        SELECT
+                            TRIM(REGEXP_REPLACE(
+                                UPPER(REGEXP_REPLACE(situs_address, '[^A-Za-z0-9 ]', ' ', 'g')),
+                                '\\s+', ' ', 'g'))                       AS cad_key,
+                            owner_name, situs_address, situs_city, situs_zip,
+                            market_value, subdivision, parcel_id
+                          FROM tx_cad_parcels
+                         WHERE cad_source = 'BRAZORIACAD'
+                           AND situs_address IS NOT NULL
+                           AND length(trim(situs_address)) > 3
+                      ) z
+                     ORDER BY cad_key,
+                              (market_value IS NOT NULL)::int DESC,
+                              market_value DESC NULLS LAST,
+                              parcel_id ASC
                 )
                 SELECT
                     b.address_norm,
@@ -1241,7 +1310,27 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                     b.city,
                     b.zip,
                     b.county,
-                    b.owner_name,
+                    -- owner_name: prefer the source row's owner, else CAD.
+                    COALESCE(b.owner_name, cad.cad_owner_name)          AS owner_name,
+                    cad.cad_owner_name,
+                    -- mailable_address: canonical CAD situs (street, city, zip),
+                    -- else the source address as a fallback.
+                    COALESCE(
+                        NULLIF(TRIM(CONCAT_WS(', ',
+                            cad.cad_situs_address,
+                            cad.cad_situs_city,
+                            cad.cad_situs_zip)), ''),
+                        b.address
+                    )                                                   AS mailable_address,
+                    cad.cad_market_value                                AS market_value,
+                    cad.cad_subdivision                                 AS subdivision,
+                    cad.cad_parcel_id                                   AS cad_parcel_id,
+                    (cad.cad_key IS NOT NULL)                           AS cad_matched,
+                    -- skip-traced contact (Phase 4, PAID, gated): best phone +
+                    -- email if a lead was run through brazoria_lead_contacts.
+                    c.best_phone                                        AS phone,
+                    c.best_email                                        AS email,
+                    c.skiptraced                                        AS skiptraced,
                     -- If ANY contributing source is a 911 new-address trigger the
                     -- property is new construction, regardless of the richest
                     -- row's class (mirrors classify_permit's source precedence).
@@ -1266,6 +1355,10 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                   LEFT JOIN geocoded_addresses g
                          ON g.address_norm = b.address_norm
                         AND g.lat IS NOT NULL
+                  LEFT JOIN cad
+                         ON cad.cad_key = b.addr_join_key
+                  LEFT JOIN brazoria_lead_contacts c
+                         ON c.address_norm = b.address_norm
                 WITH NO DATA
             """))
 

@@ -194,3 +194,59 @@ async def test_routes_in_openapi_spec():
     assert LIST_URL in paths or LIST_URL.rstrip("/") in paths
     assert STATS_URL in paths
     assert CSV_URL in paths
+
+
+# ---------------------------------------------------------------------------
+# 3) Phase 4 contact-enrichment contract — the PermitLead schema must expose
+#    owner attribution + skip-traced contact fields, and the skip-trace adapter
+#    helpers must pick the best phone/email without ever fabricating one.
+# ---------------------------------------------------------------------------
+
+def test_permit_lead_schema_exposes_contact_fields():
+    from app.api.v1.permit_leads import PermitLead
+    fields = set(PermitLead.model_fields)
+    for f in ("mailable_address", "cad_owner_name", "cad_matched",
+              "market_value", "subdivision", "phone", "email", "skiptraced"):
+        assert f in fields, f"PermitLead missing Phase 4 field: {f}"
+
+
+def test_stats_schema_exposes_contact_kpis():
+    from app.api.v1.permit_leads import PermitLeadsStats
+    fields = set(PermitLeadsStats.model_fields)
+    for f in ("with_owner_name", "cad_matched", "skiptraced", "with_phone"):
+        assert f in fields, f"PermitLeadsStats missing Phase 4 KPI: {f}"
+
+
+def test_skiptrace_best_phone_prefers_score_then_mobile():
+    from scripts.skiptrace_brazoria_leads import best_phone, best_email
+    persons = [{
+        "phoneNumbers": [
+            {"number": "1110000000", "type": "Landline", "score": 50},
+            {"number": "2220000000", "type": "Mobile", "score": 90},
+            {"number": "3330000000", "type": "Mobile", "score": 90},
+        ],
+        "emails": [{"email": "a@b.com"}],
+    }]
+    ph = best_phone(persons)
+    assert ph["number"] == "2220000000"  # highest score, Mobile
+    assert ph["type"] == "Mobile"
+    assert best_email(persons) == "a@b.com"
+
+
+def test_skiptrace_no_phone_never_fabricates():
+    from scripts.skiptrace_brazoria_leads import best_phone, best_email
+    assert best_phone([]) is None
+    assert best_phone([{"phoneNumbers": []}]) is None
+    assert best_email([{"emails": []}]) is None
+
+
+def test_skiptrace_split_addr_falls_back_to_mailable():
+    from scripts.skiptrace_brazoria_leads import split_addr
+    street, city, state, zp = split_addr({
+        "address": "701 PRAIRIE LN", "city": None, "zip": None,
+        "mailable_address": "701 PRAIRIE LN, ANGLETON, 77515",
+    })
+    assert street == "701 PRAIRIE LN"
+    assert city == "ANGLETON"
+    assert state == "TX"
+    assert zp == "77515"

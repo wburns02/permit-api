@@ -55,6 +55,15 @@ class PermitLead(BaseModel):
     zip: str | None
     county: str | None
     owner_name: str | None
+    # Phase 4 contact-enrichment fields.
+    mailable_address: str | None = None  # canonical CAD situs (street, city, zip)
+    cad_owner_name: str | None = None    # owner straight from Brazoria CAD
+    cad_matched: bool | None = None      # did the CAD owner-join hit?
+    market_value: float | None = None    # CAD appraised value (bonus)
+    subdivision: str | None = None       # CAD subdivision (bonus)
+    phone: str | None = None             # skip-traced best phone (PAID, gated)
+    email: str | None = None             # skip-traced best email (PAID, gated)
+    skiptraced: bool | None = None       # has this lead been skip-traced?
     lead_class: str | None
     event_date: date | None
     last_event_date: date | None
@@ -93,6 +102,11 @@ class PermitLeadsStats(BaseModel):
     without_coords: int
     geocoded_backfilled: int
     missing_owner_name: int
+    # Phase 4 contact-coverage KPIs.
+    with_owner_name: int = 0       # owner attributed (source OR CAD)
+    cad_matched: int = 0           # matched a Brazoria CAD parcel
+    skiptraced: int = 0            # run through skip-trace
+    with_phone: int = 0            # has a skip-traced phone
     latest_event_date: date | None
 
 
@@ -171,6 +185,10 @@ async def permit_leads_stats(
                 count(*) FILTER (WHERE lat IS NULL OR lng IS NULL)::bigint AS without_coords,
                 count(*) FILTER (WHERE geocoded)::bigint                  AS geocoded,
                 count(*) FILTER (WHERE owner_name IS NULL OR owner_name = '')::bigint AS no_owner,
+                count(*) FILTER (WHERE owner_name IS NOT NULL AND owner_name <> '')::bigint AS with_owner,
+                count(*) FILTER (WHERE cad_matched)::bigint              AS cad_matched,
+                count(*) FILTER (WHERE skiptraced)::bigint               AS skiptraced,
+                count(*) FILTER (WHERE phone IS NOT NULL AND phone <> '')::bigint AS with_phone,
                 max(event_date)                                          AS latest
               FROM brazoria_permit_leads bpl
              WHERE {where}
@@ -205,6 +223,10 @@ async def permit_leads_stats(
         without_coords=int(agg.without_coords or 0) if agg else 0,
         geocoded_backfilled=int(agg.geocoded or 0) if agg else 0,
         missing_owner_name=int(agg.no_owner or 0) if agg else 0,
+        with_owner_name=int(agg.with_owner or 0) if agg else 0,
+        cad_matched=int(agg.cad_matched or 0) if agg else 0,
+        skiptraced=int(agg.skiptraced or 0) if agg else 0,
+        with_phone=int(agg.with_phone or 0) if agg else 0,
         latest_event_date=agg.latest if agg else None,
     )
 
@@ -215,6 +237,14 @@ _SELECT_COLS = """
     bpl.zip                   AS zip,
     bpl.county                AS county,
     bpl.owner_name            AS owner_name,
+    bpl.cad_owner_name        AS cad_owner_name,
+    bpl.mailable_address      AS mailable_address,
+    bpl.cad_matched           AS cad_matched,
+    bpl.market_value          AS market_value,
+    bpl.subdivision           AS subdivision,
+    bpl.phone                 AS phone,
+    bpl.email                 AS email,
+    bpl.skiptraced            AS skiptraced,
     bpl.lead_class            AS lead_class,
     bpl.event_date            AS event_date,
     bpl.last_event_date       AS last_event_date,
@@ -312,6 +342,14 @@ async def permit_leads_list(
             zip=r["zip"],
             county=r["county"],
             owner_name=r["owner_name"],
+            cad_owner_name=r["cad_owner_name"],
+            mailable_address=r["mailable_address"],
+            cad_matched=bool(r["cad_matched"]) if r["cad_matched"] is not None else None,
+            market_value=float(r["market_value"]) if r["market_value"] is not None else None,
+            subdivision=r["subdivision"],
+            phone=r["phone"],
+            email=r["email"],
+            skiptraced=bool(r["skiptraced"]) if r["skiptraced"] is not None else None,
             lead_class=r["lead_class"],
             event_date=r["event_date"],
             last_event_date=r["last_event_date"],
@@ -337,7 +375,8 @@ async def permit_leads_list(
 
 
 _EXPORT_COLUMNS = [
-    "Address", "City", "Zip", "County", "Owner Name", "Lead Class",
+    "Address", "City", "Zip", "County", "Owner Name", "Mailable Address",
+    "Phone", "Email", "Market Value", "Subdivision", "Lead Class",
     "Event Date", "Last Event Date", "Primary Source", "Sources",
     "Lat", "Lng", "Geocoded", "Permit Number", "Permit Type",
     "Work Class", "Description", "Valuation",
@@ -404,6 +443,11 @@ async def permit_leads_export_csv(
             r["zip"] or "",
             r["county"] or "",
             r["owner_name"] or "",
+            r["mailable_address"] or "",
+            r["phone"] or "",
+            r["email"] or "",
+            r["market_value"] if r["market_value"] is not None else "",
+            r["subdivision"] or "",
             r["lead_class"] or "",
             r["event_date"].isoformat() if r["event_date"] else "",
             r["last_event_date"].isoformat() if r["last_event_date"] else "",
