@@ -163,7 +163,7 @@ def upsert_cache(conn, rows: list[tuple]) -> int:
             cur,
             """
             INSERT INTO geocoded_addresses
-                (address_norm, lat, lon, match_type, match_address, source, geocoded_at)
+                (address_norm, lat, lon, match_type, match_address, source)
             VALUES %s
             ON CONFLICT (address_norm) DO UPDATE SET
                 lat = EXCLUDED.lat,
