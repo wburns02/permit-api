@@ -1133,7 +1133,7 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
         # registry or class rules (detected by a sentinel marker comment), drop
         # and rebuild. CREATE ... IF NOT EXISTS is a no-op when the object exists,
         # so without this a later rule change would never reach the DB object.
-        _SENTINEL = "brazoria_permit_leads_v1"
+        _SENTINEL = "brazoria_permit_leads_v2"
         async with primary_engine.begin() as conn:
             await conn.execute(_text("SET LOCAL lock_timeout = '15s'"))
             await conn.execute(_text("SET LOCAL statement_timeout = '30s'"))
@@ -1169,7 +1169,16 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                         hl.address,
                         hl.city,
                         hl.zip,
-                        COALESCE(hl.county, {_county_sql})              AS county,
+                        -- Canonicalize county so sources that tag it
+                        -- differently ('Brazoria' vs 'BRAZORIA COUNTY')
+                        -- collapse to ONE filterable value. Strip a trailing
+                        -- ' COUNTY' then INITCAP.
+                        INITCAP(
+                            REGEXP_REPLACE(
+                                COALESCE(hl.county, {_county_sql}),
+                                '\\s+COUNTY\\s*$', '', 'i'
+                            )
+                        )                                              AS county,
                         hl.lat,
                         hl.lng,
                         hl.owner_name,
