@@ -76,6 +76,8 @@ CTX_JURISDICTIONS = {
     152: "Taylor",
     125: "Travis County",
     231: "Williamson County",
+    # ── Brazoria County beachhead (TX permit-lead Phase 1a) ──
+    404: "Angleton",
 }
 
 
@@ -268,8 +270,21 @@ def load_to_hot_leads(conn, permits):
         return 0
 
     cur = conn.cursor()
-    batch = []
+    # Dedup within the batch by (permit_number, source). MGO emits one row per
+    # address on multi-address permits (e.g. "3, 4, 5 Hemlock Pl"), which share
+    # a single projectUID. The hot_leads table's canonical unique index is
+    # ix_hot_leads_permit (permit_number, source), so a multi-address permit
+    # would otherwise abort the whole batch with a duplicate-key error. Collapse
+    # to one row per (permit_number, source); keep the row with an address.
+    seen = {}
     for p in permits:
+        if not p.get("permit_number"):
+            continue
+        key = (p["permit_number"], p["source"])
+        if key not in seen or (not seen[key].get("address") and p.get("address")):
+            seen[key] = p
+    batch = []
+    for p in seen.values():
         batch.append((
             str(uuid.uuid4()),
             p["permit_number"], p["permit_type"], p["work_class"], p["description"],
@@ -288,13 +303,12 @@ def load_to_hot_leads(conn, permits):
             contractor_company, contractor_name, contractor_phone,
             applicant_name, applicant_phone, jurisdiction, source
         ) VALUES %s
-        ON CONFLICT (permit_number, address, state)
-        WHERE permit_number IS NOT NULL AND address IS NOT NULL
+        ON CONFLICT (permit_number, source)
         DO UPDATE SET
             issue_date = COALESCE(EXCLUDED.issue_date, hot_leads.issue_date),
             description = COALESCE(EXCLUDED.description, hot_leads.description),
-            contractor_name = COALESCE(EXCLUDED.contractor_name, hot_leads.contractor_name),
-            source = EXCLUDED.source
+            address = COALESCE(EXCLUDED.address, hot_leads.address),
+            contractor_name = COALESCE(EXCLUDED.contractor_name, hot_leads.contractor_name)
     """
     try:
         execute_values(cur, sql, batch, page_size=500)
