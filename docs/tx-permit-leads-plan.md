@@ -1,6 +1,6 @@
 # Texas Building-Permit / New-Build Lead Platform — Plan
 
-_Status: Phase 1a in progress (Brazoria County beachhead). Author: permit-api. Last updated: 2026-06-25._
+_Status: Phases 1–4 shipped for the Brazoria County beachhead (source → classify → dedup → CAD owner/address → skip-trace phone → served). Author: permit-api. Last updated: 2026-06-25._
 
 ## Vision
 
@@ -204,11 +204,33 @@ Brazoria targets are externally walled (documented, not faked).
   handling. Filters: county / lead_class / source / from_date / to_date /
   has_coords.
 
-### Phase 4 — Contact enrichment
+### Phase 4 — Contact enrichment  ✅ SHIPPED
 
-- CAD-owner join (`property_sales`) + skip-trace (BatchData) → owner name,
-  mailing address, phone on every lead.
-- Contractor enrichment (`business_entities`) for the GC side.
+- **CAD owner/address join (FREE)** — `scripts/load_brazoriacad.py` loads the
+  Brazoria County GIS parcel layer (`maps.brazoriacountytx.gov` →
+  `general/Parcels/MapServer/1`, ~280K parcels, no token) into `tx_cad_parcels`
+  as `cad_source='BRAZORIACAD'` (`county_fips='48039'`): owner_name (`py_owner_name`),
+  situs, appraised value, subdivision, legal description. Mirrors the existing
+  per-county loaders (load_bcad.py). The `brazoria_permit_leads` MV (v3) LEFT
+  JOINs it on a fully-collapsed normalized situs key to fill `owner_name`
+  (`COALESCE(source owner, CAD owner)`), a canonical `mailable_address`
+  (street, city, zip), plus bonus `market_value` / `subdivision` / `cad_parcel_id`.
+  Geometry is NOT loaded — the owner join needs attributes only.
+- **Skip-trace for phone (PAID, GATED)** — `scripts/skiptrace_brazoria_leads.py`
+  takes leads that already have a CAD-attributed owner + address and resolves a
+  best phone/email via BatchData skip-trace into `brazoria_lead_contacts`
+  (keyed on `address_norm`). Dry-run by default; `--limit` hard-caps fresh
+  lookups (default 25); already-cached addresses are skipped (no double-charge);
+  priority ordering puts `new_construction` / `addition` first. Never fabricates
+  a number — a miss writes a `hit=false` row. The MV LEFT JOINs it for
+  `phone` / `email` / `skiptraced`.
+- **Serve** — `/v1/permit-leads/` list + `/stats` + `/export.csv` now expose
+  `owner_name`, `mailable_address`, `cad_owner_name`, `cad_matched`,
+  `market_value`, `subdivision`, `phone`, `email`, `skiptraced`. Stats adds
+  `with_owner_name` / `cad_matched` / `skiptraced` / `with_phone` coverage KPIs.
+- **Still open (Will decision):** budget to skip-trace the full 2,012 (or the
+  720-lead `new_construction`+`addition` priority subset); contractor enrichment
+  (`business_entities`) for the GC side; Pearland portal proxy; OSSF/clerk PIAs.
 
 ### Then: generalize statewide, adapter-by-adapter
 
