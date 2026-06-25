@@ -486,7 +486,7 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
         logger.warning("Could not create hail_leads_list MV: %s", e)
 
     # ---------------------------------------------------------------------------
-    # unserviced_hail_leads MV — Tarrant + Dallas + Hays + Comal (canvass).
+    # unserviced_hail_leads MV — Tarrant + Dallas + Hays + Comal + Bexar (canvass).
     #
     # Produces one row per parcel that: (a) sits within 3 km of a recent TX
     # hail-storm report (SPC, last 18 months), (b) has NOT already had
@@ -538,11 +538,23 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
     #            New Braunfels hit), not immediate hot-lead volume — low volume
     #            here is EXPECTED, not a failure.
     #
-    # Travis is intentionally EXCLUDED: there is no TCAD/Travis cad_source in
-    # tx_cad_parcels (only HCAD/DCAD/TAD/WCAD/HaysCAD/CCAD/Gillespie/Kerr/Bandera)
-    # and travis_parcel_geometries has no situs columns of its own — so there is
-    # no address join for Travis parcels (same failure mode as Bexar). Adding it
-    # would ship rows with NULL addresses, which is worse than no Travis coverage.
+    #   Bexar  : geom=bexar_parcel_geometries, cad_source='BCAD', county='bexar',
+    #            county_source='Bexar', bbox lat 29.1-29.7, lon -98.9..-98.2
+    #            (San Antonio metro). Same join shape as Hays/Comal:
+    #            geom.parcel_id = tx_cad_parcels.parcel_id (BCAD PropID stored
+    #            identically as text in both tables, joins ~100%). cad_source =
+    #            'BCAD'. Source is the FREE Bexar County GIS REST layer
+    #            (~710,772 parcels). hail_leads_list has no Bexar rows today so the
+    #            serviced-exclusion is a no-op — pure fresh canvass list. This adds
+    #            the un-serviced (parcels-minus-permits) signal for the largest TX
+    #            metro previously uncovered.
+    #
+    # Travis is still EXCLUDED: there is no TCAD/Travis cad_source in
+    # tx_cad_parcels (only HCAD/DCAD/TAD/WCAD/HaysCAD/CCAD/BCAD/Gillespie/Kerr/
+    # Bandera) and travis_parcel_geometries has no situs columns of its own — so
+    # there is no address join for Travis parcels. Adding it would ship rows with
+    # NULL addresses, which is worse than no Travis coverage. (Bexar previously
+    # shared this failure mode; BCAD now supplies the address join, so it is in.)
     #
     # STORM WINDOW BOUND: spc_storm_reports limited to the last 18 months. Old
     # hail damage is stale (already serviced) AND the unbounded scan is what made
@@ -580,10 +592,11 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                 and "dcad_parcel_geometries" in live_def
                 and "hays_parcel_geometries" in live_def
                 and "comal_parcel_geometries" in live_def
+                and "bexar_parcel_geometries" in live_def
             ):
                 logger.warning(
                     "unserviced_hail_leads: stale live definition detected "
-                    "(missing hail_leads_list/dcad/hays/comal sentinels) — "
+                    "(missing hail_leads_list/dcad/hays/comal/bexar sentinels) — "
                     "dropping to rebuild"
                 )
                 await conn.execute(_text(
@@ -940,6 +953,95 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                          SELECT 1 FROM hll_comal_norm hcn
                           WHERE hcn.norm_addr = ca.norm_situs
                      )
+                ),
+                -- ============================== BEXAR ============================
+                -- San Antonio (FREE Bexar County GIS source, BCAD). Mirrors Hays/
+                -- Comal exactly: geom.parcel_id = tx_cad_parcels.parcel_id (BCAD
+                -- PropID is stored identically as text in both tables, joins ~100%).
+                -- cad_source = 'BCAD'. bbox lat 29.1-29.7, lon -98.9..-98.2 covers
+                -- the San Antonio metro. hail_leads_list has no Bexar rows today so
+                -- the serviced-exclusion is a no-op (pure fresh canvass list). This
+                -- finally gives the un-serviced (parcels-minus-permits) signal for
+                -- Bexar, which was previously EXCLUDED for lack of an address join.
+                bexar_storms AS (
+                    SELECT report_id, report_date, lat, lon,
+                           COALESCE(size_in, 0.75) AS size_in
+                      FROM spc_storm_reports
+                     WHERE report_type = 'hail'
+                       AND state = 'TX'
+                       AND report_date >= CURRENT_DATE - INTERVAL '18 months'
+                       AND lat  BETWEEN 29.1  AND 29.7
+                       AND lon  BETWEEN -98.9 AND -98.2
+                ),
+                bexar_candidate_parcels AS (
+                    SELECT DISTINCT ON (tg.parcel_id)
+                           tg.parcel_id,
+                           tg.centroid_lat,
+                           tg.centroid_lon,
+                           sr.report_id     AS storm_report_id,
+                           sr.report_date   AS matched_storm_date,
+                           sr.size_in       AS hail_size_in
+                      FROM bexar_storms sr
+                      CROSS JOIN LATERAL (
+                          SELECT tg.parcel_id,
+                                 tg.centroid_lat, tg.centroid_lon
+                            FROM bexar_parcel_geometries tg
+                           WHERE ST_DWithin(
+                                     tg.geom,
+                                     ST_SetSRID(ST_MakePoint(sr.lon, sr.lat), 4326),
+                                     0.027
+                                 )
+                      ) tg
+                     ORDER BY tg.parcel_id, sr.size_in DESC, sr.report_date DESC
+                ),
+                bexar_candidate_with_addr AS (
+                    SELECT cp.*,
+                           tcp.situs_address AS address,
+                           tcp.situs_city    AS city,
+                           tcp.situs_zip     AS zip,
+                           TRIM(REGEXP_REPLACE(
+                               REGEXP_REPLACE(
+                                   REGEXP_REPLACE(UPPER(tcp.situs_address),
+                                       '(^|\\s)(SUITE|STE|UNIT|APT|#)\\s+\\S+', ' ', 'g'),
+                               '[.,#]', '', 'g'),
+                           '\\s+', ' ')) AS norm_situs
+                      FROM bexar_candidate_parcels cp
+                      JOIN tx_cad_parcels tcp
+                            ON tcp.parcel_id = cp.parcel_id
+                           AND tcp.cad_source = 'BCAD'
+                     WHERE tcp.situs_address IS NOT NULL
+                ),
+                hll_bexar_norm AS (
+                    SELECT DISTINCT
+                           TRIM(REGEXP_REPLACE(
+                               REGEXP_REPLACE(
+                                   REGEXP_REPLACE(UPPER(address),
+                                       '(^|\\s)(SUITE|STE|UNIT|APT|#)\\s+\\S+', ' ', 'g'),
+                               '[.,#]', '', 'g'),
+                           '\\s+', ' ')) AS norm_addr
+                      FROM hail_leads_list
+                     WHERE county ILIKE 'bexar'
+                ),
+                bexar_rows AS (
+                    SELECT
+                        ca.parcel_id,
+                        ca.address,
+                        ca.city,
+                        ca.zip,
+                        'bexar'::text                               AS county,
+                        ca.centroid_lat,
+                        ca.centroid_lon,
+                        ca.matched_storm_date,
+                        ca.hail_size_in,
+                        (CURRENT_DATE - ca.matched_storm_date)::integer AS days_since_storm,
+                        GREATEST(0, 365 - (CURRENT_DATE - ca.matched_storm_date))::double precision
+                            / 365.0 * ca.hail_size_in                AS lead_score,
+                        'Bexar'::text                               AS county_source
+                      FROM bexar_candidate_with_addr ca
+                     WHERE NOT EXISTS (
+                         SELECT 1 FROM hll_bexar_norm hbn
+                          WHERE hbn.norm_addr = ca.norm_situs
+                     )
                 )
                 SELECT parcel_id, address, city, zip, county,
                        centroid_lat, centroid_lon, matched_storm_date,
@@ -960,6 +1062,11 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                        centroid_lat, centroid_lon, matched_storm_date,
                        hail_size_in, days_since_storm, lead_score, county_source
                   FROM comal_rows
+                UNION ALL
+                SELECT parcel_id, address, city, zip, county,
+                       centroid_lat, centroid_lon, matched_storm_date,
+                       hail_size_in, days_since_storm, lead_score, county_source
+                  FROM bexar_rows
                 WITH NO DATA
             """))
         # Indexes in their own txn — unique index enables REFRESH CONCURRENTLY.

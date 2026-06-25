@@ -1566,7 +1566,7 @@ async def unserviced_hail_leads_list(
         max_length=100,
         description=(
             "Filter by county name (case-insensitive, e.g. Tarrant / Dallas / "
-            "Travis). Omit for all counties."
+            "Hays / Comal / Bexar). Omit for all counties."
         ),
     ),
     min_hail_inches: float | None = Query(
