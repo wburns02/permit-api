@@ -135,13 +135,33 @@ Four sources, all landing in `hot_leads`:
   a hot_leads source + incremental refresh).
 - Expand the 911 adapter to neighboring counties (one registry entry each).
 
-### Phase 3 — Lead view (type-classify + geocode + dedup)
+### Phase 3 — Lead view (type-classify + geocode + dedup)  ✅ SHIPPED
 
-- Classify each hot_leads row to a trade (roof / septic / electrical / new-build).
-- Geocode rows missing lat/lng.
-- Dedup across sources by normalized address → one lead per address with the
-  earliest trigger date and the richest field set.
-- Materialized "new-build lead" view, filterable by county / trade / freshness.
+- **Classify** — `app/services/permit_lead_classify.py` maps each row to a
+  normalized `lead_class` (`new_construction` | `addition` | `remodel` | `other`)
+  via source-aware rules. 911 / NENA address triggers → `new_construction` proxy.
+  Rules exist as BOTH Python (`classify_permit`) and SQL (`lead_class_sql`); a
+  pytest corpus of real Brazoria descriptions pins parity. Add a source = one
+  line in `BRAZORIA_SOURCES`.
+- **Geocode** — `scripts/geocode_brazoria_leads.py` backfills lat/lng for permit
+  rows with an address but no coords (chiefly `mgo_angleton`) via the free US
+  Census geocoder, into the shared `geocoded_addresses` cache (reuses the
+  rural_score geocoder shape). Rate-limited, `--limit`-capped, source-filtered
+  (indexed) — never a full scan. 911 rows already carry coords.
+- **Dedup** — the `brazoria_permit_leads` MV collapses to one row per normalized
+  address (`DISTINCT ON (address_norm)`), keeping the RICHEST row and aggregating
+  every contributing `source` + the EARLIEST trigger date. A 911 point and a
+  building permit at the same address merge into one lead.
+- **View** — `brazoria_permit_leads` MV (created WITH NO DATA in the startup
+  migration in `app/main.py`; unique index on `address_norm` for REFRESH
+  CONCURRENTLY). Registered in `app/services/mv_refresh._MVS` so it refreshes on
+  the same nightly path as `unserviced_hail_leads`. County-scoped via the source
+  registry (NULL-county sources resolve through `source_county_sql`).
+- **Serve** — `GET /v1/permit-leads/` (list), `/stats` (counts by class +
+  contact-coverage gaps), `/export.csv`. Same auth posture as
+  `/v1/hail-leads/unserviced` (`require_demo_key`), same MV-unpopulated-is-empty
+  handling. Filters: county / lead_class / source / from_date / to_date /
+  has_coords.
 
 ### Phase 4 — Contact enrichment
 
