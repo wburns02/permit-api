@@ -42,6 +42,16 @@ CTX_CITIES = {
     427: {"name": "San Marcos", "state": "TX", "county": "Hays"},
     284: {"name": "Kyle", "state": "TX", "county": "Hays"},
     353: {"name": "Buda", "state": "TX", "county": "Hays"},
+    # ── Brazoria County beachhead (TX permit-lead Phase 1a) ──
+    # Freeport TX runs CitizenServe installationID 404 on the www4 host.
+    # The public permit SEARCH is reCAPTCHA-gated and the default
+    # showPortalPermitList action returns no rows for this installation,
+    # so the HTTP path below yields 0 permits. Registered here so the
+    # jurisdiction is tracked; promote to a Playwright/session path (or a
+    # records-request feed) when we build the CAPTCHA bypass in Phase 1b+.
+    404: {"name": "Freeport", "state": "TX", "county": "Brazoria",
+          "host": "https://www4.citizenserve.com/Portal/PortalController",
+          "blocked": "recaptcha-gated search; no default permit list"},
 }
 
 BASE_URL = "https://citizenserve.com/Portal/PortalController"
@@ -59,6 +69,9 @@ def scrape_citizenserve(installation_id: int, city_info: dict, days: int = 7) ->
     """Scrape permits from a Citizenserve portal."""
     city = city_info["name"]
     state = city_info["state"]
+    base = city_info.get("host", BASE_URL)  # per-city host override (CitizenServe shards across www4/www6/etc.)
+    if city_info.get("blocked"):
+        log(f"  {city}, {state} (ID: {installation_id}) is BLOCKED: {city_info['blocked']} — attempting default list anyway")
     log(f"  Scraping {city}, {state} (ID: {installation_id}, last {days} days)")
 
     permits = []
@@ -67,11 +80,11 @@ def scrape_citizenserve(installation_id: int, city_info: dict, days: int = 7) ->
     # Citizenserve public portal search
     try:
         # First, load the search page to get session
-        search_url = f"{BASE_URL}?Action=showSearchPage&ctzPagePrefix=Portal_&installationID={installation_id}"
+        search_url = f"{base}?Action=showSearchPage&ctzPagePrefix=Portal_&installationID={installation_id}"
         resp = client.get(search_url)
 
         # Try the permit list endpoint
-        list_url = f"{BASE_URL}?Action=showPortalPermitList&ctzPagePrefix=Portal_&installationID={installation_id}"
+        list_url = f"{base}?Action=showPortalPermitList&ctzPagePrefix=Portal_&installationID={installation_id}"
         resp = client.get(list_url)
         html = resp.text
 
@@ -144,7 +157,7 @@ def scrape_citizenserve(installation_id: int, city_info: dict, days: int = 7) ->
             detail_links = re.findall(r'Action=getPermitDetail[^"\']*permitNumber=([^&"\']+)', html)
             for pnum in detail_links[:50]:  # Cap at 50 per city
                 try:
-                    detail_url = f"{BASE_URL}?Action=getPermitDetail&ctzPagePrefix=Portal_&installationID={installation_id}&permitNumber={pnum}"
+                    detail_url = f"{base}?Action=getPermitDetail&ctzPagePrefix=Portal_&installationID={installation_id}&permitNumber={pnum}"
                     dresp = client.get(detail_url)
                     dhtml = dresp.text
 
