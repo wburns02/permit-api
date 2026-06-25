@@ -88,6 +88,15 @@ ALLOWLIST = {
     "/v1/hail-leads/refresh-mvs",
     "/v1/hail-leads/enrich",
 
+    # ── Permit-leads (Brazoria TX feed): gated by DEMO_API_KEY, same posture ──
+    # as hail-leads (reuses require_demo_key). Fails open only when DEMO_API_KEY
+    # is unset (CI/local); in production the key is always set so these ARE
+    # auth-gated. Without a live DB the unset-key path returns 503 (DB
+    # unreachable), which the sweep would otherwise flag — hence allowlisted.
+    "/v1/permit-leads/stats",
+    "/v1/permit-leads/",            # list; gated by require_demo_key
+    "/v1/permit-leads/export.csv",  # CSV export; gated by require_demo_key
+
     # ── External service webhooks: called by Stripe/SendGrid/Twilio ──────────
     "/v1/webhooks/stripe",           # Stripe signature-verified
     "/v1/dialer/twiml/outbound",     # Twilio webhook
