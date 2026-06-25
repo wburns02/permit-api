@@ -122,18 +122,59 @@ Four sources, all landing in `hot_leads`:
    `has_default_list: False` (CAPTCHA). Confirmed still CAPTCHA-gated; left
    documented as blocked, not fought.
 
-### Phase 1b — More Brazoria jurisdictions
+### Phase 1b — Incorporated-city permit portals (DONE — adapters built; Brazoria targets externally blocked)
 
-- **eTRAKiT adapter** → Pearland.
-- **Click2Gov adapter** → Lake Jackson.
-- Revisit Freeport / iWorQ CAPTCHA via authenticated browser session.
+Two NEW generic, registry-driven vendor adapters were built. Both run; both
+Brazoria targets are externally walled (documented, not faked).
 
-### Phase 2 — Proxy / leading-indicator layers
+- **eTRAKiT adapter** — `scrape_etrakit.py` (NEW). Generic CentralSquare/eTRAKiT3
+  `/etrakit3/Search/permit.aspx` driver (Playwright, ViewState-safe), config
+  registry (`JURISDICTIONS`). Built-in connectivity gate (`--probe`) that refuses
+  to fabricate when a host is unreachable. **Unlocks every reachable eTRAKiT TX
+  city statewide** with one registry line.
+  - **Pearland → BLOCKED (network):** `etrakit.pearlandtx.gov` resolves
+    (170.76.141.9) but DROPS all inbound TCP on :80/:443 from our host (HTTP 000,
+    TLS never completes) — an IP-level filter needing a Texas/residential egress.
+    Round Rock's eTRAKiT was decommissioned (migration notice), confirming eTRAKiT
+    is being sunset across TX. Adapter is ready; Pearland is unreachable from us.
+- **Click2Gov adapter** — `scrape_click2gov.py` (NEW). Generic CentralSquare CEP
+  `/Click2GovBP/selectpermit.html` driver (Playwright, OWASP_CSRFTOKEN session),
+  config registry. `--probe` empirically measures the server result cap.
+  - **Lake Jackson → BLOCKED (architecture, not CAPTCHA):** server hard-caps
+    results at **10 per search** (verified across 7 street tokens — always exactly
+    10), there is no date-range / browse-recent search, and the returned rows skew
+    to ancient permits (1990s–2010s). Not enumerable as a fresh-lead feed. The
+    county's **CentralSquare ArcGIS folder is token-gated** ("Token Required"), so
+    the easier GIS path is not anonymously available either.
+- **Freeport CitizenServe + iWorQ → BLOCKED (reCAPTCHA, confirmed):** a real
+  headless-browser session rendered a live Google reCAPTCHA iframe on both the
+  CitizenServe (installationID 404, www4) search page and the iWorQ search.
+  Not bypassed (egregious ToS). NOTE: the existing iWorQ `freeport` registry slug
+  actually resolves to **Freeport, ILLINOIS** (wrong state) — flagged for fix.
 
-- County **clerk deed/plat** feed.
-- **TCEQ OSSF / septic** permit feed (165K TX OSSF rows already loaded — wire as
-  a hot_leads source + incremental refresh).
-- Expand the 911 adapter to neighboring counties (one registry entry each).
+### Phase 2 — Proxy / leading-indicator layers (PARTIAL — OSSF wired; deeds/plats blocked)
+
+- **County clerk deed/plat feed → BLOCKED (reCAPTCHA + subscription).** Brazoria
+  clerk records are on Tyler eSearch (`brazoriacountytx-web.tylerhost.net`). The
+  disclaimer "I Accept" button is gated by a live **Google reCAPTCHA** (visible
+  `recaptcha/api2/anchor` iframe, sitekey `6LemVGAUAAAAAB_iW1wbaE4_s0Z5SoSakm6GI8St`),
+  and the portal meters via `getSubscriptionTime` (subscription). Not bypassed.
+  Fresh path = a paid Tyler eSearch subscription or a county-clerk bulk-data /
+  PIA arrangement; no anonymous automation.
+- **TCEQ OSSF / septic feed → WIRED (the inventory we hold).** `scrape_ossf_to_hot_leads.py`
+  (NEW). Generic county-registry adapter that surfaces `ossf_permits_tx` into
+  `hot_leads` as a rural new-build trigger (`permit_type='SEPTIC (OSSF)'`,
+  `work_class='NEW-BUILD TRIGGER (OSSF)'`, real permit_number → bridge-eligible).
+  PROVEN on Hays (223 rows round-tripped from `hot_leads`). Covers the 8 Central-TX
+  counties we hold (~165K rows: Travis/Williamson/Bastrop/Ellis/Grayson/Fannin/
+  Hays/Cooke). **Snapshot freshness: data ends ~2025-12-15** (a held snapshot, not
+  a live feed); track per-source lag in the ledger.
+  - **Brazoria OSSF → NOT HELD.** Verified **0** Brazoria rows in `ossf_permits_tx`.
+    Brazoria is a TCEQ **Authorized Agent**: it issues/holds its own OSSF permits
+    with no state API or bulk feed. Fresh path = **monthly county PIA** to Brazoria
+    County Environmental Health (OSSF program). Documented in the adapter's
+    `NOT_HELD` registry; no Brazoria feed is faked.
+- Expand the 911 adapter to neighboring counties (one registry entry each) — still open.
 
 ### Phase 3 — Lead view (type-classify + geocode + dedup)
 
@@ -175,4 +216,23 @@ code per county once the adapter for its platform exists.
   5 5 * * * cd /home/will/permit-api-live && python3 scripts/scrape_county_911_addresses.py --county brazoria --since-days 2 >> /tmp/county_911_brazoria.log 2>&1
   # Angleton (MGO) is covered by the existing CTX MGO daily chain (id 404 now in registry):
   # 20 5 * * * ... scrape_mgo_ctx.py --days 7   (already scheduled; picks up Angleton automatically)
+  # OSSF septic new-build triggers — daily 05:25 CT, incremental from ledger high-water mark
+  25 5 * * * cd /home/will/permit-api-live && python3 scripts/scrape_ossf_to_hot_leads.py --all >> /tmp/ossf_hot_leads.log 2>&1
+  # eTRAKiT Pearland — daily 05:35 CT. DISABLED: host network-unreachable from us
+  # (HTTP 000 on :80/:443). Enable only after a reachable egress/host is registered.
+  # 35 5 * * * cd /home/will/permit-api-live && python3 scripts/scrape_etrakit.py --city pearland --days 7 >> /tmp/etrakit_pearland.log 2>&1
+  # Click2Gov Lake Jackson — NOT scheduled: server caps results at 10/search, no
+  # date browse → not a usable fresh feed. scrape_click2gov.py kept for other cities.
   ```
+
+### Phase 1b/2 source verdicts (2026-06-25)
+
+| Source | Adapter | Verdict | Reason / proof |
+|--------|---------|---------|----------------|
+| OSSF Hays (+7 CTX counties) | `scrape_ossf_to_hot_leads.py` | **PROVEN** | 223 Hays rows round-tripped from `hot_leads` (e.g. `OSSF-2025-4523 \| 401 LANGE RD \| ANNETTE LORENZ \| 2025-12-11`); ledger `ossf_hays` records_loaded=223 |
+| Pearland eTRAKiT | `scrape_etrakit.py` | **BLOCKED** | network IP filter; :80/:443 drop all inbound (HTTP 000). Adapter ready + connectivity-gated |
+| Lake Jackson Click2Gov | `scrape_click2gov.py` | **BLOCKED** | server caps at 10 results/search (measured), no date browse, ancient rows; county ArcGIS token-gated |
+| Freeport CitizenServe | `scrape_citizenserve_ctx.py` (id 404) | **BLOCKED** | live Google reCAPTCHA on search (browser-confirmed) |
+| iWorQ Freeport | `scrape_iworq.py` | **BLOCKED** | live reCAPTCHA; existing slug also points at Freeport **IL** (wrong state) |
+| Brazoria clerk deeds/plats | (none) | **BLOCKED** | Tyler eSearch disclaimer behind Google reCAPTCHA + subscription metering |
+| Brazoria OSSF | `scrape_ossf_to_hot_leads.py` (`NOT_HELD`) | **NOT HELD** | 0 rows held; TCEQ Authorized Agent, county-held, no API → monthly PIA |
