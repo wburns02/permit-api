@@ -82,6 +82,44 @@ def test_classify_real_descriptions(desc, expected):
     assert got == expected, f"{desc!r} -> {got!r}, expected {expected!r}"
 
 
+# Pearland city-GIS BUS_CASE_DESC categories (the full distinct set from both
+# the Residential_Permits and Commercial_Permits ArcGIS layers). These ride the
+# permit_type slot (scrape_arcgis_permits.py maps BUS_CASE_DESC -> permit_type).
+_PEARLAND_CASES = [
+    ("Single Family New Custom Home", "new_construction"),
+    ("Residential Single Family New Tract Home", "new_construction"),
+    ("Residential Single Family Townhouse", "new_construction"),
+    ("Commercial Multi Family New Construction", "new_construction"),
+    ("Commercial New Construction Permit", "new_construction"),
+    ("Residential Addition", "addition"),
+    ("Commercial Addition", "addition"),
+    ("Residential Accessory Structure", "addition"),
+    ("Commercial Accessory Building Permit", "addition"),
+    ("Residential Alterations / Remodel", "remodel"),
+    ("Commercial Alteration", "remodel"),
+    ("Residential Demolition Permit", "other"),
+    ("Commercial Demolition Permit", "other"),
+    ("Commercial Site Work Permit", "other"),
+    ("Grading Permit", "other"),
+    ("Clear & Grub", "other"),
+    ("Infrastructure Permit", "other"),
+    ("Tree Removal Urban Forestry", "other"),
+]
+
+
+@pytest.mark.parametrize("cat,expected", _PEARLAND_CASES)
+def test_classify_pearland_categories(cat, expected):
+    got = classify_permit("pearland_permits", permit_type=cat)
+    assert got == expected, f"{cat!r} -> {got!r}, expected {expected!r}"
+
+
+def test_pearland_source_registered_in_brazoria():
+    assert "pearland_permits" in BRAZORIA_SOURCES
+    county, trig = BRAZORIA_SOURCES["pearland_permits"]
+    assert county == "Brazoria"
+    assert trig is False  # it is a real permit feed, not a 911 address trigger
+
+
 def test_911_source_is_always_new_construction():
     """A 911/NENA address-trigger source is new_construction regardless of text."""
     for src in ADDRESS_TRIGGER_SOURCES:

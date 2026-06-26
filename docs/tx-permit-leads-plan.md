@@ -101,6 +101,11 @@ permit platforms still need adapters:
 - **Tyler EnerGov / Civic Access** (e.g. Kyle, Lakeway) — OIDC-locked JSON API,
   needs a logged-in browser session (Playwright).
 - **Cityworks** — public ArcGIS-backed portals, varies by deployment.
+- **City GIS ArcGIS permit FeatureServer** (e.g. **Pearland**) — many TX
+  cities publish building-permit cases on a public Esri MapServer/FeatureServer
+  (no auth, no captcha). Generic registry-driven adapter `scrape_arcgis_permits.py`
+  (NEW) — a city is one `CITIES` entry (service URL + layer paths + field map).
+  **This is how Pearland is built** (eTRAKiT abandoned — see below).
 
 ## Phased plan
 
@@ -137,6 +142,17 @@ Brazoria targets are externally walled (documented, not faked).
     TLS never completes) — an IP-level filter needing a Texas/residential egress.
     Round Rock's eTRAKiT was decommissioned (migration notice), confirming eTRAKiT
     is being sunset across TX. Adapter is ready; Pearland is unreachable from us.
+  - **Pearland → RESOLVED via city GIS ArcGIS (eTRAKiT ABANDONED):** the city
+    GIS FeatureServer `https://gis.pearlandtx.gov/hosting/rest/services` exposes
+    `Residential_Permits/MapServer/0` + `Commercial_Permits/MapServer/0` publicly
+    (no auth/captcha). Built with the generic `scrape_arcgis_permits.py` adapter,
+    source tag `pearland_permits`, county `Brazoria`. DATE_ISSUED is a sortable
+    STRING (parsed to a real timestamp on ingest); lat/lng come from geometry at
+    `outSR=4326` (the CX/CY columns are Web-Mercator, not lat/lng). Lands in
+    `hot_leads` on `UNIQUE(permit_number, source)`; classified by
+    `permit_lead_classify` (tract/custom home/townhouse/multi-family →
+    new_construction, alterations → remodel, additions/accessory → addition,
+    demolition/site-work → other) and surfaced by `brazoria_permit_leads` / `/v1/permit-leads`.
 - **Click2Gov adapter** — `scrape_click2gov.py` (NEW). Generic CentralSquare CEP
   `/Click2GovBP/selectpermit.html` driver (Playwright, OWASP_CSRFTOKEN session),
   config registry. `--probe` empirically measures the server result cap.
@@ -260,8 +276,11 @@ code per county once the adapter for its platform exists.
   # 20 5 * * * ... scrape_mgo_ctx.py --days 7   (already scheduled; picks up Angleton automatically)
   # OSSF septic new-build triggers — daily 05:25 CT, incremental from ledger high-water mark
   25 5 * * * cd /home/will/permit-api-live && python3 scripts/scrape_ossf_to_hot_leads.py --all >> /tmp/ossf_hot_leads.log 2>&1
-  # eTRAKiT Pearland — daily 05:35 CT. DISABLED: host network-unreachable from us
-  # (HTTP 000 on :80/:443). Enable only after a reachable egress/host is registered.
+  # Pearland city-GIS building permits (ArcGIS) — daily 05:25 CT, 7-day look-back
+  # (incremental from ledger high-water mark). This REPLACES the blocked eTRAKiT path.
+  25 5 * * * cd /home/will/permit-api-live && python3 scripts/scrape_arcgis_permits.py --city pearland --since-days 7 >> /tmp/arcgis_permits_pearland.log 2>&1
+  # eTRAKiT Pearland — DISABLED/ABANDONED: host network-unreachable from us (HTTP 000
+  # on :80/:443). Superseded by the ArcGIS adapter above; kept only for the record.
   # 35 5 * * * cd /home/will/permit-api-live && python3 scripts/scrape_etrakit.py --city pearland --days 7 >> /tmp/etrakit_pearland.log 2>&1
   # Click2Gov Lake Jackson — NOT scheduled: server caps results at 10/search, no
   # date browse → not a usable fresh feed. scrape_click2gov.py kept for other cities.
@@ -272,7 +291,8 @@ code per county once the adapter for its platform exists.
 | Source | Adapter | Verdict | Reason / proof |
 |--------|---------|---------|----------------|
 | OSSF Hays (+7 CTX counties) | `scrape_ossf_to_hot_leads.py` | **PROVEN** | 223 Hays rows round-tripped from `hot_leads` (e.g. `OSSF-2025-4523 \| 401 LANGE RD \| ANNETTE LORENZ \| 2025-12-11`); ledger `ossf_hays` records_loaded=223 |
-| Pearland eTRAKiT | `scrape_etrakit.py` | **BLOCKED** | network IP filter; :80/:443 drop all inbound (HTTP 000). Adapter ready + connectivity-gated |
+| Pearland eTRAKiT | `scrape_etrakit.py` | **ABANDONED** | network IP filter; :80/:443 drop all inbound (HTTP 000). Superseded by city GIS ArcGIS |
+| Pearland city GIS | `scrape_arcgis_permits.py` | **PROVEN** | public ArcGIS FeatureServer (res+comm layers), no auth/captcha; rows round-tripped into `hot_leads` (`pearland_permits`) and `/v1/permit-leads` for Brazoria |
 | Lake Jackson Click2Gov | `scrape_click2gov.py` | **BLOCKED** | server caps at 10 results/search (measured), no date browse, ancient rows; county ArcGIS token-gated |
 | Freeport CitizenServe | `scrape_citizenserve_ctx.py` (id 404) | **BLOCKED** | live Google reCAPTCHA on search (browser-confirmed) |
 | iWorQ Freeport | `scrape_iworq.py` | **BLOCKED** | live reCAPTCHA; existing slug also points at Freeport **IL** (wrong state) |
