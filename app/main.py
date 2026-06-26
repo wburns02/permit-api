@@ -161,6 +161,21 @@ async def _run_startup_migrations() -> None:
 
     try:
         await _run_startup_migrations_body(_text, primary_engine)
+        # The migration body (re)creates every hail/permit-lead MV `WITH NO
+        # DATA` and several self-heal by DROP+CREATE on definition drift, which
+        # leaves them EMPTY. Without this, `/v1/permit-leads`
+        # (brazoria_permit_leads) and the live hail product
+        # (unserviced_hail_leads) serve empty from deploy until the 04:25 UTC
+        # nightly refresh. Populate any unpopulated MV now, on the dedicated
+        # maintenance engine (no statement-timeout cap), so the endpoints serve
+        # real data right after a deploy. Only the lock-holding worker reaches
+        # here, so the populate runs exactly once. Failures are swallowed inside
+        # `refresh_unpopulated` so a missing base table never bricks startup.
+        try:
+            from app.services.mv_refresh import refresh_unpopulated
+            await refresh_unpopulated()
+        except Exception as e:  # noqa: BLE001
+            logger.warning("startup MV populate failed (non-fatal): %s", e)
     finally:
         if lock_conn is not None:
             try:

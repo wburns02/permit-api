@@ -281,6 +281,64 @@ async def refresh_if_stale(threshold_hours: float = 6.0) -> None:
             logger.exception("Boot MV refresh: %s raised", relname)
 
 
+async def refresh_unpopulated() -> None:
+    """Populate any MV in `_MVS` that is currently UNPOPULATED.
+
+    Every MV in `_MVS` is created `WITH NO DATA` by the startup migration in
+    `app/main.py`, and several self-heal by DROP+CREATE (also `WITH NO DATA`)
+    when their definition drifts. After such a (re)build the MV is empty until
+    the nightly `refresh_hail_leads_mvs` cron runs at 04:25 UTC — so endpoints
+    like `/v1/permit-leads` (brazoria_permit_leads) and the live hail product
+    (`unserviced_hail_leads`) serve EMPTY for up to a day after every deploy.
+
+    This runs right after the startup migrations and force-refreshes only the
+    MVs that pg reports as unpopulated. It is deliberately NOT gated on
+    `cron_heartbeat` staleness: a self-heal rebuild leaves the heartbeat row
+    fresh while the MV is empty, so the staleness gate would wrongly skip it.
+    `_refresh_one` updates the heartbeat after each populate. Empty MVs whose
+    base tables aren't loaded yet (fresh DB) refresh to zero rows cheaply.
+
+    Detection uses `pg_matviews.ispopulated` — the authoritative "has this MV
+    ever been refreshed since its last (re)build" flag — so a populated MV is
+    never needlessly re-walked on a steady-state redeploy.
+    """
+    try:
+        async with primary_session_maker() as db:
+            rows = await db.execute(
+                text(
+                    "SELECT matviewname FROM pg_matviews "
+                    "WHERE schemaname = 'public' "
+                    "  AND matviewname = ANY(:names) "
+                    "  AND ispopulated = false"
+                ),
+                {"names": [relname for _, relname in _MVS]},
+            )
+            unpopulated = {r[0] for r in rows.fetchall()}
+    except Exception as exc:  # noqa: BLE001
+        logger.warning(
+            "MV populate-check failed (%s) — skipping startup populate", exc
+        )
+        return
+
+    if not unpopulated:
+        logger.info("MV startup-populate: all MVs already populated")
+        return
+
+    # Preserve _MVS order so dependency-ordered MVs (e.g. hail_leads_list,
+    # which derives from the base MVs) refresh after their inputs.
+    to_refresh = [(c, r) for c, r in _MVS if r in unpopulated]
+    logger.info(
+        "MV startup-populate: %d unpopulated MV(s): %s",
+        len(to_refresh),
+        [r for _, r in to_refresh],
+    )
+    for cron_name, relname in to_refresh:
+        try:
+            await _refresh_one(cron_name, relname)
+        except Exception:  # noqa: BLE001
+            logger.exception("Startup MV populate: %s raised", relname)
+
+
 async def refresh_in_background() -> None:
     """Wrapper used at app startup so REFRESH never blocks /health.
 
