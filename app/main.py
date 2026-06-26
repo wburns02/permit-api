@@ -565,12 +565,20 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
     #            the un-serviced (parcels-minus-permits) signal for the largest TX
     #            metro previously uncovered.
     #
-    # Travis is still EXCLUDED: there is no TCAD/Travis cad_source in
-    # tx_cad_parcels (only HCAD/DCAD/TAD/WCAD/HaysCAD/CCAD/BCAD/Gillespie/Kerr/
-    # Bandera) and travis_parcel_geometries has no situs columns of its own — so
-    # there is no address join for Travis parcels. Adding it would ship rows with
-    # NULL addresses, which is worse than no Travis coverage. (Bexar previously
-    # shared this failure mode; BCAD now supplies the address join, so it is in.)
+    #   Travis : geom=travis_parcel_geometries, cad_source='TCAD', county='travis',
+    #            county_source='Travis', bbox lat 30.0-30.6, lon -98.05..-97.4
+    #            (Austin metro). Same join shape as Hays/Comal/Bexar:
+    #            geom.parcel_id = tx_cad_parcels.parcel_id (TCAD PROP_ID stored
+    #            identically as a plain integer string in both tables, joins
+    #            ~100%). cad_source = 'TCAD'. Source is the FREE Travis County
+    #            GIS REST layer (~373,683 parcels). hail_leads_list has ~0 Travis
+    #            rows today so the serviced-exclusion is a no-op — pure fresh
+    #            canvass list. Travis was previously EXCLUDED for lack of an
+    #            address join (no TCAD cad_source in tx_cad_parcels); the
+    #            load_tcad_parcels.py loader now supplies situs_address +
+    #            owner_name + year_built, so it is IN. The recent ~3" 2026-06-02
+    #            Austin hail event puts these leads in the OPEN claim window
+    #            (HIGH lead_score), unlike the stale cash-window sets.
     #
     # STORM WINDOW BOUND: spc_storm_reports limited to the last 18 months. Old
     # hail damage is stale (already serviced) AND the unbounded scan is what made
@@ -609,10 +617,11 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                 and "hays_parcel_geometries" in live_def
                 and "comal_parcel_geometries" in live_def
                 and "bexar_parcel_geometries" in live_def
+                and "travis_parcel_geometries" in live_def
             ):
                 logger.warning(
                     "unserviced_hail_leads: stale live definition detected "
-                    "(missing hail_leads_list/dcad/hays/comal/bexar sentinels) — "
+                    "(missing hail_leads_list/dcad/hays/comal/bexar/travis sentinels) — "
                     "dropping to rebuild"
                 )
                 await conn.execute(_text(
@@ -1058,6 +1067,95 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                          SELECT 1 FROM hll_bexar_norm hbn
                           WHERE hbn.norm_addr = ca.norm_situs
                      )
+                ),
+                -- ============================= TRAVIS ============================
+                -- Austin metro (FREE Travis County GIS source, TCAD). Mirrors
+                -- Hays/Comal/Bexar exactly: geom.parcel_id = tx_cad_parcels.parcel_id
+                -- (TCAD PROP_ID stored identically as a plain integer string in
+                -- both tables, joins ~100%). cad_source = 'TCAD'. bbox lat 30.0-30.6,
+                -- lon -98.05..-97.4 covers the Austin metro. hail_leads_list has ~0
+                -- Travis rows today so the serviced-exclusion is a near no-op (pure
+                -- fresh canvass list). The recent ~3" 2026-06-02 Austin hail event
+                -- puts these in the OPEN claim window (HIGH lead_score).
+                travis_storms AS (
+                    SELECT report_id, report_date, lat, lon,
+                           COALESCE(size_in, 0.75) AS size_in
+                      FROM spc_storm_reports
+                     WHERE report_type = 'hail'
+                       AND state = 'TX'
+                       AND report_date >= CURRENT_DATE - INTERVAL '18 months'
+                       AND lat  BETWEEN 30.0   AND 30.6
+                       AND lon  BETWEEN -98.05 AND -97.4
+                ),
+                travis_candidate_parcels AS (
+                    SELECT DISTINCT ON (tg.parcel_id)
+                           tg.parcel_id,
+                           tg.centroid_lat,
+                           tg.centroid_lon,
+                           sr.report_id     AS storm_report_id,
+                           sr.report_date   AS matched_storm_date,
+                           sr.size_in       AS hail_size_in
+                      FROM travis_storms sr
+                      CROSS JOIN LATERAL (
+                          SELECT tg.parcel_id,
+                                 tg.centroid_lat, tg.centroid_lon
+                            FROM travis_parcel_geometries tg
+                           WHERE ST_DWithin(
+                                     tg.geom,
+                                     ST_SetSRID(ST_MakePoint(sr.lon, sr.lat), 4326),
+                                     0.027
+                                 )
+                      ) tg
+                     ORDER BY tg.parcel_id, sr.size_in DESC, sr.report_date DESC
+                ),
+                travis_candidate_with_addr AS (
+                    SELECT cp.*,
+                           tcp.situs_address AS address,
+                           tcp.situs_city    AS city,
+                           tcp.situs_zip     AS zip,
+                           TRIM(REGEXP_REPLACE(
+                               REGEXP_REPLACE(
+                                   REGEXP_REPLACE(UPPER(tcp.situs_address),
+                                       '(^|\\s)(SUITE|STE|UNIT|APT|#)\\s+\\S+', ' ', 'g'),
+                               '[.,#]', '', 'g'),
+                           '\\s+', ' ')) AS norm_situs
+                      FROM travis_candidate_parcels cp
+                      JOIN tx_cad_parcels tcp
+                            ON tcp.parcel_id = cp.parcel_id
+                           AND tcp.cad_source = 'TCAD'
+                     WHERE tcp.situs_address IS NOT NULL
+                ),
+                hll_travis_norm AS (
+                    SELECT DISTINCT
+                           TRIM(REGEXP_REPLACE(
+                               REGEXP_REPLACE(
+                                   REGEXP_REPLACE(UPPER(address),
+                                       '(^|\\s)(SUITE|STE|UNIT|APT|#)\\s+\\S+', ' ', 'g'),
+                               '[.,#]', '', 'g'),
+                           '\\s+', ' ')) AS norm_addr
+                      FROM hail_leads_list
+                     WHERE county ILIKE 'travis'
+                ),
+                travis_rows AS (
+                    SELECT
+                        ca.parcel_id,
+                        ca.address,
+                        ca.city,
+                        ca.zip,
+                        'travis'::text                              AS county,
+                        ca.centroid_lat,
+                        ca.centroid_lon,
+                        ca.matched_storm_date,
+                        ca.hail_size_in,
+                        (CURRENT_DATE - ca.matched_storm_date)::integer AS days_since_storm,
+                        GREATEST(0, 365 - (CURRENT_DATE - ca.matched_storm_date))::double precision
+                            / 365.0 * ca.hail_size_in                AS lead_score,
+                        'Travis'::text                              AS county_source
+                      FROM travis_candidate_with_addr ca
+                     WHERE NOT EXISTS (
+                         SELECT 1 FROM hll_travis_norm htn
+                          WHERE htn.norm_addr = ca.norm_situs
+                     )
                 )
                 SELECT parcel_id, address, city, zip, county,
                        centroid_lat, centroid_lon, matched_storm_date,
@@ -1083,6 +1181,11 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                        centroid_lat, centroid_lon, matched_storm_date,
                        hail_size_in, days_since_storm, lead_score, county_source
                   FROM bexar_rows
+                UNION ALL
+                SELECT parcel_id, address, city, zip, county,
+                       centroid_lat, centroid_lon, matched_storm_date,
+                       hail_size_in, days_since_storm, lead_score, county_source
+                  FROM travis_rows
                 WITH NO DATA
             """))
         # Indexes in their own txn — unique index enables REFRESH CONCURRENTLY.
