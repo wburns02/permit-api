@@ -57,8 +57,12 @@ import re
 BRAZORIA_SOURCES: dict[str, tuple[str, bool]] = {
     "mgo_angleton": ("Brazoria", False),
     "brazoria_co_911_addresses": ("Brazoria", True),
+    # Pearland is in Brazoria County (and partly Harris/Fort Bend); its building
+    # permits are published on the city GIS ArcGIS FeatureServer
+    # (scripts/scrape_arcgis_permits.py). eTRAKiT was abandoned: the city
+    # eTRAKiT host is network-blackholed from us (see docs/tx-permit-leads-plan.md).
+    "pearland_permits": ("Brazoria", False),
     # Future Brazoria jurisdictions land here, one line each:
-    # "etrakit_pearland":      ("Brazoria", False),   # Phase 1b
     # "click2gov_lake_jackson":("Brazoria", False),   # Phase 1b
     # "tceq_ossf_brazoria":    ("Brazoria", False),   # Phase 2
 }
@@ -120,6 +124,12 @@ _NEW_CONSTRUCTION_RE = re.compile(
     r"\bnh\b|new\s*home\s*whole\s*system|new\s*home|"
     r"new\s*electrical\s*residential\s*construction|"
     r"in\s*new\s*construction|for\s*new\s*home\s*build|"
+    # Pearland (city GIS) BUS_CASE_DESC encodings for a brand-new dwelling:
+    # "Single Family New Custom Home", "Residential Single Family New Tract
+    # Home", "Residential Single Family Townhouse", "Commercial Multi Family
+    # New Construction". A townhouse case on this portal is a new-build.
+    r"new\s*custom\s*home|new\s*tract\s*home|"
+    r"single\s*family\s*townhouse|multi\s*family\s*new|"
     r"certificate\s*of\s*occupancy)",
     re.IGNORECASE,
 )
@@ -128,7 +138,7 @@ _NEW_CONSTRUCTION_RE = re.compile(
 _ADDITION_RE = re.compile(
     r"(\baddition\b|\badd(ing)?\b.*\b(room|bedroom|bath|slab|sqft|sq\s*ft|"
     r"square\s*f)|slab\s*extension|extend\s*driveway|carport|"
-    r"accessory\s*structure|portable\s*shed|\bshed\b|pergola|gazebo|"
+    r"accessory\s*structure|accessory\s*building|portable\s*shed|\bshed\b|pergola|gazebo|"
     r"metal\s*building|office\s*building|new\s*walls|patio\s*cover|"
     r"build\s*on\s*site|concrete\s*slab|pour\s*a\b)",
     re.IGNORECASE,
@@ -140,7 +150,7 @@ _REMODEL_RE = re.compile(
     r"re-?pipe|replace.*(plumbing|sewer|water\s*line|pipe)|"
     r"replace.*(hvac|condenser|condensor|furnace|coil|evaporator)|"
     r"change\s*out|hvac.*(replace|install)|install.*hvac|new\s*hvac|"
-    r"foundation|level\s*foundation|repair|remodel|renovat|"
+    r"foundation|level\s*foundation|repair|remodel|renovat|alteration|"
     r"service\s*upgrade|meter\s*loop|service\s*riser|new.*service|"
     r"siding|sheetrock|insulation|interior|finish\s*out|solar|"
     r"generator|electrical\s*service|re-?model|tunnel)",
@@ -207,18 +217,21 @@ _SQL_OTHER = (
 _SQL_NEW = (
     r"new *home *build|new *construction|new *residential|new *rnc|new *rwc|rnc *install|"
     r"new *home *whole *system|new *home|new *electrical *residential *construction|"
-    r"in *new *construction|for *new *home *build|certificate *of *occupancy|(^| )nh( |$)"
+    r"in *new *construction|for *new *home *build|"
+    # Pearland city-GIS new-build encodings (mirror of _NEW_CONSTRUCTION_RE):
+    r"new *custom *home|new *tract *home|single *family *townhouse|multi *family *new|"
+    r"certificate *of *occupancy|(^| )nh( |$)"
 )
 _SQL_ADDITION = (
     r"addition|slab *extension|extend *driveway|carport|accessory *structure|"
-    r"portable *shed|shed|pergola|gazebo|metal *building|office *building|new *walls|"
+    r"accessory *building|portable *shed|shed|pergola|gazebo|metal *building|office *building|new *walls|"
     r"patio *cover|build *on *site|concrete *slab|pour *a "
 )
 _SQL_REMODEL = (
     r"re-?roof|roof *replace|full *roof|replace.*roof|re-?pipe|"
     r"replace.*(plumbing|sewer|water *line|pipe)|replace.*(hvac|condenser|condensor|furnace|coil|evaporator)|"
     r"change *out|hvac.*(replace|install)|install.*hvac|new *hvac|foundation|level *foundation|"
-    r"repair|remodel|renovat|service *upgrade|meter *loop|service *riser|new.*service|"
+    r"repair|remodel|renovat|alteration|service *upgrade|meter *loop|service *riser|new.*service|"
     r"siding|sheetrock|insulation|interior|finish *out|solar|generator|electrical *service|tunnel"
 )
 
