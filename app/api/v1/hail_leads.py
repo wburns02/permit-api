@@ -1524,6 +1524,7 @@ def _is_mv_unpopulated(exc: Exception) -> bool:
 def _build_unserviced_filter_sql(
     *,
     county: str | None,
+    city: str | None = None,
     min_hail_inches: float | None,
     from_date: date | None,
     to_date: date | None,
@@ -1539,6 +1540,11 @@ def _build_unserviced_filter_sql(
     if county:
         clauses.append("uhl.county ILIKE :county")
         params["county"] = county
+    if city:
+        # Ascension stores city UPPER-cased (Gonzales vs GONZALES in the
+        # assessor feed); ILIKE keeps the Gonzales filter case-insensitive.
+        clauses.append("uhl.city ILIKE :city")
+        params["city"] = city
     if min_hail_inches is not None:
         clauses.append("uhl.hail_size_in >= :min_hail_inches")
         params["min_hail_inches"] = min_hail_inches
@@ -1568,6 +1574,14 @@ async def unserviced_hail_leads_list(
             "Filter by county name (case-insensitive, e.g. Tarrant / Dallas / "
             "Hays / Comal / Bexar / East Baton Rouge). Omit for all counties. "
             "Note: East Baton Rouge (LA) leads are WIND/tropical-keyed, not hail."
+        ),
+    ),
+    city: str | None = Query(
+        None,
+        max_length=100,
+        description=(
+            "Filter by situs city (case-insensitive, e.g. Gonzales / "
+            "Prairieville for Ascension). Omit for all cities."
         ),
     ),
     min_hail_inches: float | None = Query(
@@ -1612,6 +1626,7 @@ async def unserviced_hail_leads_list(
     """
     where_sql, params = _build_unserviced_filter_sql(
         county=county,
+        city=city,
         min_hail_inches=min_hail_inches,
         from_date=from_date,
         to_date=to_date,
@@ -1712,6 +1727,11 @@ async def unserviced_hail_leads_export_csv(
         max_length=100,
         description="Filter by county name (case-insensitive). Omit for all counties.",
     ),
+    city: str | None = Query(
+        None,
+        max_length=100,
+        description="Filter by situs city (case-insensitive, e.g. Gonzales). Omit for all.",
+    ),
     min_hail_inches: float | None = Query(
         None,
         ge=0.0,
@@ -1740,6 +1760,7 @@ async def unserviced_hail_leads_export_csv(
     """
     where_sql, params = _build_unserviced_filter_sql(
         county=county,
+        city=city,
         min_hail_inches=min_hail_inches,
         from_date=from_date,
         to_date=to_date,
