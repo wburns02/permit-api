@@ -2,9 +2,14 @@
 
 Source: https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/
 
-Filters: state=TEXAS only. Keeps all event types — hail, thunderstorm
-wind, tornado, flood, drought, etc. Roof/siding/fence/foundation lead
-funnels all map to these.
+Filters: state IN {TEXAS, LOUISIANA}. Keeps all event types — hail,
+thunderstorm wind, high/strong wind, tropical storm, hurricane, tornado,
+flood, drought, etc. Roof/siding/fence/foundation lead funnels all map to
+these. LOUISIANA was added for the East Baton Rouge Parish (FIPS 22033)
+WIND/tropical storm-lead product (EBR gets little hail; the roof-damage
+peril there is wind + tropical systems). The cz_name/cz_fips/state join
+machinery downstream is already state-agnostic, so adding a state here is
+all that's needed to feed LA `storm_events`.
 
 This module is the only place the NOAA load lives now — the previous
 T430 cron + CLI script (`scripts/backfill_noaa_storm_events.py` in the
@@ -35,7 +40,10 @@ logger = logging.getLogger(__name__)
 
 
 INDEX_URL = "https://www.ncei.noaa.gov/pub/data/swdi/stormevents/csvfiles/"
-STATE_FILTER = "TEXAS"
+# States we ingest. NCEI's STATE column is uppercase full names. TEXAS drives
+# the hail-lead product; LOUISIANA drives the East Baton Rouge (FIPS 22033)
+# wind/tropical storm-lead arm.
+STATE_FILTER: frozenset[str] = frozenset({"TEXAS", "LOUISIANA"})
 HEARTBEAT_NAME = "storm_events_load"
 
 _INDEX_RX = re.compile(
@@ -138,7 +146,7 @@ async def _fetch_and_filter(client: httpx.AsyncClient, url: str) -> list[dict[st
     today = date.today()
     out: list[dict[str, Any]] = []
     for row in reader:
-        if row.get("STATE") != STATE_FILTER:
+        if row.get("STATE") not in STATE_FILTER:
             continue
         eid = _i(row.get("EVENT_ID"))
         if eid is None:
@@ -286,8 +294,8 @@ async def load_noaa_storm_events(years: int = 1) -> dict[str, Any]:
     target_years = list(range(current_year - years + 1, current_year + 1))
 
     logger.info(
-        "NOAA storm_events load starting: state=%s years=%s",
-        STATE_FILTER, target_years,
+        "NOAA storm_events load starting: states=%s years=%s",
+        sorted(STATE_FILTER), target_years,
     )
 
     downloaded_files = 0
@@ -331,8 +339,8 @@ async def load_noaa_storm_events(years: int = 1) -> dict[str, Any]:
 
             rows_touched += affected
             logger.info(
-                "year %d: %d %s events fetched, %d rows touched, %d chunk errors",
-                yr, len(records), STATE_FILTER, affected, chunk_errors,
+                "year %d: %d events fetched (states=%s), %d rows touched, %d chunk errors",
+                yr, len(records), sorted(STATE_FILTER), affected, chunk_errors,
             )
             if chunk_errors:
                 errors.append(f"year {yr}: {chunk_errors} chunk(s) failed")

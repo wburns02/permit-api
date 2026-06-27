@@ -502,12 +502,23 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
         logger.warning("Could not create hail_leads_list MV: %s", e)
 
     # ---------------------------------------------------------------------------
-    # unserviced_hail_leads MV — Tarrant + Dallas + Hays + Comal + Bexar (canvass).
+    # unserviced_hail_leads MV — Tarrant + Dallas + Hays + Comal + Bexar +
+    #   Travis + Harris (TX hail) + EAST BATON ROUGE, LA (first LA / WIND arm).
     #
-    # Produces one row per parcel that: (a) sits within 3 km of a recent TX
-    # hail-storm report (SPC, last 18 months), (b) has NOT already had
-    # contractor activity recorded in hail_leads_list for the same
-    # address+county. This is the "canvass list" roofers want.
+    # Produces one row per parcel that: (a) sits within 3 km of a recent storm
+    # (last 18 months), (b) has NOT already been serviced. This is the "canvass
+    # list" roofers want.
+    #
+    # The TX arms key on HAIL (SPC reports) and exclude parcels already in
+    # hail_leads_list. The EBR arm (county_source='EBR') is the FIRST non-TX /
+    # non-hail arm: its peril is WIND + TROPICAL (Thunderstorm Wind dominates
+    # EBR; hail is secondary), its storm source is NOAA `storm_events` (LA
+    # cz_fips=33, point lat/lon), and its serviced-exclusion is precise — it
+    # drops parcels with a `Re-Roof` permit (ebr_permits.is_reroof) issued AFTER
+    # the matched storm. The frozen `hail_size_in` column carries hail inches
+    # for EBR Hail rows and is NULL for EBR wind rows (wind magnitude is knots,
+    # never coerced into inches); lead_score keys on recency × severity. See the
+    # EBR CTE block at the end of the WITH chain.
     #
     # Per-county pattern (identical for both, UNION ALL'd into one MV):
     #   Storm source : spc_storm_reports hail points, last 18 months, county bbox.
@@ -636,11 +647,12 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                 and "bexar_parcel_geometries" in live_def
                 and "travis_parcel_geometries" in live_def
                 and "hcad_parcel_geometries" in live_def
+                and "ebr_parcel_geometries" in live_def
             ):
                 logger.warning(
                     "unserviced_hail_leads: stale live definition detected "
-                    "(missing hail_leads_list/dcad/hays/comal/bexar/travis/harris "
-                    "sentinels) — dropping to rebuild"
+                    "(missing hail_leads_list/dcad/hays/comal/bexar/travis/harris/"
+                    "ebr sentinels) — dropping to rebuild"
                 )
                 await conn.execute(_text(
                     "DROP MATERIALIZED VIEW IF EXISTS unserviced_hail_leads CASCADE"
@@ -1264,6 +1276,115 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                          SELECT 1 FROM hll_harris_norm hhn
                           WHERE hhn.norm_addr = ca.norm_situs
                      )
+                ),
+                -- ====================== EAST BATON ROUGE, LA =====================
+                -- FIRST Louisiana arm. WIND/TROPICAL peril (Thunderstorm Wind +
+                -- High/Strong Wind + Tropical Storm + Hurricane), with HAIL as a
+                -- secondary peril. Storm source is NOAA storm_events (LOUISIANA,
+                -- cz_fips=33 = East Baton Rouge Parish FIPS 22033, cz_type='C')
+                -- which carries point begin_lat/begin_lon — so this mirrors the
+                -- Bexar spatial driver (ST_DWithin against ebr_parcel_geometries)
+                -- rather than a county-wide footprint. parcel_id joins
+                -- tx_cad_parcels on cad_source='EBRPA'.
+                --
+                -- severity_in normalizes the two perils onto one 0..~3 scale for
+                -- scoring WITHOUT pretending wind knots are hail inches:
+                --   Hail  -> magnitude is inches (store as hail_size_in).
+                --   Wind  -> magnitude is knots; severity = knots/26 (≈ 50kt→1.9,
+                --            68kt→2.6); hail_size_in stays NULL for wind rows.
+                -- Tropical/Hurricane with no magnitude default to a 1.0 severity.
+                ebr_storms AS (
+                    SELECT event_id, begin_datetime::date AS report_date,
+                           begin_lat AS lat, begin_lon AS lon, event_type,
+                           magnitude,
+                           CASE
+                             WHEN event_type = 'Hail'
+                               THEN COALESCE(magnitude, 0.75)
+                             WHEN event_type IN ('Thunderstorm Wind','High Wind','Strong Wind')
+                               THEN COALESCE(magnitude, 50.0) / 26.0
+                             ELSE 1.0  -- Tropical Storm / Hurricane (no point mag)
+                           END AS severity_in,
+                           CASE WHEN event_type = 'Hail'
+                                THEN COALESCE(magnitude, 0.75) END AS hail_in
+                      FROM storm_events
+                     WHERE state = 'LOUISIANA'
+                       AND cz_fips = 33
+                       AND cz_type = 'C'
+                       AND event_type IN (
+                             'Thunderstorm Wind','High Wind','Strong Wind',
+                             'Tropical Storm','Hurricane','Hurricane (Typhoon)',
+                             'Hail')
+                       AND begin_lat IS NOT NULL
+                       AND begin_lon IS NOT NULL
+                       AND begin_datetime >= CURRENT_DATE - INTERVAL '18 months'
+                ),
+                -- Best (most severe, most recent) storm per parcel.
+                ebr_candidate_parcels AS (
+                    SELECT DISTINCT ON (tg.parcel_id)
+                           tg.parcel_id,
+                           tg.centroid_lat,
+                           tg.centroid_lon,
+                           sr.event_id      AS storm_event_id,
+                           sr.report_date   AS matched_storm_date,
+                           sr.event_type    AS storm_event_type,
+                           sr.severity_in   AS severity_in,
+                           sr.hail_in       AS hail_size_in
+                      FROM ebr_storms sr
+                      CROSS JOIN LATERAL (
+                          SELECT tg.parcel_id, tg.centroid_lat, tg.centroid_lon
+                            FROM ebr_parcel_geometries tg
+                           WHERE ST_DWithin(
+                                     tg.geom,
+                                     ST_SetSRID(ST_MakePoint(sr.lon, sr.lat), 4326),
+                                     0.027
+                                 )
+                      ) tg
+                     ORDER BY tg.parcel_id, sr.severity_in DESC, sr.report_date DESC
+                ),
+                ebr_candidate_with_addr AS (
+                    SELECT cp.*,
+                           tcp.situs_address AS address,
+                           tcp.situs_city    AS city,
+                           tcp.situs_zip     AS zip,
+                           TRIM(REGEXP_REPLACE(
+                               REGEXP_REPLACE(
+                                   REGEXP_REPLACE(UPPER(tcp.situs_address),
+                                       '(^|\\s)(SUITE|STE|UNIT|APT|#)\\s+\\S+', ' ', 'g'),
+                               '[.,#]', '', 'g'),
+                           '\\s+', ' ')) AS norm_situs
+                      FROM ebr_candidate_parcels cp
+                      JOIN tx_cad_parcels tcp
+                            ON tcp.parcel_id = cp.parcel_id
+                           AND tcp.cad_source = 'EBRPA'
+                     WHERE tcp.situs_address IS NOT NULL
+                ),
+                ebr_rows AS (
+                    SELECT
+                        ca.parcel_id,
+                        ca.address,
+                        ca.city,
+                        ca.zip,
+                        'east baton rouge'::text                    AS county,
+                        ca.centroid_lat,
+                        ca.centroid_lon,
+                        ca.matched_storm_date,
+                        ca.hail_size_in,
+                        (CURRENT_DATE - ca.matched_storm_date)::integer AS days_since_storm,
+                        GREATEST(0, 365 - (CURRENT_DATE - ca.matched_storm_date))::double precision
+                            / 365.0 * ca.severity_in                AS lead_score,
+                        'EBR'::text                                 AS county_source
+                      FROM ebr_candidate_with_addr ca
+                     -- Serviced exclusion: drop parcels whose situs address has a
+                     -- Re-Roof permit ISSUED AFTER the matched storm (already
+                     -- re-roofed since the storm = no longer a lead). Address-norm
+                     -- join, keyed by the partial reroof index on ebr_permits.
+                     WHERE NOT EXISTS (
+                         SELECT 1 FROM ebr_permits ep
+                          WHERE ep.is_reroof
+                            AND ep.address_norm = ca.norm_situs
+                            AND ep.issued_date IS NOT NULL
+                            AND ep.issued_date::date >= ca.matched_storm_date
+                     )
                 )
                 SELECT parcel_id, address, city, zip, county,
                        centroid_lat, centroid_lon, matched_storm_date,
@@ -1299,6 +1420,11 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                        centroid_lat, centroid_lon, matched_storm_date,
                        hail_size_in, days_since_storm, lead_score, county_source
                   FROM harris_rows
+                UNION ALL
+                SELECT parcel_id, address, city, zip, county,
+                       centroid_lat, centroid_lon, matched_storm_date,
+                       hail_size_in, days_since_storm, lead_score, county_source
+                  FROM ebr_rows
                 WITH NO DATA
             """))
         # Indexes in their own txn — unique index enables REFRESH CONCURRENTLY.

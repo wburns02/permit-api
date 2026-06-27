@@ -1566,7 +1566,8 @@ async def unserviced_hail_leads_list(
         max_length=100,
         description=(
             "Filter by county name (case-insensitive, e.g. Tarrant / Dallas / "
-            "Hays / Comal / Bexar). Omit for all counties."
+            "Hays / Comal / Bexar / East Baton Rouge). Omit for all counties. "
+            "Note: East Baton Rouge (LA) leads are WIND/tropical-keyed, not hail."
         ),
     ),
     min_hail_inches: float | None = Query(
