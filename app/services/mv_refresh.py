@@ -78,10 +78,13 @@ _MVS = (
     # MUST refresh last — after the base MVs above are current. Has a unique
     # index on lead_id, so REFRESH ... CONCURRENTLY works.
     ("mv_refresh_hail_leads_list", "hail_leads_list"),
-    # Parcel-level un-serviced hail leads: SPC storms (last 18 months) ×
+    # Parcel-level un-serviced storm leads: storms (last 18 months) ×
     # <county>_parcel_geometries × tx_cad_parcels, minus parcels that pulled a
-    # roof permit post-storm. Tarrant (TAD) + Dallas (DCAD) + Hays (HaysCAD) +
-    # Comal (CCAD) + Bexar (BCAD) UNION ALL'd. Travis is excluded — no TCAD
+    # roof permit post-storm. TX hail arms: Tarrant (TAD) + Dallas (DCAD) +
+    # Hays (HaysCAD) + Comal (CCAD) + Bexar (BCAD), SPC hail driven. Plus the
+    # EAST BATON ROUGE, LA arm (EBRPA): NOAA storm_events WIND/tropical (+ hail
+    # secondary) × ebr_parcel_geometries, minus parcels with a Re-Roof permit
+    # (ebr_permits) issued after the storm. Travis is excluded — no TCAD
     # address join exists in tx_cad_parcels. Refresh runs
     # on the dedicated maintenance engine (no client/server timeout cap), so the
     # multi-county full/CONCURRENTLY refresh has no statement-timeout ceiling.
