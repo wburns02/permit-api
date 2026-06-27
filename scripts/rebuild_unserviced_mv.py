@@ -4,8 +4,8 @@ Rebuild the unserviced_hail_leads MV on the T430 using the EXACT SQL from
 app/main.py (single source of truth), then REFRESH it with data.
 
 Extracts the CREATE MATERIALIZED VIEW ... block from main.py so the DB object
-matches the deployed-code definition (which now includes the Bexar + Travis
-arms). The running prod app self-heals on its next deploy via the staleness
+matches the deployed-code definition (which now includes the Bexar + Travis +
+Harris arms). The running prod app self-heals on its next deploy via the staleness
 sentinel, but this performs the load-time rebuild + refresh directly against
 the T430.
 
@@ -43,6 +43,7 @@ def main():
     assert "bexar_parcel_geometries" in create_sql, "Bexar arm missing!"
     assert "comal_parcel_geometries" in create_sql, "Comal arm missing!"
     assert "travis_parcel_geometries" in create_sql, "Travis arm missing!"
+    assert "hcad_parcel_geometries" in create_sql, "Harris arm missing!"
 
     conn = psycopg2.connect(DSN, connect_timeout=30)
     conn.autocommit = True
