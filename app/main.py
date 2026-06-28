@@ -1713,7 +1713,11 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
         # 'BRAZORIACAD') for owner_name + mailable situs + appraised value +
         # subdivision, and LEFT JOIN brazoria_lead_contacts for a skip-traced
         # best phone/email. Bumping the sentinel forces the self-heal rebuild.
-        _SENTINEL = "brazoria_permit_leads_v3"
+        # v4 (Phase 1b): add the 'manvel_plats' source (Manvel PDZ open ArcGIS
+        # plat FeatureServer — a NEW-SUBDIVISION leading indicator) to
+        # BRAZORIA_SOURCES, which widens the WHERE hl.source IN (...) clause
+        # below; bump the sentinel so the live MV self-heals to include it.
+        _SENTINEL = "brazoria_permit_leads_v4"
         async with primary_engine.begin() as conn:
             await conn.execute(_text("SET LOCAL lock_timeout = '15s'"))
             await conn.execute(_text("SET LOCAL statement_timeout = '30s'"))
