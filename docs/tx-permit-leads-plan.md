@@ -298,3 +298,28 @@ code per county once the adapter for its platform exists.
 | iWorQ Freeport | `scrape_iworq.py` | **BLOCKED** | live reCAPTCHA; existing slug also points at Freeport **IL** (wrong state) |
 | Brazoria clerk deeds/plats | (none) | **BLOCKED** | Tyler eSearch disclaimer behind Google reCAPTCHA + subscription metering |
 | Brazoria OSSF | `scrape_ossf_to_hot_leads.py` (`NOT_HELD`) | **NOT HELD** | 0 rows held; TCEQ Authorized Agent, county-held, no API → monthly PIA |
+| Manvel PDZ plats | `scrape_arcgis_plats.py` | **PROVEN** | OPEN ArcGIS Online FeatureServer `services7.arcgis.com/AKMQLbXfx33spbMD/.../PDZMeetingRecord/FeatureServer/30`, no auth/captcha; 48 plat records loaded into `hot_leads` (`manvel_plats`) → bridged to `permits` (`bridge_manvel_plats`, 48/48 in TX) → registered in `BRAZORIA_SOURCES` (trigger) for `/v1/permit-leads`. Freshest plat 2026-06-08 (~3-week lag). A NEW-SUBDIVISION leading indicator, NOT a building permit (no street address/owner). |
+
+### Phase 1b backdoor hunt — open-feed probe of every walled Brazoria city (2026-06-28)
+
+Goal: replicate the Pearland pattern (open ArcGIS/Socrata feed behind the login
+wall) for every walled Brazoria jurisdiction. Each city's GIS/open-data host was
+probed with WebSearch + WebFetch against the ArcGIS REST directory. **Result: no
+city replicates Pearland's open building-permit FeatureServer.** The one open,
+fresh, loadable feed found is Manvel's PDZ plat layer (above). All building
+permits sit behind token-gated CentralSquare ArcGIS folders, captcha, or paper.
+
+| City / area | Open building-permit feed? | What's actually open | What it would take |
+|-------------|---------------------------|----------------------|--------------------|
+| **Lake Jackson** | **NO (walled)** | nothing city-side (no GIS server, no AGOL org); county `general` ArcGIS = parcels/addresses only | Click2Gov scrape behind a **residential proxy** (10-cap is per-query; iterate by date/permit-number range), or city PIA export. Portal: `lkjk-egov.aspgov.com/Click2GovBP` |
+| **Freeport** | **NO (walled)** | AGOL org `FreeportTx` = zoning/boundary viewer only; county `general` = parcels/addresses | **Residential proxy + reCAPTCHA solver** on CitizenServe (installationID 404), or city PIA. permits@freeporttx.gov |
+| **Clute** | **NO (walled)** | nothing — no city ArcGIS, no AGOL org, no portal vendor (permits are in-person/paper at City Hall) | **PIA / records request** only (no portal to proxy). permits@clutetexas.gov |
+| **Alvin** | **NO (walled)** | OPEN city ArcGIS `gis.cityofalvin.com` but layers = parcels/streets/boundaries, **zero permit layers** | PIA, or the front-door portal `alvin.gov/329/Permits` (vendor = CentralSquare, county folder token-gated) |
+| **Manvel** | **plats YES, permits NO** | OPEN AGOL org `AKMQLbXfx33spbMD`: PDZ **plat** layer (loaded). Building **permits** live in **MyGov** (`public.mygov.us/manvel_tx`), no open per-permit feed | For permits: MyGov address-lookup scrape (browser probe needed) or PIA. permits@cityofmanvel.com |
+| **Unincorporated Brazoria Co.** | **NO (walled)** | County ArcGIS server `arcgis-web.brazoriacountytx.gov/arcgis/rest/services` is rich but the **`CentralSquare`/`Cartegraph` folders are token-gated (HTTP 499)** — that's where county permits live. Open folders = parcels/addresses/`Address_Points` (already harvested by the 911 adapter) | County GIS **token/credentials**, a CentralSquare CSS public portal if one exists (none found published), or **PIA** to Brazoria County Engineering/Development Services |
+
+Shared finding: the county server's `general/Legal_and_Development/MapServer`
+layer "Permitting: Pipeline Projects" is **oil/gas pipeline easements (22 rows,
+Permitee+Shape only)**, NOT building permits — a red herring. The county's open
+`Address_Points` / `911_Emergency` layers are the same NENA data the existing
+`scrape_county_911_addresses.py` adapter already pulls.

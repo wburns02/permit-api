@@ -62,9 +62,22 @@ BRAZORIA_SOURCES: dict[str, tuple[str, bool]] = {
     # (scripts/scrape_arcgis_permits.py). eTRAKiT was abandoned: the city
     # eTRAKiT host is network-blackholed from us (see docs/tx-permit-leads-plan.md).
     "pearland_permits": ("Brazoria", False),
-    # Future Brazoria jurisdictions land here, one line each:
-    # "click2gov_lake_jackson":("Brazoria", False),   # Phase 1b
-    # "tceq_ossf_brazoria":    ("Brazoria", False),   # Phase 2
+    # Manvel publishes an OPEN ArcGIS FeatureServer of PDZ Commission plat
+    # records (scripts/scrape_arcgis_plats.py). A recorded plat is a
+    # NEW-SUBDIVISION leading indicator (lots/houses follow within months) —
+    # Manvel's actual building permits are walled behind MyGov/CentralSquare,
+    # so the plat layer is the only OPEN new-build signal for the city. Marked
+    # is_address_trigger=True so it classifies as new_construction (like 911):
+    # the row's `address` slot holds the project/plat name, not a street address.
+    "manvel_plats": ("Brazoria", True),
+    # Future Brazoria jurisdictions land here, one line each. The walled cities
+    # (NO open Pearland-style ArcGIS permit feed exists — all probed) need a
+    # residential-proxy or PIA path, documented in docs/tx-permit-leads-plan.md:
+    # "click2gov_lake_jackson":("Brazoria", False),   # WALLED: Click2Gov 10-cap, proxy
+    # "citizenserve_freeport": ("Brazoria", False),   # WALLED: CitizenServe reCAPTCHA
+    # "mygov_manvel":          ("Brazoria", False),   # WALLED: MyGov (permits, not plats)
+    # "centralsquare_brazoria_co":("Brazoria", False),# WALLED: county CSS, token-gated
+    # "tceq_ossf_brazoria":    ("Brazoria", False),   # Phase 2 (septic OSSF)
 }
 
 # Sources whose rows are a NEW-CONSTRUCTION proxy regardless of description
