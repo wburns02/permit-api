@@ -654,6 +654,7 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                 # assessed_value column predates this and must be rebuilt so the
                 # new columns (and the enriched roof age) reach the MV.
                 and "assessed_value" in live_def
+                and "ascension_permits" in live_def
             ):
                 logger.warning(
                     "unserviced_hail_leads: stale live definition detected "
@@ -663,6 +664,26 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                 await conn.execute(_text(
                     "DROP MATERIALIZED VIEW IF EXISTS unserviced_hail_leads CASCADE"
                 ))
+        # Safety shim: the Ascension arm's serviced-exclusion references
+        # ascension_permits (MGO Re-Roof permits, populated by
+        # scripts/promote_ascension_reroof.py from hot_leads). Create the empty
+        # shape if absent so the MV build never fails on a fresh DB; an empty
+        # table makes the NOT EXISTS a harmless no-op.
+        async with primary_engine.begin() as conn:
+            await conn.execute(_text("SET LOCAL lock_timeout = '15s'"))
+            await conn.execute(_text("""
+                CREATE TABLE IF NOT EXISTS public.ascension_permits (
+                    permit_number text,
+                    address_norm  text,
+                    is_reroof     boolean NOT NULL DEFAULT false,
+                    issued_date   date,
+                    source        text,
+                    raw           jsonb
+                )
+            """))
+            await conn.execute(_text(
+                "CREATE INDEX IF NOT EXISTS ix_ascension_permits_reroof "
+                "ON public.ascension_permits (address_norm) WHERE is_reroof"))
         async with primary_engine.begin() as conn:
             await conn.execute(_text("SET LOCAL lock_timeout = '15s'"))
             await conn.execute(_text("SET LOCAL statement_timeout = '30s'"))
@@ -1481,7 +1502,13 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                     SELECT cp.*,
                            tcp.situs_address    AS address,
                            UPPER(tcp.situs_city) AS city,
-                           tcp.situs_zip        AS zip
+                           tcp.situs_zip        AS zip,
+                           TRIM(REGEXP_REPLACE(
+                               REGEXP_REPLACE(
+                                   REGEXP_REPLACE(UPPER(tcp.situs_address),
+                                       '(^|\\s)(SUITE|STE|UNIT|APT|#)\\s+\\S+', ' ', 'g'),
+                               '[.,#]', '', 'g'),
+                           '\\s+', ' ')) AS norm_situs
                       FROM ascension_candidate_parcels cp
                       JOIN tx_cad_parcels tcp
                             ON tcp.parcel_id = cp.parcel_id
@@ -1504,9 +1531,24 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                             / 365.0 * ca.severity_in                AS lead_score,
                         'Ascension'::text                           AS county_source
                       FROM ascension_candidate_with_addr ca
-                     -- NO serviced-exclusion: Ascension has no public permit feed,
-                     -- so we cannot drop already-re-roofed homes. Lead = storm-hit
-                     -- parcel. Documented gap.
+                     -- VERIFIED serviced exclusion (Gap 2 closed): Gonzales +
+                     -- Ascension DO permit through MyGovernmentOnline. Re-Roof
+                     -- permits are loaded into hot_leads (scripts/load_mgo_la_permits.py)
+                     -- and promoted into ascension_permits
+                     -- (scripts/promote_ascension_reroof.py). Drop any parcel whose
+                     -- normalized situs has a Re-Roof permit. MGO carries NO issue
+                     -- date, so we cannot time-gate to "since the storm"; we treat
+                     -- ANY recorded Re-Roof as serviced (conservative, the safe
+                     -- direction). When issued_date IS present (future loaders),
+                     -- keep only re-roofs at/after the storm. Empty/absent
+                     -- ascension_permits = harmless no-op (pure canvass list).
+                     WHERE NOT EXISTS (
+                         SELECT 1 FROM ascension_permits ep
+                          WHERE ep.is_reroof
+                            AND ep.address_norm = ca.norm_situs
+                            AND (ep.issued_date IS NULL
+                                 OR ep.issued_date::date >= ca.matched_storm_date)
+                     )
                 )
                 SELECT parcel_id, address, city, zip, county,
                        centroid_lat, centroid_lon, matched_storm_date,
