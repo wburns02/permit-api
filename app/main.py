@@ -593,15 +593,37 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                 and "hays_parcel_geometries" in live_def
                 and "comal_parcel_geometries" in live_def
                 and "bexar_parcel_geometries" in live_def
+                and "ascension_parcel_geometries" in live_def
             ):
                 logger.warning(
                     "unserviced_hail_leads: stale live definition detected "
-                    "(missing hail_leads_list/dcad/hays/comal/bexar sentinels) — "
-                    "dropping to rebuild"
+                    "(missing hail_leads_list/dcad/hays/comal/bexar/ascension "
+                    "sentinels) — dropping to rebuild"
                 )
                 await conn.execute(_text(
                     "DROP MATERIALIZED VIEW IF EXISTS unserviced_hail_leads CASCADE"
                 ))
+        # Safety shim: the Ascension arm's serviced-exclusion references
+        # ascension_permits. Create an EMPTY table-of-record shape if it does not
+        # exist yet (the real MGO loader, scripts/load_mgo_la_permits.py, loads
+        # Gonzales/Ascension permits into hot_leads; a follow-up promotes Re-Roof
+        # rows into ascension_permits). An empty table makes the NOT EXISTS a
+        # harmless no-op (pure fresh canvass list) and lets the MV build cleanly.
+        async with primary_engine.begin() as conn:
+            await conn.execute(_text("SET LOCAL lock_timeout = '15s'"))
+            await conn.execute(_text("""
+                CREATE TABLE IF NOT EXISTS public.ascension_permits (
+                    permit_number text,
+                    address_norm  text,
+                    is_reroof     boolean NOT NULL DEFAULT false,
+                    issued_date   date,
+                    source        text,
+                    raw           jsonb
+                )
+            """))
+            await conn.execute(_text(
+                "CREATE INDEX IF NOT EXISTS ix_ascension_permits_reroof "
+                "ON public.ascension_permits (address_norm) WHERE is_reroof"))
         async with primary_engine.begin() as conn:
             await conn.execute(_text("SET LOCAL lock_timeout = '15s'"))
             await conn.execute(_text("SET LOCAL statement_timeout = '30s'"))
@@ -1042,31 +1064,167 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                          SELECT 1 FROM hll_bexar_norm hbn
                           WHERE hbn.norm_addr = ca.norm_situs
                      )
+                ),
+                -- ============================ ASCENSION =========================
+                -- Ascension Parish, LA (FIPS 22005). FIRST Louisiana arm on this
+                -- branch. WIND/TROPICAL peril primary (Thunderstorm Wind + Tornado
+                -- + Tropical Storm/Hurricane), HAIL secondary — mirrors the EBR
+                -- design. Storm source is NOAA storm_events (LOUISIANA, cz_fips=5
+                -- = ASCENSION, cz_type='C') which carries point begin_lat/begin_lon,
+                -- so this uses the Bexar-style spatial driver (ST_DWithin against
+                -- ascension_parcel_geometries) rather than a parish-wide footprint.
+                -- parcel_id joins tx_cad_parcels on cad_source='ASCPA'; that table
+                -- now carries year_built/building_sqft from the Beacon assessor
+                -- scraper (scripts/scrape_ascension_improvements.py), so this arm
+                -- PROJECTS year_built (the other arms emit NULL for it today).
+                --
+                -- severity_in normalizes the perils onto one 0..~3 scale WITHOUT
+                -- pretending wind knots are hail inches:
+                --   Hail  -> magnitude is inches (store as hail_size_in).
+                --   Wind  -> magnitude is knots; severity = knots/26.
+                --   Tornado/Tropical/Hurricane (no point magnitude) -> 1.0.
+                --
+                -- SERVICED EXCLUSION: Gonzales + Ascension permit through MGO. If
+                -- the ascension_permits table exists AND carries Re-Roof rows, the
+                -- exclusion below drops parcels already re-roofed since the storm
+                -- (verified un-serviced, like EBR). The NOT EXISTS is written so a
+                -- MISSING or EMPTY ascension_permits table is a harmless no-op
+                -- (pure fresh canvass list) — the MV still builds. The MGO load is
+                -- attempted separately; see scripts/load_mgo_la_permits.py.
+                ascension_storms AS (
+                    SELECT event_id, begin_datetime::date AS report_date,
+                           begin_lat AS lat, begin_lon AS lon, event_type,
+                           CASE
+                             WHEN event_type = 'Hail'
+                               THEN COALESCE(magnitude, 0.75)
+                             WHEN event_type IN ('Thunderstorm Wind','High Wind','Strong Wind')
+                               THEN COALESCE(magnitude, 50.0) / 26.0
+                             ELSE 1.0  -- Tornado / Tropical Storm / Hurricane
+                           END AS severity_in,
+                           CASE WHEN event_type = 'Hail'
+                                THEN COALESCE(magnitude, 0.75) END AS hail_in
+                      FROM storm_events
+                     WHERE state = 'LOUISIANA'
+                       AND cz_fips = 5
+                       AND cz_type = 'C'
+                       AND event_type IN (
+                             'Thunderstorm Wind','High Wind','Strong Wind',
+                             'Tornado','Tropical Storm','Hurricane',
+                             'Hurricane (Typhoon)','Hail')
+                       AND begin_lat IS NOT NULL
+                       AND begin_lon IS NOT NULL
+                       AND begin_datetime >= CURRENT_DATE - INTERVAL '18 months'
+                ),
+                ascension_candidate_parcels AS (
+                    SELECT DISTINCT ON (tg.parcel_id)
+                           tg.parcel_id,
+                           tg.centroid_lat,
+                           tg.centroid_lon,
+                           sr.event_id      AS storm_event_id,
+                           sr.report_date   AS matched_storm_date,
+                           sr.severity_in   AS severity_in,
+                           sr.hail_in       AS hail_size_in
+                      FROM ascension_storms sr
+                      CROSS JOIN LATERAL (
+                          SELECT tg.parcel_id, tg.centroid_lat, tg.centroid_lon
+                            FROM ascension_parcel_geometries tg
+                           WHERE ST_DWithin(
+                                     tg.geom,
+                                     ST_SetSRID(ST_MakePoint(sr.lon, sr.lat), 4326),
+                                     0.027
+                                 )
+                      ) tg
+                     ORDER BY tg.parcel_id, sr.severity_in DESC, sr.report_date DESC
+                ),
+                ascension_candidate_with_addr AS (
+                    SELECT cp.*,
+                           tcp.situs_address AS address,
+                           tcp.situs_city    AS city,
+                           tcp.situs_zip     AS zip,
+                           tcp.year_built    AS year_built,
+                           TRIM(REGEXP_REPLACE(
+                               REGEXP_REPLACE(
+                                   REGEXP_REPLACE(UPPER(tcp.situs_address),
+                                       '(^|\\s)(SUITE|STE|UNIT|APT|#)\\s+\\S+', ' ', 'g'),
+                               '[.,#]', '', 'g'),
+                           '\\s+', ' ')) AS norm_situs
+                      FROM ascension_candidate_parcels cp
+                      JOIN tx_cad_parcels tcp
+                            ON tcp.parcel_id = cp.parcel_id
+                           AND tcp.cad_source = 'ASCPA'
+                     WHERE tcp.situs_address IS NOT NULL
+                ),
+                ascension_rows AS (
+                    SELECT
+                        ca.parcel_id,
+                        ca.address,
+                        ca.city,
+                        ca.zip,
+                        'ascension'::text                           AS county,
+                        ca.centroid_lat,
+                        ca.centroid_lon,
+                        ca.matched_storm_date,
+                        ca.hail_size_in,
+                        (CURRENT_DATE - ca.matched_storm_date)::integer AS days_since_storm,
+                        GREATEST(0, 365 - (CURRENT_DATE - ca.matched_storm_date))::double precision
+                            / 365.0 * ca.severity_in                AS lead_score,
+                        'Ascension'::text                           AS county_source,
+                        ca.year_built                               AS year_built
+                      FROM ascension_candidate_with_addr ca
+                     -- Verified serviced exclusion (no-op if ascension_permits is
+                     -- absent/empty): drop parcels with a Re-Roof permit ISSUED
+                     -- AFTER the matched storm. The lookup is wrapped in a guard so
+                     -- a MISSING table never breaks the build (see ascension_permits
+                     -- safety-shim DDL created just before this CREATE).
+                     -- MGO carries NO issue date (verified), so we cannot
+                     -- time-gate to "re-roofed SINCE the storm". We treat ANY
+                     -- recorded Re-Roof as serviced (conservative: the safe
+                     -- direction for an un-serviced claim). When an issued_date
+                     -- IS present (future loaders), keep only re-roofs at/after
+                     -- the storm; when it is NULL, the permit always excludes.
+                     WHERE NOT EXISTS (
+                         SELECT 1 FROM ascension_permits ep
+                          WHERE ep.is_reroof
+                            AND ep.address_norm = ca.norm_situs
+                            AND (ep.issued_date IS NULL
+                                 OR ep.issued_date::date >= ca.matched_storm_date)
+                     )
                 )
                 SELECT parcel_id, address, city, zip, county,
                        centroid_lat, centroid_lon, matched_storm_date,
-                       hail_size_in, days_since_storm, lead_score, county_source
+                       hail_size_in, days_since_storm, lead_score, county_source,
+                       NULL::int AS year_built
                   FROM tarrant_rows
                 UNION ALL
                 SELECT parcel_id, address, city, zip, county,
                        centroid_lat, centroid_lon, matched_storm_date,
-                       hail_size_in, days_since_storm, lead_score, county_source
+                       hail_size_in, days_since_storm, lead_score, county_source,
+                       NULL::int AS year_built
                   FROM dallas_rows
                 UNION ALL
                 SELECT parcel_id, address, city, zip, county,
                        centroid_lat, centroid_lon, matched_storm_date,
-                       hail_size_in, days_since_storm, lead_score, county_source
+                       hail_size_in, days_since_storm, lead_score, county_source,
+                       NULL::int AS year_built
                   FROM hays_rows
                 UNION ALL
                 SELECT parcel_id, address, city, zip, county,
                        centroid_lat, centroid_lon, matched_storm_date,
-                       hail_size_in, days_since_storm, lead_score, county_source
+                       hail_size_in, days_since_storm, lead_score, county_source,
+                       NULL::int AS year_built
                   FROM comal_rows
                 UNION ALL
                 SELECT parcel_id, address, city, zip, county,
                        centroid_lat, centroid_lon, matched_storm_date,
-                       hail_size_in, days_since_storm, lead_score, county_source
+                       hail_size_in, days_since_storm, lead_score, county_source,
+                       NULL::int AS year_built
                   FROM bexar_rows
+                UNION ALL
+                SELECT parcel_id, address, city, zip, county,
+                       centroid_lat, centroid_lon, matched_storm_date,
+                       hail_size_in, days_since_storm, lead_score, county_source,
+                       year_built
+                  FROM ascension_rows
                 WITH NO DATA
             """))
         # Indexes in their own txn — unique index enables REFRESH CONCURRENTLY.
