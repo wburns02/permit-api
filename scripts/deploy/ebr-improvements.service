@@ -1,0 +1,31 @@
+[Unit]
+Description=EBR (East Baton Rouge) assessor year_built/sqft enrichment scraper
+Documentation=file:/home/will/permit-api-live/scripts/deploy/ebr-improvements.README.md
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=will
+WorkingDirectory=/home/will/permit-api-live
+# CAPTCHA GATE: SmartCAMA /Assessments/SearchAjax is reCAPTCHA-Enterprise walled.
+# This service CANNOT run truly unattended. It requires a token provider via
+# EBR_TOKEN_CMD (an automated solver that prints a fresh g-recaptcha-response)
+# or EBR_TOKEN_FILE (a human pastes a freshly-solved token). Without one the
+# scraper exits 4 immediately (RestartSec backoff below avoids a hot loop).
+#
+# Set the token source in an override drop-in, e.g.:
+#   systemctl edit ebr-improvements
+#   [Service]
+#   Environment=EBR_TOKEN_CMD=/home/will/bin/solve_ebr_recaptcha.sh
+#
+# Stage raw HTML OFF the home drive (Storage Policy):
+Environment=PGHOST=100.122.216.15 PGPORT=5432 PGDATABASE=permits PGUSER=will
+# Invoked via bash: SELinux denies systemd direct-exec of scripts under /home.
+ExecStart=/usr/bin/bash -lc '/usr/bin/python3 /home/will/permit-api-live/scripts/scrape_ebr_improvements.py --raw-dir /dataPool/free_data/ebr/raw'
+Restart=on-failure
+# Long backoff: if the token provider is absent (exit 4) we do NOT hammer.
+RestartSec=900
+
+[Install]
+WantedBy=multi-user.target

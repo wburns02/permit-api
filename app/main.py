@@ -649,11 +649,16 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                 and "hcad_parcel_geometries" in live_def
                 and "ebr_parcel_geometries" in live_def
                 and "ascension_parcel_geometries" in live_def
+                # roof-age sentinel: the EBR arm now projects year_built /
+                # building_sqft / assessed_value. A live def lacking the
+                # assessed_value column predates this and must be rebuilt so the
+                # new columns (and the enriched roof age) reach the MV.
+                and "assessed_value" in live_def
             ):
                 logger.warning(
                     "unserviced_hail_leads: stale live definition detected "
                     "(missing hail_leads_list/dcad/hays/comal/bexar/travis/harris/"
-                    "ebr/ascension sentinels) — dropping to rebuild"
+                    "ebr/ascension/assessed_value sentinels) — dropping to rebuild"
                 )
                 await conn.execute(_text(
                     "DROP MATERIALIZED VIEW IF EXISTS unserviced_hail_leads CASCADE"
@@ -1347,6 +1352,16 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                            tcp.situs_address AS address,
                            tcp.situs_city    AS city,
                            tcp.situs_zip     AS zip,
+                           -- Roof-age + value signal projected from the EBRPA CAD
+                           -- row. year_built / building_sqft are enriched by
+                           -- scripts/scrape_ebr_improvements.py (assessor CAMA);
+                           -- NULL until that lands. assessed_value is ~100% filled
+                           -- straight from the BRLA Tax_Parcel feed (market_value
+                           -- is structurally 0 in that feed, so assessed_value is
+                           -- THE value column for the EBR market).
+                           tcp.year_built     AS year_built,
+                           tcp.building_sqft  AS building_sqft,
+                           tcp.assessed_value AS assessed_value,
                            TRIM(REGEXP_REPLACE(
                                REGEXP_REPLACE(
                                    REGEXP_REPLACE(UPPER(tcp.situs_address),
@@ -1373,7 +1388,10 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                         (CURRENT_DATE - ca.matched_storm_date)::integer AS days_since_storm,
                         GREATEST(0, 365 - (CURRENT_DATE - ca.matched_storm_date))::double precision
                             / 365.0 * ca.severity_in                AS lead_score,
-                        'EBR'::text                                 AS county_source
+                        'EBR'::text                                 AS county_source,
+                        ca.year_built                               AS year_built,
+                        ca.building_sqft                            AS building_sqft,
+                        ca.assessed_value                           AS assessed_value
                       FROM ebr_candidate_with_addr ca
                      -- Serviced exclusion: drop parcels whose situs address has a
                      -- Re-Roof permit ISSUED AFTER the matched storm (already
@@ -1492,47 +1510,72 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                 )
                 SELECT parcel_id, address, city, zip, county,
                        centroid_lat, centroid_lon, matched_storm_date,
-                       hail_size_in, days_since_storm, lead_score, county_source
+                       hail_size_in, days_since_storm, lead_score, county_source,
+                       NULL::integer AS year_built,
+                       NULL::numeric AS building_sqft,
+                       NULL::bigint  AS assessed_value
                   FROM tarrant_rows
                 UNION ALL
                 SELECT parcel_id, address, city, zip, county,
                        centroid_lat, centroid_lon, matched_storm_date,
-                       hail_size_in, days_since_storm, lead_score, county_source
+                       hail_size_in, days_since_storm, lead_score, county_source,
+                       NULL::integer AS year_built,
+                       NULL::numeric AS building_sqft,
+                       NULL::bigint  AS assessed_value
                   FROM dallas_rows
                 UNION ALL
                 SELECT parcel_id, address, city, zip, county,
                        centroid_lat, centroid_lon, matched_storm_date,
-                       hail_size_in, days_since_storm, lead_score, county_source
+                       hail_size_in, days_since_storm, lead_score, county_source,
+                       NULL::integer AS year_built,
+                       NULL::numeric AS building_sqft,
+                       NULL::bigint  AS assessed_value
                   FROM hays_rows
                 UNION ALL
                 SELECT parcel_id, address, city, zip, county,
                        centroid_lat, centroid_lon, matched_storm_date,
-                       hail_size_in, days_since_storm, lead_score, county_source
+                       hail_size_in, days_since_storm, lead_score, county_source,
+                       NULL::integer AS year_built,
+                       NULL::numeric AS building_sqft,
+                       NULL::bigint  AS assessed_value
                   FROM comal_rows
                 UNION ALL
                 SELECT parcel_id, address, city, zip, county,
                        centroid_lat, centroid_lon, matched_storm_date,
-                       hail_size_in, days_since_storm, lead_score, county_source
+                       hail_size_in, days_since_storm, lead_score, county_source,
+                       NULL::integer AS year_built,
+                       NULL::numeric AS building_sqft,
+                       NULL::bigint  AS assessed_value
                   FROM bexar_rows
                 UNION ALL
                 SELECT parcel_id, address, city, zip, county,
                        centroid_lat, centroid_lon, matched_storm_date,
-                       hail_size_in, days_since_storm, lead_score, county_source
+                       hail_size_in, days_since_storm, lead_score, county_source,
+                       NULL::integer AS year_built,
+                       NULL::numeric AS building_sqft,
+                       NULL::bigint  AS assessed_value
                   FROM travis_rows
                 UNION ALL
                 SELECT parcel_id, address, city, zip, county,
                        centroid_lat, centroid_lon, matched_storm_date,
-                       hail_size_in, days_since_storm, lead_score, county_source
+                       hail_size_in, days_since_storm, lead_score, county_source,
+                       NULL::integer AS year_built,
+                       NULL::numeric AS building_sqft,
+                       NULL::bigint  AS assessed_value
                   FROM harris_rows
                 UNION ALL
                 SELECT parcel_id, address, city, zip, county,
                        centroid_lat, centroid_lon, matched_storm_date,
-                       hail_size_in, days_since_storm, lead_score, county_source
+                       hail_size_in, days_since_storm, lead_score, county_source,
+                       year_built, building_sqft, assessed_value
                   FROM ebr_rows
                 UNION ALL
                 SELECT parcel_id, address, city, zip, county,
                        centroid_lat, centroid_lon, matched_storm_date,
-                       hail_size_in, days_since_storm, lead_score, county_source
+                       hail_size_in, days_since_storm, lead_score, county_source,
+                       NULL::integer AS year_built,
+                       NULL::numeric AS building_sqft,
+                       NULL::bigint  AS assessed_value
                   FROM ascension_rows
                 WITH NO DATA
             """))
