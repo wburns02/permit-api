@@ -235,6 +235,8 @@ def build_rows(features: list[dict]):
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0, help="max parcels (smoke test)")
+    ap.add_argument("--start-offset", type=int, default=0,
+                    help="resume paging from this OBJECTID offset (idempotent UPSERT)")
     ap.add_argument("--dry-run", action="store_true", help="fetch only; no DB writes")
     ap.add_argument("--no-stage", action="store_true", help="skip raw page staging")
     args = ap.parse_args()
@@ -257,7 +259,7 @@ def main() -> int:
             con.commit()
 
     loaded_geom = loaded_attr = fetched = 0
-    offset = 0
+    offset = args.start_offset
     while offset < target:
         feats = fetch_page(session, offset)
         if not feats:
