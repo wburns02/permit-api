@@ -9,8 +9,6 @@ docs/tx-permit-leads-plan.md Phase 1b verdicts: 48 manvel_plats rows proven).
 import importlib.util
 import os
 
-import pytest
-
 _SCRIPT = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
     "scripts", "scrape_arcgis_plats.py",

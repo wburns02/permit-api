@@ -572,8 +572,8 @@ def main():
             summary.append((ck, 0, 0))
 
     log("=" * 64)
-    for ck, f, l in summary:
-        log(f"  {ck:14s} normalized={f:>7} loaded={l:>7}")
+    for ck, fetched_n, loaded_n in summary:
+        log(f"  {ck:14s} normalized={fetched_n:>7} loaded={loaded_n:>7}")
     log("=" * 64)
 
     if conn:
