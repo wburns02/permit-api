@@ -13,3 +13,8 @@ dist/
 build/
 .mypy_cache/
 .pytest_cache/
+
+# never commit captcha solver secrets
+*2captcha*.key
+2captcha.key
+.config/permitlookup/

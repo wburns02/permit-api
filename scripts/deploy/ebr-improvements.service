@@ -8,23 +8,25 @@ Wants=network-online.target
 Type=simple
 User=will
 WorkingDirectory=/home/will/permit-api-live
-# CAPTCHA GATE: SmartCAMA /Assessments/SearchAjax is reCAPTCHA-Enterprise walled.
-# This service CANNOT run truly unattended. It requires a token provider via
-# EBR_TOKEN_CMD (an automated solver that prints a fresh g-recaptcha-response)
-# or EBR_TOKEN_FILE (a human pastes a freshly-solved token). Without one the
-# scraper exits 4 immediately (RestartSec backoff below avoids a hot loop).
+# CAPTCHA: SmartCAMA searching is gated by reCAPTCHA Enterprise v2 (checkbox).
+# The scraper drives a 2Captcha solver via --token-cmd. ONE solved token validates
+# the SmartCAMA session for many searches (POST /Captcha/VerifyCaptcha), so cost is
+# a tiny fraction of a cent per parcel.
 #
-# Set the token source in an override drop-in, e.g.:
-#   systemctl edit ebr-improvements
-#   [Service]
-#   Environment=EBR_TOKEN_CMD=/home/will/bin/solve_ebr_recaptcha.sh
-#
-# Stage raw HTML OFF the home drive (Storage Policy):
+# The 2Captcha API KEY is a SECRET and is NEVER committed. It lives in a chmod-600
+# file on this host; we pass only the FILE PATH here, never the literal key:
+Environment=EBR_2CAPTCHA_KEY_FILE=/home/will/.config/permitlookup/2captcha.key
 Environment=PGHOST=100.122.216.15 PGPORT=5432 PGDATABASE=permits PGUSER=will
-# Invoked via bash: SELinux denies systemd direct-exec of scripts under /home.
-ExecStart=/usr/bin/bash -lc '/usr/bin/python3 /home/will/permit-api-live/scripts/scrape_ebr_improvements.py --raw-dir /dataPool/free_data/ebr/raw'
+# Lead set FIRST (storm leads), then the rest of the parish, resumable via the
+# ebr_improvement_progress checkpoint table. Raw detail JSON staged OFF the home
+# drive (Storage Policy). Invoked via bash: SELinux denies systemd direct-exec of
+# scripts under /home.
+ExecStart=/usr/bin/bash -lc '/usr/bin/python3 /home/will/permit-api-live/scripts/scrape_ebr_improvements.py \
+  --token-cmd "/usr/bin/python3 /home/will/permit-api-live/scripts/ebr_captcha_token.py" \
+  --seed-csv /home/will/outbound-engine/postcard-poc/out/batonrouge_best_skiptraced.csv \
+  --raw-dir /dataPool/free_data/ebr/raw'
 Restart=on-failure
-# Long backoff: if the token provider is absent (exit 4) we do NOT hammer.
+# Backoff: if the token provider / key is absent (exit 4) we do NOT hammer.
 RestartSec=900
 
 [Install]
