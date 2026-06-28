@@ -503,7 +503,8 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
 
     # ---------------------------------------------------------------------------
     # unserviced_hail_leads MV — Tarrant + Dallas + Hays + Comal + Bexar +
-    #   Travis + Harris (TX hail) + EAST BATON ROUGE, LA (first LA / WIND arm).
+    #   Travis + Harris + Smith (TX hail) + EAST BATON ROUGE, LA (first LA / WIND
+    #   arm).
     #
     # Produces one row per parcel that: (a) sits within 3 km of a recent storm
     # (last 18 months), (b) has NOT already been serviced. This is the "canvass
@@ -646,6 +647,7 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                 and "comal_parcel_geometries" in live_def
                 and "bexar_parcel_geometries" in live_def
                 and "travis_parcel_geometries" in live_def
+                and "smith_parcel_geometries" in live_def
                 and "hcad_parcel_geometries" in live_def
                 and "ebr_parcel_geometries" in live_def
                 and "ascension_parcel_geometries" in live_def
@@ -658,8 +660,9 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
             ):
                 logger.warning(
                     "unserviced_hail_leads: stale live definition detected "
-                    "(missing hail_leads_list/dcad/hays/comal/bexar/travis/harris/"
-                    "ebr/ascension/assessed_value sentinels) — dropping to rebuild"
+                    "(missing hail_leads_list/dcad/hays/comal/bexar/travis/smith/"
+                    "harris/ebr/ascension/assessed_value sentinels) — dropping to "
+                    "rebuild"
                 )
                 await conn.execute(_text(
                     "DROP MATERIALIZED VIEW IF EXISTS unserviced_hail_leads CASCADE"
@@ -1123,6 +1126,105 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                      WHERE NOT EXISTS (
                          SELECT 1 FROM hll_bexar_norm hbn
                           WHERE hbn.norm_addr = ca.norm_situs
+                     )
+                ),
+                -- ============================== SMITH ============================
+                -- Tyler / Lindale, East TX (FREE Smith County GIS Consortium
+                -- "Tax Parcels" ArcGIS layer, SMITHCAD). Mirrors Bexar/Travis/
+                -- Harris exactly: geom.parcel_id = tx_cad_parcels.parcel_id (the
+                -- Smith ACCOUNT/tax-account number is stored identically as text in
+                -- both smith_parcel_geometries and tx_cad_parcels, joins ~100%).
+                -- cad_source = 'SMITHCAD'. bbox lat 32.0-32.8, lon -95.7..-95.0
+                -- covers Smith County incl. Lindale (32.5/-95.4) and Tyler. The
+                -- Smith feed carries year_built (YRBLT) + sqft (SFLA) but NO value
+                -- column, so assessed_value/market_value project NULL here.
+                -- hail_leads_list has 0 Smith rows today so the serviced-exclusion
+                -- is a no-op (pure fresh canvass list). city is UPPER()'d off the
+                -- CITY_COUNTY field so the Lindale-city subset is filterable with a
+                -- deterministic city ILIKE 'LINDALE'. Storm signal: 22 SPC hail
+                -- reports in 18mo in-bbox, max 1.75", freshest 2026-05-22.
+                smith_storms AS (
+                    SELECT report_id, report_date, lat, lon,
+                           COALESCE(size_in, 0.75) AS size_in
+                      FROM spc_storm_reports
+                     WHERE report_type = 'hail'
+                       AND state = 'TX'
+                       AND report_date >= CURRENT_DATE - INTERVAL '18 months'
+                       AND lat  BETWEEN 32.0  AND 32.8
+                       AND lon  BETWEEN -95.7 AND -95.0
+                ),
+                smith_candidate_parcels AS (
+                    SELECT DISTINCT ON (tg.parcel_id)
+                           tg.parcel_id,
+                           tg.centroid_lat,
+                           tg.centroid_lon,
+                           sr.report_id     AS storm_report_id,
+                           sr.report_date   AS matched_storm_date,
+                           sr.size_in       AS hail_size_in
+                      FROM smith_storms sr
+                      CROSS JOIN LATERAL (
+                          SELECT tg.parcel_id,
+                                 tg.centroid_lat, tg.centroid_lon
+                            FROM smith_parcel_geometries tg
+                           WHERE ST_DWithin(
+                                     tg.geom,
+                                     ST_SetSRID(ST_MakePoint(sr.lon, sr.lat), 4326),
+                                     0.027
+                                 )
+                      ) tg
+                     ORDER BY tg.parcel_id, sr.size_in DESC, sr.report_date DESC
+                ),
+                smith_candidate_with_addr AS (
+                    SELECT cp.*,
+                           tcp.situs_address     AS address,
+                           UPPER(tcp.situs_city) AS city,
+                           tcp.situs_zip         AS zip,
+                           tcp.year_built        AS year_built,
+                           tcp.building_sqft     AS building_sqft,
+                           TRIM(REGEXP_REPLACE(
+                               REGEXP_REPLACE(
+                                   REGEXP_REPLACE(UPPER(tcp.situs_address),
+                                       '(^|\\s)(SUITE|STE|UNIT|APT|#)\\s+\\S+', ' ', 'g'),
+                               '[.,#]', '', 'g'),
+                           '\\s+', ' ')) AS norm_situs
+                      FROM smith_candidate_parcels cp
+                      JOIN tx_cad_parcels tcp
+                            ON tcp.parcel_id = cp.parcel_id
+                           AND tcp.cad_source = 'SMITHCAD'
+                     WHERE tcp.situs_address IS NOT NULL
+                ),
+                hll_smith_norm AS (
+                    SELECT DISTINCT
+                           TRIM(REGEXP_REPLACE(
+                               REGEXP_REPLACE(
+                                   REGEXP_REPLACE(UPPER(address),
+                                       '(^|\\s)(SUITE|STE|UNIT|APT|#)\\s+\\S+', ' ', 'g'),
+                               '[.,#]', '', 'g'),
+                           '\\s+', ' ')) AS norm_addr
+                      FROM hail_leads_list
+                     WHERE county ILIKE 'smith'
+                ),
+                smith_rows AS (
+                    SELECT
+                        ca.parcel_id,
+                        ca.address,
+                        ca.city,
+                        ca.zip,
+                        'smith'::text                               AS county,
+                        ca.centroid_lat,
+                        ca.centroid_lon,
+                        ca.matched_storm_date,
+                        ca.hail_size_in,
+                        (CURRENT_DATE - ca.matched_storm_date)::integer AS days_since_storm,
+                        GREATEST(0, 365 - (CURRENT_DATE - ca.matched_storm_date))::double precision
+                            / 365.0 * ca.hail_size_in                AS lead_score,
+                        'Smith'::text                               AS county_source,
+                        ca.year_built                               AS year_built,
+                        ca.building_sqft                            AS building_sqft
+                      FROM smith_candidate_with_addr ca
+                     WHERE NOT EXISTS (
+                         SELECT 1 FROM hll_smith_norm hsn
+                          WHERE hsn.norm_addr = ca.norm_situs
                      )
                 ),
                 -- ============================= TRAVIS ============================
@@ -1605,6 +1707,13 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                        NULL::numeric AS building_sqft,
                        NULL::bigint  AS assessed_value
                   FROM harris_rows
+                UNION ALL
+                SELECT parcel_id, address, city, zip, county,
+                       centroid_lat, centroid_lon, matched_storm_date,
+                       hail_size_in, days_since_storm, lead_score, county_source,
+                       year_built, building_sqft,
+                       NULL::bigint  AS assessed_value
+                  FROM smith_rows
                 UNION ALL
                 SELECT parcel_id, address, city, zip, county,
                        centroid_lat, centroid_lon, matched_storm_date,

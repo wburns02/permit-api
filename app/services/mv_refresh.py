@@ -81,11 +81,11 @@ _MVS = (
     # Parcel-level un-serviced storm leads: storms (last 18 months) ×
     # <county>_parcel_geometries × tx_cad_parcels, minus parcels that pulled a
     # roof permit post-storm. TX hail arms: Tarrant (TAD) + Dallas (DCAD) +
-    # Hays (HaysCAD) + Comal (CCAD) + Bexar (BCAD), SPC hail driven. Plus the
-    # EAST BATON ROUGE, LA arm (EBRPA): NOAA storm_events WIND/tropical (+ hail
-    # secondary) × ebr_parcel_geometries, minus parcels with a Re-Roof permit
-    # (ebr_permits) issued after the storm. Travis is excluded — no TCAD
-    # address join exists in tx_cad_parcels. Refresh runs
+    # Hays (HaysCAD) + Comal (CCAD) + Bexar (BCAD) + Travis (TCAD) +
+    # Harris (HCAD) + Smith (SMITHCAD, Tyler/Lindale), SPC hail driven. Plus the
+    # EAST BATON ROUGE + Ascension, LA arms: NOAA storm_events WIND/tropical (+
+    # hail secondary) × <parish>_parcel_geometries, minus parcels with a Re-Roof
+    # permit issued after the storm. Refresh runs
     # on the dedicated maintenance engine (no client/server timeout cap), so the
     # multi-county full/CONCURRENTLY refresh has no statement-timeout ceiling.
     # Has a unique index on (parcel_id, county_source), so REFRESH ...

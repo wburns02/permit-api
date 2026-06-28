@@ -104,3 +104,39 @@ def test_both_live_mvs_are_in_the_refresh_registry():
     relnames = {relname for _, relname in _MVS}
     assert "brazoria_permit_leads" in relnames
     assert "unserviced_hail_leads" in relnames
+
+
+# ── Smith County (Tyler/Lindale) arm wiring — hermetic source guards ─────────
+def test_smith_arm_wired_into_unserviced_mv():
+    """The Smith/SMITHCAD (Tyler/Lindale, East TX) arm must be fully wired into
+    the unserviced_hail_leads MV: storm CTE, geometry LATERAL, BCAD-style attr
+    join, county_source, the final UNION arm, and the staleness sentinel."""
+    src = _read("app/main.py")
+    # storm + candidate CTEs
+    assert "smith_storms AS (" in src
+    assert "smith_candidate_parcels AS (" in src
+    assert "smith_candidate_with_addr AS (" in src
+    assert "smith_rows AS (" in src
+    # joins the dedicated geometry table to tx_cad_parcels on SMITHCAD
+    assert "smith_parcel_geometries" in src
+    assert "tcp.cad_source = 'SMITHCAD'" in src
+    # county_source label + UNION arm
+    assert "'Smith'::text" in src
+    assert "FROM smith_rows" in src
+    # Lindale/Smith bbox (East TX): lat 32.0-32.8, lon -95.7..-95.0
+    assert "BETWEEN 32.0  AND 32.8" in src
+    assert "BETWEEN -95.7 AND -95.0" in src
+    # serviced-exclusion against hail_leads_list for the county
+    assert "WHERE county ILIKE 'smith'" in src
+    # staleness sentinel includes smith geometry so a stale def is rebuilt
+    sentinel_idx = src.index("stale live definition detected")
+    head = src[:sentinel_idx]
+    assert '"smith_parcel_geometries" in live_def' in head
+
+
+def test_smith_arm_captures_city_for_lindale_filter():
+    """The Smith arm must project a city column (UPPER situs_city) so the
+    Lindale-city subset is filterable via the /unserviced city= filter."""
+    src = _read("app/main.py")
+    smith_block = src[src.index("smith_candidate_with_addr AS ("):src.index("smith_rows AS (")]
+    assert "UPPER(tcp.situs_city) AS city" in smith_block
