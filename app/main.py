@@ -665,6 +665,11 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                 # new columns (and the enriched roof age) reach the MV.
                 and "assessed_value" in live_def
                 and "ascension_permits" in live_def
+                # smith-value sentinel: the Smith arm now surfaces market_value
+                # (backfilled by scrape_smithcad_values.py) through the shared
+                # assessed_value column. A live def lacking this CTE comment
+                # predates the value backfill and must rebuild to expose it.
+                and "smith_market_value" in live_def
             ):
                 logger.warning(
                     "unserviced_hail_leads: stale live definition detected "
@@ -1165,7 +1170,9 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                 -- cad_source = 'SMITHCAD'. bbox lat 32.0-32.8, lon -95.7..-95.0
                 -- covers Smith County incl. Lindale (32.5/-95.4) and Tyler. The
                 -- Smith feed carries year_built (YRBLT) + sqft (SFLA) but NO value
-                -- column, so assessed_value/market_value project NULL here.
+                -- column; market_value is backfilled per-parcel by
+                -- scripts/scrape_smithcad_values.py (GSACorp eSearch detail page)
+                -- and surfaced through the shared assessed_value column.
                 -- hail_leads_list has 0 Smith rows today so the serviced-exclusion
                 -- is a no-op (pure fresh canvass list). city is UPPER()'d off the
                 -- CITY_COUNTY field so the Lindale-city subset is filterable with a
@@ -1209,6 +1216,10 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                            tcp.situs_zip         AS zip,
                            tcp.year_built        AS year_built,
                            tcp.building_sqft     AS building_sqft,
+                           -- smith_market_value: backfilled by
+                           -- scripts/scrape_smithcad_values.py from the GSACorp
+                           -- eSearch detail page (free CAD has no value feed).
+                           tcp.market_value      AS market_value,
                            TRIM(REGEXP_REPLACE(
                                REGEXP_REPLACE(
                                    REGEXP_REPLACE(UPPER(tcp.situs_address),
@@ -1248,7 +1259,12 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                             / 365.0 * ca.hail_size_in                AS lead_score,
                         'Smith'::text                               AS county_source,
                         ca.year_built                               AS year_built,
-                        ca.building_sqft                            AS building_sqft
+                        ca.building_sqft                            AS building_sqft,
+                        -- Smith free-CAD GIS carries no value feed; market_value
+                        -- is backfilled per-parcel by scrape_smithcad_values.py
+                        -- and surfaced through the shared assessed_value column
+                        -- (same pattern as the Travis arm).
+                        ca.market_value                             AS market_value
                       FROM smith_candidate_with_addr ca
                      WHERE NOT EXISTS (
                          SELECT 1 FROM hll_smith_norm hsn
@@ -1905,7 +1921,7 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                        centroid_lat, centroid_lon, matched_storm_date,
                        hail_size_in, days_since_storm, lead_score, county_source,
                        year_built, building_sqft,
-                       NULL::bigint  AS assessed_value
+                       market_value::bigint                        AS assessed_value
                   FROM smith_rows
                 UNION ALL
                 SELECT parcel_id, address, city, zip, county,
