@@ -136,3 +136,38 @@ async def test_unserviced_routes_in_openapi_spec():
         "page_size",
     }:
         assert expected in param_names, f"param {expected!r} not in OpenAPI spec"
+
+
+@pytest.mark.asyncio
+async def test_unserviced_accepts_nueces_county_filter():
+    """The Nueces (Corpus Christi) WIND arm is filterable via ?county=nueces.
+
+    Cannot reach 200 without a live DB, but a county filter that progresses past
+    validation (not 401/422) confirms the param is wired for the new arm.
+    """
+    key = os.environ["DEMO_API_KEY"]
+    async with _client() as client:
+        resp = await client.get(
+            UNSERVICED_LIST,
+            params={"county": "nueces", "page_size": 10},
+            headers={"X-API-Key": key},
+        )
+    assert resp.status_code not in (401, 422), resp.text
+
+
+def test_main_mv_sql_has_nueces_wind_arm():
+    """Static guard: the unserviced_hail_leads MV SQL in app/main.py must wire
+    the Nueces (Corpus Christi) WIND arm — its geometry CTE, the NUECESCAD CAD
+    join, the wind storm filter (TEXAS cz_fips=355), and the UNION ALL branch.
+    Mirrors the EBR/Ascension wind-arm shape. No DB needed.
+    """
+    import pathlib
+
+    src = (
+        pathlib.Path(__file__).resolve().parents[1] / "app" / "main.py"
+    ).read_text()
+    assert "nueces_parcel_geometries" in src, "Nueces geometry CTE missing"
+    assert "cad_source = 'NUECESCAD'" in src, "NUECESCAD join missing"
+    assert "cz_fips = 355" in src, "Nueces (TX 48355) wind storm filter missing"
+    assert "FROM nueces_rows" in src, "Nueces UNION ALL branch missing"
+    assert "'Nueces'::text" in src, "Nueces county_source label missing"
