@@ -655,6 +655,10 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                 # Nueces (Corpus Christi) WIND arm sentinel — a live def lacking
                 # the nueces geometry CTE predates this arm and must rebuild.
                 and "nueces_parcel_geometries" in live_def
+                # Nueces serviced-exclusion sentinel — a live def lacking the
+                # nueces_permits NOT EXISTS predates the Corpus/Port-Aransas
+                # re-roof exclusion and must rebuild to apply it.
+                and "nueces_permits" in live_def
                 # roof-age sentinel: the EBR arm now projects year_built /
                 # building_sqft / assessed_value. A live def lacking the
                 # assessed_value column predates this and must be rebuilt so the
@@ -665,8 +669,8 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                 logger.warning(
                     "unserviced_hail_leads: stale live definition detected "
                     "(missing hail_leads_list/dcad/hays/comal/bexar/travis/smith/"
-                    "harris/ebr/ascension/nueces/assessed_value sentinels) — "
-                    "dropping to rebuild"
+                    "harris/ebr/ascension/nueces/nueces_permits/assessed_value "
+                    "sentinels) — dropping to rebuild"
                 )
                 await conn.execute(_text(
                     "DROP MATERIALIZED VIEW IF EXISTS unserviced_hail_leads CASCADE"
@@ -691,6 +695,26 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
             await conn.execute(_text(
                 "CREATE INDEX IF NOT EXISTS ix_ascension_permits_reroof "
                 "ON public.ascension_permits (address_norm) WHERE is_reroof"))
+        # Safety shim: the Nueces arm's serviced-exclusion references
+        # nueces_permits (Corpus Christi Infor + Port Aransas OpenGov Re-Roof
+        # permits, populated by scripts/promote_nueces_reroof.py from hot_leads).
+        # Create the empty shape if absent so the MV build never fails on a fresh
+        # DB; an empty table makes the NOT EXISTS a harmless no-op (pure canvass).
+        async with primary_engine.begin() as conn:
+            await conn.execute(_text("SET LOCAL lock_timeout = '15s'"))
+            await conn.execute(_text("""
+                CREATE TABLE IF NOT EXISTS public.nueces_permits (
+                    permit_number text,
+                    address_norm  text,
+                    is_reroof     boolean NOT NULL DEFAULT false,
+                    issued_date   date,
+                    source        text,
+                    raw           jsonb
+                )
+            """))
+            await conn.execute(_text(
+                "CREATE INDEX IF NOT EXISTS ix_nueces_permits_reroof "
+                "ON public.nueces_permits (address_norm) WHERE is_reroof"))
         async with primary_engine.begin() as conn:
             await conn.execute(_text("SET LOCAL lock_timeout = '15s'"))
             await conn.execute(_text("SET LOCAL statement_timeout = '30s'"))
@@ -1675,10 +1699,18 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                 -- carries year_built (~69% fill) — unlike EBR which had none — so
                 -- this arm projects a real roof-age signal.
                 --
-                -- NOTE: no accessible public re-roof permit feed for Nueces
-                -- (City of Corpus permits are not exposed as a queryable issue
-                -- feed), so there is NO serviced-exclusion here — same gap as the
-                -- Ascension arm. Lead = storm-hit parcel; documented honestly.
+                -- VERIFIED serviced-exclusion (Gap closed): Nueces re-roof
+                -- permits ARE accessible. TX counties do not issue building
+                -- permits, so "Nueces" = its two permitting cities: City of
+                -- Corpus Christi (Infor "Rhythm"/CIVICS public portal, a 2-step
+                -- list+detail XHR scrape — scripts/scrape_corpus_permits.py) and
+                -- Port Aransas / 78373 (OpenGov — scripts/scrape_opengov.py).
+                -- Re-roof rows are promoted into nueces_permits
+                -- (scripts/promote_nueces_reroof.py) and the nueces_rows CTE
+                -- drops any storm-hit parcel already re-roofed (see exclusion
+                -- below). Corpus carries an issued_date so the exclusion is
+                -- time-gated to the storm; date-less rows are treated as
+                -- conservatively serviced.
                 --
                 -- city is UPPER()'d so the Corpus-city subset is filterable with
                 -- a deterministic city='CORPUS CHRISTI'.
@@ -1741,7 +1773,13 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                            tcp.situs_zip        AS zip,
                            tcp.year_built       AS year_built,
                            tcp.building_sqft    AS building_sqft,
-                           tcp.market_value     AS market_value
+                           tcp.market_value     AS market_value,
+                           TRIM(REGEXP_REPLACE(
+                               REGEXP_REPLACE(
+                                   REGEXP_REPLACE(UPPER(tcp.situs_address),
+                                       '(^|\\s)(SUITE|STE|UNIT|APT|#)\\s+\\S+', ' ', 'g'),
+                               '[.,#]', '', 'g'),
+                           '\\s+', ' ')) AS norm_situs
                       FROM nueces_candidate_parcels cp
                       JOIN tx_cad_parcels tcp
                             ON tcp.parcel_id = cp.parcel_id
@@ -1770,6 +1808,28 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                         -- the MV stays one shape across arms.
                         ca.market_value::bigint                     AS assessed_value
                       FROM nueces_candidate_with_addr ca
+                     -- VERIFIED serviced exclusion (upgrades Corpus from
+                     -- "storm-zone" to VERIFIED un-serviced, mirroring EBR).
+                     -- Counties don't issue building/re-roof permits in TX, so
+                     -- the two cities ARE Nueces: City of Corpus Christi (Infor
+                     -- "Rhythm"/CIVICS portal, scripts/scrape_corpus_permits.py)
+                     -- + Port Aransas / 78373 (OpenGov, scripts/scrape_opengov.py).
+                     -- Both flow into hot_leads and are promoted into
+                     -- nueces_permits by scripts/promote_nueces_reroof.py. Drop
+                     -- any storm-hit parcel whose normalized situs has a Re-Roof
+                     -- permit. Corpus carries a real issued_date so we time-gate
+                     -- to "re-roofed at/after the matched storm"; when the date
+                     -- is NULL (rare Corpus rows / OpenGov gaps) we treat ANY
+                     -- recorded Re-Roof as serviced (conservative, the safe
+                     -- direction). Empty/absent nueces_permits = harmless no-op
+                     -- (pure canvass list, identical to the Ascension shim).
+                     WHERE NOT EXISTS (
+                         SELECT 1 FROM nueces_permits ep
+                          WHERE ep.is_reroof
+                            AND ep.address_norm = ca.norm_situs
+                            AND (ep.issued_date IS NULL
+                                 OR ep.issued_date::date >= ca.matched_storm_date)
+                     )
                 )
                 SELECT parcel_id, address, city, zip, county,
                        centroid_lat, centroid_lon, matched_storm_date,

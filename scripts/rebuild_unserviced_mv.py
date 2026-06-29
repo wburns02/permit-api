@@ -44,6 +44,7 @@ def main():
     assert "comal_parcel_geometries" in create_sql, "Comal arm missing!"
     assert "travis_parcel_geometries" in create_sql, "Travis arm missing!"
     assert "hcad_parcel_geometries" in create_sql, "Harris arm missing!"
+    assert "nueces_permits" in create_sql, "Nueces serviced-exclusion missing!"
 
     conn = psycopg2.connect(DSN, connect_timeout=30)
     conn.autocommit = True
