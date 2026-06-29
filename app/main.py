@@ -503,8 +503,9 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
 
     # ---------------------------------------------------------------------------
     # unserviced_hail_leads MV — Tarrant + Dallas + Hays + Comal + Bexar +
-    #   Travis + Harris + Smith (TX hail) + EAST BATON ROUGE, LA (first LA / WIND
-    #   arm).
+    #   Travis + Harris + Smith (TX hail) + EAST BATON ROUGE + ASCENSION, LA
+    #   (WIND arms) + NUECES / Corpus Christi, TX (first South-Texas / Gulf-Coast
+    #   WIND arm).
     #
     # Produces one row per parcel that: (a) sits within 3 km of a recent storm
     # (last 18 months), (b) has NOT already been serviced. This is the "canvass
@@ -651,6 +652,9 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                 and "hcad_parcel_geometries" in live_def
                 and "ebr_parcel_geometries" in live_def
                 and "ascension_parcel_geometries" in live_def
+                # Nueces (Corpus Christi) WIND arm sentinel — a live def lacking
+                # the nueces geometry CTE predates this arm and must rebuild.
+                and "nueces_parcel_geometries" in live_def
                 # roof-age sentinel: the EBR arm now projects year_built /
                 # building_sqft / assessed_value. A live def lacking the
                 # assessed_value column predates this and must be rebuilt so the
@@ -661,8 +665,8 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                 logger.warning(
                     "unserviced_hail_leads: stale live definition detected "
                     "(missing hail_leads_list/dcad/hays/comal/bexar/travis/smith/"
-                    "harris/ebr/ascension/assessed_value sentinels) — dropping to "
-                    "rebuild"
+                    "harris/ebr/ascension/nueces/assessed_value sentinels) — "
+                    "dropping to rebuild"
                 )
                 await conn.execute(_text(
                     "DROP MATERIALIZED VIEW IF EXISTS unserviced_hail_leads CASCADE"
@@ -1651,6 +1655,121 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                             AND (ep.issued_date IS NULL
                                  OR ep.issued_date::date >= ca.matched_storm_date)
                      )
+                ),
+                -- ================== NUECES (CORPUS CHRISTI), TX =================
+                -- FIRST South-Texas / Gulf-Coast arm. WIND-keyed, mirroring the
+                -- EBR / Ascension arms (NOT hail like the other TX arms). Recon:
+                -- the Corpus bbox shows ~2 hail reports vs 34 Thunderstorm-Wind
+                -- events (max 100 kt / 115 mph, 2025-05-08) in the last 18mo, so
+                -- the peril is straight-line / tropical WIND.
+                --
+                -- Storm source is NOAA storm_events (TEXAS, cz_fips=355,
+                -- cz_type='C' = Nueces County FIPS 48355) which carry point
+                -- begin_lat/begin_lon — so this mirrors the EBR/Bexar spatial
+                -- driver (ST_DWithin against nueces_parcel_geometries) rather
+                -- than a county-wide footprint. parcel_id (= StratMap Prop_ID)
+                -- joins tx_cad_parcels on cad_source='NUECESCAD'.
+                --
+                -- Value basis = MARKET value (StratMap MKT_VALUE is real, unlike
+                -- the EBR feed whose market value is structurally 0). Nueces ALSO
+                -- carries year_built (~69% fill) — unlike EBR which had none — so
+                -- this arm projects a real roof-age signal.
+                --
+                -- NOTE: no accessible public re-roof permit feed for Nueces
+                -- (City of Corpus permits are not exposed as a queryable issue
+                -- feed), so there is NO serviced-exclusion here — same gap as the
+                -- Ascension arm. Lead = storm-hit parcel; documented honestly.
+                --
+                -- city is UPPER()'d so the Corpus-city subset is filterable with
+                -- a deterministic city='CORPUS CHRISTI'.
+                --
+                -- severity_in normalizes wind+hail onto one 0..~3 scale WITHOUT
+                -- pretending wind knots are hail inches (identical to EBR):
+                --   Hail -> magnitude inches (store as hail_size_in).
+                --   Wind -> knots; severity = knots/26. Tropical/Hurricane -> 1.0.
+                nueces_storms AS (
+                    SELECT event_id, begin_datetime::date AS report_date,
+                           begin_lat AS lat, begin_lon AS lon, event_type,
+                           magnitude,
+                           CASE
+                             WHEN event_type = 'Hail'
+                               THEN COALESCE(magnitude, 0.75)
+                             WHEN event_type IN ('Thunderstorm Wind','High Wind','Strong Wind')
+                               THEN COALESCE(magnitude, 50.0) / 26.0
+                             ELSE 1.0  -- Tropical Storm / Hurricane (no point mag)
+                           END AS severity_in,
+                           CASE WHEN event_type = 'Hail'
+                                THEN COALESCE(magnitude, 0.75) END AS hail_in
+                      FROM storm_events
+                     WHERE state = 'TEXAS'
+                       AND cz_fips = 355
+                       AND cz_type = 'C'
+                       AND event_type IN (
+                             'Thunderstorm Wind','High Wind','Strong Wind',
+                             'Tropical Storm','Hurricane','Hurricane (Typhoon)',
+                             'Hail')
+                       AND begin_lat IS NOT NULL
+                       AND begin_lon IS NOT NULL
+                       AND begin_datetime >= CURRENT_DATE - INTERVAL '18 months'
+                ),
+                nueces_candidate_parcels AS (
+                    SELECT DISTINCT ON (tg.parcel_id)
+                           tg.parcel_id,
+                           tg.centroid_lat,
+                           tg.centroid_lon,
+                           sr.event_id      AS storm_event_id,
+                           sr.report_date   AS matched_storm_date,
+                           sr.event_type    AS storm_event_type,
+                           sr.severity_in   AS severity_in,
+                           sr.hail_in       AS hail_size_in
+                      FROM nueces_storms sr
+                      CROSS JOIN LATERAL (
+                          SELECT tg.parcel_id, tg.centroid_lat, tg.centroid_lon
+                            FROM nueces_parcel_geometries tg
+                           WHERE ST_DWithin(
+                                     tg.geom,
+                                     ST_SetSRID(ST_MakePoint(sr.lon, sr.lat), 4326),
+                                     0.027
+                                 )
+                      ) tg
+                     ORDER BY tg.parcel_id, sr.severity_in DESC, sr.report_date DESC
+                ),
+                nueces_candidate_with_addr AS (
+                    SELECT cp.*,
+                           tcp.situs_address    AS address,
+                           UPPER(tcp.situs_city) AS city,
+                           tcp.situs_zip        AS zip,
+                           tcp.year_built       AS year_built,
+                           tcp.building_sqft    AS building_sqft,
+                           tcp.market_value     AS market_value
+                      FROM nueces_candidate_parcels cp
+                      JOIN tx_cad_parcels tcp
+                            ON tcp.parcel_id = cp.parcel_id
+                           AND tcp.cad_source = 'NUECESCAD'
+                     WHERE tcp.situs_address IS NOT NULL
+                ),
+                nueces_rows AS (
+                    SELECT
+                        ca.parcel_id,
+                        ca.address,
+                        ca.city,
+                        ca.zip,
+                        'nueces'::text                              AS county,
+                        ca.centroid_lat,
+                        ca.centroid_lon,
+                        ca.matched_storm_date,
+                        ca.hail_size_in,
+                        (CURRENT_DATE - ca.matched_storm_date)::integer AS days_since_storm,
+                        GREATEST(0, 365 - (CURRENT_DATE - ca.matched_storm_date))::double precision
+                            / 365.0 * ca.severity_in                AS lead_score,
+                        'Nueces'::text                              AS county_source,
+                        ca.year_built                               AS year_built,
+                        ca.building_sqft                            AS building_sqft,
+                        -- value basis is MARKET value for Nueces (see CTE note);
+                        -- surfaced through the shared assessed_value column so
+                        -- the MV stays one shape across arms.
+                        ca.market_value::bigint                     AS assessed_value
+                      FROM nueces_candidate_with_addr ca
                 )
                 SELECT parcel_id, address, city, zip, county,
                        centroid_lat, centroid_lon, matched_storm_date,
@@ -1728,6 +1847,12 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                        NULL::numeric AS building_sqft,
                        NULL::bigint  AS assessed_value
                   FROM ascension_rows
+                UNION ALL
+                SELECT parcel_id, address, city, zip, county,
+                       centroid_lat, centroid_lon, matched_storm_date,
+                       hail_size_in, days_since_storm, lead_score, county_source,
+                       year_built, building_sqft, assessed_value
+                  FROM nueces_rows
                 WITH NO DATA
             """))
         # Indexes in their own txn — unique index enables REFRESH CONCURRENTLY.
