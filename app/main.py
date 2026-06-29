@@ -1774,9 +1774,23 @@ async def _run_startup_migrations_body(_text, primary_engine) -> None:
                            tcp.year_built       AS year_built,
                            tcp.building_sqft    AS building_sqft,
                            tcp.market_value     AS market_value,
+                           -- NUECESCAD stores the FULL address in situs_address
+                           -- ("1041  ZARSKY DR, CORPUS CHRISTI, TX 78412") with a
+                           -- city/state/zip tail and a double space after the
+                           -- house number — UNLIKE EBR/Tarrant where situs is the
+                           -- bare street line. The permit feeds (Corpus Infor /
+                           -- Port Aransas OpenGov) carry only the street line
+                           -- ("1041 ZARSKY DR"). So for the re-roof address join
+                           -- we normalize the STREET PORTION only:
+                           -- split_part(situs_address, ',', 1) before the shared
+                           -- normalize (UPPER + strip unit designators + strip
+                           -- punctuation + collapse whitespace). Without the
+                           -- split the key carries the ", CORPUS CHRISTI, TX zip"
+                           -- tail, never matches the permit street, and the
+                           -- exclusion is a silent no-op.
                            TRIM(REGEXP_REPLACE(
                                REGEXP_REPLACE(
-                                   REGEXP_REPLACE(UPPER(tcp.situs_address),
+                                   REGEXP_REPLACE(UPPER(split_part(tcp.situs_address, ',', 1)),
                                        '(^|\\s)(SUITE|STE|UNIT|APT|#)\\s+\\S+', ' ', 'g'),
                                '[.,#]', '', 'g'),
                            '\\s+', ' ')) AS norm_situs
