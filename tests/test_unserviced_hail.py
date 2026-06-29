@@ -171,3 +171,26 @@ def test_main_mv_sql_has_nueces_wind_arm():
     assert "cz_fips = 355" in src, "Nueces (TX 48355) wind storm filter missing"
     assert "FROM nueces_rows" in src, "Nueces UNION ALL branch missing"
     assert "'Nueces'::text" in src, "Nueces county_source label missing"
+
+
+def test_main_mv_sql_has_nueces_serviced_exclusion():
+    """Static guard: the Nueces arm must carry the re-roof serviced-exclusion
+    (Corpus Christi Infor + Port Aransas OpenGov re-roofs promoted into
+    nueces_permits), mirroring the EBR/Ascension serviced-exclusion. The
+    nueces_candidate_with_addr CTE must compute norm_situs and nueces_rows must
+    drop already-re-roofed parcels via NOT EXISTS against nueces_permits.
+    """
+    import pathlib
+
+    src = (
+        pathlib.Path(__file__).resolve().parents[1] / "app" / "main.py"
+    ).read_text()
+    assert "nueces_permits" in src, "nueces_permits exclusion table missing"
+    assert "FROM nueces_permits ep" in src, "Nueces NOT EXISTS join missing"
+    # The candidate CTE must normalize the situs address for the address join.
+    nueces_block = src[src.index("nueces_candidate_with_addr AS"):
+                       src.index("FROM nueces_rows")]
+    assert "norm_situs" in nueces_block, "Nueces norm_situs (address join key) missing"
+    # The staleness sentinel must list nueces_permits so the MV rebuilds to apply it.
+    assert '"nueces_permits" in live_def' in src, \
+        "nueces_permits staleness sentinel missing"

@@ -326,6 +326,7 @@ JURISDICTIONS = [
     {"id": "bedfordtx",           "name": "City of Bedford",            "state": "TX"},
     {"id": "countyofbexartx",     "name": "Bexar County",               "state": "TX"},
     {"id": "aransaspasstx",       "name": "Aransas Pass",               "state": "TX"},
+    {"id": "portaransastx",       "name": "Port Aransas",               "state": "TX", "county": "Nueces"},
     {"id": "galvestoncountytx",   "name": "Galveston County",           "state": "TX"},
     # Vermont
     {"id": "townofbrattleborovt", "name": "Brattleboro",                "state": "VT"},
