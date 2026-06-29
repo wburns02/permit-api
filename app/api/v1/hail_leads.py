@@ -1572,8 +1572,10 @@ async def unserviced_hail_leads_list(
         max_length=100,
         description=(
             "Filter by county name (case-insensitive, e.g. Tarrant / Dallas / "
-            "Hays / Comal / Bexar / East Baton Rouge). Omit for all counties. "
-            "Note: East Baton Rouge (LA) leads are WIND/tropical-keyed, not hail."
+            "Hays / Comal / Bexar / Travis / Harris / Smith / East Baton Rouge / "
+            "Ascension). Omit for all counties. Note: East Baton Rouge + Ascension "
+            "(LA) leads are WIND/tropical-keyed, not hail. Smith = Tyler/Lindale, "
+            "East TX; filter to Lindale with city=Lindale."
         ),
     ),
     city: str | None = Query(
@@ -1581,7 +1583,8 @@ async def unserviced_hail_leads_list(
         max_length=100,
         description=(
             "Filter by situs city (case-insensitive, e.g. Gonzales / "
-            "Prairieville for Ascension). Omit for all cities."
+            "Prairieville for Ascension; Lindale / Tyler for Smith). "
+            "Omit for all cities."
         ),
     ),
     min_hail_inches: float | None = Query(
