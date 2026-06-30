@@ -1,0 +1,272 @@
+#!/usr/bin/env python3
+"""The harness driver for the statewide TX permit-scraping loop.
+
+A real autonomous loop is a harness with BACKPRESSURE. For each jurisdiction:
+
+    1. fill the per-jurisdiction prompt template
+    2. spawn `claude -p --model sonnet <prompt>`  (Claude SUBSCRIPTION CLI,
+       flat-rate; NEVER the metered Anthropic API)
+    3. parse the agent's final JSON (its self-reported status is NOT trusted)
+    4. run the DETERMINISTIC VERIFIER (verify.py) and GATE ON THAT
+    5. write the outcome to the registry (the resumable state)
+
+Model: per-jurisdiction agent calls use Sonnet (config constant MODEL below).
+Sonnet is the right tier for bulk recon/build and conserves subscription quota
+(Opus would burn it ~5x faster across 1,200 jurisdictions). The verifier and
+this driver are deterministic code — no model involved.
+
+Resumable: kill it anytime; re-run picks up `pending` rows from registry.db.
+Bounded parallelism: at most MAX_PARALLEL concurrent `claude -p` processes.
+"""
+from __future__ import annotations
+
+import argparse
+import concurrent.futures
+import json
+import os
+import re
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+import registry
+import seed_data
+import verify
+
+HERE = Path(__file__).resolve().parent
+# Run `claude -p` from the permit-api repo root so the agent has the full
+# framework (scripts/, db.py, Playwright, psql) on hand.
+REPO_ROOT = HERE.parent.parent
+PROMPT_TEMPLATE = (HERE / "jurisdiction_prompt.md").read_text()
+
+# ── Model / cost config ──────────────────────────────────────────────────────
+# Sonnet for the bulk per-jurisdiction work. Change here to retune tier.
+MODEL = os.getenv("STATEWIDE_LOOP_MODEL", "sonnet")
+# We invoke the Claude SUBSCRIPTION CLI (`claude -p`), flat-rate. We explicitly
+# do NOT set ANTHROPIC_API_KEY (it's disabled for cost); claude-cli uses the
+# logged-in subscription session.
+CLAUDE_BIN = os.getenv("CLAUDE_BIN", "claude")
+
+MAX_PARALLEL = int(os.getenv("STATEWIDE_LOOP_PARALLEL", "3"))
+AGENT_TIMEOUT_S = int(os.getenv("STATEWIDE_LOOP_AGENT_TIMEOUT", "900"))  # 15 min/juris
+MAX_ATTEMPTS = 2  # a built-but-failed-verify row gets one retry, then walled
+
+
+def log(msg: str) -> None:
+    print(f"{time.strftime('%H:%M:%S')} {msg}", flush=True)
+
+
+def fill_prompt(row) -> str:
+    repl = {
+        "{{NAME}}": row["name"],
+        "{{JTYPE}}": row["jtype"],
+        "{{FIPS}}": row["fips"] or "?",
+        "{{PORTAL_URL}}": row["portal_url"] or "?",
+        "{{VENDOR}}": row["vendor"] or "unknown",
+        "{{SOURCE_TAG}}": row["source_tag"],
+    }
+    out = PROMPT_TEMPLATE
+    for k, v in repl.items():
+        out = out.replace(k, str(v))
+    return out
+
+
+def extract_agent_json(text: str) -> dict | None:
+    """The agent's final message should contain one JSON object. Pull the last
+    valid JSON object that has a `source_tag` key."""
+    candidates = re.findall(r"\{[^{}]*\"source_tag\"[^{}]*\}", text, re.DOTALL)
+    for c in reversed(candidates):
+        try:
+            return json.loads(c)
+        except json.JSONDecodeError:
+            continue
+    # Fallback: try the whole thing if it's pure JSON.
+    try:
+        obj = json.loads(text.strip())
+        return obj if isinstance(obj, dict) else None
+    except json.JSONDecodeError:
+        return None
+
+
+def run_agent(row) -> dict:
+    """Spawn `claude -p --model sonnet` for one jurisdiction. Returns the parsed
+    agent JSON (or a synthetic error dict). NEVER trusted for the verdict."""
+    prompt = fill_prompt(row)
+    cmd = [
+        CLAUDE_BIN, "-p", prompt,
+        "--model", MODEL,
+        "--output-format", "json",
+        "--permission-mode", "bypassPermissions",
+    ]
+    env = dict(os.environ)
+    env.pop("ANTHROPIC_API_KEY", None)  # force subscription path, never metered API
+    t0 = time.time()
+    try:
+        proc = subprocess.run(
+            cmd, cwd=str(REPO_ROOT), env=env,
+            capture_output=True, text=True, timeout=AGENT_TIMEOUT_S,
+        )
+    except subprocess.TimeoutExpired:
+        return {"_error": f"agent timeout after {AGENT_TIMEOUT_S}s", "_elapsed": AGENT_TIMEOUT_S}
+    elapsed = round(time.time() - t0, 1)
+    if proc.returncode != 0:
+        return {"_error": f"claude rc={proc.returncode}: {proc.stderr[:400]}", "_elapsed": elapsed}
+
+    # --output-format json wraps the result; the agent's text is in .result
+    final_text = proc.stdout
+    try:
+        wrapper = json.loads(proc.stdout)
+        final_text = wrapper.get("result", proc.stdout)
+    except json.JSONDecodeError:
+        pass
+    agent = extract_agent_json(final_text) or {}
+    agent["_elapsed"] = elapsed
+    return agent
+
+
+def process(row_dict: dict) -> dict:
+    """Full pipeline for one jurisdiction: agent -> verifier -> verdict.
+    Pure function of its input dict; the caller writes the result to registry."""
+    name = row_dict["name"]
+    tag = row_dict["source_tag"]
+    log(f"  [start] {name} ({row_dict['jtype']}, guess={row_dict['vendor']})")
+
+    agent = run_agent(row_dict)
+    agent_status = agent.get("status") or ("error" if "_error" in agent else "?")
+    source_url = agent.get("source_url")
+    elapsed = agent.get("_elapsed", 0)
+
+    # GATE: run the deterministic verifier regardless of what the agent claimed.
+    vres = verify.verify(tag, source_url)
+    rows_loaded = vres.stats.get("row_count_bounded", 0)
+
+    if vres.passed:
+        final_state = "verified"
+    else:
+        # Verifier rejected. If the agent honestly said "walled", honor that
+        # with its barrier. Otherwise it's a built-but-garbage rejection.
+        if agent.get("status") == "walled":
+            final_state = "walled"
+        else:
+            final_state = "verify_failed"
+
+    log(
+        f"  [done ] {name}: agent={agent_status} verify={'PASS' if vres.passed else 'FAIL'} "
+        f"rows={rows_loaded} ({elapsed}s) :: {vres.reason}"
+    )
+    return {
+        "name": name,
+        "source_tag": tag,
+        "final_state": final_state,
+        "agent_status": agent_status,
+        "vendor": agent.get("vendor") or row_dict["vendor"],
+        "rows_loaded": rows_loaded,
+        "has_reroof": 1 if agent.get("has_reroof") else 0,
+        "barrier": (
+            agent.get("barrier_if_walled")
+            if final_state == "walled"
+            else (None if vres.passed else f"verifier: {vres.reason}")
+        ),
+        "verify_reason": vres.reason,
+    }
+
+
+def commit_result(conn, jid: int, res: dict) -> None:
+    state = res["final_state"]
+    if state == "verify_failed":
+        # one retry, then wall it
+        row = conn.execute("SELECT attempts FROM jurisdictions WHERE id=?", (jid,)).fetchone()
+        attempts = (row["attempts"] or 0) + 1
+        if attempts < MAX_ATTEMPTS:
+            registry.update(
+                conn, jid, state="pending", attempts=attempts,
+                agent_status=res["agent_status"],
+                barrier_note=f"retry {attempts}: {res['verify_reason']}",
+            )
+            return
+        registry.update(
+            conn, jid, state="walled", attempts=attempts,
+            agent_status=res["agent_status"], vendor=res["vendor"],
+            rows_loaded=res["rows_loaded"],
+            barrier_note=f"verifier rejected after {attempts} attempts: {res['verify_reason']}",
+        )
+        return
+    registry.update(
+        conn, jid, state=state, vendor=res["vendor"],
+        rows_loaded=res["rows_loaded"], has_reroof=res["has_reroof"],
+        agent_status=res["agent_status"], barrier_note=res["barrier"],
+        attempts=(conn.execute("SELECT attempts FROM jurisdictions WHERE id=?", (jid,)).fetchone()["attempts"] or 0) + 1,
+    )
+
+
+def run(limit: int | None, parallel: int) -> None:
+    conn = registry.connect()
+    log(f"model={MODEL!r} parallel={parallel} repo_root={REPO_ROOT}")
+    log(f"registry state at start: {registry.counts(conn)}")
+    processed = 0
+    while True:
+        batch = registry.next_pending(conn, parallel if not limit else min(parallel, limit - processed))
+        if not batch:
+            break
+        batch_dicts = [dict(r) for r in batch]
+        with concurrent.futures.ThreadPoolExecutor(max_workers=parallel) as ex:
+            futs = {ex.submit(process, d): d for d in batch_dicts}
+            for fut in concurrent.futures.as_completed(futs):
+                d = futs[fut]
+                try:
+                    res = fut.result()
+                except Exception as e:  # never let one juris kill the loop
+                    log(f"  [error] {d['name']}: {e!r}")
+                    registry.update(conn, d["id"], state="pending",
+                                    barrier_note=f"harness error: {e!r}",
+                                    attempts=(d.get("attempts") or 0) + 1)
+                    continue
+                commit_result(conn, d["id"], res)
+                processed += 1
+        if limit and processed >= limit:
+            break
+    log(f"registry state at end: {registry.counts(conn)}")
+
+
+def cmd_seed(_args) -> None:
+    conn = registry.connect()
+    added = registry.seed(conn, seed_data.SEED)
+    log(f"seeded {added} new jurisdictions (total rows: {len(registry.all_rows(conn))})")
+    log(f"state: {registry.counts(conn)}")
+
+
+def cmd_status(_args) -> None:
+    conn = registry.connect()
+    print(json.dumps(registry.counts(conn), indent=2))
+    for r in registry.all_rows(conn):
+        print(
+            f"  {r['id']:>2} {r['state']:<13} {r['jtype']:<6} {r['name']:<18} "
+            f"vendor={r['vendor'] or '?':<12} rows={r['rows_loaded'] or 0:<4} "
+            f"{(r['barrier_note'] or '')[:60]}"
+        )
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser(description="Statewide TX permit-scraping loop")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+
+    sub.add_parser("seed", help="seed the registry with the pilot jurisdictions")
+    sub.add_parser("status", help="print registry state")
+
+    pr = sub.add_parser("run", help="drive the loop over pending jurisdictions")
+    pr.add_argument("--limit", type=int, default=None, help="max jurisdictions this run")
+    pr.add_argument("--parallel", type=int, default=MAX_PARALLEL)
+
+    args = ap.parse_args()
+    if args.cmd == "seed":
+        cmd_seed(args)
+    elif args.cmd == "status":
+        cmd_status(args)
+    elif args.cmd == "run":
+        run(args.limit, args.parallel)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
