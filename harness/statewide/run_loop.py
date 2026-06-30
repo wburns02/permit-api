@@ -249,31 +249,58 @@ def commit_result(conn, jid: int, res: dict) -> None:
 
 
 def run(limit: int | None, parallel: int) -> None:
+    """Continuous-refill pool: keep `parallel` agents in flight at all times.
+
+    A jurisdiction with a slow/over-exploring agent must NOT stall the others, so
+    we refill a freed slot with the next `pending` row immediately rather than
+    draining a whole batch first. The registry is the queue; `in_flight` tracks
+    rows handed out this run so we never double-submit one.
+    """
     conn = registry.connect()
     log(f"model={MODEL!r} parallel={parallel} repo_root={REPO_ROOT}")
     log(f"registry state at start: {registry.counts(conn)}")
     processed = 0
-    while True:
-        batch = registry.next_pending(conn, parallel if not limit else min(parallel, limit - processed))
-        if not batch:
-            break
-        batch_dicts = [dict(r) for r in batch]
-        with concurrent.futures.ThreadPoolExecutor(max_workers=parallel) as ex:
-            futs = {ex.submit(process, d): d for d in batch_dicts}
-            for fut in concurrent.futures.as_completed(futs):
-                d = futs[fut]
+    in_flight: set[int] = set()
+
+    def claimable() -> dict | None:
+        if limit is not None and processed >= limit:
+            return None
+        for r in registry.next_pending(conn, parallel * 4):
+            if r["id"] not in in_flight:
+                return dict(r)
+        return None
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=parallel) as ex:
+        futs: dict[concurrent.futures.Future, dict] = {}
+        # prime the pool
+        while len(futs) < parallel:
+            row = claimable()
+            if row is None:
+                break
+            in_flight.add(row["id"])
+            futs[ex.submit(process, row)] = row
+        # drain + refill
+        while futs:
+            done, _ = concurrent.futures.wait(
+                futs, return_when=concurrent.futures.FIRST_COMPLETED
+            )
+            for fut in done:
+                d = futs.pop(fut)
+                in_flight.discard(d["id"])
                 try:
                     res = fut.result()
+                    commit_result(conn, d["id"], res)
                 except Exception as e:  # never let one juris kill the loop
                     log(f"  [error] {d['name']}: {e!r}")
                     registry.update(conn, d["id"], state="pending",
                                     barrier_note=f"harness error: {e!r}",
                                     attempts=(d.get("attempts") or 0) + 1)
-                    continue
-                commit_result(conn, d["id"], res)
                 processed += 1
-        if limit and processed >= limit:
-            break
+                # refill the freed slot
+                row = claimable()
+                if row is not None:
+                    in_flight.add(row["id"])
+                    futs[ex.submit(process, row)] = row
     log(f"registry state at end: {registry.counts(conn)}")
 
 
