@@ -121,44 +121,31 @@ def extract_agent_json(text: str) -> dict | None:
         return None
 
 
-def _portal_url_safe(url: str | None) -> bool:
-    """Return True only if url is None/empty or points to an allowed domain.
-
-    bypassPermissions gives the sub-agent unrestricted tool access. Restricting
-    portal_url to .gov/.us and known vendor SaaS domains limits the blast radius
-    if a jurisdiction page ever carries a prompt-injection payload. Full sandbox
-    isolation (Docker/firejail) would be the next level of hardening.
-    """
-    if not url:
-        return True
-    try:
-        host = urllib.parse.urlparse(url).hostname or ""
-    except Exception:
-        return False
-    return bool(_SAFE_PORTAL_DOMAINS.match(host))
-
-
 def run_agent(row) -> dict:
     """Spawn `claude -p --model sonnet` for one jurisdiction. Returns the parsed
-    agent JSON (or a synthetic error dict). NEVER trusted for the verdict."""
-    portal_url = row.get("portal_url") or ""
-    if not _portal_url_safe(portal_url):
-        return {
-            "_error": (
-                f"portal_url domain not in allowlist: {portal_url!r} — "
-                "add it to _SAFE_PORTAL_DOMAINS if it's a legitimate gov/vendor host"
-            )
-        }
+    agent JSON (or a synthetic error dict). NEVER trusted for the verdict.
 
+    Note on the portal_url allowlist: we do NOT hard-reject an off-allowlist URL
+    here, because the whole point of the unknown/walled bucket is that the agent
+    rediscovers the real portal via search even when our seed URL is a `.org` or
+    a guess. Instead `safe_portal_url()` (in fill_prompt) FLAGS an unverified
+    host in the prompt so the agent treats it as untrusted. The hard isolation
+    that bypassPermissions really wants is a sandbox (Docker/firejail) — that is
+    the next hardening step before unleashing this statewide.
+    """
     prompt = fill_prompt(row)
     # bypassPermissions is required: sub-agents must run psql, curl, and
-    # Playwright unattended. The URL allowlist above is the primary mitigation
-    # against prompt-injection via adversarial portal pages.
+    # Playwright unattended. --strict-mcp-config + empty MCP config strips the
+    # heavy user-level MCP servers (cognee-over-SSH, context7, sequential-thinking)
+    # that otherwise add ~minutes of per-spawn startup tax and broaden the tool
+    # surface. A scraper agent needs Bash/curl/psql/Playwright, not those.
     cmd = [
         CLAUDE_BIN, "-p", prompt,
         "--model", MODEL,
         "--output-format", "json",
         "--permission-mode", "bypassPermissions",
+        "--strict-mcp-config",
+        "--mcp-config", '{"mcpServers": {}}',
     ]
     env = dict(os.environ)
     env.pop("ANTHROPIC_API_KEY", None)  # force subscription path, never metered API
