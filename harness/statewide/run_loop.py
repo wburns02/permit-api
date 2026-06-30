@@ -4,14 +4,14 @@
 A real autonomous loop is a harness with BACKPRESSURE. For each jurisdiction:
 
     1. fill the per-jurisdiction prompt template
-    2. spawn `claude -p --model sonnet <prompt>`  (Claude SUBSCRIPTION CLI,
+    2. spawn `claude -p --model claude-sonnet-5 <prompt>`  (Claude SUBSCRIPTION CLI,
        flat-rate; NEVER the metered Anthropic API)
     3. parse the agent's final JSON (its self-reported status is NOT trusted)
     4. run the DETERMINISTIC VERIFIER (verify.py) and GATE ON THAT
     5. write the outcome to the registry (the resumable state)
 
-Model: per-jurisdiction agent calls use Sonnet (config constant MODEL below).
-Sonnet is the right tier for bulk recon/build and conserves subscription quota
+Model: per-jurisdiction agent calls use Sonnet 5 (config constant MODEL below).
+Sonnet 5 is the right tier for bulk recon/build and conserves subscription quota
 (Opus would burn it ~5x faster across 1,200 jurisdictions). The verifier and
 this driver are deterministic code — no model involved.
 
@@ -63,8 +63,9 @@ REPO_ROOT = HERE.parent.parent
 PROMPT_TEMPLATE = (HERE / "jurisdiction_prompt.md").read_text()
 
 # ── Model / cost config ──────────────────────────────────────────────────────
-# Sonnet for the bulk per-jurisdiction work. Change here to retune tier.
-MODEL = os.getenv("STATEWIDE_LOOP_MODEL", "sonnet")
+# Sonnet 5 for the bulk per-jurisdiction work. Change here to retune tier.
+# (Intro pricing $2/$10 per MTok through 2026-08-31, then $3/$15 — same as 4.6.)
+MODEL = os.getenv("STATEWIDE_LOOP_MODEL", "claude-sonnet-5")
 # We invoke the Claude SUBSCRIPTION CLI (`claude -p`), flat-rate. We explicitly
 # do NOT set ANTHROPIC_API_KEY (it's disabled for cost); claude-cli uses the
 # logged-in subscription session.
@@ -161,7 +162,7 @@ def extract_agent_json(text: str) -> dict | None:
 
 
 def run_agent(row) -> dict:
-    """Spawn `claude -p --model sonnet` for one jurisdiction. Returns the parsed
+    """Spawn `claude -p --model claude-sonnet-5` for one jurisdiction. Returns the parsed
     agent JSON (or a synthetic error dict). NEVER trusted for the verdict.
 
     Note on the portal_url allowlist: we do NOT hard-reject an off-allowlist URL
