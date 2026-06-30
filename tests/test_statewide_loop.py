@@ -70,7 +70,7 @@ def test_verifier_passes_real_data(verify_mod):
 def test_verifier_fails_too_few_rows(verify_mod):
     verify_mod._state["rows"] = _real_rows(2)  # < MIN_ROWS
     verify_mod._state["url_live"] = True
-    res = verify_mod.verify("t", "http://x")
+    res = verify_mod.verify("statewide_loop:tx_city_test", "http://x")
     assert not res.passed
     assert "too few rows" in res.reason
 
@@ -81,7 +81,7 @@ def test_verifier_fails_placeholder_addresses(verify_mod):
         "permit_type": None, "issue_date": None, "city": "C", "state": "TX",
     } for i in range(8)]
     verify_mod._state["rows"] = rows
-    res = verify_mod.verify("t", None)
+    res = verify_mod.verify("statewide_loop:tx_city_test", None)
     assert not res.passed
 
 
@@ -91,7 +91,7 @@ def test_verifier_fails_zero_address_variety(verify_mod):
         "permit_type": "Roof", "issue_date": "2026-01-01", "city": "C", "state": "TX",
     } for i in range(8)]
     verify_mod._state["rows"] = rows
-    res = verify_mod.verify("t", "http://x")
+    res = verify_mod.verify("statewide_loop:tx_city_test", "http://x")
     assert not res.passed
     assert "variety" in res.reason
 
@@ -104,13 +104,13 @@ def test_verifier_fails_implausible_dates(verify_mod):
             "permit_type": "BP", "issue_date": "1700-01-01", "city": "C", "state": "TX",
         })
     verify_mod._state["rows"] = rows
-    res = verify_mod.verify("t", "http://x")
+    res = verify_mod.verify("statewide_loop:tx_city_test", "http://x")
     assert not res.passed
 
 
 def test_verifier_db_unreachable(verify_mod):
     verify_mod._state["ping"] = False
-    res = verify_mod.verify("t", None)
+    res = verify_mod.verify("statewide_loop:tx_city_test", None)
     assert not res.passed
     assert "unreachable" in res.reason
 
@@ -156,3 +156,21 @@ def test_extract_agent_json_picks_last_valid():
 def test_extract_agent_json_none_on_garbage():
     import run_loop
     assert run_loop.extract_agent_json("no json here at all") is None
+
+
+def test_safe_portal_url_allows_gov_and_vendors():
+    import run_loop
+    for url in [
+        "https://gis.pearlandtx.gov/hosting/rest/services",
+        "https://conroetx.viewpointcloud.com/",
+        "https://www.mygovonline.com/",
+        "https://aca-prod.accela.com/COSA/",
+    ]:
+        assert run_loop.safe_portal_url(url) == url
+
+
+def test_safe_portal_url_flags_untrusted_host():
+    import run_loop
+    out = run_loop.safe_portal_url("https://evil.example.com/permits")
+    assert "UNVERIFIED" in out
+    assert run_loop.safe_portal_url(None).startswith("?")

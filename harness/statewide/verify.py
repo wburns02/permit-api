@@ -24,12 +24,20 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 import urllib.request
 from dataclasses import dataclass, field
 from datetime import date, datetime
 
 import db
+
+# source_tag must match this pattern before any SQL use.
+# Eliminates injection: the regex rejects anything that isn't a controlled
+# statewide-loop tag, so `_q()` is redundant but kept as defense-in-depth.
+_VALID_TAG_RE = re.compile(
+    r"^statewide_loop:(tx_(city|county)_[a-z0-9_]+|__selftest_(pos|neg))$"
+)
 
 MIN_ROWS = 5                 # a "sample" must be at least this many real rows
 SAMPLE = 50                  # how many rows we pull to inspect
@@ -114,6 +122,9 @@ def _live_feed(url: str | None) -> bool | None:
 
 
 def verify(source_tag: str, source_url: str | None = None) -> Result:
+    if not _VALID_TAG_RE.match(source_tag):
+        return Result(False, f"invalid source_tag format: {source_tag!r}", {})
+
     if not db.ping():
         return Result(False, "db unreachable — cannot verify", {})
 

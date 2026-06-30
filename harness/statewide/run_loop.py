@@ -28,7 +28,23 @@ import re
 import subprocess
 import sys
 import time
+import urllib.parse
 from pathlib import Path
+
+# portal_url allowlist: only .gov, .us, and known SaaS permit vendors.
+# Prevents prompt-injection payloads at arbitrary attacker-controlled URLs from
+# reaching an agent running with bypassPermissions.
+_SAFE_PORTAL_DOMAINS = re.compile(
+    r"^([a-zA-Z0-9._-]+\.(gov|us)"
+    r"|[a-zA-Z0-9._-]+\.viewpointcloud\.com"
+    r"|[a-zA-Z0-9._-]+\.mygovonline\.com"
+    r"|aca-prod\.accela\.com"
+    r"|[a-zA-Z0-9._-]+\.citizenserve\.com"
+    r"|[a-zA-Z0-9._-]+\.energovprod\.com"
+    r"|[a-zA-Z0-9._-]+\.tylertech\.com"
+    r")$",
+    re.IGNORECASE,
+)
 
 import registry
 import seed_data
@@ -57,12 +73,28 @@ def log(msg: str) -> None:
     print(f"{time.strftime('%H:%M:%S')} {msg}", flush=True)
 
 
+def safe_portal_url(url: str | None) -> str:
+    """Only pass a portal_url straight to the agent if its host is on the
+    allowlist (.gov/.us + known permit-SaaS vendors). Anything else is flagged
+    so a poisoned registry row can't silently hand an attacker URL to an agent
+    running with bypassPermissions — the agent is told to confirm it first."""
+    if not url:
+        return "? (none on file — discover it)"
+    try:
+        host = urllib.parse.urlparse(url).hostname or ""
+    except ValueError:
+        host = ""
+    if host and _SAFE_PORTAL_DOMAINS.match(host):
+        return url
+    return f"{url} (UNVERIFIED host — confirm via official .gov before trusting)"
+
+
 def fill_prompt(row) -> str:
     repl = {
         "{{NAME}}": row["name"],
         "{{JTYPE}}": row["jtype"],
         "{{FIPS}}": row["fips"] or "?",
-        "{{PORTAL_URL}}": row["portal_url"] or "?",
+        "{{PORTAL_URL}}": safe_portal_url(row["portal_url"]),
         "{{VENDOR}}": row["vendor"] or "unknown",
         "{{SOURCE_TAG}}": row["source_tag"],
     }
@@ -89,10 +121,39 @@ def extract_agent_json(text: str) -> dict | None:
         return None
 
 
+def _portal_url_safe(url: str | None) -> bool:
+    """Return True only if url is None/empty or points to an allowed domain.
+
+    bypassPermissions gives the sub-agent unrestricted tool access. Restricting
+    portal_url to .gov/.us and known vendor SaaS domains limits the blast radius
+    if a jurisdiction page ever carries a prompt-injection payload. Full sandbox
+    isolation (Docker/firejail) would be the next level of hardening.
+    """
+    if not url:
+        return True
+    try:
+        host = urllib.parse.urlparse(url).hostname or ""
+    except Exception:
+        return False
+    return bool(_SAFE_PORTAL_DOMAINS.match(host))
+
+
 def run_agent(row) -> dict:
     """Spawn `claude -p --model sonnet` for one jurisdiction. Returns the parsed
     agent JSON (or a synthetic error dict). NEVER trusted for the verdict."""
+    portal_url = row.get("portal_url") or ""
+    if not _portal_url_safe(portal_url):
+        return {
+            "_error": (
+                f"portal_url domain not in allowlist: {portal_url!r} — "
+                "add it to _SAFE_PORTAL_DOMAINS if it's a legitimate gov/vendor host"
+            )
+        }
+
     prompt = fill_prompt(row)
+    # bypassPermissions is required: sub-agents must run psql, curl, and
+    # Playwright unattended. The URL allowlist above is the primary mitigation
+    # against prompt-injection via adversarial portal pages.
     cmd = [
         CLAUDE_BIN, "-p", prompt,
         "--model", MODEL,
