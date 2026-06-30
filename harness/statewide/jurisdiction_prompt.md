@@ -61,6 +61,13 @@ run**, not a new scraper. Use the existing scripts:
 Run the adapter to fetch a SAMPLE (a few hundred recent rows is plenty for the
 pilot — do NOT pull the whole history). Then go to Step 3.
 
+**Write any loader you create defensively.** Never let an HTTP/JSON hiccup raise
+an unhandled exception: check `resp.status_code` before `resp.json()`, wrap the
+parse in try/except, and on ANY fetch/parse failure print the JSON object from
+Step 4 with `"status": "walled"` and a precise `barrier_if_walled`, then
+`sys.exit(0)`. A walled jurisdiction is a clean outcome; a traceback is not.
+Do NOT spawn subagents — do this work yourself in this one session.
+
 ### Unknown / walled vendor -> EXHAUST the hunt
 
 Try these IN ORDER and stop at the first that yields real permit rows:

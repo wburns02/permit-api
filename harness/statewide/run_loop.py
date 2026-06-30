@@ -16,7 +16,13 @@ Sonnet is the right tier for bulk recon/build and conserves subscription quota
 this driver are deterministic code — no model involved.
 
 Resumable: kill it anytime; re-run picks up `pending` rows from registry.db.
-Bounded parallelism: at most MAX_PARALLEL concurrent `claude -p` processes.
+
+Bounded resource use (hardened after the 2026-06-29 memory hard-lock):
+  - At most MAX_PARALLEL concurrent `claude -p` processes (default 2).
+  - Each agent runs with `--disallowed-tools Task`, so a driver cannot spawn
+    its own subagent pool — total claude procs == parallel, not parallel × N.
+  - wait_for_memory() holds new spawns while MemAvailable is below
+    MIN_AVAIL_GIB, so the loop never drives the host into swap.
 """
 from __future__ import annotations
 
@@ -64,13 +70,46 @@ MODEL = os.getenv("STATEWIDE_LOOP_MODEL", "sonnet")
 # logged-in subscription session.
 CLAUDE_BIN = os.getenv("CLAUDE_BIN", "claude")
 
-MAX_PARALLEL = int(os.getenv("STATEWIDE_LOOP_PARALLEL", "3"))
+MAX_PARALLEL = int(os.getenv("STATEWIDE_LOOP_PARALLEL", "2"))
 AGENT_TIMEOUT_S = int(os.getenv("STATEWIDE_LOOP_AGENT_TIMEOUT", "900"))  # 15 min/juris
 MAX_ATTEMPTS = 2  # a built-but-failed-verify row gets one retry, then walled
+
+# Memory backstop: never spawn a new agent while the box is low on RAM. The
+# 2026-06-29 hard-lock came from claude sessions stacked on QIDI+Chrome until
+# swap saturated. systemd-oomd backstops the host now, but this loop should not
+# be the thing that pushes it there. Floor is RAM-available, not total.
+MIN_AVAIL_GIB = float(os.getenv("STATEWIDE_LOOP_MIN_AVAIL_GB", "6"))
+MEM_WAIT_POLL_S = 15
+MEM_WAIT_MAX_POLLS = 20  # ~5 min of throttling, then proceed (oomd will catch it)
 
 
 def log(msg: str) -> None:
     print(f"{time.strftime('%H:%M:%S')} {msg}", flush=True)
+
+
+def _avail_gib() -> float:
+    """RAM currently available (GiB), from /proc/meminfo. Returns +inf if it
+    can't be read so a parse failure never blocks the loop."""
+    try:
+        for line in Path("/proc/meminfo").read_text().splitlines():
+            if line.startswith("MemAvailable:"):
+                return int(line.split()[1]) / 1024 / 1024
+    except (OSError, ValueError, IndexError):
+        pass
+    return float("inf")
+
+
+def wait_for_memory() -> None:
+    """Throttle new spawns when RAM is tight. Blocks the refill of a freed slot
+    (in-flight agents keep running) until MemAvailable recovers above the floor,
+    or until the poll budget is spent — then proceeds and lets oomd backstop."""
+    for _ in range(MEM_WAIT_MAX_POLLS):
+        avail = _avail_gib()
+        if avail >= MIN_AVAIL_GIB:
+            return
+        log(f"  [mem  ] avail={avail:.1f}G < {MIN_AVAIL_GIB}G floor — holding new spawn {MEM_WAIT_POLL_S}s")
+        time.sleep(MEM_WAIT_POLL_S)
+    log(f"  [mem  ] still low after {MEM_WAIT_MAX_POLLS * MEM_WAIT_POLL_S}s — proceeding (oomd backstops)")
 
 
 def safe_portal_url(url: str | None) -> str:
@@ -146,6 +185,11 @@ def run_agent(row) -> dict:
         "--permission-mode", "bypassPermissions",
         "--strict-mcp-config",
         "--mcp-config", '{"mcpServers": {}}',
+        # No recursive subagent fan-out. A single-jurisdiction scrape is
+        # sequential work (curl/Playwright/psql); letting each driver spawn its
+        # own Task subagent pool was the unbounded process multiplier behind the
+        # 2026-06-29 memory hard-lock. This pins total claude procs at parallel.
+        "--disallowed-tools", "Task",
     ]
     env = dict(os.environ)
     env.pop("ANTHROPIC_API_KEY", None)  # force subscription path, never metered API
@@ -277,6 +321,7 @@ def run(limit: int | None, parallel: int) -> None:
             row = claimable()
             if row is None:
                 break
+            wait_for_memory()
             in_flight.add(row["id"])
             futs[ex.submit(process, row)] = row
         # drain + refill
@@ -299,6 +344,7 @@ def run(limit: int | None, parallel: int) -> None:
                 # refill the freed slot
                 row = claimable()
                 if row is not None:
+                    wait_for_memory()
                     in_flight.add(row["id"])
                     futs[ex.submit(process, row)] = row
     log(f"registry state at end: {registry.counts(conn)}")
