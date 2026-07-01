@@ -15,7 +15,11 @@ Sonnet 5 is the right tier for bulk recon/build and conserves subscription quota
 (Opus would burn it ~5x faster across 1,200 jurisdictions). The verifier and
 this driver are deterministic code — no model involved.
 
-Resumable: kill it anytime; re-run picks up `pending` rows from registry.db.
+Resumable + pausable: `touch PAUSE` in this dir (or `./loopctl.sh pause`) to stop
+claiming new jurisdictions and exit cleanly once the <=2 in-flight agents finish —
+registry.db holds the state. Remove PAUSE and re-run (`./loopctl.sh resume`) to pick
+up where it left off. A hard kill also works; re-run picks up `pending` rows. Pause
+before taking the permits DB down for maintenance so agents don't fail mid-write.
 
 Bounded resource use (hardened after the 2026-06-29 memory hard-lock):
   - At most MAX_PARALLEL concurrent `claude -p` processes (default 2).
@@ -61,6 +65,9 @@ HERE = Path(__file__).resolve().parent
 # framework (scripts/, db.py, Playwright, psql) on hand.
 REPO_ROOT = HERE.parent.parent
 PROMPT_TEMPLATE = (HERE / "jurisdiction_prompt.md").read_text()
+# Pause sentinel: while this file exists the driver claims no new jurisdictions
+# and exits cleanly once in-flight agents finish. Create/remove via loopctl.sh.
+PAUSE_FILE = HERE / "PAUSE"
 
 # ── Model / cost config ──────────────────────────────────────────────────────
 # Sonnet 5 for the bulk per-jurisdiction work. Change here to retune tier.
@@ -306,8 +313,15 @@ def run(limit: int | None, parallel: int) -> None:
     log(f"registry state at start: {registry.counts(conn)}")
     processed = 0
     in_flight: set[int] = set()
+    pause_announced = False
 
     def claimable() -> dict | None:
+        nonlocal pause_announced
+        if PAUSE_FILE.exists():
+            if not pause_announced:
+                log("  [pause] PAUSE present — no new spawns; draining in-flight, then exiting")
+                pause_announced = True
+            return None
         if limit is not None and processed >= limit:
             return None
         for r in registry.next_pending(conn, parallel * 4):
