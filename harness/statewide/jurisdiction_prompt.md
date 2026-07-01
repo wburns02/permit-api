@@ -58,8 +58,13 @@ run**, not a new scraper. Use the existing scripts:
 - **ArcGIS** -> `python3 scripts/scrape_arcgis_permits.py` against the
   FeatureServer layer; query `?where=1=1&outFields=*&f=json&resultRecordCount=200`.
 
-Run the adapter to fetch a SAMPLE (a few hundred recent rows is plenty for the
-pilot — do NOT pull the whole history). Then go to Step 3.
+Pull EVERY permit in the recent window (default: issued or created in the last
+180 days). **PAGINATE TO EXHAUSTION** — follow the API's next-page / offset /
+`resultOffset` / cursor and keep fetching until a page returns fewer rows than the
+page size. Do NOT stop at page one, and do NOT cap the result at a round number:
+landing on exactly 200 / 500 / 1000 is the tell that pagination was skipped. If a
+jurisdiction is genuinely high-volume, bound the pull by the date window, not by a
+row ceiling. Then go to Step 3.
 
 **Write any loader you create defensively.** Never let an HTTP/JSON hiccup raise
 an unhandled exception: check `resp.status_code` before `resp.json()`, wrap the
@@ -99,8 +104,9 @@ description, address, city, state, zip, issue_date, valuation, contractor_name,
 applicant_name, jurisdiction, source`. `state` must be `'TX'`. Required for a row
 to be useful: `address` non-null AND (`permit_type` OR `issue_date`) non-null.
 
-Gentle-on-DB rules: load via a single bulk insert / COPY of at most a few hundred
-rows. NEVER full-scan `hot_leads`, NEVER `pg_terminate`/`pg_cancel`, NEVER DDL.
+Gentle-on-DB rules: load ALL fetched rows, but in batched COPY chunks of ~500
+(loop the COPY; don't hold one giant transaction and don't cap the total row count).
+NEVER full-scan `hot_leads`, NEVER `pg_terminate`/`pg_cancel`, NEVER DDL.
 The DB connection that works in this environment is the `psql` client with
 `PGGSSENCMODE=disable` (psycopg2 hangs here); DSN
 `postgresql://will@100.122.216.15:5432/permits`. You may reuse
